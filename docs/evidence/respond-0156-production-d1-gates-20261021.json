@@ -1,0 +1,467 @@
+{
+  "sdkVersion": "0.15.6",
+  "environment": "production-mainnet",
+  "result": "Two long production B admission intervals reproduced: 584 and 1026 ms. Their SQL execution totaled 0.7401 and 0.4531 ms. Each statement reported one attempt. Concurrent local storage confirmation returned within the clock resolution, with no observed local SQL mutations during either interval. A periodic delay in the D1 service write path is the leading hypothesis. The exact internal component and a safe latency fix remain unproved.",
+  "method": "Eight fresh registrations using the actual hosted iframe and Gateway, with a local parent and 1200 ms of extra virtual-passkey lead time. Temporary Deriver B observer adds a concurrent storage.sync() at each D1 call and records local SQL mutation statement counts. It does not await sync before invoking D1. Native modules, bindings, placement, runtime, SQL statements, authorization and durability guarantees remain unchanged. The original Worker was restored.",
+  "instrumentCheck": {
+    "realLocalDurableObjectAndD1Probe": "passed",
+    "liveStorageSyncObservations": 41,
+    "liveNonzeroStorageSyncMs": [
+      2,
+      2,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      4
+    ],
+    "zeroInterpretation": "Below observed clock resolution; not proof of zero physical duration."
+  },
+  "observedBindCalls": [
+    {
+      "sample": "00-production",
+      "protocolSessionHex": "d3a3cb968105cb94d17404dd36afa60fca96fcd3a074c564ba2d83961e0395db",
+      "objectId": "76f43b53bfbb9a04d178c8ce5db04496f16a3d4edd6997e5e9f3d250e8f79863",
+      "authenticationMs": 1977.300000011921,
+      "respondMs": 1439.6000000238419,
+      "postPasskeyMs": 1838,
+      "rustBatchMs": 584,
+      "jsD1CallMs": 584,
+      "sqlMs": 0.7401,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "artifact": ".artifacts/d1-production-gates-0156-20261021/00-production/group-01/registration-1.json",
+      "artifactSha256": "53a0ba7fc0dea39670279e5874c81558b4779fe5bcfe9803e45bf0f2c7ec2aef",
+      "localStorageSyncMs": 0,
+      "localSqlMutationStatementsDuringCall": 0,
+      "recordedStartAtMs": 1792534272014,
+      "recordedFinishAtMs": 1792534272598,
+      "recordedStartModulo5000": 2014,
+      "requestCpuMs": 199,
+      "requestWallMs": 843
+    },
+    {
+      "sample": "01-production",
+      "protocolSessionHex": "2d68f0792718ca565b187149cfb732be35a04bd7ccd43daeec3d3935bc628f7a",
+      "objectId": "0d59edc75b86197b9ad250758ca749818d9c5261795ebf93a46d9c43c696e21f",
+      "authenticationMs": 1460,
+      "respondMs": 861.3000000119209,
+      "postPasskeyMs": 1184,
+      "rustBatchMs": 10,
+      "jsD1CallMs": 10,
+      "sqlMs": 0.547,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "artifact": ".artifacts/d1-production-gates-0156-20261021/01-production/group-01/registration-1.json",
+      "artifactSha256": "6e62701edd6d49f6ad811f6d74f07df9916a618c20bfc26e736c8f705a48ad30",
+      "localStorageSyncMs": 0,
+      "localSqlMutationStatementsDuringCall": 0,
+      "recordedStartAtMs": 1792534279976,
+      "recordedFinishAtMs": 1792534279986,
+      "recordedStartModulo5000": 4976,
+      "requestCpuMs": 182,
+      "requestWallMs": 264
+    },
+    {
+      "sample": "02-production",
+      "protocolSessionHex": "ae0ae274f468bccf0e2cd070b2c6b1f61c804e24a9d5b8aeedd1c9f067487289",
+      "objectId": "aed433bf3ec60df0cec981aa4a46c98d034081455ec2ec5b7a5432e40a46431d",
+      "authenticationMs": 1329.800000011921,
+      "respondMs": 2044.6000000238419,
+      "postPasskeyMs": 2332,
+      "rustBatchMs": 1026,
+      "jsD1CallMs": 1026,
+      "sqlMs": 0.4531,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "artifact": ".artifacts/d1-production-gates-0156-20261021/02-production/group-01/registration-1.json",
+      "artifactSha256": "bfefc008142053bc1a7dc7bdb1e0c5a8a78dcbf42f5b10274ee034d639b04b22",
+      "localStorageSyncMs": 0,
+      "localSqlMutationStatementsDuringCall": 0,
+      "recordedStartAtMs": 1792534287000,
+      "recordedFinishAtMs": 1792534288026,
+      "recordedStartModulo5000": 2000,
+      "requestCpuMs": 227,
+      "requestWallMs": 1292
+    },
+    {
+      "sample": "03-production",
+      "protocolSessionHex": "f8065bc55db9ddc464d22ee762dd61ac6233e8f4a77918f513b44feeba8a5299",
+      "objectId": "098477eb86071330ccc42d1f11f479e0b0d0f754033a5dbaad572c02f3c3e587",
+      "authenticationMs": 2077.800000011921,
+      "respondMs": 705,
+      "postPasskeyMs": 1005,
+      "rustBatchMs": 9,
+      "jsD1CallMs": 9,
+      "sqlMs": 0.8239,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "artifact": ".artifacts/d1-production-gates-0156-20261021/03-production/group-01/registration-1.json",
+      "artifactSha256": "931a61e274a1a1de73cdea6e0e5c9be04c29615fda85ac069c12cda9e66e315e",
+      "localStorageSyncMs": 0,
+      "localSqlMutationStatementsDuringCall": 0,
+      "recordedStartAtMs": 1792534296657,
+      "recordedFinishAtMs": 1792534296666,
+      "recordedStartModulo5000": 1657,
+      "requestCpuMs": 192,
+      "requestWallMs": 1125
+    },
+    {
+      "sample": "04-production",
+      "protocolSessionHex": "42c0f6123939385f64fdb4ab2c062db949662633cf9cb8ccf19e1e75095336c1",
+      "objectId": "71c06a737e68af10ed0191d18862caf8fb052760f114ee4c962ae16e8dd36fc6",
+      "authenticationMs": 1806.199999988079,
+      "respondMs": 622.7000000476837,
+      "postPasskeyMs": 1113,
+      "rustBatchMs": 10,
+      "jsD1CallMs": 10,
+      "sqlMs": 0.7689,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "artifact": ".artifacts/d1-production-gates-0156-20261021/04-production/group-01/registration-1.json",
+      "artifactSha256": "7e8b8f6c1e12ca20b6f08f7f0f515a9222b99d5490a4d740244c33289e96f169",
+      "localStorageSyncMs": 0,
+      "localSqlMutationStatementsDuringCall": 0,
+      "recordedStartAtMs": 1792534303837,
+      "recordedFinishAtMs": 1792534303847,
+      "recordedStartModulo5000": 3837,
+      "requestCpuMs": 168,
+      "requestWallMs": 253
+    },
+    {
+      "sample": "06-production",
+      "protocolSessionHex": "c72b0211f0fae149f7db8b55796dbaa09784b2e6897df6b7e7d89645a6c92e38",
+      "objectId": "56c4976034f24f3800f6765c4fd38b5cb96f246d9df1bedfb6a4b7142ec64145",
+      "authenticationMs": 1695.300000011921,
+      "respondMs": 623.3999999761581,
+      "postPasskeyMs": 943,
+      "rustBatchMs": 9,
+      "jsD1CallMs": 9,
+      "sqlMs": 0.5295,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "artifact": ".artifacts/d1-production-gates-0156-20261021/06-production/group-01/registration-1.json",
+      "artifactSha256": "6287f3e3d700fce087f9bc79ebf43c9b75cd4b493194912381ab9b955f374b81",
+      "localStorageSyncMs": 0,
+      "localSqlMutationStatementsDuringCall": 0,
+      "recordedStartAtMs": 1792534318093,
+      "recordedFinishAtMs": 1792534318102,
+      "recordedStartModulo5000": 3093,
+      "requestCpuMs": 190,
+      "requestWallMs": 295
+    },
+    {
+      "sample": "07-production",
+      "protocolSessionHex": "5bf57f9b19d760feab8e9d5ac4aeed623ac51c098ef79ec0b23d16b718963ff2",
+      "objectId": "219dab948d51fcf4fffb22574ae17a6705ae816c4922f427a02cf3baef16e17a",
+      "authenticationMs": 1760.199999988079,
+      "respondMs": 1445.5,
+      "postPasskeyMs": 1770,
+      "rustBatchMs": 7,
+      "jsD1CallMs": 7,
+      "sqlMs": 0.4643,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "artifact": ".artifacts/d1-production-gates-0156-20261021/07-production/group-01/registration-1.json",
+      "artifactSha256": "bd7645e9d9a84870675738e9a8d1cbb2baa40fb7e567d920169bd1944ff1cc45",
+      "localStorageSyncMs": 0,
+      "localSqlMutationStatementsDuringCall": 0,
+      "recordedStartAtMs": 1792534326590,
+      "recordedFinishAtMs": 1792534326597,
+      "recordedStartModulo5000": 1590,
+      "requestCpuMs": 190,
+      "requestWallMs": 1503
+    }
+  ],
+  "allRegistrationProofs": [
+    {
+      "sample": "00-production",
+      "signatureVerified": true,
+      "postPasskeyMs": 1838,
+      "proofArtifact": ".artifacts/d1-production-gates-0156-20261021/00-production/proof-verification.json",
+      "proofArtifactSha256": "37f55c19e0f7b7f768308c67645f7d9a2e8b6569633591a1dd32f3f8b61afdb0"
+    },
+    {
+      "sample": "01-production",
+      "signatureVerified": true,
+      "postPasskeyMs": 1184,
+      "proofArtifact": ".artifacts/d1-production-gates-0156-20261021/01-production/proof-verification.json",
+      "proofArtifactSha256": "d81a50073019499ced8632016693b347b2acbf86d8ad6973e6544e91de6076d4"
+    },
+    {
+      "sample": "02-production",
+      "signatureVerified": true,
+      "postPasskeyMs": 2332,
+      "proofArtifact": ".artifacts/d1-production-gates-0156-20261021/02-production/proof-verification.json",
+      "proofArtifactSha256": "8e1443553a4015e13baa91759cbf3e2491034e6d511f8a5f2d9f868bc8458b83"
+    },
+    {
+      "sample": "03-production",
+      "signatureVerified": true,
+      "postPasskeyMs": 1005,
+      "proofArtifact": ".artifacts/d1-production-gates-0156-20261021/03-production/proof-verification.json",
+      "proofArtifactSha256": "30c42a41f8465cb521ec1fa5384e6219430c9bce926fbafa0b36e8c71bb43f4f"
+    },
+    {
+      "sample": "04-production",
+      "signatureVerified": true,
+      "postPasskeyMs": 1113,
+      "proofArtifact": ".artifacts/d1-production-gates-0156-20261021/04-production/proof-verification.json",
+      "proofArtifactSha256": "5ae88b0723085f52e5253557afe8de3c481260533bce0a19dfdfbd3131c35e64"
+    },
+    {
+      "sample": "05-production",
+      "signatureVerified": true,
+      "postPasskeyMs": 1209,
+      "proofArtifact": ".artifacts/d1-production-gates-0156-20261021/05-production/proof-verification.json",
+      "proofArtifactSha256": "35a1ce4a3106bac2a0d91be0e9926026a0601f6021a947dc3a796dd23b035ac2"
+    },
+    {
+      "sample": "06-production",
+      "signatureVerified": true,
+      "postPasskeyMs": 943,
+      "proofArtifact": ".artifacts/d1-production-gates-0156-20261021/06-production/proof-verification.json",
+      "proofArtifactSha256": "b3fe6eb09564cdfff30f2dbf0c6c79f442d51d2175bd01b9e7c50bd0ac74f7b7"
+    },
+    {
+      "sample": "07-production",
+      "signatureVerified": true,
+      "postPasskeyMs": 1770,
+      "proofArtifact": ".artifacts/d1-production-gates-0156-20261021/07-production/proof-verification.json",
+      "proofArtifactSha256": "e2f387435cc5c1392c5901d3222973959771cfb68a61f9967e1bc115c77b21b5"
+    }
+  ],
+  "missingEvidence": [
+    {
+      "sample": "05-production",
+      "detail": "Registration and signature verification passed. B setup preparation is present, but the input-bound tail event is absent. No B binding duration is inferred or substituted."
+    }
+  ],
+  "facts": [
+    {
+      "id": "F1",
+      "fact": "The 584 ms interval has 0.7401 ms reported SQL, one attempt per statement, and SIN primary execution.",
+      "source": "00-production"
+    },
+    {
+      "id": "F2",
+      "fact": "The 1026 ms interval has 0.4531 ms reported SQL, one attempt per statement, and SIN primary execution.",
+      "source": "02-production"
+    },
+    {
+      "id": "F3",
+      "fact": "Both concurrent local storage confirmations record 0 ms, and the observer sees no local SQL mutation statement during either interval.",
+      "source": "Matching object ID and D1 call ID"
+    },
+    {
+      "id": "F4",
+      "fact": "The live storage-confirmation instrument also reports nonzero durations of 2\u20134 ms.",
+      "source": "B tail"
+    },
+    {
+      "id": "F5",
+      "fact": "The two slow requests report 199 and 227 ms of total CPU time. Other observed requests report 168\u2013192 ms.",
+      "source": "Exact B wallet-pair invocation tails"
+    },
+    {
+      "id": "F6",
+      "fact": "The five slow binds across the original prompt control and two observers start at recorded offsets 2000, 2014, 2161, 2189 and 2212 ms modulo 5000.",
+      "source": "B bound_root_d1_timing timestamps and observer starts"
+    }
+  ],
+  "causeTable": [
+    {
+      "cause": "SQL scan or missing index",
+      "status": "Contradicted for the instrumented calls",
+      "evidence": "F1, F2. All four statements read one row each."
+    },
+    {
+      "cause": "Automatic D1 retries",
+      "status": "Contradicted for the instrumented calls",
+      "evidence": "F1, F2. Each statement reports one attempt."
+    },
+    {
+      "cause": "Role or primary database outside Singapore",
+      "status": "Contradicted at observed colo granularity",
+      "evidence": "Both wallet DO and D1 report SIN."
+    },
+    {
+      "cause": "Local SQL durability gate",
+      "status": "Weakened substantially, not conclusively excluded",
+      "evidence": "F3, F4. sync is an intervention and clocks are clamped."
+    },
+    {
+      "cause": "An additional 0.6\u20131.0 second CPU workload in our handler",
+      "status": "Unsupported by reported request CPU",
+      "evidence": "F5. CPU cannot explain the entire long recorded interval."
+    },
+    {
+      "cause": "Periodic D1 service queueing or write confirmation",
+      "status": "Leading hypothesis; internal component unmeasured",
+      "evidence": "F1\u2013F6. Timing phase is a post hoc observation, not a prospective causal test."
+    },
+    {
+      "cause": "Observer or timestamp artifact",
+      "status": "Affects attribution precision",
+      "evidence": "The original uninstrumented call also stalled, but clock clamping prevents exact physical duration attribution."
+    }
+  ],
+  "corrections": [
+    "The earlier wording that the full 672 ms sits inside the D1 call was too strong as a physical-time attribution. Both timers record 672 ms, but the Worker clock can retain an earlier event timestamp during CPU work.",
+    "The five-second alignment suggests periodicity. It does not prove a periodic D1 commit mechanism or identify a platform process."
+  ],
+  "limits": [
+    "The original 740 ms request has no SQL metadata. New calls reproduce the operation and long-delay class; they do not reconstruct every millisecond of the original request.",
+    "storage.sync() can flush pending writes earlier. This is an active diagnostic intervention, not a performance change.",
+    "The mutation observer records INSERT/UPDATE/DELETE/REPLACE/CREATE/DROP/ALTER statement invocations, not rows changed. It does not count internal platform writes.",
+    "The clock is clamped. Matching Rust and JavaScript intervals are consistent measurements, not independent high-resolution physical clocks.",
+    "D1 queue, durable acknowledgement, service dispatch and callback scheduling are not separately exposed by the available metadata.",
+    "No latency reduction is claimed. Removing the guarded admission update or its coherent root/cancellation reads would change security behavior without a validated replacement.",
+    "One of eight input-bound B tail events is missing. All eight registration outcomes and signatures remain in the record."
+  ],
+  "remainingMeasurement": "Read retained native platform spans to distinguish service dispatch from the D1 call. This requires dashboard sign-in because the current API credential receives 403. Native spans may still leave internal D1 queue and commit time combined. No provider was contacted, as instructed.",
+  "restoration": {
+    "phase": "complete",
+    "restored": true,
+    "expectedVersions": {
+      "router-ab-mpc-router": [
+        {
+          "version_id": "df719c67-0729-4eb7-8a37-3bf0edd5dbeb",
+          "percentage": 100
+        }
+      ],
+      "router-ab-deriver-a": [
+        {
+          "version_id": "ebc3578b-ebd5-42d4-ba03-e007118756bb",
+          "percentage": 100
+        }
+      ],
+      "router-ab-deriver-b": [
+        {
+          "version_id": "778b2440-5686-4917-bf9a-3e7e127d0e42",
+          "percentage": 100
+        }
+      ],
+      "router-ab-signing-worker": [
+        {
+          "version_id": "82bc7dae-1408-4c63-858d-17f35c613ae0",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway": [
+        {
+          "version_id": "27670629-672a-4f0e-85f3-0517a2025597",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime": [
+        {
+          "version_id": "510f59ad-70f7-4134-88ba-5d818b0fcf0c",
+          "percentage": 100
+        }
+      ]
+    },
+    "cleanupErrors": []
+  },
+  "sources": {
+    ".artifacts/d1-production-gates-0156-20261021/observer.mjs": "89d7cac03687dc98551940ff420497b7dad4dc01a15105f15a4a1d02b34ec05f",
+    ".artifacts/d1-production-gates-0156-20261021/prepare.py": "cc11a338436d71b21f6607f4d53252e2164758b517882398eead3b3f2f47c3ba",
+    ".artifacts/d1-production-gates-0156-20261021/experiment.py": "50dfb3e3f2fac11700570da0d0ebe5b1b9cc53f992c9ec714e702a8eefc2ffa3",
+    ".artifacts/d1-production-gates-0156-20261021/run.py": "8fefd35f3e6b03c26d1ccae8c0ed2b2f823d5870a60a7161492133fa9e566ecd",
+    ".artifacts/d1-production-gates-0156-20261021/summarize.py": "fffb0e9da4ce473a29d92496a41496f02b09757496bc1725918d85a2444c0412",
+    ".artifacts/d1-production-gates-0156-20261021/tails/router-ab-deriver-b.jsonl": "ff7f20eada2439ac90698dd736cfb82683e3c333d97c3c6871bf3329af577b66"
+  },
+  "metadataDefinition": "https://developers.cloudflare.com/d1/worker-api/return-object/",
+  "nativeTraceFollowup": {
+    "enabledOnOriginalWorker": true,
+    "persist": true,
+    "headSamplingRate": 1,
+    "apiResult": "HTTP 403 Forbidden, including retry after credential refresh",
+    "dashboardState": "Signed out; existing Google account profile displayed",
+    "nextAction": "Read retained native spans for the same protocol requests after the user signs in. No new measurement run or deployment is required."
+  }
+}

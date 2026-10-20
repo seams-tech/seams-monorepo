@@ -1,7 +1,7 @@
 {
   "sdkVersion": "0.15.6",
   "environment": "production-mainnet",
-  "finding": "A production Deriver B bind-registration batch reproduced a 672 ms wait. The JavaScript D1 call and enclosing Rust timer both measured 672 ms. The four SQL statements totaled 0.466 ms, each with one attempt, on the Singapore primary. The remaining interval is inside the D1 call, outside reported SQL execution.",
+  "finding": "A production Deriver B bind-registration batch reproduced a recorded 672 ms interval. The JavaScript D1 call and enclosing Rust timer both recorded 672 ms. The four SQL statements totaled 0.466 ms, each with one attempt, on the Singapore primary. Clock clamping prevents attributing the full recorded interval to physical D1 execution or transport.",
   "method": "Eight fresh wallet registrations using the actual hosted iframe and Gateway. Local parent. An extra 1200 ms precedes the virtual authenticator call. A temporary observer wraps only Deriver B D1 methods. Original WASM bytes, bindings, placement, and runtime settings remain unchanged. Original Worker restored after the experiment.",
   "rows": [
     {
@@ -1070,7 +1070,8 @@
     "D1 elapsed time includes local output gates, service dispatch, database queueing/durability, response transport, and callback scheduling. This observer cannot separate those parts.",
     "Worker clocks are clamped. Equal Rust and JavaScript durations exclude a separately observed gap, but do not prove zero Rust CPU work.",
     "This temporary observer adds promise continuations and logging. These measurements establish attribution, not a performance improvement.",
-    "Virtual authentication duration does not measure a human Touch ID interaction. Post-passkey time uses the explicit registration.post_touch_id span."
+    "Virtual authentication duration does not measure a human Touch ID interaction. Post-passkey time uses the explicit registration.post_touch_id span.",
+    "Correction: matching JavaScript and Rust timers do not prove that every millisecond occurred physically inside D1. Their common Worker clock may retain an earlier event timestamp during CPU work. See the subsequent gate observation record."
   ],
   "causeTable": [
     {

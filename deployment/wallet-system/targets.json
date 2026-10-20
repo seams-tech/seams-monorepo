@@ -516,6 +516,7 @@
           },
           "router": {
             "workerName": "router-ab-mpc-router",
+            "placementRegion": "aws:ap-southeast-1",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.router.toml",
             "deploymentEnvironment": {
               "kind": "default"
@@ -523,6 +524,8 @@
           },
           "deriverA": {
             "workerName": "router-ab-deriver-a",
+            "placementRegion": "aws:ap-southeast-1",
+            "d1PrimaryColo": "SIN",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.deriver-a.toml",
             "deploymentEnvironment": {
               "kind": "default"
@@ -530,6 +533,8 @@
           },
           "deriverB": {
             "workerName": "router-ab-deriver-b",
+            "placementRegion": "aws:ap-southeast-1",
+            "d1PrimaryColo": "SIN",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.deriver-b.toml",
             "deploymentEnvironment": {
               "kind": "default"
@@ -537,6 +542,8 @@
           },
           "signingWorker": {
             "workerName": "router-ab-signing-worker",
+            "placementRegion": "aws:ap-southeast-1",
+            "d1PrimaryColo": "SIN",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.signing-worker.toml",
             "deploymentEnvironment": {
               "kind": "default"
@@ -544,6 +551,7 @@
           },
           "tenantRootControlPlane": {
             "workerName": "router-ab-tenant-root-control-plane",
+            "placementRegion": "aws:ap-southeast-1",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.tenant-root-control-plane.toml",
             "deploymentEnvironment": {
               "kind": "default"
@@ -606,11 +614,11 @@
                 },
                 "APAC": {
                   "workerName": "seams-sdk-d1-gateway",
-                  "placementRegion": "aws:ap-east-1",
+                  "placementRegion": "aws:ap-southeast-1",
                   "signerD1": {
                     "kind": "allocated",
-                    "name": "seams-signer",
-                    "id": "4ff8a7fc-2bde-49b4-9284-8aff748df284"
+                    "name": "seams-signer-sin",
+                    "id": "8a009ce1-fcf8-4521-8e2e-87ca0a6336df"
                   }
                 },
                 "OC": {

@@ -163,7 +163,7 @@ async function inspectTarget(
   generation: number,
   destination: boolean,
 ): Promise<CustodyTarget> {
-  const hints = { US: 'enam', WEUR: 'weur', APAC: 'apac', OC: 'oc' } as const;
+  const hints = { US: 'enam', WEUR: 'weur', APAC: 'apac-se', OC: 'oc' } as const;
   const response = await runtime.fetch(
     new Request(
       'https://wallet-runtime.internal/internal/wallet-runtime/v1/relocation/custody-target',

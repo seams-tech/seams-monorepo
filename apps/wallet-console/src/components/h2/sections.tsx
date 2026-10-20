@@ -1226,6 +1226,36 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
   },
 ];
 
+/* ---------- closing call to action: a cream band fading into grain ---------- */
+
+export function H2Cta(): React.JSX.Element {
+  const { linkProps } = useSiteRouter();
+  const docsProps = linkProps('/docs/');
+  const startProps = linkProps('/dashboard');
+
+  return (
+    <section className="h2-cta h2-rule" aria-labelledby="h2-cta-title">
+      <div className="h2-cta__grain" aria-hidden="true" />
+      <div className="h2-shell h2-cta__inner">
+        <div>
+          <h2 id="h2-cta-title" className="h2-display h2-cta__title">
+            Wallets your users can never lose
+          </h2>
+          <p className="h2-cta__sub">Passkeys, split keys and recovery in one SDK.</p>
+        </div>
+        <div className="h2-cta__actions">
+          <a className="h2-btn h2-btn--outline" href={docsProps.href} onClick={docsProps.onClick}>
+            Explore docs
+          </a>
+          <a className="h2-btn h2-btn--primary" href={startProps.href} onClick={startProps.onClick}>
+            Start building
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function H2Footer(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const homeProps = linkProps('https://seams.sh/');

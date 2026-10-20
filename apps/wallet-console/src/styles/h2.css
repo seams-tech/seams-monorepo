@@ -3673,6 +3673,73 @@ body:has(.h2-page) {
   text-align: center;
 }
 
+/* ---------- closing call to action ---------- */
+
+/* A cream band whose right side fades into the sky-sand grain, so the page
+   ends on its one colour accent. The grain is its own layer: the section's
+   pseudo-elements already draw the rule and its ticks. */
+.h2-cta {
+  background: var(--h2-taupe);
+}
+
+.h2-cta__grain {
+  position: absolute;
+  inset: 0 0 0 38%;
+  background: url('/gradients/web/sky-sand.jpg') center / cover;
+  -webkit-mask-image: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.85) 70%);
+  mask-image: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.85) 70%);
+  pointer-events: none;
+}
+
+.h2-cta__inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding-block: 64px;
+}
+
+.h2-cta__title {
+  margin: 0;
+  font-size: clamp(24px, 2.6vw, 34px);
+  font-weight: 400;
+  line-height: 1.12;
+}
+
+.h2-cta__sub {
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--h2-smoke);
+}
+
+.h2-cta__actions {
+  display: flex;
+  flex: none;
+  gap: 10px;
+}
+
+/* on the grain the outline button needs its own white ground */
+.h2-cta .h2-btn--outline {
+  background: var(--h2-bg);
+}
+
+@media (max-width: 760px) {
+  .h2-cta__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-block: 48px 56px;
+  }
+
+  /* stacked, the grain rises from the bottom behind the buttons */
+  .h2-cta__grain {
+    inset: 0;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 52%, rgba(0, 0, 0, 0.85));
+    mask-image: linear-gradient(to bottom, transparent 52%, rgba(0, 0, 0, 0.85));
+  }
+}
+
 /* ---------- footer ---------- */
 
 .h2-footer {

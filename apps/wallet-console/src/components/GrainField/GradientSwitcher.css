@@ -1,0 +1,61 @@
+/* Development gradient switcher: a small fixed pill at the bottom left. */
+.gradient-switcher {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #ebe8e4;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px -12px rgba(15, 23, 42, 0.35);
+  color: #0a0a0a;
+  font:
+    500 13px/1 'Hanken Grotesk',
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+}
+
+.gradient-switcher button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.gradient-switcher button:hover {
+  background: #f5f3f1;
+}
+
+.gradient-switcher select {
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.gradient-switcher button:focus-visible,
+.gradient-switcher select:focus-visible {
+  outline: 2px solid #0a0a0a;
+  outline-offset: 1px;
+}
+
+.gradient-switcher__count {
+  padding-inline: 4px 10px;
+  color: #777169;
+  font-variant-numeric: tabular-nums;
+}

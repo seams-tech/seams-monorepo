@@ -1,4 +1,5 @@
 import React from 'react';
+import { useGrainFieldOverride } from './fieldOverride';
 import { grainFieldSource, type GeneratedField, type GrainFieldName } from './fields';
 import { addGrainField, type GrainFieldHandle } from './renderer';
 import './GrainField.css';
@@ -27,7 +28,9 @@ export function GrainField({
 }: GrainFieldProps): React.JSX.Element {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const handleRef = React.useRef<GrainFieldHandle | null>(null);
-  const source = grainFieldSource(field);
+  /* the development gradient switcher can preview one field everywhere */
+  const override = useGrainFieldOverride();
+  const source = grainFieldSource(override ?? field);
 
   React.useEffect(() => {
     const canvas = canvasRef.current;

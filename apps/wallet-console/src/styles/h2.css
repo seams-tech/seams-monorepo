@@ -1834,7 +1834,10 @@ body:has(.h2-page) {
   min-height: var(--h2-hero-min-height);
   padding: 78px 36px 32px;
   border-left: 1px solid var(--h2-stone);
+  /* shown until the gradient's first frame */
   background-color: color-mix(in srgb, var(--h2-taupe) 55%, var(--h2-bg) 45%);
+  /* keeps the gradient canvas's negative z-index inside this cell */
+  isolation: isolate;
 }
 
 .h2-hero__demo .h2-themeswitch {
@@ -1845,7 +1848,8 @@ body:has(.h2-page) {
 /* the chip row scrolls edge to edge: break out of the demo column's 36px side
    padding, then re-add it inside so the chips still start on the content rail.
    The negative margins cancel the added width, so the row's layout footprint
-   (and the centered THEMES kicker above it) is unchanged. */
+   is unchanged. The side padding also leaves room for the active chip's
+   outer ring. */
 .h2-hero__demo .h2-themeswitch__track {
   width: calc(100% + 72px);
   max-width: calc(100% + 72px);
@@ -1858,12 +1862,13 @@ body:has(.h2-page) {
   min-height: var(--h2-wallet-demo-shell-min-height);
 }
 
-/* The wallet hero runs 1rem shorter than the shared hero. The demo cell's top
+/* The wallet hero runs 3rem shorter than the shared hero. The demo cell's top
    padding clears the floating navbar and its card reserve holds the unlocked
-   card, so the rem comes out of the cell's bottom padding, and the minimum
-   height drops by the same amount so the copy column does not hold it. */
+   card, so the first rem comes out of the cell's bottom padding and the other
+   two are spare room that centred the card; the minimum height drops by the
+   whole amount so the copy column does not hold it. */
 .h2-page--wallet .h2-hero__split {
-  --h2-hero-min-height: 623px;
+  --h2-hero-min-height: 591px;
 }
 
 @media (min-width: 981px) {
@@ -1872,9 +1877,9 @@ body:has(.h2-page) {
   }
 }
 
-/* In the hero the Live Demo label already separates the card from the cell
-   edge, so drop the shell's 2rem top inset; both the login and unlocked
-   states lose the same amount, which keeps unlocking from resizing the cell. */
+/* In the hero the cell's own padding separates the card from the cell edge,
+   so drop the shell's 2rem top inset; both the login and unlocked states
+   lose the same amount, which keeps unlocking from resizing the cell. */
 .h2-page--wallet .h2-hero__demo .passkey-demo {
   padding-top: 0;
 }
@@ -1922,8 +1927,8 @@ body:has(.h2-page) {
 }
 
 /* Live-demo theme presets. */
-/* kicker over a single-line chip carousel; justify-items lets the track size
-   to its content so short rows center and long ones fill and scroll */
+/* a single-line chip carousel; justify-items lets the track size to its
+   content so short rows center and long ones fill and scroll */
 .h2-themeswitch {
   display: grid;
   justify-items: center;
@@ -1931,22 +1936,15 @@ body:has(.h2-page) {
   margin-top: 26px;
 }
 
-.h2-themeswitch__label {
-  font-family: var(--h2-label);
-  font-size: var(--h2-text-xs);
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--h2-ash);
-}
-
 .h2-themeswitch__track {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 7px;
+  /* wide enough that the active chip's 4px rings leave a gap to the next */
+  gap: 10px;
   max-width: 100%;
-  padding-bottom: 2px;
+  /* room for the active chip's outer rings, which the scroller would clip */
+  padding-block: 4px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   cursor: grab;
@@ -1974,7 +1972,9 @@ body:has(.h2-page) {
   gap: 7px;
   padding: 5px 13px 5px 7px;
   border-radius: 9999px;
-  border: 1px solid var(--h2-stone);
+  /* transparent, so the white fill runs to the edge on the gradient; it
+     stays so the chip keeps its size */
+  border: 1px solid transparent;
   background: var(--h2-bg);
   color: var(--h2-smoke);
   font-family: inherit;
@@ -1984,18 +1984,23 @@ body:has(.h2-page) {
   transition:
     color 150ms ease,
     border-color 150ms ease,
-    background-color 150ms ease;
+    background-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
-.h2-themeswitch__btn:hover {
-  color: var(--h2-ink);
-  border-color: var(--h2-ash);
+/* hover only tints the fill; the active chip keeps the fill its ring
+   matches */
+.h2-themeswitch__btn:not(.is-active):hover {
+  background: var(--h2-taupe);
 }
 
+/* the active chip gets a gap highlight: a 2px ring in the chip's own fill,
+   held 2px off its edge so the gradient shows through the gap. An outline
+   takes no space, so the chip keeps its size and the row does not shift. */
 .h2-themeswitch__btn.is-active {
   color: var(--h2-ink);
-  border-color: var(--h2-ink);
-  background: var(--h2-taupe);
+  outline: 2px solid var(--h2-bg);
+  outline-offset: 2px;
 }
 
 .h2-themeswitch__swatch {
@@ -3002,17 +3007,6 @@ body:has(.h2-page) {
 
 .h2-demo__unavailable .h2-btn {
   margin-top: 16px;
-}
-
-.h2-demo-label {
-  margin: 0 0 11px;
-  font-family: var(--h2-label);
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--h2-smoke) 62%, transparent);
-  text-align: center;
 }
 
 /* ---------- closing call to action ---------- */

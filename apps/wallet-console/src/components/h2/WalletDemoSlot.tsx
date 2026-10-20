@@ -11,6 +11,10 @@ const WalletDemo = React.lazy(loadWalletDemo);
 type DemoState = { kind: 'ready' } | { kind: 'unavailable' };
 type DemoProps = { authDefaultModeWhenNoDetectedAccount?: HostedAuthMenuMode };
 
+/* the hero field moves at half the site pace, so the motion behind the
+   card stays calm */
+const HERO_FIELD_PACE = 0.5;
+
 /* The hero's demo cell: the live card on a moving gradient. Every state of
    the cell (loading, ready, unavailable) uses it, so the gradient never
    drops out while the demo loads. */
@@ -20,7 +24,7 @@ export function HeroDemoCell({
 }: React.HTMLAttributes<HTMLDivElement>): React.JSX.Element {
   return (
     <div className="h2-hero__demo" {...rest}>
-      <GrainField field="sky-sand" />
+      <GrainField field="slate-amber" pace={HERO_FIELD_PACE} />
       {children}
     </div>
   );

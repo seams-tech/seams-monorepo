@@ -129,7 +129,7 @@ const productsDropdownPane: DropdownPane = {
     title: 'Architecture',
     description: 'How passkeys, policy, and signing fit together',
     to: '/docs/concepts/architecture',
-    field: 'cobalt',
+    field: 'slate-amber',
   },
   footerLinks: [{ label: 'Read the docs', to: '/docs/' }],
 };

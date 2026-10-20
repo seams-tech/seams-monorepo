@@ -13,6 +13,8 @@ type GrainFieldProps = {
      measured in heights of the short side, so a wide banner, whose colours
      spread over its width, needs more of it to show the same movement. */
   flow?: number;
+  /* How fast this field flows, as a multiple of the site style. */
+  pace?: number;
 };
 
 const MAX_PIXEL_RATIO = 2;
@@ -25,6 +27,7 @@ export function GrainField({
   playing = true,
   className,
   flow = 1,
+  pace = 1,
 }: GrainFieldProps): React.JSX.Element {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const handleRef = React.useRef<GrainFieldHandle | null>(null);
@@ -35,7 +38,7 @@ export function GrainField({
   React.useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
-    const handle = addGrainField(canvas, source, flow);
+    const handle = addGrainField(canvas, source, flow, pace);
     handleRef.current = handle;
     const resizeObserver = new ResizeObserver(([entry]) => {
       const ratio = Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO);
@@ -53,7 +56,7 @@ export function GrainField({
       handle.dispose();
       handleRef.current = null;
     };
-  }, [source, flow]);
+  }, [source, flow, pace]);
 
   React.useEffect(() => {
     handleRef.current?.setPlaying(playing);

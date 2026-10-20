@@ -39,6 +39,8 @@ type View = {
   clock: number;
   /* scales the style's distortion for this field alone */
   flow: number;
+  /* scales the style's speed for this field alone */
+  pace: number;
   /* needs a frame even while paused: new, resized or restored */
   stale: boolean;
 };
@@ -332,7 +334,7 @@ function tick(now: number): void {
     const animate = animates(view);
     moving ||= animate;
     if (animate && due) {
-      view.clock += step * style.speed;
+      view.clock += step * style.speed * view.pace;
       draw(view);
     } else if (view.stale) {
       draw(view);
@@ -367,6 +369,7 @@ export function addGrainField(
   canvas: HTMLCanvasElement,
   source: GrainFieldSource,
   flow = 1,
+  pace = 1,
 ): GrainFieldHandle {
   watchEnvironment();
   const view: View = {
@@ -380,6 +383,7 @@ export function addGrainField(
     height: 0,
     clock: 0,
     flow,
+    pace,
     stale: true,
   };
   views.add(view);

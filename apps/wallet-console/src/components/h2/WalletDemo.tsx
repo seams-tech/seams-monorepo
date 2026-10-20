@@ -10,6 +10,7 @@ import {
   demoReactTokens,
   type DemoThemeId,
 } from '@/context/app-themes';
+import { HeroDemoCell } from './WalletDemoSlot';
 
 function loadDemoPasskeyColumn() {
   return import('@/components/DemoPasskeyColumn').then(selectDemoPasskeyColumn);
@@ -109,8 +110,7 @@ function WalletDemoContent({
 
   return (
     <>
-      <div className="h2-hero__demo">
-        <p className="h2-demo-label">Live Demo</p>
+      <HeroDemoCell>
         <Theme
           theme={activePreset.mode}
           tokens={demoReactTokens(activePreset)}
@@ -131,7 +131,6 @@ function WalletDemoContent({
           </div>
         </Theme>
         <div className="h2-themeswitch">
-          <span className="h2-themeswitch__label">Themes</span>
           <div
             ref={themeTrackRef}
             className="h2-themeswitch__track"
@@ -152,7 +151,7 @@ function WalletDemoContent({
             ))}
           </div>
         </div>
-      </div>
+      </HeroDemoCell>
 
       {/* Pager lives at the split level so it sits on the divider/border junction */}
       <div className="h2-pager" role="group" aria-label="Demo screens">

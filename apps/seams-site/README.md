@@ -1,50 +1,67 @@
-# Seams Site Dev Server
+# Seams site development
 
-This app runs a dedicated wallet/service origin for local development. The app Vite server owns only the demo application, while Caddy serves the hosted wallet asset tree from the installed `@seams/wallet` package.
+This private application provides company and product pages. Public Wallet
+documentation lives in `seams-wallet/apps/docs`. Local development consumes
+published Wallet packages and a built public docs artifact.
 
-- Dev server: `http://localhost:4004`
-- App origin (via Caddy): `http://localhost:4001`
-- Docs origin (via Caddy): `https://docs.localhost:4003`
-- Wallet origin (via Caddy): `https://localhost:4002`
-- Router API origin (via Caddy): `https://localhost:4101`
-- Service path: `/wallet-service`
-- SDK assets base: `/sdk/*` (served from `node_modules/@seams/wallet/dist/public/sdk`)
+## Complete local stack
 
-## Usage
+Run these commands from the private repository root in separate terminals:
 
-- Start this dev server:
-
-```
-pnpm -C apps/seams-site dev
+```sh
+pnpm router
+pnpm site
 ```
 
-- Run the main example app with `pnpm run site`; it starts foreground Caddy on unprivileged ports and prints the local links. Run `pnpm router` separately so the Router API origin `https://localhost:4101` is available. If wallet assets are missing or stale, refresh them explicitly with `pnpm build:sdk`; after Rust/WASM changes, run `pnpm build:sdk-full`.
+`pnpm router` starts packaged Wallet Workers and private Gateway composition.
+`pnpm site` starts the frontends, Caddy, and public docs preview. Stage the docs
+artifact at `.artifacts/wallet-docs` first. Follow the
+[publication procedure](../../docs/README.md#build-preview-and-publish-public-documentation).
 
-Open:
+| Surface                 | Local URL                               |
+| ----------------------- | --------------------------------------- |
+| Company entry           | `http://localhost:4001`                 |
+| Wallet page             | `http://localhost:4001/wallet`          |
+| Wallet Console          | `http://localhost:4001/dashboard`       |
+| Documentation preview   | `https://docs.localhost:4003`           |
+| Isolated wallet service | `https://localhost:4002/wallet-service` |
+| Gateway                 | `https://localhost:4101`                |
 
-- `http://localhost:4001/wallet` – the Seams wallet page
-- `https://localhost:4002/wallet-service` – the iframe service page
-- `https://localhost:4101` – Router API origin
-- `https://docs.localhost:4003` – docs site
+`pnpm -C apps/seams-site vite` runs only this app on port 4004. It does not
+start the complete proxy, backend, Console, or documentation stack.
 
-## Production deployment
+## Wallet assets and documentation
 
-Production app and wallet Pages artifacts are built from the accepted `main`
-revision by the `Deploy / production / cloudflare-stack` workflow. Revisions
-under `apps/seams-site/` select both Pages deployments so their SDK and wallet
-assets stay on the same release.
+Current private pins are Wallet and Wallet Server 0.15.4. The iframe protocol
+is 16.0.0. Caddy serves assets from the installed package. Update exact package
+pins and the lockfile when consuming releases. SDK and Rust builds belong in
+`seams-wallet`.
 
-## Notes
+The app origin rejects `/sdk/*`, `/wallet-service`, and `/export-viewer` to detect
+accidental app-hosted wallet assets. Keep these assets on the wallet origin.
 
-- The route `/wallet-service` is served by Caddy from `node_modules/@seams/wallet/dist/public/wallet-service/index.html` and loads `/sdk/wallet-iframe-host-runtime.js` from the same wallet origin.
-- App-origin requests for `/sdk/*`, `/wallet-service`, and `/export-viewer` return 404 through Caddy to catch accidental app-hosted wallet asset dependencies.
-- The wallet origin does not use app COOP, COEP, CORP, or Permissions-Policy defaults for SDK assets. Document routes keep the local `frame-ancestors` policy emitted in the static header manifest.
-- Keep the SDK build current by re-running `pnpm build:sdk` after wallet runtime changes.
-- Docs are served from the VitePress dev server at `https://docs.localhost:4003`.
+`pnpm docs:preview` serves a static artifact on port 4006. It does not watch
+sibling sources. Rebuild, commit, and restage the public docs to preview a new
+revision. Never edit the generated copy.
 
-### Dashboard inline modal scrolling
+## Production publication
 
-- Keep exactly one scroll host active while an inline modal is open.
-- For dashboard modals, the backdrop should own scrolling and the underlying `.dashboard-main` container should be scroll-locked.
-- If both the backdrop and `.dashboard-main` scroll at the same time, trackpad and wheel scrolling can stop halfway through the modal and require a second gesture.
-- Elastic overscroll can also expose the backdrop boundary near the topbar, so the backdrop should extend beyond the visible content frame instead of ending exactly at the viewport edge.
+The existing production frontend workflow selects company, Wallet site,
+Console, or wallet-host surfaces. `wallet-site` includes public docs built from
+the supplied full `wallet_revision`. Its receipt records that revision. Verify
+staging before production through the corresponding frontend workflows.
+
+After application changes, run:
+
+```sh
+pnpm -C apps/seams-site typecheck
+pnpm -C apps/seams-site build
+```
+
+Check deep links from marketing and Console with the configured `VITE_DOCS_ORIGIN`.
+
+## Dashboard inline modal scrolling
+
+Keep one scroll host active while an inline modal is open. The backdrop owns
+scrolling, and `.dashboard-main` stays scroll-locked. Extend the backdrop beyond
+the visible frame to avoid exposing its boundary during elastic overscroll.

@@ -199,14 +199,11 @@ Evidence:
 On 2026-10-13, the user scoped this task to shared-account staging.
 The separate production Wallet rollout remains outside this task.
 Production shared-account cutover requires that rollout first.
-The [existing production release gaps](../singapore-clean-switch-20261013.md#production-testnet-and-mainnet-databases-ready-deployment-blocked)
-include missing regional Workers and the missing mainnet activation path.
 
 The production workflow permits only `main`.
 Repository instructions require implementation commits on `dev`.
 Promotion and the maintenance window must therefore be resolved before production dispatch.
-The production source baseline also trails staging by several Wallet migrations.
-The clone rehearsal validates their data transforms, while release checks must validate their deployed runtime composition.
+Release checks must validate the deployed runtime composition and migrations.
 
 Use one bounded organisation cohort and one authoritative writer for each transition.
 Keep existing Seams organisations separate from the imported Satyr organisation.

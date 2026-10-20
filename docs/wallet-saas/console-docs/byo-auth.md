@@ -59,3 +59,16 @@ operations.
 
 Console authentication remains independent and is outside this wallet SDK
 boundary.
+
+## Published SDK integration
+
+Use the [authentication guide](https://wallet.seams.sh/docs/guides/authentication)
+and [compiled examples](https://wallet.seams.sh/docs/examples/wallet-setup-and-authentication)
+for the published 0.15.4 API. Mount the hosted auth menu inside the provider.
+An application-owned Google broker supplies identity evidence; Email OTP still
+establishes wallet authority. VoiceID remains proposed.
+
+When application logout should also end wallet authority, call `seams.auth.lock()`
+explicitly. Lock retains valid durable presignatures for a later authorized
+unlock. A local session display, wallet ID, or restored application login does
+not itself authorize signing.

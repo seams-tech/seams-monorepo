@@ -268,6 +268,12 @@ function buildFrontend(site, component, walletLanes) {
     writeWalletConsoleRedirects(site);
     copyPublicDocsArtifact();
     copySdkAssets(WALLET_SITE_OUTPUT);
+    if (site.id === 'staging') {
+      fs.appendFileSync(
+        path.join(WALLET_SITE_OUTPUT, '_headers'),
+        '\n/docs/*\n  X-Robots-Tag: noindex, nofollow\n',
+      );
+    }
     assertFile(path.join(WALLET_SITE_OUTPUT, 'index.html'), 'Wallet site entry');
     assertFile(path.join(WALLET_SITE_OUTPUT, 'docs', 'index.html'), 'Wallet docs entry');
     return;
@@ -488,6 +494,9 @@ function buildSmokeChecks(site, component, walletLanes) {
       '/',
       '/docs/',
       '/docs/concepts/',
+      '/docs/releases',
+      '/docs/reference/server',
+      '/docs/seams-wallet-docs-artifact.json',
       '/sdk/workers/near-signer.worker.js',
     ]);
   }

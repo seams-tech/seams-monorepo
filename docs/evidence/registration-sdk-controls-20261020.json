@@ -1,0 +1,135 @@
+{
+  "date": "2026-10-20",
+  "scope": "SDK 0.13.0 versus 0.15.4 with the staging backend fixed at 0.15.4",
+  "blockExperiment": {
+    "samplesPerArm": 12,
+    "mediansMs": {
+      "0.15.4 remote": 2394.5,
+      "0.15.4 local": 2300.0,
+      "0.13.0 local": 1712.0
+    },
+    "interpretation": "The pooled SDK gap was not reproduced by tighter one-wallet controls."
+  },
+  "pairedExperiment": {
+    "samplesPerSdk": 12,
+    "results": {
+      "0.13.0": {
+        "count": 12,
+        "postPasskeyMedianMs": 1768.0,
+        "rangeMs": [
+          1467,
+          2655
+        ],
+        "stageMediansMs": {
+          "near_only.setup": 653.1,
+          "near_only.authentication": 487.8,
+          "near_only.respond": 1186.3,
+          "near_only.finalize": 433.1
+        },
+        "setupToRespondLeadMs": 941.3,
+        "serverMediansMs": {
+          "yao_admission_bind": 41.5,
+          "yao_router_execution": 915.0,
+          "yao_router_prepare_pair": 118.5,
+          "yao_router_role_execution": 683.5
+        }
+      },
+      "0.15.4": {
+        "count": 12,
+        "postPasskeyMedianMs": 1777.5,
+        "rangeMs": [
+          1284,
+          2916
+        ],
+        "stageMediansMs": {
+          "near_only.setup": 561.6,
+          "near_only.authentication": 606.1,
+          "near_only.respond": 1179.7,
+          "near_only.finalize": 453.2
+        },
+        "setupToRespondLeadMs": 971.8,
+        "serverMediansMs": {
+          "yao_admission_bind": 44.5,
+          "yao_router_execution": 880.5,
+          "yao_router_prepare_pair": 134.0,
+          "yao_router_role_execution": 569.5
+        }
+      }
+    },
+    "medianPairedDifferenceNewMinusOldMs": -25.0,
+    "pairs": [
+      {
+        "oldMs": 1761,
+        "newMs": 1855,
+        "newMinusOldMs": 94
+      },
+      {
+        "oldMs": 1865,
+        "newMs": 1816,
+        "newMinusOldMs": -49
+      },
+      {
+        "oldMs": 1562,
+        "newMs": 1960,
+        "newMinusOldMs": 398
+      },
+      {
+        "oldMs": 1719,
+        "newMs": 1718,
+        "newMinusOldMs": -1
+      },
+      {
+        "oldMs": 2655,
+        "newMs": 1817,
+        "newMinusOldMs": -838
+      },
+      {
+        "oldMs": 1870,
+        "newMs": 1386,
+        "newMinusOldMs": -484
+      },
+      {
+        "oldMs": 1775,
+        "newMs": 1480,
+        "newMinusOldMs": -295
+      },
+      {
+        "oldMs": 1653,
+        "newMs": 1739,
+        "newMinusOldMs": 86
+      },
+      {
+        "oldMs": 1557,
+        "newMs": 2916,
+        "newMinusOldMs": 1359
+      },
+      {
+        "oldMs": 1864,
+        "newMs": 1284,
+        "newMinusOldMs": -580
+      },
+      {
+        "oldMs": 2088,
+        "newMs": 2313,
+        "newMinusOldMs": 225
+      },
+      {
+        "oldMs": 1467,
+        "newMs": 1350,
+        "newMinusOldMs": -117
+      }
+    ]
+  },
+  "controls": [
+    "Both local SDK arms served matching parent and iframe package versions.",
+    "Hosted 0.15.4 was compared with local 0.15.4 separately.",
+    "Backend serving versions and harness hashes stayed fixed within each experiment.",
+    "All 65 registrations completed and independently verified signatures; warm-up samples were excluded from reported baseline medians."
+  ],
+  "finding": "A repeatable 0.59-second SDK-version regression was not established. Tight paired medians were 1768 ms for 0.13.0 and 1777.5 ms for 0.15.4.",
+  "remainingQuestion": "Identify the server-side wait responsible for slow requests; low reported invocation CPU does not identify network, storage, output gating, or scheduling.",
+  "rawArtifacts": [
+    ".artifacts/registration-root-cause-013-0154-20261020",
+    ".artifacts/registration-root-cause-pairs-20261020"
+  ]
+}

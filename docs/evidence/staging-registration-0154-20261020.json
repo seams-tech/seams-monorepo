@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-20",
+  "environment": "staging-testnet",
+  "sdkVersion": "0.15.4",
+  "walletServerVersion": "0.15.4",
+  "deploymentCommit": "636e8f5f2d4a9e98cd176b35238f7cfc1c91d622",
+  "deploymentRuns": {
+    "host": 39415429257,
+    "console": 39415433902,
+    "backend": 39415438812,
+    "activation": 39416529208
+  },
+  "backendDeploymentNote": "All deployment steps succeeded; pre-activation smoke wait cancelled so the protected activation could run. Activation and readiness passed.",
+  "metric": "registration.post_touch_id",
+  "boundary": "Resolved passkey proof to wallet ready; automated Chromium WebAuthn",
+  "topology": "Local HTTPS parent using published SDK; remote staging iframe and Gateway; no request interception",
+  "warmup": {
+    "count": 3,
+    "p50Ms": 3469,
+    "p95Ms": 3569.8,
+    "minMs": 1481,
+    "maxMs": 3581,
+    "above2500Ms": 2
+  },
+  "baseline": {
+    "lane": "staging",
+    "sdkVersion": "0.15.4",
+    "metric": "registration.post_touch_id",
+    "warmup": false,
+    "postPasskey": {
+      "count": 15,
+      "p50Ms": 2052,
+      "p95Ms": 2512.8,
+      "minMs": 1452,
+      "maxMs": 2587,
+      "above2500Ms": 1
+    },
+    "stages": {
+      "near_only.setup": {
+        "count": 15,
+        "p50Ms": 569,
+        "p95Ms": 1382.49,
+        "minMs": 293.7,
+        "maxMs": 2217.1,
+        "above2500Ms": 0
+      },
+      "near_only.respond": {
+        "count": 15,
+        "p50Ms": 1240.3,
+        "p95Ms": 1693.08,
+        "minMs": 935.3,
+        "maxMs": 1850.3,
+        "above2500Ms": 0
+      },
+      "near_only.finalize": {
+        "count": 15,
+        "p50Ms": 428.8,
+        "p95Ms": 765.73,
+        "minMs": 287.5,
+        "maxMs": 802.9,
+        "above2500Ms": 0
+      }
+    },
+    "serverTimingMediansMs": {
+      "ecdsa_respond_d1_load": 16.0,
+      "respond_authority_verify": 13.0,
+      "yao_admission_request": 0.0,
+      "yao_admission_state_read": 11.0,
+      "yao_admission_authorization": 0.0,
+      "yao_admission_root_wait": 5.0,
+      "yao_admission_backend": 0.0,
+      "yao_admission_commit": 21.0,
+      "yao_admission_bind": 43.0,
+      "yao_d1_admission_read": 0.0,
+      "yao_router_execution": 997.0,
+      "yao_result_reconstruction": 0.0,
+      "yao_router_prepare_pair": 183.0,
+      "yao_router_role_execution": 705.0,
+      "yao_router_signing_worker_delivery": 50.0
+    },
+    "independentlyVerifiedSignatures": 15
+  },
+  "limitations": [
+    "15 sequential baseline registrations with three separately reported warm-up registrations.",
+    "Staging uses testnet and its own tenant. The comparison measures unfunded implicit-account registration and message signing.",
+    "This establishes the current baseline; it does not establish a production regression before the matching production run."
+  ]
+}

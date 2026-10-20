@@ -47,14 +47,18 @@ Use `console:deploy:env-*` for Console inputs and
 `wallet-system:deploy:env-*` for Wallet runtime inputs. Review the matching
 deployment instructions before applying secrets or deploying.
 
-## R105 release handoff
+## Documentation and release baseline
 
-The current working tree targets Wallet packages `0.5.0`. Their first npm
-publication and the final registry lockfile remain blocked on npm access.
-Private application builds were verified with locally packed public artifacts.
-CI/test ownership changes also await approval; this working tree is not yet
-ready for a clean registry install, full test run, commit, or deployment.
-See [R105B](docs/refactor-105B-github-split.md) for the exact remaining work.
+The private applications pin published `@seams/wallet@0.15.4` and
+`@seams/wallet-server@0.15.4`. The recovery CLI remains `0.15.0`. The wallet
+iframe protocol is `16.0.0`. Recheck publication and deployment before updating pins.
 
-Domain and shared wallet-site publication changes are coordinated separately
-under [R123](docs/refactor-123-domains.md).
+Public docs live in `seams-wallet/apps/docs`. This repository publishes their
+exact built revision at `https://wallet.seams.sh/docs/` and its staging counterpart.
+The receipt is `/docs/seams-wallet-docs-artifact.json` on each Wallet site.
+See the [documentation and operator index](docs/README.md) for ownership,
+current Console procedures, hosted evidence, validation, and publication.
+
+Build public docs in `seams-wallet`, then stage their committed revision with
+`scripts/prepare-wallet-docs-source.mjs`. Never edit `.artifacts/wallet-docs`.
+`pnpm docs:preview` serves that artifact without a second documentation source tree.

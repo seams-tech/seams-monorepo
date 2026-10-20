@@ -86,7 +86,7 @@ const documentationDropdownPane: DropdownPane = {
     },
     {
       title: 'Biometric Authentication',
-      description: 'Passkey and VoiceID flows for owner presence',
+      description: 'Passkey authentication. VoiceID is planned.',
       to: '/docs/concepts/auth-methods/passkeys',
       icon: Fingerprint,
     },
@@ -130,7 +130,10 @@ const productsDropdownPane: DropdownPane = {
     to: '/docs/concepts/architecture',
     tone: 'bluegreen',
   },
-  footerLinks: [{ label: 'Read the docs', to: '/docs/' }],
+  footerLinks: [
+    { label: 'Read the docs', to: '/docs/' },
+    { label: 'Releases', to: '/docs/releases' },
+  ],
 };
 
 const pricingDropdownPane: DropdownPane = {

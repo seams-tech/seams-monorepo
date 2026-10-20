@@ -1,0 +1,309 @@
+{
+  "sdkVersion": "0.15.6",
+  "scope": "Four staging registrations and independently verified signatures. Pinned local iframe and parent assets, actual staging backend. Diagnostic run only, not a hosted latency baseline.",
+  "restored": true,
+  "registrationAndSignatureProofs": 4,
+  "observations": 38,
+  "allSuccessful": true,
+  "statementMetadataRecords": 86,
+  "queryColos": [
+    "SIN"
+  ],
+  "allQueriesPrimary": true,
+  "sqlExecutionMs": {
+    "min": 0.0575,
+    "median": 0.1236,
+    "max": 4.3567
+  },
+  "callElapsedMs": {
+    "min": 0,
+    "median": 9.0,
+    "max": 176
+  },
+  "slowestCalls": [
+    {
+      "event": "d1_wait_observation",
+      "role": "deriver_b",
+      "object_id": "ac583a7cddff01d198fa03f95277749060d2300758fe799431e498bb8da923ab",
+      "id": 5,
+      "operation": "run",
+      "statements": [
+        {
+          "operation": "UPDATE",
+          "table": "tenant_root_root_use_admissions"
+        }
+      ],
+      "started_at_ms": 1792532241492,
+      "elapsed_ms": 176,
+      "metadata": {
+        "duration": 0.3987,
+        "timings": {
+          "sql_duration_ms": 0.3987
+        },
+        "served_by": "v3-prod",
+        "served_by_colo": "SIN",
+        "served_by_region": "APAC",
+        "served_by_primary": true,
+        "changes": 1,
+        "rows_read": 3,
+        "rows_written": 2,
+        "changed_db": true
+      },
+      "outcome": "success"
+    },
+    {
+      "event": "d1_wait_observation",
+      "role": "deriver_b",
+      "object_id": "2523d82ef8556c1d52ac11c5c29a99eaab539d461f1b3d03e557bc23ea5dc272",
+      "id": 5,
+      "operation": "run",
+      "statements": [
+        {
+          "operation": "UPDATE",
+          "table": "tenant_root_root_use_admissions"
+        }
+      ],
+      "started_at_ms": 1792532247310,
+      "elapsed_ms": 141,
+      "metadata": {
+        "duration": 0.2832,
+        "timings": {
+          "sql_duration_ms": 0.2832
+        },
+        "served_by": "v3-prod",
+        "served_by_colo": "SIN",
+        "served_by_region": "APAC",
+        "served_by_primary": true,
+        "changes": 1,
+        "rows_read": 3,
+        "rows_written": 2,
+        "changed_db": true
+      },
+      "outcome": "success"
+    },
+    {
+      "event": "d1_wait_observation",
+      "role": "deriver_b",
+      "object_id": "ac583a7cddff01d198fa03f95277749060d2300758fe799431e498bb8da923ab",
+      "id": 3,
+      "operation": "batch",
+      "statements": [
+        {
+          "operation": "UPDATE",
+          "table": "tenant_root_root_use_admissions"
+        },
+        {
+          "operation": "SELECT",
+          "table": "tenant_root_root_use_admissions"
+        },
+        {
+          "operation": "SELECT",
+          "table": "tenant_root_role_shares"
+        },
+        {
+          "operation": "SELECT",
+          "table": "tenant_root_role_shares"
+        }
+      ],
+      "started_at_ms": 1792532241367,
+      "elapsed_ms": 19,
+      "metadata": [
+        {
+          "duration": 0.2558,
+          "timings": {
+            "sql_duration_ms": 0.2558
+          },
+          "served_by": "v3-prod",
+          "served_by_colo": "SIN",
+          "served_by_region": "APAC",
+          "served_by_primary": true,
+          "changes": 1,
+          "rows_read": 1,
+          "rows_written": 1,
+          "changed_db": true
+        },
+        {
+          "duration": 0.0923,
+          "timings": {
+            "sql_duration_ms": 0.0923
+          },
+          "served_by": "v3-prod",
+          "served_by_colo": "SIN",
+          "served_by_region": "APAC",
+          "served_by_primary": true,
+          "changes": 0,
+          "rows_read": 1,
+          "rows_written": 0,
+          "changed_db": false
+        },
+        {
+          "duration": 0.1218,
+          "timings": {
+            "sql_duration_ms": 0.1218
+          },
+          "served_by": "v3-prod",
+          "served_by_colo": "SIN",
+          "served_by_region": "APAC",
+          "served_by_primary": true,
+          "changes": 0,
+          "rows_read": 1,
+          "rows_written": 0,
+          "changed_db": false
+        },
+        {
+          "duration": 0.1057,
+          "timings": {
+            "sql_duration_ms": 0.1057
+          },
+          "served_by": "v3-prod",
+          "served_by_colo": "SIN",
+          "served_by_region": "APAC",
+          "served_by_primary": true,
+          "changes": 0,
+          "rows_read": 1,
+          "rows_written": 0,
+          "changed_db": false
+        }
+      ],
+      "outcome": "success"
+    },
+    {
+      "event": "d1_wait_observation",
+      "role": "deriver_a",
+      "object_id": "ec36fac524fac4e50d53f5686bdaf126f657ad14ddf7c3ef96825587f0d232fa",
+      "id": 4,
+      "operation": "run",
+      "statements": [
+        {
+          "operation": "UPDATE",
+          "table": "tenant_root_root_use_admissions"
+        }
+      ],
+      "started_at_ms": 1792532247459,
+      "elapsed_ms": 17,
+      "metadata": {
+        "duration": 0.1832,
+        "timings": {
+          "sql_duration_ms": 0.1832
+        },
+        "served_by": "v3-prod",
+        "served_by_colo": "SIN",
+        "served_by_region": "APAC",
+        "served_by_primary": true,
+        "changes": 1,
+        "rows_read": 3,
+        "rows_written": 2,
+        "changed_db": true
+      },
+      "outcome": "success"
+    },
+    {
+      "event": "d1_wait_observation",
+      "role": "deriver_a",
+      "object_id": "0b07fbd99061c51d7239c1b5f24d40582d80ad3c931562f4ddbf53711ba96eee",
+      "id": 4,
+      "operation": "run",
+      "statements": [
+        {
+          "operation": "UPDATE",
+          "table": "tenant_root_root_use_admissions"
+        }
+      ],
+      "started_at_ms": 1792532254467,
+      "elapsed_ms": 16,
+      "metadata": {
+        "duration": 0.2151,
+        "timings": {
+          "sql_duration_ms": 0.2151
+        },
+        "served_by": "v3-prod",
+        "served_by_colo": "SIN",
+        "served_by_region": "APAC",
+        "served_by_primary": true,
+        "changes": 1,
+        "rows_read": 3,
+        "rows_written": 2,
+        "changed_db": true
+      },
+      "outcome": "success"
+    },
+    {
+      "event": "d1_wait_observation",
+      "role": "deriver_b",
+      "object_id": "e2653aa97f2f3cbc48eaf63ed88b9d516e09a33ed2a0924b73dbda8393e0b2af",
+      "id": 4,
+      "operation": "batch",
+      "statements": [
+        {
+          "operation": "SELECT",
+          "table": "tenant_root_root_use_admissions"
+        },
+        {
+          "operation": "SELECT",
+          "table": "tenant_root_role_shares"
+        },
+        {
+          "operation": "SELECT",
+          "table": "tenant_root_role_shares"
+        }
+      ],
+      "started_at_ms": 1792532254179,
+      "elapsed_ms": 15,
+      "metadata": [
+        {
+          "duration": 0.2173,
+          "timings": {
+            "sql_duration_ms": 0.2173
+          },
+          "served_by": "v3-prod",
+          "served_by_colo": "SIN",
+          "served_by_region": "APAC",
+          "served_by_primary": true,
+          "changes": 0,
+          "rows_read": 1,
+          "rows_written": 0,
+          "changed_db": false
+        },
+        {
+          "duration": 0.1101,
+          "timings": {
+            "sql_duration_ms": 0.1101
+          },
+          "served_by": "v3-prod",
+          "served_by_colo": "SIN",
+          "served_by_region": "APAC",
+          "served_by_primary": true,
+          "changes": 0,
+          "rows_read": 1,
+          "rows_written": 0,
+          "changed_db": false
+        },
+        {
+          "duration": 0.1183,
+          "timings": {
+            "sql_duration_ms": 0.1183
+          },
+          "served_by": "v3-prod",
+          "served_by_colo": "SIN",
+          "served_by_region": "APAC",
+          "served_by_primary": true,
+          "changes": 0,
+          "rows_read": 1,
+          "rows_written": 0,
+          "changed_db": false
+        }
+      ],
+      "outcome": "success"
+    }
+  ],
+  "limits": [
+    "The original long preparation stall did not reproduce under observation.",
+    "The slowest observed calls update admission settlement after protocol execution. They are not proof of foreground registration delay.",
+    "D1 metadata reports SQL execution time, excluding network communication. Outer elapsed time also includes gates, transport, queueing, and continuation scheduling; this observer cannot separate them.",
+    "Worker Date clocks have limited resolution and can be clamped. Zero elapsed time does not prove zero wall-clock cost.",
+    "The shared staging environment can contain unrelated calls. Aggregate D1 observations are not all attributable to the four test wallets.",
+    "This is no evidence of a latency fix. No production Worker changed, and original staging versions were restored."
+  ],
+  "source": "https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/query/",
+  "diagnosticArtifact": ".artifacts/d1-wait-0156-20261021"
+}

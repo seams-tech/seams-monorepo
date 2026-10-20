@@ -6,7 +6,6 @@ import {
   H2Footer,
   H2Networks,
   H2Security,
-  H2Spacer,
   H2Start,
 } from '@/components/h2/sections';
 import '@/styles/h2.css';
@@ -30,9 +29,7 @@ export function WalletPage(): React.JSX.Element {
         <H2Networks />
         <ComponentShowcase />
         <H2Start />
-        <H2Spacer />
         <H2Security />
-        <H2Spacer />
         <H2Cta />
         <H2Footer faq="wallet" />
       </div>

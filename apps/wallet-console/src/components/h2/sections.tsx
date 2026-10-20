@@ -1271,12 +1271,30 @@ export function H2Start(): React.JSX.Element {
         </div>
       </div>
 
-      {/* blank ruled row before the console band; its top rule closes the
-          split API rows above, so it carries their middle tick */}
-      <div className="h2-spacer h2-rule h2-rule--midtick" aria-hidden="true" />
-
-      {/* row 3: wallet console — tabs over a tinted stage that shows one
-          console screen at a time, cropped by the open bottom edge */}
+      {/* row 3: wallet console — a gradient heading banner, then tabs over a
+          tinted stage that shows one console screen at a time, cropped by
+          the open bottom edge. The banner row's top rule closes the split
+          API rows above, so it carries their middle tick. */}
+      <div className="h2-consolehead h2-rule h2-rule--midtick">
+        <FieldBanner field="sky-sand">
+          <div>
+            <h3 className="h2-display h2-banner__title">Wallet console</h3>
+            <p className="h2-banner__sub">
+              Manage wallets, policies, and your team in one place. No code needed.
+            </p>
+          </div>
+          <div className="h2-banner__actions">
+            <a
+              className="h2-btn h2-btn--primary"
+              href={dashboardProps.href}
+              onClick={dashboardProps.onClick}
+            >
+              Open wallet console
+              <ArrowRightAnim size={12} />
+            </a>
+          </div>
+        </FieldBanner>
+      </div>
       <div className="h2-startrow h2-rule">
         <div
           ref={consoleBandRef}
@@ -1289,21 +1307,6 @@ export function H2Start(): React.JSX.Element {
           onFocus={(event) => setConsoleFocusHeld(event.target.matches(':focus-visible'))}
           onBlur={() => setConsoleFocusHeld(false)}
         >
-          {/* heading and copy on the left, the call to action on the right */}
-          <div className="h2-startrow__text h2-consoleband__intro">
-            <div>
-              <h3 className="h2-consoleband__title">Wallet console</h3>
-              <p>Manage wallets, policies, and your team in one place. No code needed.</p>
-            </div>
-            <a
-              className="h2-btn h2-btn--primary"
-              href={dashboardProps.href}
-              onClick={dashboardProps.onClick}
-            >
-              Open wallet console
-              <ArrowRightAnim size={12} />
-            </a>
-          </div>
           {/* `aria-pressed` rather than tabs: the stage is an image, so there
               is no tab panel for a tab to own. */}
           <div className="h2-consoleband__legend" role="group" aria-label="Show a console screen">
@@ -1748,12 +1751,6 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
     ],
   },
 ];
-
-/* ---------- blank ruled row: breathing room between sections ---------- */
-
-export function H2Spacer(): React.JSX.Element {
-  return <div className="h2-spacer h2-rule" aria-hidden="true" />;
-}
 
 /* ---------- closing call to action: the shared grey banner ---------- */
 

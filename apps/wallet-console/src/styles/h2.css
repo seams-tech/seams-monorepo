@@ -2988,7 +2988,7 @@ body:has(.h2-page) {
 }
 
 .h2-security-section {
-  padding-block: 56px 18px;
+  padding-block: calc(56px + 1rem) calc(18px + 1rem);
 }
 
 .h2-security__pause {
@@ -3118,16 +3118,18 @@ body:has(.h2-page) {
   color: var(--h2-smoke);
 }
 
-/* While a figure plays, its bullet takes the console band's selected row: a
-   taupe card behind full-ink type, with the other titles stepped back to ash.
-   Every bullet keeps the row's type and padding, so cycling never moves the
-   text, and the card aligns with the heading while the text indents. */
+/* Each bullet is a light taupe card. While a figure plays, its bullet's card
+   steps up to full taupe behind full-ink type, with the other titles stepped
+   back to ash. Every bullet keeps the row's type and padding, so cycling
+   never moves the text, and the card aligns with the heading while the text
+   indents. */
 .h2-security__item {
   /* the text keeps its 432px measure inside the card's padding */
   max-width: 460px;
   margin-bottom: 10px;
   padding: 14px;
   border-radius: 14px;
+  background: color-mix(in srgb, var(--h2-taupe) 40%, transparent);
   transition: background-color 150ms ease;
 }
 
@@ -3136,7 +3138,7 @@ body:has(.h2-page) {
 }
 
 .h2-security__item.is-active {
-  background: color-mix(in srgb, var(--h2-taupe) 60%, transparent);
+  background: var(--h2-taupe);
 }
 
 .h2-security__item h3 {
@@ -3186,9 +3188,9 @@ body:has(.h2-page) {
   outline-offset: 2px;
 }
 
-/* the console band's hover hint, lighter than the playing row's card */
+/* the hover hint sits between the resting card and the playing row's card */
 .h2-security__item:not(.is-active):hover {
-  background: color-mix(in srgb, var(--h2-taupe) 30%, transparent);
+  background: color-mix(in srgb, var(--h2-taupe) 70%, transparent);
 }
 
 .h2-security-section:has(.h2-security__item.is-active) .h2-security__item:not(.is-active):hover h3 {
@@ -3395,87 +3397,70 @@ body:has(.h2-page) {
   justify-items: center;
 }
 
-/* Wallet console band: heading, then a row of tabs over a tinted stage that
-   shows one console screen at a time. The active tab's progress line runs
-   the cycle; the screen is cropped by the stage's open bottom edge. */
+/* Wallet console band: a gradient heading banner on its own ruled row, then
+   a row of tabs over a tinted stage that shows one console screen at a time.
+   The active tab's progress line runs the cycle; the screen is cropped by
+   the stage's open bottom edge. */
+
+/* the banner card sits 0.5rem in from the rules, as the band headings do */
+.h2-consolehead {
+  padding-block: 0.5rem;
+}
+
 .h2-consoleband {
   display: grid;
   gap: 30px;
-  padding-top: 50px;
+  padding-top: 36px;
   /* The stage runs off the section's bottom edge, so the shell keeps no
      bottom padding — any gap here would float the open-bottomed card above
      the rule instead of meeting it. */
   padding-bottom: 0;
 }
 
-/* the band's intro runs wider than the API rows' copy */
-.h2-consoleband .h2-startrow__text {
-  padding-bottom: 0;
-}
-
-.h2-consoleband .h2-startrow__text p {
-  max-width: none;
-}
-
-/* heading and copy on the left, the call to action on the right */
-.h2-consoleband__intro {
-  display: flex;
-  /* the button sits on the subtitle's line, not centred on the block */
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 32px;
-  padding-inline-end: 0;
-}
-
-.h2-consoleband__intro .h2-btn {
-  flex: none;
-}
-
-/* display-scale title, matching the custody section's heading */
-.h2-startrow__text h3.h2-consoleband__title {
-  margin: 0 0 14px;
-  font-size: clamp(27px, 2.9vw, 38px);
-  font-weight: 300;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
-}
-
-/* Two equal tabs on one hairline. They stay quiet: the active one steps up
-   to full ink and carries the progress line, so neither reads as a block. */
+/* Two equal row tiles, styled as the custody section's rows: a light taupe
+   card at rest that steps up to full taupe, with full-ink type, while its
+   screen is on stage. */
 .h2-consoleband__legend {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-  margin-top: 14px;
-  /* the tabs label the stage, so they sit closer to it than the band gap */
-  margin-bottom: -18px;
+  gap: 10px;
+  /* the tiles label the stage, so they sit closer to it than the band gap */
+  margin-bottom: -20px;
 }
 
 .h2-consoleband__tab {
   position: relative;
   display: grid;
-  gap: 4px;
-  padding: 16px 0 6px;
+  gap: 3px;
+  padding: 14px;
   border: 0;
-  border-top: 1px solid var(--h2-stone);
-  background: none;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--h2-taupe) 40%, transparent);
   font-family: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.h2-consoleband__tab:hover {
+  background: color-mix(in srgb, var(--h2-taupe) 70%, transparent);
+}
+
+.h2-consoleband__tab.is-active {
+  background: var(--h2-taupe);
 }
 
 .h2-consoleband__tab strong {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--h2-ash);
   transition: color 150ms ease;
 }
 
 .h2-consoleband__tab > span:last-child {
-  font-size: 15px;
+  font-size: 14.5px;
   line-height: 1.45;
-  color: var(--h2-ash);
-  transition: color 150ms ease;
+  color: var(--h2-smoke);
 }
 
 .h2-consoleband__tab.is-active strong,
@@ -3483,29 +3468,18 @@ body:has(.h2-page) {
   color: var(--h2-ink);
 }
 
-.h2-consoleband__tab.is-active > span:last-child,
-.h2-consoleband__tab:hover > span:last-child {
-  color: var(--h2-smoke);
-}
-
 .h2-consoleband__tab:focus-visible {
-  outline: 2px solid var(--h2-ink);
-  outline-offset: 4px;
-  border-radius: 2px;
+  outline: 2px solid var(--h2-smoke);
+  outline-offset: 2px;
 }
 
-/* Sits on the tab's hairline. It fills while the band is in view and
-   unattended; its animationend advances the screen (see ConsoleBand). The
-   held state keeps the animation paused, not removed, so the line resumes
+/* Never seen: it only times the cycle, as the custody rows cycle with no
+   line on the row. Its animationend advances the screen (see ConsoleBand);
+   the held state pauses it rather than removing it, so the cycle resumes
    where it stopped. */
 .h2-consoleband__progress {
   position: absolute;
-  inset-inline-start: 0;
-  top: -1px;
-  width: 100%;
-  height: 2px;
-  background: var(--h2-ink);
-  transform-origin: left;
+  visibility: hidden;
   animation: h2-consoleband-progress 6s linear forwards paused;
 }
 
@@ -3515,10 +3489,10 @@ body:has(.h2-page) {
 
 @keyframes h2-consoleband-progress {
   from {
-    transform: scaleX(0);
+    opacity: 0;
   }
   to {
-    transform: scaleX(1);
+    opacity: 1;
   }
 }
 
@@ -3624,25 +3598,14 @@ body:has(.h2-page) {
 
 @media (max-width: 760px) {
   .h2-consoleband {
-    padding-top: 36px;
+    padding-top: 24px;
     /* Matches the wide layout: the stage is open-bottomed at every width, so
        keeping 24px here would leave its cut edge floating above the rule. */
     padding-bottom: 0;
   }
 
-  .h2-consoleband__legend {
-    gap: 16px;
-    margin-top: 6px;
-  }
-
   .h2-consoleband__tab > span:last-child {
     font-size: 14px;
-  }
-
-  .h2-consoleband__intro {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
   }
 
   /* Sized so a 90% card very nearly fills the stage: a wider ratio left a
@@ -3876,7 +3839,8 @@ body:has(.h2-page) {
 /* ---------- equal ruled bands ---------- */
 
 /* Five ruled bands share one height: the network logos, the showcase
-   heading, the get-started banner, the blank row and the closing banner.
+   heading, the get-started and wallet console banners, and the closing
+   banner.
    It fits a banner row (0.5rem insets, 52px paddings) around the taller of
    a two-line heading and a one-line heading over the 36px subtitle. At
    760px and below each band keeps its own height. */
@@ -3901,18 +3865,6 @@ body:has(.h2-page) {
     justify-content: center;
     min-height: calc(var(--h2-band-h) / 2);
     padding-block: 0;
-  }
-}
-
-/* ---------- blank ruled row between sections ---------- */
-
-.h2-spacer {
-  height: calc(var(--h2-band-h) / 4);
-}
-
-@media (max-width: 760px) {
-  .h2-spacer {
-    height: 24px;
   }
 }
 

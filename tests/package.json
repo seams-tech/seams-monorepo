@@ -36,7 +36,7 @@
     "@playwright/test": "^1.40.0",
     "@simplewebauthn/server": "^13.2.2",
     "viem": "^2.38.6",
-    "@seams/wallet": "0.15.2",
+    "@seams/wallet": "0.15.4",
     "@cloudflare/workers-types": "5.20260710.1",
     "esbuild": "0.28.1",
     "miniflare": "4.20260710.0"

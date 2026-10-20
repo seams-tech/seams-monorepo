@@ -1648,7 +1648,7 @@ body:has(.h2-page) {
 /* ---------- networks strip: brand-mark lockups ---------- */
 
 .h2-logos {
-  padding-block: 4rem;
+  padding-block: 4rem 5rem;
 }
 
 .h2-logos__row {

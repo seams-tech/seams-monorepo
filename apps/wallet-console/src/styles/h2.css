@@ -280,8 +280,14 @@ body:has(.h2-page) {
   pointer-events: none;
 }
 
-/* Crosshair ticks where the rule meets the column borders: a circular patch
-   of page background interrupts both lines, with a square tick in the gap. */
+/* Crosshair ticks where the rule meets the column borders: a rounded square
+   patch of page background interrupts both lines, with a square tick in the
+   gap. The patch is an SVG because gradients cannot draw a rounded square;
+   its fill is --h2-bg. */
+.h2-rule {
+  --h2-tick-patch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='23'%3E%3Crect width='22' height='23' rx='8' fill='%23ffffff'/%3E%3C/svg%3E");
+}
+
 .h2-rule::after {
   content: '';
   position: absolute;
@@ -295,12 +301,10 @@ body:has(.h2-page) {
     /* 2px square ticks, centered on each intersection */
     linear-gradient(var(--h2-ink), var(--h2-ink)) left 10px center / 2px 2px no-repeat,
     linear-gradient(var(--h2-ink), var(--h2-ink)) right 10px center / 2px 2px no-repeat,
-    /* circular page-background patches: the lines stop at a rounded clearing
-       (radius sets the breathing room around each tick) */
-    radial-gradient(circle 11px at 11px 50%, var(--h2-bg) 98%, transparent) left center / 22px 23px
-      no-repeat,
-    radial-gradient(circle 11px at 11px 50%, var(--h2-bg) 98%, transparent) right center / 22px 23px
-      no-repeat;
+    /* page-background patches: the lines stop at a rounded square clearing
+       (its size sets the breathing room around each tick) */
+    var(--h2-tick-patch) left center / 22px 23px no-repeat,
+    var(--h2-tick-patch) right center / 22px 23px no-repeat;
 }
 
 /* Variant with a third tick at the row's center, for rows whose grid draws
@@ -310,12 +314,9 @@ body:has(.h2-page) {
     linear-gradient(var(--h2-ink), var(--h2-ink)) left 10px center / 2px 2px no-repeat,
     linear-gradient(var(--h2-ink), var(--h2-ink)) right 10px center / 2px 2px no-repeat,
     linear-gradient(var(--h2-ink), var(--h2-ink)) center / 2px 2px no-repeat,
-    radial-gradient(circle 11px at 11px 50%, var(--h2-bg) 98%, transparent) left center / 22px 23px
-      no-repeat,
-    radial-gradient(circle 11px at 11px 50%, var(--h2-bg) 98%, transparent) right center / 22px 23px
-      no-repeat,
-    radial-gradient(circle 11px at 50% 50%, var(--h2-bg) 98%, transparent) center / 22px 23px
-      no-repeat;
+    var(--h2-tick-patch) left center / 22px 23px no-repeat,
+    var(--h2-tick-patch) right center / 22px 23px no-repeat,
+    var(--h2-tick-patch) center / 22px 23px no-repeat;
 }
 
 /* No column borders below 1160px: keep the rule clean, drop the ticks */

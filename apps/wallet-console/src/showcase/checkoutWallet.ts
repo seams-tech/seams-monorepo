@@ -1,3 +1,4 @@
+import './embeddedFocus';
 import '@wallet-ui/sdk/wallet-ui.css';
 import './checkoutWallet.css';
 import {

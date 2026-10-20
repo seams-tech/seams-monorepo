@@ -1,3 +1,4 @@
+import './embeddedFocus';
 import '@wallet-ui/sdk/wallet-ui.css';
 import '@fontsource/hanken-grotesk/400.css';
 import '@fontsource/hanken-grotesk/500.css';

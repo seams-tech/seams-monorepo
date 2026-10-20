@@ -29,8 +29,8 @@ export function WalletPage(): React.JSX.Element {
         />
         <H2Networks />
         <ComponentShowcase />
-        <H2Security />
         <H2Start />
+        <H2Security />
         <H2Spacer />
         <H2Cta />
         <H2Footer faq="wallet" />

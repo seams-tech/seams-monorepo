@@ -1,9 +1,9 @@
 # Wallet PostgreSQL preparation
 
-The Wallet role store now exposes explicit transaction requirements through its existing SQL session interface.
+The Wallet role store now has a native PostgreSQL backend with E2E evidence from a real local database.
 [Wallet storage portability](../../seams-wallet/docs/storage-portability.md)
-describes the public implementation and its remaining SQL work.
-PostgreSQL support remains unimplemented and untested.
+describes the public implementation and the remaining storage work.
+This verifies the Rust role-store backend. The private Console and Gateway stores still require separate PostgreSQL implementations.
 The target is one PostgreSQL implementation that can use RDS or another PostgreSQL provider.
 Provider credentials, TLS, connection setup, and pooling belong at the host boundary.
 
@@ -29,7 +29,8 @@ Wallet home records and resource proofs contain Cloudflare account, database, Wo
 A future RDS implementation needs precise provider state at those request and persistence boundaries.
 Keep that work separate from the role-store execution interface.
 
-The public preparation keeps D1's precommit rollback guards inside its D1 driver.
+The public implementation keeps D1's precommit rollback guards inside its D1 driver.
+Its PostgreSQL driver checks affected-row requirements inside Serializable transactions before commit.
 Its transaction contract requires coherent reads, ordered writes, atomic rollback, and durable completion.
 The public migration note explains the PostgreSQL isolation and retry requirements.
 Keep Deriver A and B credentials, role stores, and secret access separate throughout that work.

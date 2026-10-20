@@ -1,6 +1,7 @@
 import React from 'react';
 import { toast } from 'sonner';
 import { useSiteRouter } from '@core/router/useSiteRouter';
+import { GrainField } from '@/components/GrainField/GrainField';
 import { formatDashboardTimestamp } from '../../utils/timestamps';
 import { KeyRoundIcon } from '../../icons/SidebarIcons';
 import type { SidebarIconComponent } from '../../types';
@@ -328,6 +329,7 @@ export function OpsCockpitPage({
             href={linkProps('/dashboard/billing/account').href}
             onClick={linkProps('/dashboard/billing/account').onClick}
           >
+            <GrainField field="aqua-evergreen" />
             <span className="dashboard-hero__promo-copy">
               <span className="dashboard-hero__promo-title">Credits</span>
               <span className="dashboard-hero__promo-description">{creditsDescription}</span>

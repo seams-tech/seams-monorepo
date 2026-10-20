@@ -115,7 +115,7 @@ export const DASHBOARD_COMPOSITION: DashboardComposition<DashboardRoute, Sidebar
       id: 'platform',
       name: 'Platform',
       description: 'Developer accounts and billing',
-      gradient: '/gradients/web/sky-sand.jpg',
+      gradient: 'sky-sand',
       available: true,
     },
   ],

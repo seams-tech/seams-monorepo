@@ -392,10 +392,11 @@
   ],
   "corrections": [
     "The earlier wording that the full 672 ms sits inside the D1 call was too strong as a physical-time attribution. Both timers record 672 ms, but the Worker clock can retain an earlier event timestamp during CPU work.",
-    "The five-second alignment suggests periodicity. It does not prove a periodic D1 commit mechanism or identify a platform process."
+    "The five-second alignment suggests periodicity. It does not prove a periodic D1 commit mechanism or identify a platform process.",
+    "Retained native traces now supply SQL metadata for the original 740 ms call. Its SQL duration was 1.9632 ms; see the native-trace evidence record."
   ],
   "limits": [
-    "The original 740 ms request has no SQL metadata. New calls reproduce the operation and long-delay class; they do not reconstruct every millisecond of the original request.",
+    "The original live tail lacked SQL metadata. Subsequent retained native tracing recovered 1.9632 ms SQL execution and four aggregate statement attempts for that exact request; see respond-0156-native-d1-traces-20261021.json.",
     "storage.sync() can flush pending writes earlier. This is an active diagnostic intervention, not a performance change.",
     "The mutation observer records INSERT/UPDATE/DELETE/REPLACE/CREATE/DROP/ALTER statement invocations, not rows changed. It does not count internal platform writes.",
     "The clock is clamped. Matching Rust and JavaScript intervals are consistent measurements, not independent high-resolution physical clocks.",
@@ -403,7 +404,7 @@
     "No latency reduction is claimed. Removing the guarded admission update or its coherent root/cancellation reads would change security behavior without a validated replacement.",
     "One of eight input-bound B tail events is missing. All eight registration outcomes and signatures remain in the record."
   ],
-  "remainingMeasurement": "Read retained native platform spans to distinguish service dispatch from the D1 call. This requires dashboard sign-in because the current API credential receives 403. Native spans may still leave internal D1 queue and commit time combined. No provider was contacted, as instructed.",
+  "remainingMeasurement": "The native trace exposes a single D1 batch span without internal dispatch, queue or commit children. Further internal attribution remains unavailable in the inspected telemetry. No provider was contacted.",
   "restoration": {
     "phase": "complete",
     "restored": true,
@@ -461,7 +462,7 @@
     "persist": true,
     "headSamplingRate": 1,
     "apiResult": "HTTP 403 Forbidden, including retry after credential refresh",
-    "dashboardState": "Signed out; existing Google account profile displayed",
-    "nextAction": "Read retained native spans for the same protocol requests after the user signs in. No new measurement run or deployment is required."
+    "dashboardState": "Signed in; retained spans read for the original and instrumented slow calls.",
+    "nextAction": "See respond-0156-native-d1-traces-20261021.json for the retained span evidence."
   }
 }

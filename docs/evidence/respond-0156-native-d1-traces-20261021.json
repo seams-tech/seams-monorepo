@@ -1,0 +1,81 @@
+{
+  "method": "Read retained native Worker spans through the signed-in Cloudflare dashboard. The API credential still lacks telemetry access. Fields below are transcribed from the displayed span details. No new registration or deployment was run.",
+  "result": "The original 740 ms admission interval is a native d1_batch span containing four SQL statements. SQL execution totals 1.9632 ms. Native metadata places both Worker and D1 primary in Singapore. The platform exposes no child spans dividing D1 dispatch, queueing, or durable write acknowledgement.",
+  "spans": [
+    {
+      "sample": "Original prompt control, 05-production",
+      "protocolSessionHex": "09081b6c25d244cb5b9b985d9d23a8486b8779a0d26c3252e2afa4a84e039e73",
+      "traceId": "0de51aa7083150bf140a705ef40552ad",
+      "spanId": "fbe133338bbc0b71",
+      "parentSpanId": "537db6c784e4095c",
+      "name": "d1_batch",
+      "objectId": "a4893c9ba88f353175391f2467722e8fe09d35af87bc20f579947739c0feafec",
+      "scriptVersion": "778b2440-5686-4917-bf9a-3e7e127d0e42",
+      "startTimeMs": 1792533077212,
+      "endTimeMs": 1792533077952,
+      "durationMs": 739.99998,
+      "sqlDurationMs": 1.9631999999999998,
+      "batchSize": 4,
+      "aggregateStatementAttempts": 4,
+      "rowsRead": 4,
+      "rowsWritten": 1,
+      "changes": 1,
+      "workerColo": "SIN",
+      "d1Colo": "SIN",
+      "d1Primary": true,
+      "rawArtifact": ".artifacts/respond-prompt-control-0156-20261021/05-production/group-01/registration-1.json",
+      "traceUrl": "https://dash.cloudflare.com/ba924da36f2ffc3839e8d323000b66b4/workers/services/view/router-ab-deriver-b/production/observability/traces/0de51aa7083150bf140a705ef40552ad"
+    },
+    {
+      "sample": "Concurrent storage confirmation observer, 02-production",
+      "traceId": "957f97bfedf27ddcafd19cb41215815e",
+      "spanId": "5d5777e4cc6fc9d6",
+      "parentSpanId": "b11abfc8b8d21adb",
+      "name": "d1_batch",
+      "objectId": "aed433bf3ec60df0cec981aa4a46c98d034081455ec2ec5b7a5432e40a46431d",
+      "scriptVersion": "f0ecc59a-c51d-4fba-ba83-a85493713102",
+      "startTimeMs": 1792534287000,
+      "endTimeMs": 1792534288026,
+      "durationMs": 1025.999979,
+      "sqlDurationMs": 0.4531,
+      "batchSize": 4,
+      "aggregateStatementAttempts": 4,
+      "rowsRead": 4,
+      "rowsWritten": 1,
+      "changes": 1,
+      "workerColo": "SIN",
+      "d1Colo": "SIN",
+      "d1Primary": true,
+      "rawArtifact": ".artifacts/d1-production-gates-0156-20261021/02-production/group-01/registration-1.json",
+      "traceUrl": "https://dash.cloudflare.com/ba924da36f2ffc3839e8d323000b66b4/workers/services/view/router-ab-deriver-b/production/observability/traces/957f97bfedf27ddcafd19cb41215815e"
+    },
+    {
+      "sample": "Concurrent storage confirmation observer, 02-production caller",
+      "traceId": "957f97bfedf27ddcafd19cb41215815e",
+      "spanId": "87780906bf362470",
+      "parentSpanId": "c0bdce1215bf049b",
+      "name": "durable_object_subrequest",
+      "objectId": "aed433bf3ec60df0cec981aa4a46c98d034081455ec2ec5b7a5432e40a46431d",
+      "startTimeMs": 1792534287084,
+      "endTimeMs": 1792534288115,
+      "durationMs": 1030.999999,
+      "workerColo": "SIN",
+      "traceUrl": "https://dash.cloudflare.com/ba924da36f2ffc3839e8d323000b66b4/workers/services/view/router-ab-deriver-b/production/observability/traces/957f97bfedf27ddcafd19cb41215815e"
+    }
+  ],
+  "traceBaseUrl": "https://dash.cloudflare.com/ba924da36f2ffc3839e8d323000b66b4/workers/services/view/router-ab-deriver-b/production/observability/traces/",
+  "attemptCountInterpretation": {
+    "explanation": "Cloudflare aggregateD1Meta adds total_attempts across statement results. Four attempts for a four-statement successful batch is consistent with one attempt per statement, not four retries. The instrumented sample independently reports [1,1,1,1].",
+    "source": "https://github.com/cloudflare/workerd/blob/main/src/cloudflare/internal/d1-api.ts#L925"
+  },
+  "limits": [
+    "Native span timestamps equal the application timestamps here. They do not remove the clock-clamping limitation or provide an independent physical clock.",
+    "The caller span starts 84 ms after the child D1 span in the recorded timeline. Do not subtract parent and child durations to claim 5 ms of dispatch or network latency.",
+    "The original request was unmodified by our temporary observers. Its SQL and native timing metadata were retained by the existing platform instrumentation.",
+    "The original 740 ms span has no local storage-sync observation. That intervention belongs only to the later matched examples.",
+    "Grouped local SQL spans in the timeline cover repeated polling over an interval. Their displayed group duration is not cumulative SQL execution and is not additive to the D1 span."
+  ],
+  "correction": "Earlier reports said the original 740 ms request had no SQL metadata. That was true of the captured live tail. Retained native tracing now supplies its SQL duration and aggregated attempt count.",
+  "latencyFixStatus": "No runtime latency fix verified. The guarded update and coherent root/cancellation reads remain intact.",
+  "originalSpanVisibleFieldsExport": "383 text cloudflare.d1.response.served_by_primary true\n392 text cloudflare.d1.response.served_by_colo \"SIN\"\n398 text cloudflare.d1.response.rows_read 4\n401 text cloudflare.d1.response.rows_written 1\n410 text cloudflare.d1.response.sql_duration_ms 1.9631999999999998\n413 text cloudflare.d1.response.total_attempts 4\n416 text cloudflare.colo \"SIN\"\n428 text cloudflare.script_version.id \"778b2440-5686-4917-bf9a-3e7e127d0e42\"\n431 text cloudflare.durable_object.id \"a4893c9ba88f353175391f2467722e8fe09d35af87bc20f579947739c0feafec\"\n473 text db.operation.batch.size 4\n479 text traceId \"0de51aa7083150bf140a705ef40552ad\"\n482 text spanId \"fbe133338bbc0b71\"\n485 text parentSpanId \"537db6c784e4095c\"\n494 text 1792533077212\n500 text 1792533077952\n503 text durationMS 739.99998"
+}

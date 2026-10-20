@@ -1066,7 +1066,7 @@
     ".artifacts/d1-production-0156-20261021/tails/router-ab-deriver-b.jsonl": "0db5818e743348394b6632acee4ac8ca94fc64f3a565a8b114d8a793fe312337"
   },
   "limits": [
-    "The original 740 ms call has no SQL or retry metadata. The 672 ms call reproduces the same operation and delay class, not the exact original request.",
+    "The original live tail lacked SQL metadata. Subsequent retained native tracing recovered 1.9632 ms SQL execution and four aggregate statement attempts for that exact request; see respond-0156-native-d1-traces-20261021.json.",
     "D1 elapsed time includes local output gates, service dispatch, database queueing/durability, response transport, and callback scheduling. This observer cannot separate those parts.",
     "Worker clocks are clamped. Equal Rust and JavaScript durations exclude a separately observed gap, but do not prove zero Rust CPU work.",
     "This temporary observer adds promise continuations and logging. These measurements establish attribution, not a performance improvement.",

@@ -1647,6 +1647,10 @@ body:has(.h2-page) {
 
 /* ---------- networks strip: brand-mark lockups ---------- */
 
+.h2-logos {
+  padding-block: 4rem;
+}
+
 .h2-logos__row {
   display: flex;
   flex-wrap: wrap;
@@ -1926,6 +1930,20 @@ body:has(.h2-page) {
 
 .h2-page--wallet .passkey-demo {
   min-height: var(--h2-wallet-demo-shell-min-height);
+}
+
+/* The wallet hero runs 1rem shorter than the shared hero. The demo cell's top
+   padding clears the floating navbar and its card reserve holds the unlocked
+   card, so the rem comes out of the cell's bottom padding, and the minimum
+   height drops by the same amount so the copy column does not hold it. */
+.h2-page--wallet .h2-hero__split {
+  --h2-hero-min-height: 623px;
+}
+
+@media (min-width: 981px) {
+  .h2-page--wallet .h2-hero__demo {
+    padding-bottom: 16px;
+  }
 }
 
 /* In the hero the Live Demo label already separates the card from the cell

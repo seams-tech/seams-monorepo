@@ -1,6 +1,7 @@
 import React from 'react';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import {
+  H2Components,
   H2DemoHero,
   H2Faq,
   H2Footer,
@@ -28,6 +29,7 @@ export function WalletPage(): React.JSX.Element {
           }
         />
         <H2Networks />
+        <H2Components />
         <ComponentShowcase />
         <H2Security />
         <H2Start />

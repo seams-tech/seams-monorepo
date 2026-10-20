@@ -155,6 +155,32 @@ export function H2Networks(): React.JSX.Element {
   );
 }
 
+export function H2Components(): React.JSX.Element {
+  const { linkProps } = useSiteRouter();
+  const customizationProps = linkProps('/docs/examples/ui-customization');
+
+  return (
+    <section className="h2-section h2-rule" aria-labelledby="h2-components-title">
+      <div className="h2-shell">
+        <div className="h2-eco__head h2-starthead">
+          <div>
+            <h2 id="h2-components-title" className="h2-display h2-eco__title">
+              Use the built-in wallet components, or design your own
+            </h2>
+            <a
+              className="h2-btn h2-btn--primary h2-starthead__cta"
+              href={customizationProps.href}
+              onClick={customizationProps.onClick}
+            >
+              Explore UI customization
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function H2Trusted(): React.JSX.Element {
   return (
     <section className="h2-section h2-rule h2-trusted" aria-labelledby="h2-trusted-title">

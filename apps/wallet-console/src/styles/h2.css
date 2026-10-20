@@ -3146,6 +3146,46 @@ body:has(.h2-page) {
   color: var(--h2-ash);
 }
 
+/* Each row is one click target: the title's button covers the whole card. */
+.h2-security__item {
+  position: relative;
+}
+
+.h2-security__pick {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.h2-security__pick::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.h2-security__pick:focus-visible {
+  outline: none;
+}
+
+.h2-security__item:has(.h2-security__pick:focus-visible) {
+  outline: 2px solid var(--h2-smoke);
+  outline-offset: 2px;
+}
+
+/* the console band's hover hint, lighter than the playing row's card */
+.h2-security__item:not(.is-active):hover {
+  background: color-mix(in srgb, var(--h2-taupe) 30%, transparent);
+}
+
+.h2-security-section:has(.h2-security__item.is-active) .h2-security__item:not(.is-active):hover h3 {
+  color: var(--h2-ink);
+}
+
 .h2-security__cell span {
   transition: color 150ms ease;
 }

@@ -806,16 +806,27 @@ const walletCapabilities: readonly WalletCapability[] = [
   },
 ];
 
+/* The title's button stretches over the whole row, so the row is one click
+   target while the title stays a heading. */
 function SecurityItem({
   capability,
+  index,
   active,
+  onPick,
 }: {
   capability: WalletCapability;
+  index: number;
   active: boolean;
+  onPick: (index: number) => void;
 }): React.JSX.Element {
+  const picked = React.useCallback(() => onPick(index), [onPick, index]);
   return (
     <div className={`h2-security__item${active ? ' is-active' : ''}`}>
-      <h3>{capability.title}</h3>
+      <h3>
+        <button type="button" className="h2-security__pick" aria-pressed={active} onClick={picked}>
+          {capability.title}
+        </button>
+      </h3>
       <p>{capability.copy}</p>
     </div>
   );
@@ -850,6 +861,8 @@ export function H2Security(): React.JSX.Element {
   const [paused, setPaused] = React.useState(false);
   // The page sees no pointer inside a figure's frame, so each frame reports it.
   const [hoveredFeature, setHoveredFeature] = React.useState<number | null>(null);
+  // Reduced motion lights no row by itself, only the one a visitor picks.
+  const [picked, setPicked] = React.useState(false);
   const figureFocused = React.useSyncExternalStore(
     watchSecurityFocus,
     securityFigureHasFocus,
@@ -877,6 +890,13 @@ export function H2Security(): React.JSX.Element {
     setHoveredFeature(feature);
     setPosition(focusSecurityFeature.bind(null, feature));
   }, []);
+  // Picking a row hands its figure the turn and restarts the timer.
+  const pickFeature = React.useCallback((feature: number) => {
+    setPicked(true);
+    setPosition(focusSecurityFeature.bind(null, feature));
+  }, []);
+  let litFeature = playingFeature;
+  if (litFeature < 0 && picked && view === 'features') litFeature = position.feature;
   return (
     <section
       id="wallet-security"
@@ -895,7 +915,9 @@ export function H2Security(): React.JSX.Element {
               <SecurityItem
                 key={capability.figure}
                 capability={capability}
-                active={index === playingFeature}
+                index={index}
+                active={index === litFeature}
+                onPick={pickFeature}
               />
             ))}
           </div>

@@ -3500,7 +3500,9 @@ body:has(.h2-page) {
 .h2-consoleband__stage {
   position: relative;
   overflow: hidden;
-  aspect-ratio: 16 / 8.4;
+  /* short enough that the stage bottom crops both cards, the raised back
+     card included, so neither shows a bottom edge above the rule */
+  aspect-ratio: 16 / 7.2;
   /* Open-bottomed: the stage meets the section rule rather than closing
      above it, so the screen reads as continuing past the fold. */
   border-radius: 26px 26px 0 0;
@@ -3509,32 +3511,39 @@ body:has(.h2-page) {
   background: var(--h2-taupe);
 }
 
-/* One screen at a time, large enough to read: the screens stack in the same
-   place and crossfade, the incoming one rising slightly. */
+/* Both screens on stage as a stack: the active one in front at a readable
+   size, the other behind it, offset up and to the right so its top edge and
+   right side stay in view. Changing screens swaps the two; only transform
+   and z-index change, so the cards slide past each other. */
 .h2-consoleband__screen {
   position: absolute;
-  inset-inline: 4%;
-  /* 4% of the stage's width, restated against its 16/8.4 height */
-  inset-block-start: 7.6%;
+  inset-inline-start: 4%;
+  /* front card: 10% of the stage's height from the top */
+  inset-block-start: 10%;
+  width: 80%;
   overflow: hidden;
   border-radius: 14px;
   border: 1px solid #e3ded6;
   background: var(--h2-bg);
   box-shadow: 0 30px 70px -34px rgba(15, 23, 42, 0.32);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(16px) scale(0.985);
+  /* Back card: 12% of the stage's width right (12 / 80 of the card) and 7%
+     of the card's own height up, which leaves a strip of it above the front
+     card's top edge. */
+  transform: translate(15%, -7%);
+  cursor: pointer;
   transition:
-    opacity 450ms ease,
-    transform 550ms cubic-bezier(0.2, 0.7, 0.2, 1),
-    visibility 0s linear 550ms;
+    transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 300ms ease;
+}
+
+.h2-consoleband__screen:not(.is-active):hover {
+  box-shadow: 0 30px 70px -30px rgba(15, 23, 42, 0.45);
 }
 
 .h2-consoleband__screen.is-active {
-  opacity: 1;
-  visibility: visible;
+  z-index: 1;
   transform: none;
-  transition-delay: 0s;
+  cursor: default;
 }
 
 .h2-consoleband__screen img {
@@ -3602,17 +3611,8 @@ body:has(.h2-page) {
     font-size: 14px;
   }
 
-  /* Sized so a 90% card very nearly fills the stage: a wider ratio left a
-     quarter of the band empty under the card. */
   .h2-consoleband__stage {
-    aspect-ratio: 15 / 8;
     border-radius: 18px 18px 0 0;
-  }
-
-  .h2-consoleband__screen {
-    inset-inline: 5%;
-    /* 5% of width against a 15/8 stage: 5 × 1.875 = 9.375 */
-    inset-block-start: 9.4%;
   }
 
   /* too small to point at anything legibly at this width */

@@ -1337,12 +1337,15 @@ export function H2Start(): React.JSX.Element {
           <div
             className="h2-consoleband__stage"
             role="img"
-            aria-label={`Wallet console ${CONSOLE_SCREENS.find((screen) => screen.id === consoleFocus)?.label} page`}
+            aria-label={`Wallet console overview and audit log pages, ${CONSOLE_SCREENS.find((screen) => screen.id === consoleFocus)?.label} in front`}
           >
             {CONSOLE_SCREENS.map((screen) => (
+              // the back card is a pointer shortcut to the same switch as
+              // its tile; the tiles stay the accessible control
               <div
                 key={screen.id}
                 className={`h2-consoleband__screen${consoleFocus === screen.id ? ' is-active' : ''}`}
+                onClick={() => setConsoleFocus(screen.id)}
               >
                 <img
                   src={screen.src}

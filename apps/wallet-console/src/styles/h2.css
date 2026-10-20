@@ -1658,6 +1658,8 @@ body:has(.h2-page) {
   justify-content: space-between;
   gap: 18px 32px;
   padding-top: 7px;
+  /* draws the row in from the column edges toward the centre */
+  padding-inline: clamp(0px, 5vw, 5rem);
 }
 
 .h2-logo {

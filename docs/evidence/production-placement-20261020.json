@@ -1,0 +1,518 @@
+{
+  "date": "2026-10-20",
+  "timezone": "Asia/Tokyo",
+  "scope": "Production-mainnet APAC Worker placement experiment",
+  "sdkVersion": "0.15.2",
+  "sdkVersionReason": "User selected current hosted 0.15.2 after discovery that the live iframe changed.",
+  "backend": "Exact serving backend modules copied; all four candidates have matching module hashes.",
+  "hostedIframeOrigin": "https://sign.seams.sh",
+  "parentApplication": "Local HTTPS test application built against the published 0.15.2 SDK.",
+  "measurement": "SDK registration.post_touch_id: resolved passkey authority to wallet ready; setup and passkey interaction excluded.",
+  "authenticator": "Automated Chromium WebAuthn authenticator; this is not a physical Touch ID hardware measurement.",
+  "intervention": {
+    "workerNames": [
+      "router-ab-deriver-a",
+      "router-ab-deriver-b",
+      "router-ab-signing-worker",
+      "seams-sdk-d1-wallet-runtime"
+    ],
+    "placement": "aws:ap-southeast-1",
+    "unchanged": [
+      "Worker module bytes",
+      "database IDs",
+      "all other bindings",
+      "Durable Object namespaces",
+      "runtime settings",
+      "hosted iframe manifest"
+    ]
+  },
+  "arms": [
+    {
+      "name": "control-before",
+      "startedAtMs": 1792469767805,
+      "endedAtMs": 1792469853373,
+      "postPasskey": {
+        "count": 9,
+        "p50Ms": 2636,
+        "p90Ms": 2845.8,
+        "minMs": 1885,
+        "maxMs": 3101,
+        "above2500Ms": 6
+      },
+      "stageMediansMs": {
+        "near_only.respond": 1875.4,
+        "near_only.finalize": 503,
+        "yao_admission_bind": 91.0,
+        "yao_router_execution": 1627.0,
+        "yao_router_prepare_pair": 520.0,
+        "yao_router_role_execution": 1227.0,
+        "yao_router_signing_worker_delivery": 78.0
+      },
+      "registrationIngressCounts": {
+        "NRT": 27
+      },
+      "observedWalletObjectColos": {
+        "router-ab-mpc-router": {
+          "HKG": 8
+        },
+        "router-ab-deriver-b": {
+          "HKG": 8
+        },
+        "router-ab-signing-worker": {
+          "HKG": 9
+        },
+        "router-ab-deriver-a": {
+          "HKG": 8
+        }
+      },
+      "independentlyVerifiedSignatures": 9
+    },
+    {
+      "name": "singapore-placement",
+      "startedAtMs": 1792469894417,
+      "endedAtMs": 1792469978019,
+      "postPasskey": {
+        "count": 9,
+        "p50Ms": 2929,
+        "p90Ms": 3255.6,
+        "minMs": 1844,
+        "maxMs": 3594,
+        "above2500Ms": 6
+      },
+      "stageMediansMs": {
+        "near_only.respond": 2269.8,
+        "near_only.finalize": 515.7,
+        "yao_admission_bind": 96.0,
+        "yao_router_execution": 2000.0,
+        "yao_router_prepare_pair": 389.0,
+        "yao_router_role_execution": 1497.0,
+        "yao_router_signing_worker_delivery": 196.0
+      },
+      "registrationIngressCounts": {
+        "NRT": 27
+      },
+      "observedWalletObjectColos": {
+        "router-ab-mpc-router": {
+          "HKG": 9
+        },
+        "router-ab-deriver-b": {
+          "HKG": 6,
+          "SIN": 3
+        },
+        "router-ab-signing-worker": {
+          "HKG": 6,
+          "SIN": 3
+        },
+        "router-ab-deriver-a": {
+          "HKG": 6,
+          "SIN": 3
+        }
+      },
+      "independentlyVerifiedSignatures": 9
+    },
+    {
+      "name": "control-after",
+      "startedAtMs": 1792470011620,
+      "endedAtMs": 1792470093551,
+      "postPasskey": {
+        "count": 9,
+        "p50Ms": 2561,
+        "p90Ms": 3249.0,
+        "minMs": 1995,
+        "maxMs": 3481,
+        "above2500Ms": 5
+      },
+      "stageMediansMs": {
+        "near_only.respond": 1916.3,
+        "near_only.finalize": 439.3,
+        "yao_admission_bind": 92.0,
+        "yao_router_execution": 1697.0,
+        "yao_router_prepare_pair": 634.0,
+        "yao_router_role_execution": 1167.0,
+        "yao_router_signing_worker_delivery": 85.0
+      },
+      "registrationIngressCounts": {
+        "NRT": 27
+      },
+      "observedWalletObjectColos": {
+        "router-ab-mpc-router": {
+          "HKG": 8
+        },
+        "router-ab-deriver-b": {
+          "HKG": 7,
+          "SIN": 1
+        },
+        "router-ab-signing-worker": {
+          "HKG": 8,
+          "SIN": 1
+        },
+        "router-ab-deriver-a": {
+          "HKG": 7,
+          "SIN": 1
+        }
+      },
+      "independentlyVerifiedSignatures": 9
+    }
+  ],
+  "continuity": {
+    "sameWalletSamePublicKey": true,
+    "independentlyVerifiedSignatures": 3,
+    "checks": [
+      "before placement",
+      "unlock and sign under candidate",
+      "unlock and sign after restoration"
+    ],
+    "limit": "One retained test wallet; does not prove usability of every existing wallet."
+  },
+  "restoration": {
+    "allOriginalServingVersionsRestored": true,
+    "workerCount": 14,
+    "originalVersions": {
+      "router-ab-deriver-a": [
+        {
+          "version_id": "1ec88e4a-44d1-4581-bc9e-8f9fa95b7854",
+          "percentage": 100
+        }
+      ],
+      "router-ab-deriver-b": [
+        {
+          "version_id": "6dea371c-c948-4d68-a4c8-db31f48e3290",
+          "percentage": 100
+        }
+      ],
+      "router-ab-mpc-router": [
+        {
+          "version_id": "11d4ca11-91c5-4dde-87a9-7bfb4b4de909",
+          "percentage": 100
+        }
+      ],
+      "router-ab-signing-worker": [
+        {
+          "version_id": "16d6c6ab-f592-4a3d-ba6d-cd01f4a4ab62",
+          "percentage": 100
+        }
+      ],
+      "router-ab-tenant-root-control-plane": [
+        {
+          "version_id": "84ebcab8-5156-4ae7-9d2c-ec7c707e1ce9",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-console": [
+        {
+          "version_id": "b8b93e40-ac8c-4395-9363-888d90e45631",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway": [
+        {
+          "version_id": "1cd9a643-ebb2-4679-992c-ec9c2d0823aa",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-oc": [
+        {
+          "version_id": "fd9ed8ad-c338-48bd-bb20-1d7cef9e540a",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-us": [
+        {
+          "version_id": "112d129b-d4fb-4730-9782-1d2293f2075f",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-weur": [
+        {
+          "version_id": "4de321a7-c9f2-4e7d-8ec8-772ec6ce401d",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime": [
+        {
+          "version_id": "412bfe1c-484e-4a8d-8ff0-e5c98dcee5d3",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-oc": [
+        {
+          "version_id": "b23649fc-a8d5-4d6b-b1d7-1fb710b1a9d2",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-us": [
+        {
+          "version_id": "33ec6d73-c4e3-4686-b09d-26e86e6ac08a",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-weur": [
+        {
+          "version_id": "1b0ec0dd-f849-4849-b86f-ba500f21e580",
+          "percentage": 100
+        }
+      ]
+    },
+    "dataActions": "No database creation, copying, rebinding, deletion, or wallet relocation. Test registrations add wallets."
+  },
+  "databaseInventory": [
+    {
+      "worker": "router-ab-deriver-a",
+      "placement": {},
+      "databases": [
+        {
+          "binding": "DERIVER_ROLE_PRIVATE_DB",
+          "primaryColo": "HKG",
+          "servedByPrimary": true
+        }
+      ]
+    },
+    {
+      "worker": "router-ab-deriver-b",
+      "placement": {},
+      "databases": [
+        {
+          "binding": "DERIVER_ROLE_PRIVATE_DB",
+          "primaryColo": "SIN",
+          "servedByPrimary": true
+        }
+      ]
+    },
+    {
+      "worker": "router-ab-mpc-router",
+      "placement": {},
+      "databases": []
+    },
+    {
+      "worker": "router-ab-signing-worker",
+      "placement": {},
+      "databases": [
+        {
+          "binding": "SIGNING_WORKER_PRIVATE_DB",
+          "primaryColo": "SIN",
+          "servedByPrimary": true
+        }
+      ]
+    },
+    {
+      "worker": "router-ab-tenant-root-control-plane",
+      "placement": {},
+      "databases": []
+    },
+    {
+      "worker": "seams-sdk-d1-console",
+      "placement": {},
+      "databases": [
+        {
+          "binding": "CONSOLE_DB",
+          "primaryColo": "SIN",
+          "servedByPrimary": true
+        }
+      ]
+    },
+    {
+      "worker": "seams-sdk-d1-gateway",
+      "placement": {
+        "mode": "targeted",
+        "target": [
+          {
+            "id": 24,
+            "region": "aws:ap-east-1",
+            "type": "region"
+          }
+        ]
+      },
+      "databases": [
+        {
+          "binding": "SIGNER_DB",
+          "primaryColo": "HKG",
+          "servedByPrimary": true
+        }
+      ]
+    },
+    {
+      "worker": "seams-sdk-d1-gateway-oc",
+      "placement": {
+        "mode": "targeted",
+        "target": [
+          {
+            "id": 31,
+            "region": "aws:ap-southeast-2",
+            "type": "region"
+          }
+        ]
+      },
+      "databases": [
+        {
+          "binding": "SIGNER_DB",
+          "primaryColo": "SYD",
+          "servedByPrimary": true
+        }
+      ]
+    },
+    {
+      "worker": "seams-sdk-d1-gateway-us",
+      "placement": {
+        "mode": "targeted",
+        "target": [
+          {
+            "id": 1,
+            "region": "aws:us-east-1",
+            "type": "region"
+          }
+        ]
+      },
+      "databases": [
+        {
+          "binding": "SIGNER_DB",
+          "primaryColo": "IAD",
+          "servedByPrimary": true
+        }
+      ]
+    },
+    {
+      "worker": "seams-sdk-d1-gateway-weur",
+      "placement": {
+        "mode": "targeted",
+        "target": [
+          {
+            "id": 43,
+            "region": "aws:eu-west-2",
+            "type": "region"
+          }
+        ]
+      },
+      "databases": [
+        {
+          "binding": "SIGNER_DB",
+          "primaryColo": "LHR",
+          "servedByPrimary": true
+        }
+      ]
+    },
+    {
+      "worker": "seams-sdk-d1-wallet-runtime",
+      "placement": {
+        "mode": "targeted",
+        "target": [
+          {
+            "id": 24,
+            "region": "aws:ap-east-1",
+            "type": "region"
+          }
+        ]
+      },
+      "databases": [
+        {
+          "binding": "SIGNER_DB",
+          "primaryColo": "HKG",
+          "servedByPrimary": true
+        }
+      ]
+    },
+    {
+      "worker": "seams-sdk-d1-wallet-runtime-oc",
+      "placement": {
+        "mode": "targeted",
+        "target": [
+          {
+            "id": 31,
+            "region": "aws:ap-southeast-2",
+            "type": "region"
+          }
+        ]
+      },
+      "databases": [
+        {
+          "binding": "SIGNER_DB",
+          "primaryColo": "SYD",
+          "servedByPrimary": true
+        }
+      ]
+    },
+    {
+      "worker": "seams-sdk-d1-wallet-runtime-us",
+      "placement": {
+        "mode": "targeted",
+        "target": [
+          {
+            "id": 1,
+            "region": "aws:us-east-1",
+            "type": "region"
+          }
+        ]
+      },
+      "databases": [
+        {
+          "binding": "SIGNER_DB",
+          "primaryColo": "IAD",
+          "servedByPrimary": true
+        }
+      ]
+    },
+    {
+      "worker": "seams-sdk-d1-wallet-runtime-weur",
+      "placement": {
+        "mode": "targeted",
+        "target": [
+          {
+            "id": 43,
+            "region": "aws:eu-west-2",
+            "type": "region"
+          }
+        ]
+      },
+      "databases": [
+        {
+          "binding": "SIGNER_DB",
+          "primaryColo": "LHR",
+          "servedByPrimary": true
+        }
+      ]
+    }
+  ],
+  "findings": [
+    "The placement-only arm did not meet the latency target or show an improvement over either control median.",
+    "Observed wallet objects remained split between Hong Kong and Singapore; this was not a fully co-located Singapore test.",
+    "APAC Runtime and Deriver A database primaries remain Hong Kong. Console, Deriver B and Signing Worker primaries are Singapore.",
+    "Production uses one shared custody Worker set across regional Gateways and runtimes.",
+    "Worker placement settings cannot establish the actual locations of wallet objects or database primaries.",
+    "Existing relocation requires owner approval and rejects same-region source and destination."
+  ],
+  "limitations": [
+    "Nine wallets per sequential arm do not isolate time variation or support a tail guarantee.",
+    "Four Worker placements changed together; this cannot assign an effect to one Worker.",
+    "Host observations are scoped to the measurement window and may omit requests or include other concurrent traffic.",
+    "Cloudflare placement hints are best effort. A successful upload does not prove co-location.",
+    "The regional data-preserving migration is not completed by this experiment."
+  ],
+  "causeTable": [
+    {
+      "cause": "Touch ID interaction included in target",
+      "status": "excluded by the SDK timing boundary"
+    },
+    {
+      "cause": "SDK version or local iframe changes between arms",
+      "status": "excluded by fixed 0.15.2 and hosted manifest checks"
+    },
+    {
+      "cause": "Worker placement alone resolves the delay",
+      "status": "not supported by this experiment"
+    },
+    {
+      "cause": "Mixed object and D1 locations contribute",
+      "status": "plausible; full co-location was not achieved or tested"
+    },
+    {
+      "cause": "Hosted storage or dispatch variation",
+      "status": "remains plausible"
+    }
+  ],
+  "nextRequirements": [
+    "Use a narrower APAC object placement hint and verify actual destinations.",
+    "Preserve existing ownership and authorization while enabling same-region infrastructure migration.",
+    "Provide regional custody storage and routing before claiming US or Europe co-location.",
+    "Verify database primaries, object hosts, successful existing-wallet signing, and the exact latency boundary after migration."
+  ],
+  "localArtifactRoot": ".artifacts/registration-placement-20261020"
+}

@@ -1,0 +1,116 @@
+body {
+  margin: 0;
+  background: #ffffff;
+  color: #0a0a0a;
+  font:
+    14px/1.5 ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+.lab {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 40px 16px 80px;
+}
+
+.lab h1 {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.lab__note {
+  margin: 0 0 28px;
+  color: #777169;
+}
+
+.lab__card {
+  position: relative;
+  isolation: isolate;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+}
+
+.lab__maker {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.lab__previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.lab__card--wide {
+  flex: 1 1 420px;
+  aspect-ratio: auto;
+  min-height: 300px;
+}
+
+/* the navbar menu card's size and text, to check legibility */
+.lab__card--menu {
+  display: grid;
+  align-content: end;
+  gap: 3px;
+  width: 190px;
+  height: 194px;
+  padding: 14px;
+  box-sizing: border-box;
+  aspect-ratio: auto;
+  color: #ffffff;
+  font-size: 12px;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
+}
+
+.lab__card--menu strong {
+  font-size: 13px;
+}
+
+.lab__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+}
+
+.lab__controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lab__controls input[type='number'] {
+  width: 64px;
+}
+
+.lab__controls code {
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #f5f3f1;
+  font-size: 12px;
+}
+
+.lab__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px 16px;
+}
+
+.lab__fields figure {
+  margin: 0;
+}
+
+.lab__fields figcaption {
+  margin-top: 8px;
+  color: #777169;
+  font:
+    12px/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}

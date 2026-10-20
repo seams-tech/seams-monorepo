@@ -1,0 +1,62 @@
+import React from 'react';
+import { grainFieldSource, type GeneratedField, type GrainFieldName } from './fields';
+import { addGrainField, type GrainFieldHandle } from './renderer';
+import './GrainField.css';
+
+type GrainFieldProps = {
+  field: GrainFieldName | GeneratedField;
+  /* false holds the current frame, e.g. while the field's menu is closed */
+  playing?: boolean;
+  className?: string;
+};
+
+const MAX_PIXEL_RATIO = 2;
+
+/* A moving, grainy gradient that fills its positioned parent behind the
+   parent's content. Reduced motion, an off-screen field and a hidden tab all
+   hold the current frame. */
+export function GrainField({
+  field,
+  playing = true,
+  className,
+}: GrainFieldProps): React.JSX.Element {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const handleRef = React.useRef<GrainFieldHandle | null>(null);
+  const source = grainFieldSource(field);
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+    const handle = addGrainField(canvas, source);
+    handleRef.current = handle;
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      const ratio = Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO);
+      handle.setSize(entry.contentRect.width * ratio, entry.contentRect.height * ratio);
+    });
+    const intersectionObserver = new IntersectionObserver(
+      ([entry]) => handle.setVisible(entry.isIntersecting),
+      { rootMargin: '120px' },
+    );
+    resizeObserver.observe(canvas);
+    intersectionObserver.observe(canvas);
+    return () => {
+      resizeObserver.disconnect();
+      intersectionObserver.disconnect();
+      handle.dispose();
+      handleRef.current = null;
+    };
+  }, [source]);
+
+  React.useEffect(() => {
+    handleRef.current?.setPlaying(playing);
+  }, [playing, source]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className={className ? `grain-field ${className}` : 'grain-field'}
+      style={{ backgroundColor: source.base }}
+      aria-hidden
+    />
+  );
+}

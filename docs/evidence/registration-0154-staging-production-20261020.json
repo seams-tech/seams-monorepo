@@ -1,0 +1,707 @@
+{
+  "date": "2026-10-20",
+  "scope": "Matched hosted registration baseline: staging-testnet versus production-mainnet",
+  "sdkVersion": "0.15.4",
+  "walletServerVersion": "0.15.4",
+  "metric": "registration.post_touch_id",
+  "boundary": "Resolved passkey proof to wallet ready; automated Chromium WebAuthn, physical Touch ID duration excluded",
+  "method": {
+    "perEnvironment": {
+      "warmupRegistrations": 3,
+      "baselineRegistrations": 15
+    },
+    "parent": "Local HTTPS application using published SDK 0.15.4",
+    "iframeAndGateway": "Real remote hosted endpoints; no request interception",
+    "harnessHashesIdentical": true,
+    "backendVersionsStablePerEnvironment": true,
+    "networkWork": "Unfunded implicit NEAR account registration followed by independently verified message signing"
+  },
+  "deployment": {
+    "sdkPinCommit": "636e8f5f2d4a9e98cd176b35238f7cfc1c91d622",
+    "productionHostCommit": "98c80c7b4075a996cfbb4a308b649cb9f09cfefb",
+    "stagingHostRun": 39415429257,
+    "stagingConsoleRun": 39415433902,
+    "stagingBackendRun": 39415438812,
+    "stagingActivationRun": 39416529208,
+    "productionHostRun": 39417128996,
+    "productionBackendRedeployedForComparison": false
+  },
+  "cohorts": {
+    "staging": {
+      "warmup": {
+        "postPasskey": {
+          "count": 3,
+          "p50Ms": 3469,
+          "p95Ms": 3569.8,
+          "minMs": 1481,
+          "maxMs": 3581,
+          "above2500Ms": 2
+        },
+        "stages": {
+          "near_only.setup": {
+            "count": 3,
+            "p50Ms": 1035.4,
+            "p95Ms": 1066.27,
+            "minMs": 1033.6,
+            "maxMs": 1069.7,
+            "above2500Ms": 0
+          },
+          "near_only.respond": {
+            "count": 3,
+            "p50Ms": 2106.9,
+            "p95Ms": 2274.03,
+            "minMs": 830.1,
+            "maxMs": 2292.6,
+            "above2500Ms": 0
+          },
+          "near_only.finalize": {
+            "count": 3,
+            "p50Ms": 558.8,
+            "p95Ms": 956.15,
+            "minMs": 407.8,
+            "maxMs": 1000.3,
+            "above2500Ms": 0
+          }
+        },
+        "serverTimingMediansMs": {
+          "ecdsa_respond_d1_load": 17.0,
+          "respond_authority_verify": 20.0,
+          "yao_admission_request": 0.0,
+          "yao_admission_state_read": 12.0,
+          "yao_admission_authorization": 0.0,
+          "yao_admission_root_wait": 243.0,
+          "yao_admission_backend": 0.0,
+          "yao_admission_commit": 20.0,
+          "yao_admission_bind": 275.0,
+          "yao_d1_admission_read": 0.0,
+          "yao_router_execution": 1514.0,
+          "yao_result_reconstruction": 0.0,
+          "yao_router_prepare_pair": 352.0,
+          "yao_router_role_execution": 994.0,
+          "yao_router_signing_worker_delivery": 55.0
+        },
+        "independentlyVerifiedSignatures": 3,
+        "observedWalletObjectHosts": {
+          "router-ab-deriver-b-staging": {
+            "SIN": 3
+          },
+          "router-ab-deriver-a-staging": {
+            "SIN": 3
+          },
+          "router-ab-signing-worker-staging": {
+            "SIN": 3
+          },
+          "router-ab-mpc-router-staging": {
+            "SIN": 3
+          }
+        },
+        "protocolInvocationObservations": {
+          "deriver_b": [
+            {
+              "protocolWallMs": 56,
+              "invocationCpuMs": 294,
+              "invocationWallMs": 710
+            },
+            {
+              "protocolWallMs": 70,
+              "invocationCpuMs": 262,
+              "invocationWallMs": 717
+            },
+            {
+              "protocolWallMs": 141,
+              "invocationCpuMs": 237,
+              "invocationWallMs": 434
+            }
+          ],
+          "deriver_a": [
+            {
+              "protocolWallMs": 175,
+              "invocationCpuMs": 163,
+              "invocationWallMs": 468
+            },
+            {
+              "protocolWallMs": 145,
+              "invocationCpuMs": 208,
+              "invocationWallMs": 734
+            },
+            {
+              "protocolWallMs": 119,
+              "invocationCpuMs": 252,
+              "invocationWallMs": 449
+            }
+          ]
+        },
+        "startedAtMs": 1792496484907,
+        "endedAtMs": 1792496512173
+      },
+      "baseline": {
+        "postPasskey": {
+          "count": 15,
+          "p50Ms": 2052,
+          "p95Ms": 2512.8,
+          "minMs": 1452,
+          "maxMs": 2587,
+          "above2500Ms": 1
+        },
+        "stages": {
+          "near_only.setup": {
+            "count": 15,
+            "p50Ms": 569,
+            "p95Ms": 1382.49,
+            "minMs": 293.7,
+            "maxMs": 2217.1,
+            "above2500Ms": 0
+          },
+          "near_only.respond": {
+            "count": 15,
+            "p50Ms": 1240.3,
+            "p95Ms": 1693.08,
+            "minMs": 935.3,
+            "maxMs": 1850.3,
+            "above2500Ms": 0
+          },
+          "near_only.finalize": {
+            "count": 15,
+            "p50Ms": 428.8,
+            "p95Ms": 765.73,
+            "minMs": 287.5,
+            "maxMs": 802.9,
+            "above2500Ms": 0
+          }
+        },
+        "serverTimingMediansMs": {
+          "ecdsa_respond_d1_load": 16.0,
+          "respond_authority_verify": 13.0,
+          "yao_admission_request": 0.0,
+          "yao_admission_state_read": 11.0,
+          "yao_admission_authorization": 0.0,
+          "yao_admission_root_wait": 5.0,
+          "yao_admission_backend": 0.0,
+          "yao_admission_commit": 21.0,
+          "yao_admission_bind": 43.0,
+          "yao_d1_admission_read": 0.0,
+          "yao_router_execution": 997.0,
+          "yao_result_reconstruction": 0.0,
+          "yao_router_prepare_pair": 183.0,
+          "yao_router_role_execution": 705.0,
+          "yao_router_signing_worker_delivery": 50.0
+        },
+        "independentlyVerifiedSignatures": 15,
+        "observedWalletObjectHosts": {
+          "router-ab-deriver-b-staging": {
+            "SIN": 15
+          },
+          "router-ab-deriver-a-staging": {
+            "SIN": 15
+          },
+          "router-ab-signing-worker-staging": {
+            "SIN": 15
+          },
+          "router-ab-mpc-router-staging": {
+            "SIN": 15
+          }
+        },
+        "protocolInvocationObservations": {
+          "deriver_b": [
+            {
+              "protocolWallMs": 91,
+              "invocationCpuMs": 202,
+              "invocationWallMs": 342
+            },
+            {
+              "protocolWallMs": 100,
+              "invocationCpuMs": 358,
+              "invocationWallMs": 798
+            },
+            {
+              "protocolWallMs": 106,
+              "invocationCpuMs": 226,
+              "invocationWallMs": 10362
+            },
+            {
+              "protocolWallMs": 58,
+              "invocationCpuMs": 223,
+              "invocationWallMs": 345
+            },
+            {
+              "protocolWallMs": 100,
+              "invocationCpuMs": 176,
+              "invocationWallMs": 10318
+            },
+            {
+              "protocolWallMs": 80,
+              "invocationCpuMs": 220,
+              "invocationWallMs": 364
+            },
+            {
+              "protocolWallMs": 81,
+              "invocationCpuMs": 194,
+              "invocationWallMs": 10317
+            },
+            {
+              "protocolWallMs": 76,
+              "invocationCpuMs": 200,
+              "invocationWallMs": 10310
+            },
+            {
+              "protocolWallMs": 67,
+              "invocationCpuMs": 193,
+              "invocationWallMs": 10789
+            },
+            {
+              "protocolWallMs": 93,
+              "invocationCpuMs": 193,
+              "invocationWallMs": 10720
+            },
+            {
+              "protocolWallMs": 77,
+              "invocationCpuMs": 225,
+              "invocationWallMs": 569
+            },
+            {
+              "protocolWallMs": 78,
+              "invocationCpuMs": 243,
+              "invocationWallMs": 510
+            },
+            {
+              "protocolWallMs": 87,
+              "invocationCpuMs": 118,
+              "invocationWallMs": 10224
+            }
+          ],
+          "deriver_a": [
+            {
+              "protocolWallMs": 119,
+              "invocationCpuMs": 203,
+              "invocationWallMs": 540
+            },
+            {
+              "protocolWallMs": 132,
+              "invocationCpuMs": 183,
+              "invocationWallMs": 658
+            },
+            {
+              "protocolWallMs": 231,
+              "invocationCpuMs": 184,
+              "invocationWallMs": 836
+            },
+            {
+              "protocolWallMs": 116,
+              "invocationCpuMs": 145,
+              "invocationWallMs": 366
+            },
+            {
+              "protocolWallMs": 150,
+              "invocationCpuMs": 205,
+              "invocationWallMs": 894
+            },
+            {
+              "protocolWallMs": 118,
+              "invocationCpuMs": 190,
+              "invocationWallMs": 780
+            },
+            {
+              "protocolWallMs": 133,
+              "invocationCpuMs": 173,
+              "invocationWallMs": 524
+            },
+            {
+              "protocolWallMs": 129,
+              "invocationCpuMs": 227,
+              "invocationWallMs": 426
+            },
+            {
+              "protocolWallMs": 146,
+              "invocationCpuMs": 201,
+              "invocationWallMs": 593
+            },
+            {
+              "protocolWallMs": 109,
+              "invocationCpuMs": 173,
+              "invocationWallMs": 1219
+            },
+            {
+              "protocolWallMs": 138,
+              "invocationCpuMs": 228,
+              "invocationWallMs": 1257
+            },
+            {
+              "protocolWallMs": 115,
+              "invocationCpuMs": 161,
+              "invocationWallMs": 664
+            },
+            {
+              "protocolWallMs": 378,
+              "invocationCpuMs": 178,
+              "invocationWallMs": 603
+            },
+            {
+              "protocolWallMs": 113,
+              "invocationCpuMs": 169,
+              "invocationWallMs": 577
+            },
+            {
+              "protocolWallMs": 124,
+              "invocationCpuMs": 176,
+              "invocationWallMs": 815
+            }
+          ]
+        },
+        "startedAtMs": 1792496536077,
+        "endedAtMs": 1792496638396
+      }
+    },
+    "production": {
+      "warmup": {
+        "postPasskey": {
+          "count": 3,
+          "p50Ms": 3105,
+          "p95Ms": 6402.6,
+          "minMs": 2957,
+          "maxMs": 6769,
+          "above2500Ms": 3
+        },
+        "stages": {
+          "near_only.setup": {
+            "count": 3,
+            "p50Ms": 1000.4,
+            "p95Ms": 1143.59,
+            "minMs": 967.3,
+            "maxMs": 1159.5,
+            "above2500Ms": 0
+          },
+          "near_only.respond": {
+            "count": 3,
+            "p50Ms": 1992.6,
+            "p95Ms": 4718.16,
+            "minMs": 1909.5,
+            "maxMs": 5021,
+            "above2500Ms": 1
+          },
+          "near_only.finalize": {
+            "count": 3,
+            "p50Ms": 912.6,
+            "p95Ms": 1272.96,
+            "minMs": 746,
+            "maxMs": 1313,
+            "above2500Ms": 0
+          }
+        },
+        "serverTimingMediansMs": {
+          "ecdsa_respond_d1_load": 16.0,
+          "respond_authority_verify": 14.0,
+          "yao_admission_request": 0.0,
+          "yao_admission_state_read": 11.0,
+          "yao_admission_authorization": 0.0,
+          "yao_admission_root_wait": 182.0,
+          "yao_admission_backend": 0.0,
+          "yao_admission_commit": 14.0,
+          "yao_admission_bind": 262.0,
+          "yao_d1_admission_read": 0.0,
+          "yao_router_execution": 1445.0,
+          "yao_result_reconstruction": 0.0,
+          "yao_router_prepare_pair": 180.0,
+          "yao_router_role_execution": 1132.0,
+          "yao_router_signing_worker_delivery": 51.0
+        },
+        "independentlyVerifiedSignatures": 3,
+        "observedWalletObjectHosts": {
+          "router-ab-mpc-router": {
+            "SIN": 3
+          },
+          "router-ab-deriver-b": {
+            "SIN": 3
+          },
+          "router-ab-signing-worker": {
+            "SIN": 3
+          },
+          "router-ab-deriver-a": {
+            "SIN": 3
+          }
+        },
+        "protocolInvocationObservations": {
+          "deriver_b": [
+            {
+              "protocolWallMs": 2784,
+              "invocationCpuMs": 216,
+              "invocationWallMs": 2967
+            },
+            {
+              "protocolWallMs": 85,
+              "invocationCpuMs": 337,
+              "invocationWallMs": 1051
+            }
+          ],
+          "deriver_a": [
+            {
+              "protocolWallMs": 2885,
+              "invocationCpuMs": 245,
+              "invocationWallMs": 3214
+            },
+            {
+              "protocolWallMs": 231,
+              "invocationCpuMs": 176,
+              "invocationWallMs": 471
+            },
+            {
+              "protocolWallMs": 166,
+              "invocationCpuMs": 319,
+              "invocationWallMs": 1012
+            }
+          ]
+        },
+        "startedAtMs": 1792496778933,
+        "endedAtMs": 1792496812727
+      },
+      "baseline": {
+        "postPasskey": {
+          "count": 15,
+          "p50Ms": 2141,
+          "p95Ms": 2447.3,
+          "minMs": 1613,
+          "maxMs": 2497,
+          "above2500Ms": 0
+        },
+        "stages": {
+          "near_only.setup": {
+            "count": 15,
+            "p50Ms": 671.5,
+            "p95Ms": 958.2,
+            "minMs": 423.2,
+            "maxMs": 1141.6,
+            "above2500Ms": 0
+          },
+          "near_only.respond": {
+            "count": 15,
+            "p50Ms": 1376.9,
+            "p95Ms": 1619.48,
+            "minMs": 951.1,
+            "maxMs": 1707.4,
+            "above2500Ms": 0
+          },
+          "near_only.finalize": {
+            "count": 15,
+            "p50Ms": 441.2,
+            "p95Ms": 889.91,
+            "minMs": 292.8,
+            "maxMs": 1004.5,
+            "above2500Ms": 0
+          }
+        },
+        "serverTimingMediansMs": {
+          "ecdsa_respond_d1_load": 11.0,
+          "respond_authority_verify": 9.0,
+          "yao_admission_request": 0.0,
+          "yao_admission_state_read": 11.0,
+          "yao_admission_authorization": 0.0,
+          "yao_admission_root_wait": 19.0,
+          "yao_admission_backend": 0.0,
+          "yao_admission_commit": 16.0,
+          "yao_admission_bind": 47.0,
+          "yao_d1_admission_read": 0.0,
+          "yao_router_execution": 1111.0,
+          "yao_result_reconstruction": 0.0,
+          "yao_router_prepare_pair": 146.0,
+          "yao_router_role_execution": 772.0,
+          "yao_router_signing_worker_delivery": 49.0
+        },
+        "independentlyVerifiedSignatures": 15,
+        "observedWalletObjectHosts": {
+          "router-ab-mpc-router": {
+            "SIN": 15
+          },
+          "router-ab-deriver-b": {
+            "SIN": 15
+          },
+          "router-ab-signing-worker": {
+            "SIN": 15
+          },
+          "router-ab-deriver-a": {
+            "SIN": 15
+          }
+        },
+        "protocolInvocationObservations": {
+          "deriver_b": [
+            {
+              "protocolWallMs": 182,
+              "invocationCpuMs": 248,
+              "invocationWallMs": 557
+            },
+            {
+              "protocolWallMs": 98,
+              "invocationCpuMs": 268,
+              "invocationWallMs": 900
+            },
+            {
+              "protocolWallMs": 84,
+              "invocationCpuMs": 183,
+              "invocationWallMs": 10539
+            },
+            {
+              "protocolWallMs": 110,
+              "invocationCpuMs": 148,
+              "invocationWallMs": 10308
+            },
+            {
+              "protocolWallMs": 73,
+              "invocationCpuMs": 256,
+              "invocationWallMs": 400
+            },
+            {
+              "protocolWallMs": 162,
+              "invocationCpuMs": 229,
+              "invocationWallMs": 10685
+            },
+            {
+              "protocolWallMs": 99,
+              "invocationCpuMs": 204,
+              "invocationWallMs": 10360
+            },
+            {
+              "protocolWallMs": 111,
+              "invocationCpuMs": 218,
+              "invocationWallMs": 613
+            },
+            {
+              "protocolWallMs": 83,
+              "invocationCpuMs": 288,
+              "invocationWallMs": 10572
+            },
+            {
+              "protocolWallMs": 90,
+              "invocationCpuMs": 289,
+              "invocationWallMs": 513
+            },
+            {
+              "protocolWallMs": 77,
+              "invocationCpuMs": 266,
+              "invocationWallMs": 453
+            },
+            {
+              "protocolWallMs": 85,
+              "invocationCpuMs": 185,
+              "invocationWallMs": 10322
+            },
+            {
+              "protocolWallMs": 77,
+              "invocationCpuMs": 264,
+              "invocationWallMs": 393
+            },
+            {
+              "protocolWallMs": 107,
+              "invocationCpuMs": 139,
+              "invocationWallMs": 10287
+            },
+            {
+              "protocolWallMs": 131,
+              "invocationCpuMs": 263,
+              "invocationWallMs": 493
+            }
+          ],
+          "deriver_a": [
+            {
+              "protocolWallMs": 153,
+              "invocationCpuMs": 257,
+              "invocationWallMs": 483
+            },
+            {
+              "protocolWallMs": 144,
+              "invocationCpuMs": 176,
+              "invocationWallMs": 493
+            },
+            {
+              "protocolWallMs": 141,
+              "invocationCpuMs": 192,
+              "invocationWallMs": 851
+            },
+            {
+              "protocolWallMs": 120,
+              "invocationCpuMs": 236,
+              "invocationWallMs": 1105
+            },
+            {
+              "protocolWallMs": 126,
+              "invocationCpuMs": 236,
+              "invocationWallMs": 845
+            },
+            {
+              "protocolWallMs": 135,
+              "invocationCpuMs": 178,
+              "invocationWallMs": 392
+            },
+            {
+              "protocolWallMs": 142,
+              "invocationCpuMs": 215,
+              "invocationWallMs": 827
+            },
+            {
+              "protocolWallMs": 125,
+              "invocationCpuMs": 197,
+              "invocationWallMs": 398
+            },
+            {
+              "protocolWallMs": 147,
+              "invocationCpuMs": 170,
+              "invocationWallMs": 1262
+            },
+            {
+              "protocolWallMs": 133,
+              "invocationCpuMs": 174,
+              "invocationWallMs": 716
+            },
+            {
+              "protocolWallMs": 173,
+              "invocationCpuMs": 189,
+              "invocationWallMs": 452
+            },
+            {
+              "protocolWallMs": 124,
+              "invocationCpuMs": 194,
+              "invocationWallMs": 939
+            },
+            {
+              "protocolWallMs": 92,
+              "invocationCpuMs": 229,
+              "invocationWallMs": 835
+            },
+            {
+              "protocolWallMs": 182,
+              "invocationCpuMs": 172,
+              "invocationWallMs": 425
+            },
+            {
+              "protocolWallMs": 127,
+              "invocationCpuMs": 227,
+              "invocationWallMs": 463
+            }
+          ]
+        },
+        "startedAtMs": 1792496836152,
+        "endedAtMs": 1792496941796
+      }
+    }
+  },
+  "findings": [
+    "Measured baseline medians: staging 2052 ms, production 2141 ms. The 89 ms difference does not establish a meaningful environment regression in these small sequential cohorts.",
+    "All 15 measured production registrations completed within 2500 ms. This is a sample result, not a latency guarantee.",
+    "The first production warm-up registration took 6769 ms. Respond took 5021 ms and finalize 1313 ms.",
+    "That request included Deriver A protocol elapsed 2885 ms within an invocation reporting 245 ms CPU and 3214 ms wall time. Deriver B reported 2784 ms protocol,216 ms CPU,2967 ms wall.",
+    "These spans contain waits. The first-request delay is not explained by reported invocation CPU alone; the traces do not identify network, storage, output gating, scheduling, or cold-start causality."
+  ],
+  "limitations": [
+    "Sequential cohorts cannot fully control temporal variation. Staging and production use different tenants and testnet/mainnet configuration.",
+    "Three warm-up samples are recorded separately; omitting them from the baseline does not remove their user-visible latency.",
+    "The third production warm-up Deriver B protocol trace is absent. Complete trace coverage is not established.",
+    "The historical 0.13 benchmark served both parent and iframe locally. Its 66 samples excluded 3 warm-ups. It is not a matched SDK or environment comparison with this hosted-iframe measurement."
+  ],
+  "rawArtifacts": ".artifacts/staging-production-0154-20261020",
+  "harnessSha256": {
+    "/Users/pta/Dev/rust/seams-monorepo/.artifacts/staging-production-0154-20261020/harness/near-signing-latency.test.ts": "7db7b18dd6096175ebda4e872763b476d115c4bf99266ab2df47c3642db51d2c",
+    "/Users/pta/Dev/rust/seams-monorepo/.artifacts/staging-production-0154-20261020/harness/candidate-assets.ts": "db51a6d4f37389c614800c78ac75c10de78b03341162b873f81a1a62d4cdd7a1",
+    "/Users/pta/Dev/rust/seams-monorepo/.artifacts/staging-production-0154-20261020/vite.config.ts": "36b45a7675d345fb560e177b07d81cdb3095c55aab5b24433d0e8e50e6fda095",
+    "/Users/pta/Dev/rust/seams-wallet/tests/intended-app/src/main.tsx": "13222f12e5a89c287e3c32f6f75c53573820dcf12adbb56991d4029703694c3a",
+    "/Users/pta/Dev/rust/seams-wallet/tests/intended-app/src/page.tsx": "67ffbb6296c429e124a4df7f1a97fc2c021b0e4c7ed1596ec7c0da9feb75a208",
+    "/Users/pta/Dev/rust/seams-wallet/tests/e2e/intended-behaviours/harness.ts": "c31ee59ed2c4c4edcb39c4699cd09c1f9493569c32b619adf1112753226e4c6f",
+    "/Users/pta/Dev/rust/seams-wallet/tests/e2e/intended-behaviours/gateway-request-evidence.ts": "b74663b44568682f9dabbb23ddf11531d88034b93ab97a57a77709be69c3a935"
+  }
+}

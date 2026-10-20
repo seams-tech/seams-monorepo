@@ -344,6 +344,36 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   color: var(--navbar-text);
 }
 
+/* Rows whose icon sits on a small gradient tile (the plans menu). The tile
+   holds a still GrainField frame; the icon stays white over it. */
+.navbar-static__menu-row--tile {
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.navbar-static__menu-row-icon--tile {
+  position: relative;
+  isolation: isolate;
+  width: 32px;
+  height: 32px;
+  margin-top: 0;
+  border-radius: 8px;
+}
+
+.navbar-static__menu-row-icon--tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+  pointer-events: none;
+}
+
+.navbar-static__menu-row-icon--tile svg {
+  color: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
 .navbar-static__menu-row-text {
   min-width: 0;
   display: grid;

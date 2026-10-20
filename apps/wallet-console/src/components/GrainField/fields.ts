@@ -50,9 +50,8 @@ const PHOTO_FIELDS = {
 const GENERATED_FIELDS = {
   ember: { accents: ['#ff7900'], angle: 120, seed: 7 },
   cobalt: { accents: ['#1f5eff'], angle: 150, seed: 3 },
-  lime: { accents: ['#9ccc2c'], angle: 135, seed: 11 },
-  'cobalt-ember': { accents: ['#1f5eff', '#ff7900'], angle: 160, seed: 5 },
-  'mauve-cobalt': { accents: ['#b98ad0', '#1f5eff'], angle: 140, seed: 2 },
+  'cyan-lime': { accents: ['#2aa8dc', '#8cc63f'], angle: 160, seed: 4 },
+  dusk: { accents: ['#b48a9c', '#1e3566'], angle: 150, seed: 9 },
 } as const satisfies Record<string, GeneratedField>;
 
 export type GrainFieldName = keyof typeof PHOTO_FIELDS | keyof typeof GENERATED_FIELDS;

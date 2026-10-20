@@ -32,6 +32,8 @@ type MenuRow = {
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; 'aria-hidden'?: boolean }>;
   /** Small right-aligned annotation, e.g. a plan's price basis. */
   meta?: string;
+  /** Sets the icon in white on a small gradient tile. */
+  field?: GrainFieldName;
 };
 
 type MenuHighlight = {
@@ -144,6 +146,7 @@ const pricingDropdownPane: DropdownPane = {
       to: '/pricing/#starter',
       icon: Sprout,
       meta: 'Included',
+      field: 'cyan-lime',
     },
     {
       title: 'Growth',
@@ -151,6 +154,7 @@ const pricingDropdownPane: DropdownPane = {
       to: '/pricing/#growth',
       icon: TrendingUp,
       meta: 'Usage-based',
+      field: 'cobalt',
     },
     {
       title: 'Scale',
@@ -158,6 +162,7 @@ const pricingDropdownPane: DropdownPane = {
       to: '/pricing/#scale',
       icon: Rocket,
       meta: 'Volume',
+      field: 'ember',
     },
   ],
   footerLinks: [
@@ -658,13 +663,25 @@ export function NavbarStatic({
                 return (
                   <a
                     key={row.title}
-                    className="navbar-static__menu-row"
+                    className={
+                      row.field
+                        ? 'navbar-static__menu-row navbar-static__menu-row--tile'
+                        : 'navbar-static__menu-row'
+                    }
                     role="menuitem"
                     href={rowProps.href}
                     onClick={rowProps.onClick}
                     tabIndex={isActive ? undefined : -1}
                   >
-                    <span className="navbar-static__menu-row-icon" aria-hidden>
+                    <span
+                      className={
+                        row.field
+                          ? 'navbar-static__menu-row-icon navbar-static__menu-row-icon--tile'
+                          : 'navbar-static__menu-row-icon'
+                      }
+                      aria-hidden
+                    >
+                      {row.field ? <GrainField field={row.field} playing={false} /> : null}
                       <Icon size={16} strokeWidth={1.7} />
                     </span>
                     <span className="navbar-static__menu-row-text">

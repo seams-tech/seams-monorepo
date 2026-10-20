@@ -3322,9 +3322,11 @@ body:has(.h2-page) {
   letter-spacing: 0.01em;
 }
 
+/* the API notes stack in one column */
 .h2-startrow__grid .h2-startrow__notes {
-  gap: 24px 32px;
-  margin-top: 40px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 24px;
 }
 
 .h2-startrow__grid .h2-startrow__notes strong {

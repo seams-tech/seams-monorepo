@@ -11,12 +11,6 @@ import {
 import '@/styles/h2.css';
 import { ComponentShowcase } from './ComponentShowcase';
 
-/* development only: a fixed control to preview one gradient across the page;
-   the lazy import keeps it out of production builds */
-const GradientSwitcher = import.meta.env.DEV
-  ? React.lazy(() => import('@/components/GrainField/GradientSwitcher'))
-  : null;
-
 export function WalletPage(): React.JSX.Element {
   return (
     <div className="h2-page h2-page--wallet">
@@ -39,11 +33,6 @@ export function WalletPage(): React.JSX.Element {
         <H2Cta />
         <H2Footer faq="wallet" />
       </div>
-      {GradientSwitcher ? (
-        <React.Suspense fallback={null}>
-          <GradientSwitcher />
-        </React.Suspense>
-      ) : null}
     </div>
   );
 }

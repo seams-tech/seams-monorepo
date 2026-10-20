@@ -3675,20 +3675,79 @@ body:has(.h2-page) {
 
 /* ---------- closing call to action ---------- */
 
-/* A cream band whose right side fades into the sky-sand grain, so the page
-   ends on its one colour accent. The grain is its own layer: the section's
-   pseudo-elements already draw the rule and its ticks. */
+/* The page closes on its one colour accent: a white band whose right side
+   fades into the sky-sand grain. Three mask layers draw the fade's edge, a
+   slanted sweep and two soft lobes, and each drifts on its own slow path, so
+   the boundary between white and grain keeps shifting a little. The grain is
+   its own layer: the section's pseudo-elements already draw the rule and its
+   ticks. */
 .h2-cta {
-  background: var(--h2-taupe);
+  background: var(--h2-bg);
 }
 
 .h2-cta__grain {
+  --h2-cta-mask:
+    linear-gradient(100deg, transparent 30%, #000 58%),
+    radial-gradient(closest-side, rgba(0, 0, 0, 0.55), transparent),
+    radial-gradient(closest-side, rgba(0, 0, 0, 0.45), transparent);
   position: absolute;
-  inset: 0 0 0 38%;
+  inset: 0 0 0 24%;
   background: url('/gradients/web/sky-sand.jpg') center / cover;
-  -webkit-mask-image: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.85) 70%);
-  mask-image: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.85) 70%);
+  -webkit-mask-image: var(--h2-cta-mask);
+  mask-image: var(--h2-cta-mask);
+  -webkit-mask-size:
+    120% 100%,
+    80% 170%,
+    64% 150%;
+  mask-size:
+    120% 100%,
+    80% 170%,
+    64% 150%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position:
+    30% 0%,
+    15% 20%,
+    45% 100%;
+  mask-position:
+    30% 0%,
+    15% 20%,
+    45% 100%;
+  animation: h2-cta-drift 36s ease-in-out infinite alternate;
   pointer-events: none;
+}
+
+@keyframes h2-cta-drift {
+  33% {
+    -webkit-mask-position:
+      60% 0%,
+      30% 80%,
+      30% 10%;
+    mask-position:
+      60% 0%,
+      30% 80%,
+      30% 10%;
+  }
+  66% {
+    -webkit-mask-position:
+      45% 0%,
+      5% 60%,
+      55% 60%;
+    mask-position:
+      45% 0%,
+      5% 60%,
+      55% 60%;
+  }
+  100% {
+    -webkit-mask-position:
+      75% 0%,
+      25% 0%,
+      35% 90%;
+    mask-position:
+      75% 0%,
+      25% 0%,
+      35% 90%;
+  }
 }
 
 .h2-cta__inner {
@@ -3734,9 +3793,57 @@ body:has(.h2-page) {
 
   /* stacked, the grain rises from the bottom behind the buttons */
   .h2-cta__grain {
+    --h2-cta-mask:
+      linear-gradient(to bottom, transparent 52%, #000 86%),
+      radial-gradient(closest-side, rgba(0, 0, 0, 0.85), transparent),
+      radial-gradient(closest-side, rgba(0, 0, 0, 0.7), transparent);
     inset: 0;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 52%, rgba(0, 0, 0, 0.85));
-    mask-image: linear-gradient(to bottom, transparent 52%, rgba(0, 0, 0, 0.85));
+    -webkit-mask-size:
+      100% 120%,
+      80% 40%,
+      70% 34%;
+    mask-size:
+      100% 120%,
+      80% 40%,
+      70% 34%;
+    -webkit-mask-position:
+      0% 30%,
+      10% 90%,
+      90% 100%;
+    mask-position:
+      0% 30%,
+      10% 90%,
+      90% 100%;
+    animation-name: h2-cta-drift-stacked;
+  }
+}
+
+@keyframes h2-cta-drift-stacked {
+  50% {
+    -webkit-mask-position:
+      0% 60%,
+      70% 100%,
+      20% 85%;
+    mask-position:
+      0% 60%,
+      70% 100%,
+      20% 85%;
+  }
+  100% {
+    -webkit-mask-position:
+      0% 45%,
+      30% 80%,
+      80% 95%;
+    mask-position:
+      0% 45%,
+      30% 80%,
+      80% 95%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h2-cta__grain {
+    animation: none;
   }
 }
 

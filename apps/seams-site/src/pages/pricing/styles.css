@@ -260,10 +260,127 @@
   color: var(--h2-ink);
 }
 
-.pricing-calc__field input[type='range'] {
+.pricing-calc__scale {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  margin-top: -2px;
+  font-family: var(--h2-label);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--h2-ash);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A thin track whose passed part fills with ink, under a raised white thumb. */
+.pricing-range {
+  --pricing-range-fill: 50%;
+  --pricing-range-track: 4px;
+  --pricing-range-thumb: 24px;
   grid-column: 1 / -1;
   width: 100%;
-  accent-color: var(--h2-ink);
+  height: var(--pricing-range-thumb);
+  margin: 6px 0 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.pricing-range::-webkit-slider-runnable-track {
+  height: var(--pricing-range-track);
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--h2-ink) var(--pricing-range-fill),
+    var(--h2-stone) var(--pricing-range-fill)
+  );
+}
+
+.pricing-range::-moz-range-track {
+  height: var(--pricing-range-track);
+  border-radius: 9999px;
+  background: var(--h2-stone);
+}
+
+.pricing-range::-moz-range-progress {
+  height: var(--pricing-range-track);
+  border-radius: 9999px;
+  background: var(--h2-ink);
+}
+
+.pricing-range::-webkit-slider-thumb {
+  width: var(--pricing-range-thumb);
+  height: var(--pricing-range-thumb);
+  margin-top: calc((var(--pricing-range-track) - var(--pricing-range-thumb)) / 2);
+  border: 1px solid rgba(16, 16, 16, 0.08);
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow:
+    0 1px 2px rgba(16, 16, 16, 0.16),
+    0 6px 16px rgba(16, 16, 16, 0.12);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.pricing-range::-moz-range-thumb {
+  width: var(--pricing-range-thumb);
+  height: var(--pricing-range-thumb);
+  border: 1px solid rgba(16, 16, 16, 0.08);
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow:
+    0 1px 2px rgba(16, 16, 16, 0.16),
+    0 6px 16px rgba(16, 16, 16, 0.12);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.pricing-range:hover::-webkit-slider-thumb {
+  transform: scale(1.08);
+}
+
+.pricing-range:hover::-moz-range-thumb {
+  transform: scale(1.08);
+}
+
+.pricing-range:active::-webkit-slider-thumb {
+  transform: scale(0.96);
+}
+
+.pricing-range:active::-moz-range-thumb {
+  transform: scale(0.96);
+}
+
+.pricing-range:focus {
+  outline: none;
+}
+
+.pricing-range:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 4px rgba(16, 16, 16, 0.14),
+    0 6px 16px rgba(16, 16, 16, 0.12);
+}
+
+.pricing-range:focus-visible::-moz-range-thumb {
+  box-shadow:
+    0 0 0 4px rgba(16, 16, 16, 0.14),
+    0 6px 16px rgba(16, 16, 16, 0.12);
+}
+
+/* One rule per engine: a selector list with another engine's pseudo-element is dropped. */
+@media (prefers-reduced-motion: reduce) {
+  .pricing-range::-webkit-slider-thumb {
+    transition: none;
+  }
+
+  .pricing-range::-moz-range-thumb {
+    transition: none;
+  }
 }
 
 .pricing-calc__note {
@@ -274,12 +391,27 @@
 }
 
 .pricing-calc__result {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 28px;
   border-radius: var(--h2-radius-card);
-  background: var(--h2-taupe);
+  /* shown until the grain field draws its first frame */
+  background: #7a5a48;
+  color: #ffffff;
+}
+
+/* A light scrim over the grain keeps white text readable on its paler top. */
+.pricing-calc__result::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(to bottom, rgba(16, 16, 16, 0.24), rgba(16, 16, 16, 0.06) 60%);
+  pointer-events: none;
 }
 
 .pricing-calc__lines {
@@ -295,32 +427,32 @@
   gap: 16px;
   margin: 0;
   padding: 10px 0;
-  border-bottom: 1px dashed var(--h2-stone);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.32);
   font-variant-numeric: tabular-nums;
 }
 
 .pricing-calc__lines dt {
   font-size: 13.5px;
-  color: var(--h2-graphite);
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .pricing-calc__lines dd {
   margin: 0;
   font-size: 13.5px;
-  color: var(--h2-ink);
+  color: #ffffff;
 }
 
 .pricing-calc__total {
   align-items: baseline;
   font-size: 13.5px;
-  color: var(--h2-graphite);
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .pricing-calc__total strong {
   font-size: 32px;
   font-weight: 300;
   letter-spacing: -0.02em;
-  color: var(--h2-ink);
+  color: #ffffff;
 }
 
 .pricing-calc__total--enterprise strong {
@@ -331,7 +463,12 @@
   margin: 0;
   font-size: var(--h2-text-base);
   line-height: 1.6;
-  color: var(--h2-smoke);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* on the grain the outline button needs its own white ground */
+.pricing-calc__result .h2-btn--outline {
+  background: var(--h2-bg);
 }
 
 .pricing-calc__result .h2-btn {

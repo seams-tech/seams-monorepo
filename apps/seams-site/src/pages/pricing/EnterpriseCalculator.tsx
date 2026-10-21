@@ -1,4 +1,5 @@
 import React from 'react';
+import { GrainField } from '@seams-internal/grain-field';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 
 /* Published rates from docs/wallet-saas/pricing.md. Enterprise prices are
@@ -14,11 +15,13 @@ const GROWTH_PER_1000_SIGNATURES = 0.05;
 const ENTERPRISE_PER_1000_SIGNATURES = 0.03;
 const DAYS_PER_MONTH = 30;
 
-// A log-like scale: each slider step is one of these user counts.
+// A log-like scale from the Free plan's users: each slider step is one of these counts.
 const USER_STEPS = [
-  1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000, 2_500_000,
-  5_000_000, 10_000_000,
+  FREE_USERS, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000,
+  1_000_000, 2_500_000, 5_000_000, 10_000_000,
 ] as const;
+const MIN_PER_DAY = 1;
+const MAX_PER_DAY = 50;
 
 type Estimate = {
   signatures: number;
@@ -58,6 +61,53 @@ function formatDollars(value: number): string {
   return dollars.format(Math.round(value));
 }
 
+const compact = new Intl.NumberFormat('en-US', { notation: 'compact' });
+
+/* How much of the track the thumb has passed, for the filled part of the track. */
+function fill(value: number, min: number, max: number): React.CSSProperties {
+  return { '--pricing-range-fill': `${((value - min) / (max - min)) * 100}%` } as React.CSSProperties;
+}
+
+function Range(props: {
+  readonly id: string;
+  readonly label: string;
+  readonly value: number;
+  readonly display: string;
+  readonly min: number;
+  readonly max: number;
+  readonly minLabel: string;
+  readonly maxLabel: string;
+  readonly valueText: string;
+  readonly onChange: (value: number) => void;
+}): React.JSX.Element {
+  return (
+    <div className="pricing-calc__field">
+      <label className="pricing-calc__label" htmlFor={props.id}>
+        {props.label}
+      </label>
+      <output className="pricing-calc__value" htmlFor={props.id}>
+        {props.display}
+      </output>
+      <input
+        id={props.id}
+        className="pricing-range"
+        type="range"
+        min={props.min}
+        max={props.max}
+        step={1}
+        value={props.value}
+        style={fill(props.value, props.min, props.max)}
+        aria-valuetext={props.valueText}
+        onChange={(event) => props.onChange(Number(event.target.value))}
+      />
+      <span className="pricing-calc__scale" aria-hidden="true">
+        <span>{props.minLabel}</span>
+        <span>{props.maxLabel}</span>
+      </span>
+    </div>
+  );
+}
+
 export function EnterpriseCalculator(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const contactProps = linkProps('/contact/');
@@ -68,6 +118,7 @@ export function EnterpriseCalculator(): React.JSX.Element {
   const users = USER_STEPS[userStep];
   const growth = estimate(users, perDay, GROWTH_PER_USER, GROWTH_PER_1000_SIGNATURES);
   const enterprise = estimate(users, perDay, ENTERPRISE_PER_USER, ENTERPRISE_PER_1000_SIGNATURES);
+  const free = growth.total === 0;
 
   return (
     <section
@@ -88,50 +139,41 @@ export function EnterpriseCalculator(): React.JSX.Element {
         </div>
         <div className="pricing-calc">
           <div className="pricing-calc__inputs">
-            <div className="pricing-calc__field">
-              <label className="pricing-calc__label" htmlFor={usersId}>
-                Monthly active users
-              </label>
-              <output className="pricing-calc__value" htmlFor={usersId}>
-                {wholeNumber.format(users)}
-              </output>
-              <input
-                id={usersId}
-                type="range"
-                min={0}
-                max={USER_STEPS.length - 1}
-                step={1}
-                value={userStep}
-                aria-valuetext={`${wholeNumber.format(users)} users`}
-                onChange={(event) => setUserStep(Number(event.target.value))}
-              />
-            </div>
-            <div className="pricing-calc__field">
-              <label className="pricing-calc__label" htmlFor={perDayId}>
-                Signatures per user per day
-              </label>
-              <output className="pricing-calc__value" htmlFor={perDayId}>
-                {perDay}
-              </output>
-              <input
-                id={perDayId}
-                type="range"
-                min={1}
-                max={50}
-                step={1}
-                value={perDay}
-                aria-valuetext={`${perDay} signatures per day`}
-                onChange={(event) => setPerDay(Number(event.target.value))}
-              />
-            </div>
+            <Range
+              id={usersId}
+              label="Monthly active users"
+              value={userStep}
+              display={wholeNumber.format(users)}
+              min={0}
+              max={USER_STEPS.length - 1}
+              minLabel={compact.format(USER_STEPS[0])}
+              maxLabel={compact.format(USER_STEPS[USER_STEPS.length - 1])}
+              valueText={`${wholeNumber.format(users)} users`}
+              onChange={setUserStep}
+            />
+            <Range
+              id={perDayId}
+              label="Signatures per user per day"
+              value={perDay}
+              display={String(perDay)}
+              min={MIN_PER_DAY}
+              max={MAX_PER_DAY}
+              minLabel={String(MIN_PER_DAY)}
+              maxLabel={String(MAX_PER_DAY)}
+              valueText={`${perDay} signatures per day`}
+              onChange={setPerDay}
+            />
             <p className="pricing-calc__note">
               {wholeNumber.format(growth.signatures)} signatures a month.{' '}
-              {growth.overageSignatures > 0
-                ? `${wholeNumber.format(growth.overageSignatures)} are above the pool of 300 per user.`
-                : 'All of them are inside the pool of 300 per user.'}
+              {free
+                ? 'Inside the Free plan: 300 users and 30,000 signatures a month.'
+                : growth.overageSignatures > 0
+                  ? `${wholeNumber.format(growth.overageSignatures)} are above the pool of 300 per user.`
+                  : 'All of them are inside the pool of 300 per user.'}
             </p>
           </div>
           <div className="pricing-calc__result" aria-live="polite">
+            <GrainField field="slate-amber" flow={1.6} />
             <dl className="pricing-calc__lines">
               <div>
                 <dt>Growth base, 5,000 users included</dt>
@@ -147,19 +189,21 @@ export function EnterpriseCalculator(): React.JSX.Element {
               </div>
             </dl>
             <p className="pricing-calc__total">
-              <span>Growth, per month</span>
+              <span>{free ? 'Free plan, per month' : 'Growth, per month'}</span>
               <strong>{formatDollars(growth.total)}</strong>
             </p>
-            <p className="pricing-calc__total pricing-calc__total--enterprise">
-              <span>Enterprise, from</span>
-              <strong>{formatDollars(enterprise.total)}</strong>
-            </p>
+            {free ? null : (
+              <p className="pricing-calc__total pricing-calc__total--enterprise">
+                <span>Enterprise, from</span>
+                <strong>{formatDollars(enterprise.total)}</strong>
+              </p>
+            )}
             <p className="pricing-calc__fine">
               Enterprise starts at $0.003 per active user above 5,000 and $0.03 per 1,000 signatures
               above the pool. Volume pricing on committed usage is quoted by our team.
             </p>
             <a
-              className="h2-btn h2-btn--primary"
+              className="h2-btn h2-btn--outline"
               href={contactProps.href}
               onClick={contactProps.onClick}
             >

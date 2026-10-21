@@ -1718,7 +1718,7 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
   },
 ];
 
-/* ---------- closing call to action: a cream band fading into grain ---------- */
+/* ---------- closing call to action: a rounded teal-peach banner ---------- */
 
 export function H2Cta(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
@@ -1726,11 +1726,9 @@ export function H2Cta(): React.JSX.Element {
   const startProps = linkProps('/dashboard');
 
   return (
-    <section className="h2-cta h2-rule" aria-labelledby="h2-cta-title">
-      <div className="h2-cta__grain" aria-hidden="true">
-        <GrainField field="sky-sand" />
-      </div>
-      <div className="h2-shell h2-cta__inner">
+    <section className="h2-cta" aria-labelledby="h2-cta-title">
+      <div className="h2-shell h2-cta__banner">
+        <GrainField field="teal-peach" flow={1.6} />
         <div>
           <h2 id="h2-cta-title" className="h2-display h2-cta__title">
             Wallets your users can never lose

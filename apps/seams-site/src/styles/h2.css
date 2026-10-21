@@ -4195,103 +4195,39 @@ body:has(.h2-page) {
 
 /* ---------- closing call to action ---------- */
 
-/* The page closes on its one colour accent: a white band whose right side
-   fades into the sky-sand grain. Three mask layers draw the fade's edge, a
-   slanted sweep and two soft lobes, and each drifts on its own slow path, so
-   the boundary between white and grain keeps shifting a little. The grain is
-   its own layer: the section's pseudo-elements already draw the rule and its
-   ticks. */
+/* The page closes on a rounded banner like the hero: the teal-peach grain
+   field with light ink, the headline left and the actions right. */
 .h2-cta {
   background: var(--h2-bg);
+  padding: 24px 0 32px;
 }
 
-.h2-cta__grain {
-  --h2-cta-mask:
-    linear-gradient(100deg, transparent 30%, #000 58%),
-    radial-gradient(closest-side, rgba(0, 0, 0, 0.55), transparent),
-    radial-gradient(closest-side, rgba(0, 0, 0, 0.45), transparent);
-  position: absolute;
-  inset: 0 0 0 24%;
-  /* keeps the grain field's negative z-index inside the masked layer */
-  isolation: isolate;
-  -webkit-mask-image: var(--h2-cta-mask);
-  mask-image: var(--h2-cta-mask);
-  -webkit-mask-size:
-    120% 100%,
-    80% 170%,
-    64% 150%;
-  mask-size:
-    120% 100%,
-    80% 170%,
-    64% 150%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position:
-    30% 0%,
-    15% 20%,
-    45% 100%;
-  mask-position:
-    30% 0%,
-    15% 20%,
-    45% 100%;
-  animation: h2-cta-drift 36s ease-in-out infinite alternate;
-  pointer-events: none;
-}
-
-@keyframes h2-cta-drift {
-  33% {
-    -webkit-mask-position:
-      60% 0%,
-      30% 80%,
-      30% 10%;
-    mask-position:
-      60% 0%,
-      30% 80%,
-      30% 10%;
-  }
-  66% {
-    -webkit-mask-position:
-      45% 0%,
-      5% 60%,
-      55% 60%;
-    mask-position:
-      45% 0%,
-      5% 60%,
-      55% 60%;
-  }
-  100% {
-    -webkit-mask-position:
-      75% 0%,
-      25% 0%,
-      35% 90%;
-    mask-position:
-      75% 0%,
-      25% 0%,
-      35% 90%;
-  }
-}
-
-.h2-cta__inner {
+.h2-cta__banner {
   position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 32px;
-  padding-block: 64px;
+  border-radius: var(--h2-radius-card);
+  background: var(--h2-ink);
+  padding: 72px 56px;
 }
 
 .h2-cta__title {
   margin: 0;
-  font-size: clamp(24px, 2.6vw, 34px);
+  font-size: clamp(26px, 2.8vw, 38px);
   font-weight: 400;
   line-height: 1.12;
+  color: #ffffff;
 }
 
 .h2-cta__sub {
   margin: 10px 0 0;
   font-size: 16px;
   line-height: 24px;
-  color: var(--h2-smoke);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .h2-cta__actions {
@@ -4306,65 +4242,10 @@ body:has(.h2-page) {
 }
 
 @media (max-width: 760px) {
-  .h2-cta__inner {
+  .h2-cta__banner {
     flex-direction: column;
     align-items: flex-start;
-    padding-block: 48px 56px;
-  }
-
-  /* stacked, the grain rises from the bottom behind the buttons */
-  .h2-cta__grain {
-    --h2-cta-mask:
-      linear-gradient(to bottom, transparent 52%, #000 86%),
-      radial-gradient(closest-side, rgba(0, 0, 0, 0.85), transparent),
-      radial-gradient(closest-side, rgba(0, 0, 0, 0.7), transparent);
-    inset: 0;
-    -webkit-mask-size:
-      100% 120%,
-      80% 40%,
-      70% 34%;
-    mask-size:
-      100% 120%,
-      80% 40%,
-      70% 34%;
-    -webkit-mask-position:
-      0% 30%,
-      10% 90%,
-      90% 100%;
-    mask-position:
-      0% 30%,
-      10% 90%,
-      90% 100%;
-    animation-name: h2-cta-drift-stacked;
-  }
-}
-
-@keyframes h2-cta-drift-stacked {
-  50% {
-    -webkit-mask-position:
-      0% 60%,
-      70% 100%,
-      20% 85%;
-    mask-position:
-      0% 60%,
-      70% 100%,
-      20% 85%;
-  }
-  100% {
-    -webkit-mask-position:
-      0% 45%,
-      30% 80%,
-      80% 95%;
-    mask-position:
-      0% 45%,
-      30% 80%,
-      80% 95%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .h2-cta__grain {
-    animation: none;
+    padding: 56px 28px;
   }
 }
 

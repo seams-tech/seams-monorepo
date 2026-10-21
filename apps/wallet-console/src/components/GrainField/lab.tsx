@@ -11,8 +11,7 @@ import {
 import './lab.css';
 
 /* Dev-only page (/gradients/ on the dev server, not in the build): every
-   named field, plus a generator for new ones. Copy a generated field into
-   GENERATED_FIELDS in fields.ts to use it on the site, and a style into
+   named field, plus a generator for custom GrainField props. Copy a style into
    DEFAULT_GRAIN_STYLE in renderer.ts. */
 
 const STYLE_SLIDERS: readonly { key: keyof GrainStyle; max: number; step: number }[] = [
@@ -45,8 +44,8 @@ function GradientLab(): React.JSX.Element {
     <main className="lab">
       <h1>Gradient lab</h1>
       <p className="lab__note">
-        Generated fields use white, near-black and one or two accents. Copy a field into
-        GENERATED_FIELDS in fields.ts.
+        Custom fields use white, near-black and one or two accents. Copy the field object into a
+        GrainField component.
       </p>
 
       <section className="lab__maker">

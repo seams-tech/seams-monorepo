@@ -2,13 +2,11 @@
    that the shader smooths, flows and covers with grain, so no gradient costs
    an image download.
 
-   Photo fields are fitted to gradient images (cubic B-spline control points,
-   base64, rows top to bottom). Two keep the original site photographs (under
-   3/255 error per channel); the others are fitted to multi-colour reference
-   gradients with their text, logos and line art masked out (about 2/255 mean
-   error). Every other field is generated from the site's two monochrome
-   colours and one or two accents; the type allows nothing else. Make new
-   generated fields on the gradient lab page: /gradients/ on the dev server. */
+   Photo fields contain cubic B-spline control points, encoded as base64,
+   with rows top to bottom. Reference fits exclude text, logos and line art.
+   Copper Mist and Glacier Ink preserve their approved procedural grids.
+   Custom fields use white, near-black and one or two accents. Preview them
+   on the gradient lab page: /gradients/ on the dev server. */
 
 export const GRAIN_FIELD_GRID_SIZE = 12;
 
@@ -51,27 +49,25 @@ const PHOTO_FIELDS = {
     'loyvm4usmomon4amnYWjoYOknoajpYejp4igroigsIeftomflpGzmo2umouqnIijoYWknoWioYOgo4SfpoWerYadr4aetIWYlJS3mZKznpGxnY2oooumoIeloISfo4Sco4ObqICXqoCWsYKTmZq9mJm5oJa0n5StoY6qo4iloIWdoYCZon2UpHySpXmMqneEnJ69oJu3pJq0pJWupY+ooIaeoIKXnnuQnHWKnnOEonF8p3J8pZy1qJasqZSmrI6gp4mYoYCQnnqMnHKEnHJ/oG96onB6o2x0q42gsomWtoWMuISFsX+Cqnh/oXR7n3J5onJ5o3F2pXJ0qnNztnqAu3RwwXZqxntow31nvHxrsXdtqnRvq3VyrHZyrnVxrXVxwWZixmRaz2xZ13ZW2oNa0IRaw4Fiu3tntXZltnVlt3VltXJjy19W1GJR3mpO53tJ6YpL441P1IZWx3tYxXhaxHNXw3BUwnBTz15V3WRP5m9K74NE7pFF6JFG3IhO0n5R0HdR0HNL0HFJz21Ix1xZ12NR5nJK8IdF8JNE6ZJE4YdF3oBH3XtD3nhC4HhA33U9',
   'slate-amber':
     'wbaglp2eg5WfeJKiepShfZalfpimgpqngpuohp2qhp6qiZ+twbKcmJuZipWae5CcgJOggZahg5eihJijh5ukiJylip2lip6lyLeaqKKYl5mZiJKYiZWaiZaciZacjJmfi5mfjJugjpyij5yi3MGTvquQrp+QnpSQmJORlZOUkpWXlJaYmJiZmpqbm5ybmpyc7MWF3LeGy6mEwJ6Ft5mFq5aJopSKnpCInY2En4yCoJCHoJGL9cBu77ty5Ktr2Z5szpduxJNytZB1pH5um29jmGhgmmtio3Zo9KpY87Ba6qFW3IhS031R0oNVyYVZsG1TjlNHgUtFgUxDmFdK4HlC4oJD1HBAvVg4tlE4xWBAy25IvWRFmU89gkI2fUA2mUs7rUcwukwwrUUtkDkohDcpmD8sulI2x2A9tlg4qFA2n0s1qkszVSggaS4jaiwjWyUeUCIeWikjgjYpq0Yuvlc2wVs3vVc3vFM2NRUYPBgYQRoYRhscQBkaQRscTiUhdzQoqkUuwVEzw1Mzv04yHAsTJA0UKQ8ULA8VLxEWLxAXOhUZSR4baCogijQllTkmkTkm',
-  periwinkle:
-    'ho7gg4rcfojefYbbfIXaeYLYd4HWdn3Vc3zSc3vQcnrQbnfNiI7ghY3fgIndf4jcfYbbfITZeYDXeYDWdH3UdX3QdXvPb3bOiJLhiZDfgInef4ncf4Xae4TaeH/XdX/VcnnRcXjQeIHRdHzQiI/ggovehY7dhY3eg4vcgIjcgYrZfoTYf4bXcnnPb3XMcHTLh5DhhY3eiI7egoregYjagIbcfYbWe4LXfofZeYDTbHDMbnDIiJHhh4/gho7ggozchYvcgIjbgofcf4bYfoXYeH7TbW3GcnDIhZDhhI7fipDgg4zcg4zegIjbf4jcfobXf4jZen/TamnFcW3HipPihpDgjpTgho7fiY/ehY3dgo3df4TWg43gf4LTcWrFe2/EiZThiJLgkJfhiZDejJLciZDdio/ehoLRhZPgfHrMeXHEfnO/i5ThipPfkZrijJThjZXfiZLfipThiIXXhZzkhnjJgnjDiHW9i5TejJPclJvljpfhkJfijpXhipHdjJ7hi5Lgj3LHi4HCj3m7j5bdkpTak6Dlkpvhj5zikZjgjJrilJHadG/QgoLOn4a8lH67',
   'teal-peach':
     'OKPDLJu8A36sC4OvAHysM5G1EoexAHqvuKi/zau8qK+6zrK3MJ6+AG6kCIWyCYKuDoSvAHapAHavs6TBvKW9yKW6wZGzxqytDYixA4KvEYmyA3+tAICvOZC0UZO2mp68saO+qJq3yKe11KarBIOwCYWvBYGvAIKvLouyRo6yQ46xYpm0jZS5mJSt3ai016usBoawC4eyAIKvIYqwMouzP4+0XZS1dJmzjpmx+ri81K6w57OpCoeyAIGvEoeyKYu0Mo2zUJK0WZSyhZu2kpmwxqmw2qes1aSnIpa6AIOvL5W5JImyQpK2VJS2apq3kZ61qqKytqKw2KWx2KmmIpe5A4ewMZe4KY+0SJe5Wpm3e565m5+2sqe0wKSw3auw26qlGpC2DI+1IZS4TZi6UJq7ZZ26hqG7p6S4tae1yaKz5baw36ynG5a5Jpa5EZO4K5e6VZ27dKG9maW7q6e4uaO35Le14LKuzpujHZm5Kpu8A5O4e6vGc6bBd6S+n6i8qqa82LK83bWzwJer26mmO6PCHpu8VqfEdavFaKPAlKnCqarBwa6/0LC5xKKx2a2u3Kek',
   'azure-coral':
     'g6rUUoHGW47QYo7MdZfJe5DEdpHHmImxWIvPg4Gzs3ebmoWtUoLHV4XKXIrLbIvAaIXCc4G3eX6ygHmrlHmhvmqEoGOOqWWMXInGVobGWorKX4C/a361c3iuenWmhm+ce22dpV59pmOComCFUYDDV4bHXIHBb3SlaHWrcHOnd26eh2WRjmKInGB6rFpspFhxXYfDaIe+ZHOpXYPBPI3ewGFwrGN9pV13nFx1l1lum1loqVZda5DDWny2bHKmSoXNZnexwVJXkV58olZsmlZxo1VcplBZqFFVaoq8X3ivbm6hUYPGXni5tFNWoFpoqVRfmVVmpFBVpU1TrExOa4u5Y3mvcXCdaHqvkmN+qVdfpFlkplZfnVBhqU9SqUxNrktHb4q2anapdm+adHGisVtYqlleqVZdqVFYokxXq01LrEpHsElCboi1bHejenCXi2iJqWBlr1dZrlNUrk9OqExQrUxIrUtEskg/eImvb3WhfXOWl2V7nGBrs1ZTrVJQsUxIq0hGr0xHr0k/s0o/ZIW1fnmdfHGRm2d5ol5osFZTrlFMsk1Erk5JrkpCsUtCsko+',
+  'copper-mist':
+    '7enc7Ojb6ufb5eXb2d/aw9XYsczWqcjVpsbVpcbVpcbVpcbV7Ofa6+bZ6OTY4ODYztnXuc/WrMnVp8fVpcbVpcbVpcbVpcbV6uDS6NvN49fK2dXNx9HRs8vUqcfUpsbUpcbVpcbVpMXUpMXU48a037um27Wh1LipxMC8sMTMpsTRpMTSo8TTo8TTo8TTosPS15qA1JB00o1x0JB2x5uKsK2soLjDnLzKnL7Nnb7NnL3NmbvK0IFiz35fz31ezn5fyoBkuYh1mJaXiKKvhqi3hqm5gqW2ep2uzntbznpaznpaznpazHpbxHpepnhodXh8XnuKV3uNT3WIQml9znlZznlZznlZznlZzXlZyXhauHRbhWhfS1pkMVNmJ05jIEleznlZznlZznlZznlZzXlZy3hZwHVZmGlZU1RYKEdYG0JXF0BWznlZznlZznlZznlZzXlZy3hZwXVZmmlYVVNWJ0RVGUBVFT9UznlZznlZznlZznlZzXlZyXhZuXJYiGNXQ01VIEJUFz9UFT5UznlZznlZznlZznlZy3hZwXVZnmpYW1VWKkVVGUBUFT5UFD5U',
+  'glacier-ink':
+    'bbvcc73dgcLdm8zfu9jh1OLj4Ofk5Ojk5enk5unk5unk5unkb7zceL/cicXdo8/ewdrh1+Pi4efj5Ojk5enk5unk5unk5enkc73cf8Hckcfbpc7cvNfe0uDg3+Xi4+fj5Ojj5ejj5Ojj4+fier/bisTamcnZps3ZstHZwtfa097d3OLf3+Tg3+Tg3eLe19zag8LalMfZocvYqc3XrMzVrsrRtMnOv8zOxs/Qxs7PvMbIo7G3icPZm8nYpszXq83Vq8vSpsTMm7jBjqizhZune5CeZ36PSWV7kMPVoMfUqcvUrMzTq8nQpMLKlbO9e5mnWnmMP192LE5oIENgpLvBrr7AscLEr8bKqsXLoL3Fj624c5KiT3CFMFJsIENgGT1bvrGnwbKnwLSqu7exrbm5mbG4gZ6rY4OVQmR7KUxnHEBdGDxax66fx66fx66fxK6ht6yklp6iaoSTSGl/MFJsIERgGj5bGDxZya2dya2dyK2dxqydvKeblZGRVGp6L1BpIERgGj5bGDxaFztZya2dya2dyK2dxqucuKOYiIWGQFdrIUNeGj1bGDxaFztZFztZ',
+  'vermilion-sky':
+    'vCEEtDElti4frjAfxjohxjchwDohwDkhvDgjqzAgqjAhoDQtmXCCxxMAti8huC8fwjQhvjQf6FAl20cjz0Ag3kwozjgYsEM2WMH/20khwTsksyweyUEi6VMm4lAi1kYkyzkcx0AptiENsEU3YaX1tJKS3EQRoTAtriUU0j4lxjId00Ik1UAevTcosyQOtEY4baPccbP47lMYuk47wDgirCkcsTAfwy0evC4cvDwnvSMQoz01eaHYWLT/tIqK5TEAyzskoCsejjAjyDUitiEYxDwpoxoNijkzdKTdYqLsj7Pa9kMApSMghx8ZjDIm0T4mriAVpDQobA8JaDMzha7bVaH1uba98nc7riUivCkahiUf4Fo4ewYIkSsmuxwOpT42YZ7jb6fy/6RZ2mxFqiAUzjIfgR4b/oxbvjghtTgomxgNt0A2h7zv5LmZ+5tZzmZP0FUzwi4doyUb74hX5oJT4V47mAQAuT428nc7z0Aa2WpJ1mVGz1UztCcY0E4x5HVI6IlX3GE+mQIAoEM7ry0i2GZE0WA/ujki53pPzVA06HpM55Jg55pl5XpP32M5rDIp',
+  'apricot-beam':
+    'EkuIE1aQElWREE+LD0qHEEmIEkuMFU6QFlGMFE1xEj9YDjJGDEmHCkqHC0eECUqECUl/C0iBCUZ9BUZ/A0RxDDNAHhghFxYgCUyJB0aDCEWCC0qHDEqHB0iECEl/DkmJEURvESYvGxEUEA4LCk2LC0uKCkuJB0yJCEqHEEmJEEaHAEiHClF9QT47ijk1WzcvCFGPCFCPCU+ODE6NDUqKAU6KB2SNV4qVvamR7rJ6/5FXmEA7BVaUB1ORCVORBE6NAFuROIKZyauX/8KV/8eM8qNvsklAJig1AFyVAVeTAFWSAGGWUImc8bST/8iT+saM8rl/z2JEWiw2HicyAFyZAFyXAGCWP4Wg6aua+8SR88OM9L6F631ThDk9Ny4yGCY2AGOYAGSaGXuhxp2g97OR7sCK97F34nRQfDI4JSs2IBMaByExAGacDHKeh5Oj66mZ9LeL9qdzzmdSZzA5HCQvFxghCAUTCCs+AGuiPYKh0aCf6KSN6ad93n9Vgjg7IiszHBUdCwsaCA8cCzdKAHingJak5qea756C2IRjpVI+UCQsGxooEQ8fBxAgCR8vCjlN',
+  'coral-tide':
+    'AGShAGOcAG2iRoOtnpGqy5qh4KOW67CO8baH8reE+LqD/8SNAGqhAGmdAHencI+zypip1p2e46aW7rGR76uF7aiB9rF+6Jx3AGyeAHOlOIWuoZOw0Jqm2qCb46SR5KCH5Z2B7KN98at+zGpXAHKlC3qqcY2wu5Kqypig2pyV3JiK25F/55yA5Zh02n5jtUtEAnOmKYSuko6wv5en1p6g3JqN2pSD4ZV/4pR41HxmzGdUrUZEBHepUomvr5OtxZij1JWY2JWO25KE24x414Nuz3Je0WdPpkNGE4OwiY6vrJKrw5KhzpGU0oyG2Ip+1YNx2X9k0Xhh0ltMeDU9Oomyk42tpI6oxZCgy42R1IuF14R50X9t1nRfyW9ZxExHdDlASYeviYyuq42mxI2YyIaLzIB8znhszHRg0WxgyW5S0FpLizpASImvj4yssYyjwYiVxoCFzX13znpo0nNf1XNcx2dMyElHZzU8bIyxk4mnp4WeuX+Qw3uAz31y1HtnzWpVvlVFrT5BmTU8RTI4io6xlYmoo4Setn6PxHl5znJjzmdSvVFFpDg/iS5AYzM6LDMy',
 } as const;
 
-const GENERATED_FIELDS = {
-  ember: { accents: ['#ff7900'], angle: 120, seed: 7 },
-  cobalt: { accents: ['#1f5eff'], angle: 150, seed: 3 },
-  'cyan-lime': { accents: ['#2aa8dc', '#8cc63f'], angle: 160, seed: 4 },
-  dusk: { accents: ['#b48a9c', '#1e3566'], angle: 150, seed: 9 },
-} as const satisfies Record<string, GeneratedField>;
+export type GrainFieldName = keyof typeof PHOTO_FIELDS;
 
-export type GrainFieldName = keyof typeof PHOTO_FIELDS | keyof typeof GENERATED_FIELDS;
-
-export const GRAIN_FIELD_NAMES = [
-  ...Object.keys(PHOTO_FIELDS),
-  ...Object.keys(GENERATED_FIELDS),
-] as GrainFieldName[];
+export const GRAIN_FIELD_NAMES = Object.keys(PHOTO_FIELDS) as GrainFieldName[];
 
 function hexToRgb(hex: string): [number, number, number] {
   const value = Number.parseInt(hex.slice(1), 16);
@@ -179,15 +175,7 @@ export function generatedFieldSource(field: GeneratedField): GrainFieldSource {
   return cachedSource(JSON.stringify(field), 'stretch', () => generateGrid(field));
 }
 
-function isPhotoField(field: GrainFieldName): field is keyof typeof PHOTO_FIELDS {
-  return Object.hasOwn(PHOTO_FIELDS, field);
-}
-
 export function grainFieldSource(field: GrainFieldName | GeneratedField): GrainFieldSource {
   if (typeof field !== 'string') return generatedFieldSource(field);
-  if (isPhotoField(field)) {
-    return cachedSource(field, 'cover', () => decodeGrid(PHOTO_FIELDS[field]));
-  }
-  const generated: GeneratedField = GENERATED_FIELDS[field];
-  return cachedSource(field, 'stretch', () => generateGrid(generated));
+  return cachedSource(field, 'cover', () => decodeGrid(PHOTO_FIELDS[field]));
 }

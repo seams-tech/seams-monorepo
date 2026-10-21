@@ -1,3 +1,5 @@
+import { useTranslation, useLocale } from '@/i18n/browser';
+import type { Translate } from '@/i18n/catalog';
 import React from 'react';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
@@ -75,7 +77,11 @@ function formatDollars(value: number): string {
   return dollars.format(Math.round(value));
 }
 
-const compact = new Intl.NumberFormat('en-US', { notation: 'compact' });
+function signaturePoolNote(t: Translate, free: boolean, overage: number): string {
+  if (free) return t('insideFree');
+  if (overage > 0) return t('abovePool').replace('{count}', wholeNumber.format(overage));
+  return t('insidePool');
+}
 
 /* How much of the track the thumb has passed, for the filled part of the track. */
 function fill(value: number, min: number, max: number): React.CSSProperties {
@@ -125,6 +131,11 @@ function Range(props: {
 }
 
 export function EnterpriseCalculator(): React.JSX.Element {
+  const t = useTranslation();
+  const locale = useLocale();
+  const compact = new Intl.NumberFormat(locale === 'ja' ? 'ja-JP' : 'en-US', {
+    notation: 'compact',
+  });
   const { linkProps } = useSiteRouter();
   const contactProps = linkProps(CONTACT_LINK_TARGET);
   const [userStep, setUserStep] = React.useState(USER_STEPS.indexOf(100_000));
@@ -145,82 +156,73 @@ export function EnterpriseCalculator(): React.JSX.Element {
       <div className="h2-shell">
         <div className="h2-split-head">
           <h2 id="pricing-calculator-title" className="h2-display">
-            Estimate your monthly price
+            {t('estimateTitle')}
           </h2>
-          <p className="h2-split-head__copy">
-            Set your active users and how often they sign. Committed volume lowers the price.
-          </p>
+          <p className="h2-split-head__copy">{t('estimateCopy')}</p>
         </div>
         <div className="pricing-calc">
           <div className="pricing-calc__inputs">
             <Range
               id={usersId}
-              label="Monthly active users"
+              label={t('monthlyUsers')}
               value={userStep}
               display={wholeNumber.format(users)}
               min={0}
               max={USER_STEPS.length - 1}
               minLabel={compact.format(USER_STEPS[0])}
               maxLabel={compact.format(USER_STEPS[USER_STEPS.length - 1])}
-              valueText={`${wholeNumber.format(users)} users`}
+              valueText={t('usersValue').replace('{count}', wholeNumber.format(users))}
               onChange={setUserStep}
             />
             <Range
               id={perDayId}
-              label="Signatures per user per day"
+              label={t('signaturesPerDay')}
               value={perDay}
               display={String(perDay)}
               min={MIN_PER_DAY}
               max={MAX_PER_DAY}
               minLabel={String(MIN_PER_DAY)}
               maxLabel={String(MAX_PER_DAY)}
-              valueText={`${perDay} signatures per day`}
+              valueText={t('signaturesValue').replace('{count}', String(perDay))}
               onChange={setPerDay}
             />
             <p className="pricing-calc__note">
-              {wholeNumber.format(growth.signatures)} signatures a month.{' '}
-              {free
-                ? 'Inside the Free plan: 300 users and 30,000 signatures a month.'
-                : growth.overageSignatures > 0
-                  ? `${wholeNumber.format(growth.overageSignatures)} are above the pool of 300 per user.`
-                  : 'All of them are inside the pool of 300 per user.'}
+              {t('monthlySignatures').replace('{count}', wholeNumber.format(growth.signatures))}{' '}
+              {signaturePoolNote(t, free, growth.overageSignatures)}
             </p>
           </div>
           <div className="pricing-calc__result" aria-live="polite">
             <dl className="pricing-calc__lines">
               <div>
-                <dt>Growth base, 5,000 users included</dt>
+                <dt>{t('growthBase')}</dt>
                 <dd>{formatDollars(growth.base)}</dd>
               </div>
               <div>
-                <dt>Users above 5,000 at $0.004</dt>
+                <dt>{t('usersLine')}</dt>
                 <dd>{formatDollars(growth.users)}</dd>
               </div>
               <div>
-                <dt>Signatures above the pool at $0.05 per 1,000</dt>
+                <dt>{t('signaturesLine')}</dt>
                 <dd>{formatDollars(growth.overage)}</dd>
               </div>
             </dl>
             <p className="pricing-calc__total">
-              <span>{free ? 'Free plan, per month' : 'Growth, per month'}</span>
+              <span>{free ? t('freeMonthly') : t('growthMonthly')}</span>
               <strong>{formatDollars(growth.total)}</strong>
             </p>
             {free ? null : (
               <p className="pricing-calc__total pricing-calc__total--enterprise">
-                <span>Enterprise, from</span>
+                <span>{t('enterpriseFrom')}</span>
                 <strong>{formatDollars(enterprise.total)}</strong>
               </p>
             )}
-            <p className="pricing-calc__fine">
-              Enterprise starts at $0.003 per active user above 5,000 and $0.03 per 1,000 signatures
-              above the pool. Volume pricing on committed usage is quoted by our team.
-            </p>
+            <p className="pricing-calc__fine">{t('enterpriseFine')}</p>
             <a
               className="h2-btn h2-btn--primary"
               href={contactProps.href}
               onClick={contactProps.onClick}
             >
-              Contact sales
+              {t('contactSales')}
               <ArrowRightAnim size={12} />
             </a>
           </div>

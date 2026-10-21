@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { isHttpUrl, resolveHref } from './siteRouting';
+import { useLocale } from '@/i18n/browser';
 
 type GoFn = (to: string) => void;
 
-export function isModifiedClick(e: React.MouseEvent<any>): boolean {
+export function isModifiedClick(e: React.MouseEvent<HTMLElement>): boolean {
   return !!(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0);
 }
 
@@ -38,29 +39,36 @@ export function useSiteRouter(): {
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   };
 } {
-  const go = React.useCallback<GoFn>((to: string) => {
-    const href = resolveHref(to);
-    if (requiresDocumentNavigation(href)) {
-      window.location.href = href;
-      return;
-    }
-    navigateInternal(href);
-  }, []);
+  const locale = useLocale();
+  const go = React.useCallback<GoFn>(
+    (to: string) => {
+      const href = resolveHref(to, locale);
+      if (requiresDocumentNavigation(href)) {
+        window.location.href = href;
+        return;
+      }
+      navigateInternal(href);
+    },
+    [locale],
+  );
 
-  const linkProps = React.useCallback((to: string) => {
-    const href = resolveHref(to);
-    return {
-      href,
-      onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
-        if (isModifiedClick(e)) return;
-        const target = (e.currentTarget.getAttribute('target') || '').toLowerCase();
-        if (target && target !== '_self') return;
-        if (requiresDocumentNavigation(href)) return;
-        e.preventDefault();
-        navigateInternal(href);
-      },
-    };
-  }, []);
+  const linkProps = React.useCallback(
+    (to: string) => {
+      const href = resolveHref(to, locale);
+      return {
+        href,
+        onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
+          if (isModifiedClick(e)) return;
+          const target = (e.currentTarget.getAttribute('target') || '').toLowerCase();
+          if (target && target !== '_self') return;
+          if (requiresDocumentNavigation(href)) return;
+          e.preventDefault();
+          navigateInternal(href);
+        },
+      };
+    },
+    [locale],
+  );
 
   return { go, linkProps };
 }

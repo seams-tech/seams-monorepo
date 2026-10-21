@@ -12,10 +12,12 @@
     "type-check": "tsrs --noEmit"
   },
   "dependencies": {
-    "@seams-internal/grain-field": "workspace:*"
+    "@seams-internal/grain-field": "workspace:*",
+    "@radix-ui/react-select": "^2.0.0"
   },
   "peerDependencies": {
     "lucide-react": "^0.542.0",
-    "react": "^18.2.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   }
 }

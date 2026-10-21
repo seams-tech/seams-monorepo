@@ -58,6 +58,10 @@ export function resolveHref(target: string): string {
     case '/company':
     case '/ecommerce': {
       const base = SITE_LINKS.companyOrigin === '/' ? '' : SITE_LINKS.companyOrigin;
+      if (locale === 'ja' && (pathname === '/pricing' || pathname === '/company')) {
+        const url = new URL(target, window.location.origin);
+        return `${base}/ja${url.pathname}${url.search}${url.hash}`;
+      }
       return `${base}${toSiteAbsolutePath(target)}`;
     }
     default:

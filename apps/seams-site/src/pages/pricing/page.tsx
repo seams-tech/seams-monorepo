@@ -1,3 +1,5 @@
+import { useTranslation } from '@/i18n/browser';
+import type { Translate } from '@/i18n/catalog';
 import React from 'react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { H2Faq, H2Footer } from '@/components/h2/sections';
@@ -22,54 +24,51 @@ type Plan = {
   cta: { label: string; to: string };
 };
 
-const plans: readonly Plan[] = [
-  {
-    id: 'free',
-    field: 'sky-sand',
-    name: 'Free',
-    price: '$0',
-    unit: 'per month',
-    summary: 'For launches and small apps, in production.',
-    features: [
-      'Up to 300 monthly active users',
-      '30,000 signatures a month',
-      'Passkeys, Email OTP, and split-key wallets',
-      'One free plan per organization',
-      'Card required after 30 days, not charged',
-    ],
-    cta: { label: 'Start building', to: '/docs/concepts/' },
-  },
-  {
-    id: 'growth',
-    field: 'azure-coral',
-    name: 'Growth',
-    price: '$99',
-    unit: 'per month',
-    summary: 'For apps with a growing user base.',
-    features: [
-      '5,000 monthly active users included',
-      '$0.004 per active user above 5,000',
-      '300 signatures per user each month, pooled',
-      '$0.05 per 1,000 signatures above the pool',
-    ],
-    cta: { label: 'Start building', to: '/docs/concepts/' },
-  },
-  {
-    id: 'enterprise',
-    field: 'slate-amber',
-    name: 'Enterprise',
-    price: 'Custom',
-    unit: 'committed volume',
-    summary: 'For large apps and merchant fleets.',
-    features: [
-      'Volume pricing on committed usage',
-      'From $0.003 per active user above 5,000',
-      'Signatures from $0.03 per 1,000',
-      'Rollout planning with our team',
-    ],
-    cta: { label: 'Contact sales', to: CONTACT_LINK_TARGET },
-  },
-];
+function getPlans(t: Translate): readonly Plan[] {
+  return [
+    {
+      id: 'free',
+      field: 'sky-sand',
+      name: t('free'),
+      price: '$0',
+      unit: t('perMonth'),
+      summary: t('freeSummary'),
+      features: [
+        t('freeUsers'),
+        t('freeSignatures'),
+        t('walletFeatures'),
+        t('oneFree'),
+        t('cardAfter30'),
+      ],
+      cta: { label: t('startBuilding'), to: '/docs/concepts/' },
+    },
+    {
+      id: 'growth',
+      field: 'azure-coral',
+      name: 'Growth',
+      price: '$99',
+      unit: t('perMonth'),
+      summary: t('growthSummary'),
+      features: [
+        t('growthUsers'),
+        t('growthOverage'),
+        t('pooledSignatures'),
+        t('signatureOverage'),
+      ],
+      cta: { label: t('startBuilding'), to: '/docs/concepts/' },
+    },
+    {
+      id: 'enterprise',
+      field: 'slate-amber',
+      name: 'Enterprise',
+      price: t('custom'),
+      unit: t('committedVolume'),
+      summary: t('enterpriseSummary'),
+      features: [t('volumePricing'), t('enterpriseUsers'), t('enterpriseSignatures'), t('rollout')],
+      cta: { label: t('contactSales'), to: CONTACT_LINK_TARGET },
+    },
+  ];
+}
 
 // At 10 signatures per user per day, every app stays inside its pool.
 const examples: readonly { users: string; price: string }[] = [
@@ -80,13 +79,16 @@ const examples: readonly { users: string; price: string }[] = [
 ];
 
 /* Short summaries for the closing banner's plan cards. */
-const planTeasers: Record<PlanId, string> = {
-  free: 'Up to 300 active users',
-  growth: '5,000 users included',
-  enterprise: 'Committed volume',
-};
+function planTeasers(t: Translate): Record<PlanId, string> {
+  return {
+    free: t('freeTeaser'),
+    growth: t('growthTeaser'),
+    enterprise: t('enterpriseTeaser'),
+  };
+}
 
 function BannerPlanCard({ plan }: { plan: Plan }): React.JSX.Element {
+  const t = useTranslation();
   const { linkProps } = useSiteRouter();
   const ctaProps = linkProps(plan.cta.to);
   // The plan's gradient shows on hover or focus; it only animates while shown.
@@ -104,9 +106,9 @@ function BannerPlanCard({ plan }: { plan: Plan }): React.JSX.Element {
       <GrainField field={plan.field} className="pricing-banner__card-gradient" playing={lit} />
       <span className="pricing-banner__card-name">{plan.name}</span>
       <span className="pricing-banner__card-price">
-        <strong>{plan.price}</strong> {plan.price === 'Custom' ? '' : plan.unit}
+        <strong>{plan.price}</strong> {plan.id === 'enterprise' ? '' : plan.unit}
       </span>
-      <span className="pricing-banner__card-teaser">{planTeasers[plan.id]}</span>
+      <span className="pricing-banner__card-teaser">{planTeasers(t)[plan.id]}</span>
       <span className="pricing-banner__card-cta">
         {plan.cta.label}
         <ArrowRightAnim size={12} />
@@ -116,7 +118,8 @@ function BannerPlanCard({ plan }: { plan: Plan }): React.JSX.Element {
 }
 
 /* Closing call to action: the SDK pitch with one card per plan. */
-function PlanBanner(): React.JSX.Element {
+function PlanBanner({ plans }: { plans: readonly Plan[] }): React.JSX.Element {
+  const t = useTranslation();
   return (
     <>
       <section className="h2-cta h2-cta--banner h2-rule" aria-labelledby="pricing-banner-title">
@@ -124,17 +127,15 @@ function PlanBanner(): React.JSX.Element {
           <GrainField field="teal-peach" flow={1.6} />
           <div>
             <h2 id="pricing-banner-title" className="h2-display h2-cta__title">
-              Build with the Seams SDK
+              {t('buildSdk')}
             </h2>
-            <p className="h2-cta__sub">
-              Passkey sign-in, split-key wallets, and account recovery. Pick a plan to start.
-            </p>
+            <p className="h2-cta__sub">{t('bannerCopy')}</p>
           </div>
         </div>
       </section>
       <section
         className="h2-section h2-section--compact h2-rule pricing-banner-plans"
-        aria-label="Start with a plan"
+        aria-label={t('startPlan')}
       >
         <div className="h2-shell">
           <div className="pricing-banner__cards">
@@ -217,6 +218,8 @@ function startPricingAnchorScroll(): () => void {
 }
 
 export function PricingPage(): React.JSX.Element {
+  const t = useTranslation();
+  const plans = getPlans(t);
   React.useEffect(startPricingAnchorScroll, []);
   const selectedPlanId = React.useSyncExternalStore(
     subscribeToPricingNavigation,
@@ -231,12 +234,9 @@ export function PricingPage(): React.JSX.Element {
           <header className="h2-hero-simple pricing-hero">
             <div className="h2-shell">
               <h1 id="pricing-title" className="h2-display h2-hero-simple__title">
-                Free to start. Pay per active user.
+                {t('pricingTitle')}
               </h1>
-              <p className="h2-hero-simple__sub">
-                The first 300 users are free, and development is always free. As you grow, you pay
-                per active user, with signing included.
-              </p>
+              <p className="h2-hero-simple__sub">{t('pricingDescription')}</p>
             </div>
           </header>
 
@@ -247,7 +247,7 @@ export function PricingPage(): React.JSX.Element {
             <div className="h2-shell">
               <div className="h2-split-head">
                 <h2 id="pricing-plans-title" className="h2-display">
-                  Pay for active users, with signing included
+                  {t('plansTitle')}
                 </h2>
               </div>
               <div className="pricing-plans">
@@ -256,14 +256,8 @@ export function PricingPage(): React.JSX.Element {
                 ))}
               </div>
               <div className="pricing-note">
-                <p>
-                  Each active user includes 300 signatures a month, shared across your app. Extra
-                  signatures cost $0.05 per 1,000.
-                </p>
-                <p>
-                  Every plan has the full SDK. Development is free. Gas and chain fees are passed
-                  through at cost.
-                </p>
+                <p>{t('poolNote')}</p>
+                <p>{t('sdkNote')}</p>
               </div>
             </div>
           </section>
@@ -275,18 +269,15 @@ export function PricingPage(): React.JSX.Element {
             <div className="h2-shell pricing-example-layout">
               <div className="pricing-example-head">
                 <h2 id="pricing-example-title" className="h2-display">
-                  What a month costs as you grow
+                  {t('exampleTitle')}
                 </h2>
-                <p className="pricing-example-head__copy">
-                  An app where each user signs 10 times a day. Every user includes 300 signatures a
-                  month, so you pay for active users only.
-                </p>
+                <p className="pricing-example-head__copy">{t('exampleCopy')}</p>
               </div>
               <table className="pricing-example">
                 <thead>
                   <tr>
-                    <th scope="col">Monthly active users</th>
-                    <th scope="col">Price per month</th>
+                    <th scope="col">{t('monthlyUsers')}</th>
+                    <th scope="col">{t('monthlyPrice')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -303,7 +294,7 @@ export function PricingPage(): React.JSX.Element {
 
           <EnterpriseCalculator />
 
-          <PlanBanner />
+          <PlanBanner plans={plans} />
 
           <H2Faq audience="pricing" />
         </main>

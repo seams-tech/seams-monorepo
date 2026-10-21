@@ -1,0 +1,46 @@
+html:lang(ja) .h2-page {
+  --h2-font: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif;
+  line-break: strict;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+html:lang(ja) .h2-display {
+  letter-spacing: -0.025em;
+  line-height: 1.4;
+}
+
+html:lang(ja)
+  :is(.h2-hero-simple__sub, .company-card__copy, .company-principles p, .h2-faq__list p) {
+  line-height: 1.85;
+}
+
+html:lang(ja) :is(.pricing-calc__label, .pricing-example th, .h2-footer__col h3) {
+  letter-spacing: 0.02em;
+}
+
+html:lang(ja) .h2-footer__col a {
+  line-height: 1.7;
+}
+
+.h2-footer__brand:has(.site-language__trigger) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+html:lang(ja) .pricing-plan__price {
+  flex-wrap: wrap;
+}
+
+.pricing-calc__lines dd,
+.pricing-calc__total strong {
+  flex-shrink: 0;
+}
+
+@media (max-width: 620px) {
+  html:lang(ja) .h2-hero-simple__title {
+    font-size: clamp(30px, 7.5vw, 44px);
+  }
+}

@@ -5,6 +5,10 @@ import { normalizePathname } from '@/app/router/siteRouting';
 import { PAPER_LIGHT_COLORS } from '@/context/app-themes';
 import { ContactModalHost } from '@/components/contact/ContactModal';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
+import { SitePageContext } from '@/i18n/browser';
+import { parseSitePage } from '@/i18n/locale';
+import { updateDocumentMetadata } from '@/i18n/metadata';
+import '@/i18n/styles.css';
 
 const HomePage = React.lazy(() =>
   import('@/pages/home2/page').then((module) => ({ default: module.HomePage })),
@@ -79,9 +83,15 @@ function usePathname(): string {
 
 export const App: React.FC = () => {
   const pathname = usePathname();
+  const sitePage = React.useMemo(() => parseSitePage(pathname), [pathname]);
+  const route = sitePage.kind === 'translated' ? `/${sitePage.page}` : pathname;
+
+  React.useEffect(() => {
+    updateDocumentMetadata(sitePage, import.meta.env.VITE_SITE_ORIGIN || 'https://seams.sh/');
+  }, [sitePage]);
 
   const page = React.useMemo(() => {
-    switch (pathname) {
+    switch (route) {
       case '/':
         return <HomePage />;
       case '/wallet':
@@ -97,14 +107,14 @@ export const App: React.FC = () => {
       default:
         return <NotFoundPage />;
     }
-  }, [pathname]);
+  }, [route]);
 
   return (
-    <>
+    <SitePageContext.Provider value={sitePage}>
       <DocumentThemeTokenBridge />
       <React.Suspense fallback={null}>{page}</React.Suspense>
       <ContactModalHost />
-    </>
+    </SitePageContext.Provider>
   );
 };
 

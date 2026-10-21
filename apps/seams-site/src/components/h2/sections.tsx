@@ -1,3 +1,7 @@
+import { useSitePage, useTranslation } from '@/i18n/browser';
+import { translate, type Translate } from '@/i18n/catalog';
+import type { Locale } from '@/i18n/locale';
+import { LanguageSelector } from '@/i18n/LanguageSelector';
 import React from 'react';
 import {
   Bot,
@@ -1566,7 +1570,7 @@ type H2FaqProps = {
   audience: 'home' | 'wallet' | 'pricing';
 };
 
-const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
+const faqs: Record<Exclude<H2FaqProps['audience'], 'pricing'>, readonly FaqItem[]> = {
   home: [
     {
       q: 'What is Seams?',
@@ -1603,37 +1607,41 @@ const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
       a: 'Plans are based on monthly active users. Each user includes 300 signatures a month, pooled across your app. The first 300 users are free. See the pricing page for details.',
     },
   ],
-  pricing: [
-    {
-      q: 'What counts as a monthly active user?',
-      a: 'A user who signs in during the month, or who gets a new wallet that month. A user counts once, however many times they sign in.',
-    },
-    {
-      q: 'What if my users sign more than 10 times a day?',
-      a: 'Signatures are pooled across your app: 300 for each active user each month. Busy users are covered while the average stays inside the pool. Signatures above the pool cost $0.05 per 1,000.',
-    },
-    {
-      q: 'Do development environments count?',
-      a: 'No. Development environments run on testnets, with no limits and no charge. Only production users and signatures count.',
-    },
-    {
-      q: 'Do you charge for gas?',
-      a: 'Gas and chain fees pass through at cost. We add no margin to them.',
-    },
-    {
-      q: 'What happens when my app grows past the free plan?',
-      a: 'We warn you at 80% of a free limit: 300 active users or 30,000 signatures in a month. With a card on file, your app moves to Growth at the limit, with no pause: $99 a month, with 5,000 users included. Without a card, production sign-ups and signing pause at the limit until you add one. Recovery and key export stay open, with rate limits, so your users keep access to their funds.',
-    },
-    {
-      q: 'Do I need a card for the free plan?',
-      a: 'Not at first. From 30 days after you create your organization, production needs a card on file. We do not charge it while you stay inside the free limits. Development environments never need a card.',
-    },
-    {
-      q: 'Can I use more than one free plan?',
-      a: 'No. Each organization has one free plan, and each app origin can belong to only one free organization.',
-    },
-  ],
 };
+
+function pricingFaqs(locale: Locale): readonly FaqItem[] {
+  const t = translate.bind(null, locale);
+  return [
+    {
+      q: t('faqUserQ'),
+      a: t('faqUserA'),
+    },
+    {
+      q: t('faqPoolQ'),
+      a: t('faqPoolA'),
+    },
+    {
+      q: t('faqDevQ'),
+      a: t('faqDevA'),
+    },
+    {
+      q: t('faqGasQ'),
+      a: t('faqGasA'),
+    },
+    {
+      q: t('faqGrowthQ'),
+      a: t('faqGrowthA'),
+    },
+    {
+      q: t('faqCardQ'),
+      a: t('faqCardA'),
+    },
+    {
+      q: t('faqOneQ'),
+      a: t('faqOneA'),
+    },
+  ];
+}
 
 function renderFaqItem(item: FaqItem): React.JSX.Element {
   return (
@@ -1645,14 +1653,17 @@ function renderFaqItem(item: FaqItem): React.JSX.Element {
 }
 
 export function H2Faq({ audience }: H2FaqProps): React.JSX.Element {
+  const t = useTranslation();
+  const page = useSitePage();
+  const items = audience === 'pricing' ? pricingFaqs(page.locale) : faqs[audience];
   return (
     <section className="h2-section h2-rule" aria-labelledby="h2-faq-title">
       <div className="h2-shell">
         <div className="h2-faq">
           <h2 id="h2-faq-title" className="h2-display h2-faq__title">
-            Frequently asked questions
+            {t('faqTitle')}
           </h2>
-          <div className="h2-faq__list">{faqs[audience].map(renderFaqItem)}</div>
+          <div className="h2-faq__list">{items.map(renderFaqItem)}</div>
         </div>
       </div>
     </section>
@@ -1667,57 +1678,59 @@ type H2FooterLink = {
   external?: boolean;
 };
 
-const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
-  {
-    heading: 'Products',
-    links: [
-      { label: 'Embedded Wallet', to: '/wallet' },
-      { label: 'Ecommerce Agents', to: '/ecommerce' },
-      { label: 'Custody Model', to: '/docs/concepts/custody/' },
-      { label: 'Wallet Sessions', to: '/docs/concepts/sessions/wallet-sessions' },
-    ],
-  },
-  {
-    heading: 'Platform',
-    links: [
-      { label: 'Authentication', to: '/docs/concepts/auth-methods/' },
-      { label: 'Passkeys', to: '/docs/concepts/auth-methods/passkeys' },
-      { label: 'Wallets & Signatures', to: '/docs/concepts/threshold-signing/' },
-      { label: 'Permissions & Policy', to: '/docs/concepts/policy/mandates' },
-    ],
-  },
-  {
-    heading: 'Developers',
-    links: [
-      { label: 'Documentation', to: '/docs/concepts/' },
-      { label: 'Architecture', to: '/docs/concepts/architecture' },
-      { label: 'Wallet Iframe', to: '/docs/concepts/custody/wallet-iframe' },
-    ],
-  },
-  {
-    heading: 'Resources',
-    links: [
-      { label: 'Guides', to: '/docs/guides/' },
-      { label: 'Use Cases', to: '/docs/use-cases/' },
-      { label: 'Pricing', to: '/pricing/' },
-    ],
-  },
-  {
-    heading: 'Socials',
-    links: [
-      { label: 'X', to: 'https://x.com/lowerarchy', external: true },
-      { label: 'GitHub', to: 'https://github.com/seams-tech', external: true },
-    ],
-  },
-  {
-    heading: 'Company',
-    links: [
-      { label: 'About', to: '/company/' },
-      { label: 'Blog', to: '/company/#blog' },
-      { label: 'Contact', to: CONTACT_LINK_TARGET },
-    ],
-  },
-];
+function getFooterGroups(t: Translate): { heading: string; links: H2FooterLink[] }[] {
+  return [
+    {
+      heading: t('products'),
+      links: [
+        { label: t('embeddedWallet'), to: '/wallet' },
+        { label: t('ecommerceAgents'), to: '/ecommerce' },
+        { label: t('custodyModel'), to: '/docs/concepts/custody/' },
+        { label: t('walletSessions'), to: '/docs/concepts/sessions/wallet-sessions' },
+      ],
+    },
+    {
+      heading: t('platform'),
+      links: [
+        { label: t('authentication'), to: '/docs/concepts/auth-methods/' },
+        { label: t('passkeys'), to: '/docs/concepts/auth-methods/passkeys' },
+        { label: t('walletsSignatures'), to: '/docs/concepts/threshold-signing/' },
+        { label: t('permissionsPolicy'), to: '/docs/concepts/policy/mandates' },
+      ],
+    },
+    {
+      heading: t('developers'),
+      links: [
+        { label: t('documentation'), to: '/docs/concepts/' },
+        { label: t('architecture'), to: '/docs/concepts/architecture' },
+        { label: t('walletIframe'), to: '/docs/concepts/custody/wallet-iframe' },
+      ],
+    },
+    {
+      heading: t('resources'),
+      links: [
+        { label: t('guides'), to: '/docs/guides/' },
+        { label: t('useCases'), to: '/docs/use-cases/' },
+        { label: t('pricing'), to: '/pricing/' },
+      ],
+    },
+    {
+      heading: t('socials'),
+      links: [
+        { label: 'X', to: 'https://x.com/lowerarchy', external: true },
+        { label: 'GitHub', to: 'https://github.com/seams-tech', external: true },
+      ],
+    },
+    {
+      heading: t('company'),
+      links: [
+        { label: t('about'), to: '/company/' },
+        { label: t('blog'), to: '/company/#blog' },
+        { label: t('contact'), to: CONTACT_LINK_TARGET },
+      ],
+    },
+  ];
+}
 
 /* ---------- closing call to action ---------- */
 
@@ -1758,17 +1771,23 @@ export function H2Cta(): React.JSX.Element {
 }
 
 export function H2Footer(): React.JSX.Element {
+  const t = useTranslation();
+  const page = useSitePage();
+  const footerGroups = getFooterGroups(t);
   const { linkProps } = useSiteRouter();
   const homeProps = linkProps('/');
 
   return (
-    <footer className="h2-footer h2-rule" aria-label="Site footer">
+    <footer className="h2-footer h2-rule" aria-label={t('siteFooter')}>
       <div className="h2-footer__inner">
         <div className="h2-footer__grid">
           <div className="h2-footer__brand">
-            <a href={homeProps.href} onClick={homeProps.onClick} aria-label="Seams home">
+            <a href={homeProps.href} onClick={homeProps.onClick} aria-label={t('seamsHome')}>
               <SeamsWordmark height={20} />
             </a>
+            {page.kind === 'translated' ? (
+              <LanguageSelector page={page.page} placement="footer" />
+            ) : null}
           </div>
 
           <div className="h2-footer__links">

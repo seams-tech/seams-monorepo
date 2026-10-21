@@ -1,3 +1,5 @@
+import { pagePath, type Locale } from '@/i18n/locale';
+
 const DOCS_PREFIX = '/docs';
 const DOCS_ORIGIN = new URL(
   DOCS_PREFIX,
@@ -24,7 +26,8 @@ export function isHttpUrl(value: string): boolean {
 
 function toSiteAbsolutePath(pathOrHash: string): string {
   if (!pathOrHash) return '/';
-  if (pathOrHash.startsWith('#')) return `${window.location.pathname}${pathOrHash}`;
+  if (pathOrHash.startsWith('#'))
+    return `${window.location.pathname}${window.location.search}${pathOrHash}`;
   const normalized = pathOrHash.startsWith('/') ? pathOrHash : `/${pathOrHash}`;
   const base = getSiteBase();
   if (base === '/') return normalized;
@@ -38,11 +41,30 @@ export function maybeDocsHref(target: string): string | null {
   return `${docsOrigin}${suffix.startsWith('/') ? suffix : `/${suffix}`}`;
 }
 
-export function resolveHref(target: string): string {
+export function resolveHref(target: string, locale: Locale): string {
   if (isHttpUrl(target)) return target;
 
   const docsHref = maybeDocsHref(target);
   if (docsHref) return docsHref;
+
+  const url = new URL(target, window.location.origin);
+  switch (normalizePathname(url.pathname)) {
+    case '/pricing':
+      return `${pagePath('pricing', locale)}${url.search}${url.hash}`;
+    case '/company':
+      return `${pagePath('company', locale)}${url.search}${url.hash}`;
+    case '/wallet': {
+      const wallet = new URL(
+        import.meta.env.VITE_WALLET_SITE_ORIGIN || '/wallet/',
+        window.location.origin,
+      );
+      const base = wallet.pathname.replace(/\/$/, '');
+      wallet.pathname = locale === 'ja' ? `${base}/ja/` : `${base}/`;
+      wallet.search = url.search;
+      wallet.hash = url.hash;
+      return wallet.href;
+    }
+  }
 
   return toSiteAbsolutePath(target);
 }

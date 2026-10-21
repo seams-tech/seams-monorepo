@@ -78,6 +78,21 @@ Documentation, Console, live SDK dialogs, and the SDK account-menu preview remai
 in English. Translate SDK-owned
 surfaces in `seams-wallet` and consume an exact release here.
 
+## Pricing and company languages
+
+The company app serves English at `/pricing/` and `/company/`.
+It serves Japanese at `/ja/pricing/` and `/ja/company/`.
+The homepage remains English. Caddy forwards these routes to the company app.
+
+Keep page, menu, footer, and contact translations in `src/i18n/catalog.ts`.
+Every message requires both languages. The apps share the language selector in
+`packages/site-navbar-ts`. Language changes preserve the page, query, and anchor.
+Wallet links also preserve the chosen language between the two apps.
+
+The build emits separate HTML files with language, title, description, canonical,
+and reciprocal alternate links. The sitemap lists both languages for each page.
+Deployment smoke checks include these routes and the sitemap.
+
 ## Dashboard inline modal scrolling
 
 Keep one scroll host active while an inline modal is open. The backdrop owns

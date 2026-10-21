@@ -2,8 +2,7 @@
    Scoped under .h2-page and independent of the site theme: the palette is
    hardcoded so the page stays light in dark mode too. */
 
-.h2-page,
-.wallet-language__menu {
+.h2-page {
   /* bordered content column width (~86% of a 1440 viewport, per reference).
      Shared by every .h2-page (home, /wallet, /ecommerce) so the rails line up;
      the two-panel hero band is 1fr 1fr inside it, so +32px here = +1rem per
@@ -3378,22 +3377,6 @@ body:has(.h2-page) {
   margin-bottom: 72px;
 }
 
-.wallet-language__trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  width: fit-content;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: var(--h2-ink);
-  font: 400 var(--h2-text-body) / 1.5 var(--h2-font);
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
 .h2-demo__language {
   position: absolute;
   z-index: 1;
@@ -3403,118 +3386,7 @@ body:has(.h2-page) {
   font-size: 12px;
 }
 
-.wallet-language__trigger > span:last-child {
-  display: inline-flex;
-  margin-left: 4px;
-  color: var(--h2-ash);
-}
-
-.wallet-language__trigger--footer:focus-visible .wallet-language__name {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-.wallet-language__trigger--navbar {
-  justify-content: center;
-  gap: 6px;
-  min-height: 40px;
-  padding: 0 10px;
-  border-radius: 9999px;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.wallet-language__trigger--navbar:focus-visible,
-.wallet-language__trigger--navbar[data-state='open'] {
-  background: var(--h2-taupe);
-}
-
-@media (hover: hover) {
-  .wallet-language__trigger--navbar:hover {
-    background: var(--h2-taupe);
-  }
-}
-
-.navbar-static.is-hidden:has(.wallet-language__trigger[data-state='open']) {
-  transform: none;
-}
-
-@media (max-width: 620px) {
-  .wallet-language__trigger--navbar {
-    min-width: 44px;
-    min-height: 44px;
-  }
-
-  .wallet-language__trigger--navbar .wallet-language__name {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .wallet-language__trigger--navbar > span:last-child {
-    display: none;
-  }
-}
-
-.wallet-language__menu {
-  z-index: 1000;
-  min-width: 240px;
-  max-width: calc(100vw - 32px);
-  max-height: var(--radix-select-content-available-height);
-  padding: 6px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  color-scheme: light;
-  color: var(--h2-ink);
-  border-radius: 18px;
-  font: 400 var(--h2-text-title) / 1.5 var(--h2-font);
-  -webkit-font-smoothing: antialiased;
-}
-
-.wallet-language__menu,
-.wallet-language__menu * {
-  box-sizing: border-box;
-}
-
-.wallet-language__option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  cursor: pointer;
-  outline: none;
-}
-
-.wallet-language__flag {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  overflow: hidden;
-  border-radius: 50%;
-}
-
-.wallet-language__description {
-  color: var(--h2-smoke);
-}
-
-.wallet-language__indicator {
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-}
-
-.wallet-language__option[data-highlighted] {
-  background: var(--h2-taupe);
-}
-
-html:lang(ja) .h2-page,
-html:lang(ja) .wallet-language__menu {
+html:lang(ja) .h2-page {
   font-family: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif;
   line-break: strict;
   word-break: normal;
@@ -3711,8 +3583,7 @@ html:lang(ja) .h2-startrow__text p {
   border-radius: 14px;
 }
 
-.h2-faq-pop__card,
-.wallet-language__menu {
+.h2-faq-pop__card {
   border: 1px solid var(--h2-stone);
   background: var(--h2-bg);
   box-shadow:

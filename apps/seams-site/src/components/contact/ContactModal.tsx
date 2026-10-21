@@ -1,3 +1,5 @@
+import { useTranslation } from '@/i18n/browser';
+import type { Translate } from '@/i18n/catalog';
 import React from 'react';
 import '@/styles/h2.css';
 import './ContactModal.css';
@@ -16,15 +18,21 @@ type PreparedMessage = {
   body: string;
 };
 
-function prepareMessage(form: HTMLFormElement): PreparedMessage {
+function prepareMessage(t: Translate, form: HTMLFormElement): PreparedMessage {
   const formData = new FormData(form);
   const name = readFormValue(formData, 'name');
   const email = readFormValue(formData, 'email');
   const company = readFormValue(formData, 'company');
   const details = readFormValue(formData, 'details');
   return {
-    subject: `Sales inquiry from ${name} at ${company}`,
-    body: [`Name: ${name}`, `Work email: ${email}`, `Company: ${company}`, '', details].join('\n'),
+    subject: t('salesSubject').replace('{name}', name).replace('{company}', company),
+    body: [
+      `${t('name')}: ${name}`,
+      `${t('workEmail')}: ${email}`,
+      `${t('companyName')}: ${company}`,
+      '',
+      details,
+    ].join('\n'),
   };
 }
 
@@ -36,9 +44,15 @@ function readContactHash(): boolean {
   return typeof window !== 'undefined' && window.location.hash === CONTACT_LINK_TARGET;
 }
 
+function handleContactSubmit(t: Translate, event: React.FormEvent<HTMLFormElement>): void {
+  event.preventDefault();
+  window.location.assign(mailtoHref(prepareMessage(t, event.currentTarget)));
+}
+
 /* Mounted once by the app. The form opens while the URL hash is #contact, so a
    link from another site (for example https://seams.sh/#contact) opens it too. */
 export function ContactModalHost(): React.JSX.Element {
+  const t = useTranslation();
   const [open, setOpen] = React.useState<boolean>(readContactHash);
   const dialogRef = React.useRef<HTMLDialogElement>(null);
 
@@ -84,11 +98,6 @@ export function ContactModalHost(): React.JSX.Element {
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  function handleContactSubmit(event: React.FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    window.location.assign(mailtoHref(prepareMessage(event.currentTarget)));
-  }
-
   return (
     <dialog
       ref={dialogRef}
@@ -100,7 +109,12 @@ export function ContactModalHost(): React.JSX.Element {
       }}
     >
       <div className="contact-modal__panel">
-        <button type="button" className="contact-modal__close" aria-label="Close" onClick={close}>
+        <button
+          type="button"
+          className="contact-modal__close"
+          aria-label={t('close')}
+          onClick={close}
+        >
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
             <path
               d="M3.5 3.5l9 9m0-9l-9 9"
@@ -111,48 +125,42 @@ export function ContactModalHost(): React.JSX.Element {
           </svg>
         </button>
         <h2 id="contact-modal-title" className="h2-display contact-modal__title">
-          Tell us what you are building
+          {t('contactTitle')}
         </h2>
         <p className="contact-modal__copy">
-          The form opens your email app with the message ready to send. You can also write to{' '}
-          <a href={`mailto:${SALES_EMAIL_ADDRESS}`}>{SALES_EMAIL_ADDRESS}</a>.
+          {t('contactCopy')} <a href={`mailto:${SALES_EMAIL_ADDRESS}`}>{SALES_EMAIL_ADDRESS}</a>.
         </p>
 
         {open ? (
           <form
             className="contact-form"
-            aria-label="Contact sales form"
-            onSubmit={handleContactSubmit}
+            aria-label={t('contactForm')}
+            onSubmit={handleContactSubmit.bind(null, t)}
           >
             <div className="contact-form__row">
               <label className="contact-form__field">
-                <span className="contact-form__label">Name</span>
+                <span className="contact-form__label">{t('name')}</span>
                 <input type="text" name="name" autoComplete="name" required />
               </label>
               <label className="contact-form__field">
-                <span className="contact-form__label">Work email</span>
+                <span className="contact-form__label">{t('workEmail')}</span>
                 <input type="email" name="email" autoComplete="email" required />
               </label>
             </div>
 
             <label className="contact-form__field">
-              <span className="contact-form__label">Company</span>
+              <span className="contact-form__label">{t('companyName')}</span>
               <input type="text" name="company" autoComplete="organization" required />
             </label>
 
             <label className="contact-form__field">
-              <span className="contact-form__label">Project details</span>
-              <textarea
-                name="details"
-                required
-                rows={5}
-                placeholder="What are you building, and where can Seams help?"
-              />
+              <span className="contact-form__label">{t('projectDetails')}</span>
+              <textarea name="details" required rows={5} placeholder={t('projectPlaceholder')} />
             </label>
 
             <div className="contact-form__actions">
               <button type="submit" className="h2-btn h2-btn--primary">
-                Email sales
+                {t('emailSales')}
               </button>
             </div>
           </form>

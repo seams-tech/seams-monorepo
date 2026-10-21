@@ -1,5 +1,4 @@
 export {
-  ENGLISH_NAVBAR_LABELS,
   SiteNavbar,
   type DropdownId,
   type DropdownPane,
@@ -14,3 +13,5 @@ export {
   type SiteNavbarRouter,
 } from './SiteNavbar';
 export { blinkMenuItem } from './menuItemBlink';
+
+export { LanguageSelector, type SiteLocale } from './LanguageSelector';

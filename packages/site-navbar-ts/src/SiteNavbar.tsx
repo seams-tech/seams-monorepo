@@ -68,16 +68,6 @@ export type SiteNavbarLabels = {
   companyMission: string;
 };
 
-export const ENGLISH_NAVBAR_LABELS: SiteNavbarLabels = {
-  primary: 'Primary',
-  home: 'Seams home',
-  dashboard: 'Dashboard',
-  openMenu: 'Open menu',
-  closeMenu: 'Close menu',
-  companyOverview: 'View company overview',
-  companyMission: 'Learn more about the Seams team and mission',
-};
-
 /** The site router: an in-app navigation and the props for a link. */
 export type SiteNavbarRouter = {
   go: (to: string) => void;

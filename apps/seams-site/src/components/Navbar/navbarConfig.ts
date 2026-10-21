@@ -1,3 +1,5 @@
+import { translate, type Translate } from '@/i18n/catalog';
+import type { Locale } from '@/i18n/locale';
 import {
   Bot,
   Building2,
@@ -11,175 +13,190 @@ import {
   Wallet,
   Wrench,
 } from 'lucide-react';
-import {
-  ENGLISH_NAVBAR_LABELS,
-  type DropdownPane,
-  type SiteNavbarConfig,
-} from '@seams-internal/site-navbar';
+import { type DropdownPane, type SiteNavbarConfig } from '@seams-internal/site-navbar';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* The 'documentation' pane id historically maps to the "Products" trigger and
    vice versa; ids are kept stable so aria wiring and pane ordering don't churn. */
-const documentationDropdownPane: DropdownPane = {
-  id: 'documentation',
-  label: 'Products',
-  kicker: 'Products',
-  rows: [
-    {
-      title: 'Embedded Wallet',
-      description: 'Non-custodial wallets with policy-bound keys and sessions',
+function documentationDropdownPane(t: Translate): DropdownPane {
+  return {
+    id: 'documentation',
+    label: t('products'),
+    kicker: t('products'),
+    rows: [
+      {
+        title: t('embeddedWallet'),
+        description: t('embeddedNav'),
+        to: '/wallet',
+        icon: Wallet,
+        field: 'teal-peach',
+      },
+      {
+        title: t('ecommerceAgents'),
+        description: t('agentsNav'),
+        to: '/ecommerce',
+        icon: Bot,
+        field: 'azure-coral',
+      },
+      {
+        title: t('biometricAuth'),
+        description: t('biometricCopy'),
+        to: '/docs/concepts/auth-methods/passkeys',
+        icon: Fingerprint,
+        field: 'aqua-evergreen',
+      },
+    ],
+    highlight: {
+      title: t('liveDemo'),
+      description: t('liveDemoCopy'),
       to: '/wallet',
-      icon: Wallet,
       field: 'teal-peach',
     },
-    {
-      title: 'Ecommerce Agents',
-      description: 'AI agents with scoped credentials, acting inside policy',
-      to: '/ecommerce',
-      icon: Bot,
-      field: 'azure-coral',
-    },
-    {
-      title: 'Biometric Authentication',
-      description: 'Passkey authentication. VoiceID is planned.',
-      to: '/docs/concepts/auth-methods/passkeys',
-      icon: Fingerprint,
-      field: 'aqua-evergreen',
-    },
-  ],
-  highlight: {
-    title: 'Live demo',
-    description: 'Create a passkey wallet on the Embedded Wallet page',
-    to: '/wallet',
-    field: 'teal-peach',
-  },
-  footerLinks: [{ label: 'Plan pricing', to: '/pricing/' }],
-};
+    footerLinks: [{ label: t('planPricing'), to: '/pricing/' }],
+  };
+}
 
-const productsDropdownPane: DropdownPane = {
-  id: 'products',
-  label: 'Documentation',
-  kicker: 'Documentation',
-  rows: [
-    {
-      title: 'Get Started',
-      description: 'Install the SDK, create a wallet, and sign with policy',
-      to: '/docs/',
-      icon: Rocket,
-      field: 'sky-sand',
-    },
-    {
-      title: 'Tools and Guides',
-      description: 'Auth, sessions, wallet UI, policy, and the SDK reference',
-      to: '/docs/guides/',
-      icon: Wrench,
+function productsDropdownPane(t: Translate): DropdownPane {
+  return {
+    id: 'products',
+    label: t('documentation'),
+    kicker: t('documentation'),
+    rows: [
+      {
+        title: t('getStarted'),
+        description: t('getStartedCopy'),
+        to: '/docs/',
+        icon: Rocket,
+        field: 'sky-sand',
+      },
+      {
+        title: t('toolsGuides'),
+        description: t('toolsCopy'),
+        to: '/docs/guides/',
+        icon: Wrench,
+        field: 'slate-amber',
+      },
+      {
+        title: t('useCasesNav'),
+        description: t('useCasesCopy'),
+        to: '/docs/use-cases/',
+        icon: ListChecks,
+        field: 'mauve-ember',
+      },
+    ],
+    highlight: {
+      title: t('architecture'),
+      description: t('architectureCopy'),
+      to: '/docs/concepts/architecture',
       field: 'slate-amber',
     },
-    {
-      title: 'Use cases',
-      description: 'Mandates, delegated agents, and agent-driven commerce',
-      to: '/docs/use-cases/',
-      icon: ListChecks,
-      field: 'mauve-ember',
-    },
-  ],
-  highlight: {
-    title: 'Architecture',
-    description: 'How passkeys, policy, and signing fit together',
-    to: '/docs/concepts/architecture',
-    field: 'slate-amber',
-  },
-  footerLinks: [
-    { label: 'Read the docs', to: '/docs/' },
-    { label: 'Releases', to: '/docs/releases' },
-  ],
-};
+    footerLinks: [
+      { label: t('readDocs'), to: '/docs/' },
+      { label: t('releases'), to: '/docs/releases' },
+    ],
+  };
+}
 
-const pricingDropdownPane: DropdownPane = {
-  id: 'pricing',
-  label: 'Pricing',
-  kicker: 'Plans',
-  rows: [
-    {
-      title: 'Free',
-      description: 'Up to 300 monthly active users',
-      to: '/pricing/#free',
-      icon: Sprout,
-      meta: '$0',
-      field: 'sky-sand',
-    },
-    {
-      title: 'Growth',
-      description: '5,000 users included, then $0.004 per user',
-      to: '/pricing/#growth',
-      icon: TrendingUp,
-      meta: '$99 / mo',
-      field: 'azure-coral',
-    },
-    {
-      title: 'Enterprise',
-      description: 'From $0.003 per user on committed volume',
-      to: '/pricing/#enterprise',
-      icon: Rocket,
-      meta: 'Custom',
-      field: 'mauve-ember',
-    },
-  ],
-  highlight: {
-    title: 'Estimate your price',
-    description: 'Set your users and see the monthly total',
-    to: '/pricing/#calculator',
-    field: 'coral-tide',
-  },
-  footerLinks: [{ label: 'Compare plans', to: '/pricing/' }],
-};
-
-const aboutDropdownPane: DropdownPane = {
-  id: 'about',
-  label: 'About Us',
-  kicker: 'Company',
-  rows: [
-    {
-      title: 'Company',
-      description: 'Who we are and what we are building',
-      to: '/company/',
-      icon: Building2,
-      field: 'sky-sand',
-    },
-    {
-      title: 'Blog',
-      description: 'Writing from the Seams team',
-      to: '/company/#blog',
-      icon: PenLine,
-      field: 'teal-peach',
-    },
-    {
-      title: 'Support',
-      description: 'Get help from the team',
-      to: CONTACT_LINK_TARGET,
-      icon: LifeBuoy,
+function pricingDropdownPane(t: Translate): DropdownPane {
+  return {
+    id: 'pricing',
+    label: t('pricing'),
+    kicker: t('plans'),
+    rows: [
+      {
+        title: t('free'),
+        description: t('freeUsers'),
+        to: '/pricing/#free',
+        icon: Sprout,
+        meta: '$0',
+        field: 'sky-sand',
+      },
+      {
+        title: 'Growth',
+        description: t('growthNav'),
+        to: '/pricing/#growth',
+        icon: TrendingUp,
+        meta: t('monthly99'),
+        field: 'azure-coral',
+      },
+      {
+        title: 'Enterprise',
+        description: t('enterpriseNav'),
+        to: '/pricing/#enterprise',
+        icon: Rocket,
+        meta: t('custom'),
+        field: 'mauve-ember',
+      },
+    ],
+    highlight: {
+      title: t('estimatePrice'),
+      description: t('estimateNav'),
+      to: '/pricing/#calculator',
       field: 'coral-tide',
     },
-  ],
-  footerLinks: [{ label: 'Contact sales', to: CONTACT_LINK_TARGET }],
-};
+    footerLinks: [{ label: t('comparePlans'), to: '/pricing/' }],
+  };
+}
 
-export const siteNavbarConfig: SiteNavbarConfig = {
-  labels: ENGLISH_NAVBAR_LABELS,
-  panes: {
-    products: productsDropdownPane,
-    documentation: documentationDropdownPane,
-    about: aboutDropdownPane,
-    pricing: pricingDropdownPane,
-  },
-  homeHref: '/',
-  aboutHref: '/company/',
-  dashboardHref: '/dashboard',
-  mobilePlanLinks: [
-    {
-      title: 'Talk to us',
-      description: 'Plan pricing and deployment options with the Seams team',
-      to: CONTACT_LINK_TARGET,
+function aboutDropdownPane(t: Translate): DropdownPane {
+  return {
+    id: 'about',
+    label: t('aboutUs'),
+    kicker: t('company'),
+    rows: [
+      {
+        title: t('company'),
+        description: t('companyNav'),
+        to: '/company/',
+        icon: Building2,
+        field: 'sky-sand',
+      },
+      {
+        title: t('blog'),
+        description: t('blogCopy'),
+        to: '/company/#blog',
+        icon: PenLine,
+        field: 'teal-peach',
+      },
+      {
+        title: t('support'),
+        description: t('supportCopy'),
+        to: CONTACT_LINK_TARGET,
+        icon: LifeBuoy,
+        field: 'coral-tide',
+      },
+    ],
+    footerLinks: [{ label: t('contactSales'), to: CONTACT_LINK_TARGET }],
+  };
+}
+
+export function getSiteNavbarConfig(locale: Locale): SiteNavbarConfig {
+  const t = translate.bind(null, locale);
+  return {
+    labels: {
+      primary: t('primary'),
+      home: t('seamsHome'),
+      dashboard: t('dashboard'),
+      openMenu: t('openMenu'),
+      closeMenu: t('closeMenu'),
+      companyOverview: t('companyOverview'),
+      companyMission: t('companyMission'),
     },
-  ],
-};
+    panes: {
+      products: productsDropdownPane(t),
+      documentation: documentationDropdownPane(t),
+      about: aboutDropdownPane(t),
+      pricing: pricingDropdownPane(t),
+    },
+    homeHref: '/',
+    aboutHref: '/company/',
+    dashboardHref: '/dashboard',
+    mobilePlanLinks: [
+      {
+        title: t('talkUs'),
+        description: t('talkCopy'),
+        to: CONTACT_LINK_TARGET,
+      },
+    ],
+  };
+}

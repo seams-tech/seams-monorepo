@@ -259,6 +259,9 @@ function buildFrontend(site, component, walletLanes) {
     });
     writeCompanyCutoverFiles(site);
     assertFile(path.join(COMPANY_OUTPUT, 'index.html'), 'Company site entry');
+    assertFile(path.join(COMPANY_OUTPUT, 'ja', 'pricing', 'index.html'), 'Japanese pricing entry');
+    assertFile(path.join(COMPANY_OUTPUT, 'ja', 'company', 'index.html'), 'Japanese company entry');
+    assertFile(path.join(COMPANY_OUTPUT, 'sitemap.xml'), 'Company site sitemap');
     return;
   }
   if (component === 'wallet-site') {
@@ -324,6 +327,10 @@ function writeWalletConsoleRedirects(site) {
     `/pricing/* ${site.origin}/pricing/:splat 302`,
     `/company ${site.origin}/company 302`,
     `/company/* ${site.origin}/company/:splat 302`,
+    `/ja/pricing ${site.origin}/ja/pricing/ 302`,
+    `/ja/pricing/* ${site.origin}/ja/pricing/:splat 302`,
+    `/ja/company ${site.origin}/ja/company/ 302`,
+    `/ja/company/* ${site.origin}/ja/company/:splat 302`,
   ];
   for (const route of shared) {
     lines.push(`${route} ${consoleSite.platformOrigin}${route.replace('*', ':splat')} 302`);
@@ -497,7 +504,15 @@ async function smokeFrontend(site, component, walletLanes) {
 }
 
 function buildSmokeChecks(site, component, walletLanes) {
-  if (component === 'company') return smokeChecks('company', site.origin, ['/']);
+  if (component === 'company')
+    return smokeChecks('company', site.origin, [
+      '/',
+      '/pricing/',
+      '/company/',
+      '/ja/pricing/',
+      '/ja/company/',
+      '/sitemap.xml',
+    ]);
   if (component === 'wallet-site') {
     return smokeChecks('wallet-site', site.walletSiteOrigin, [
       '/',

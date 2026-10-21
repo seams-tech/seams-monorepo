@@ -209,9 +209,6 @@ export function PricingPage(): React.JSX.Element {
     subscribeToPricingNavigation,
     readSelectedPlanId,
   );
-  const { linkProps } = useSiteRouter();
-  const startProps = linkProps('/docs/concepts/');
-  const contactProps = linkProps('/contact/');
 
   return (
     <div className="h2-page">
@@ -227,24 +224,6 @@ export function PricingPage(): React.JSX.Element {
                 The first 300 users are free, and development is always free. As you grow, you pay
                 per active user, with signing included.
               </p>
-              <div className="h2-hero-simple__ctas">
-                <a
-                  className="h2-btn h2-btn--primary h2-btn--lg"
-                  href={startProps.href}
-                  onClick={startProps.onClick}
-                >
-                  Start building
-                  <ArrowRightAnim size={12} />
-                </a>
-                <a
-                  className="h2-btn h2-btn--outline h2-btn--lg"
-                  href={contactProps.href}
-                  onClick={contactProps.onClick}
-                >
-                  Contact sales
-                  <ArrowRightAnim size={12} />
-                </a>
-              </div>
             </div>
           </header>
 

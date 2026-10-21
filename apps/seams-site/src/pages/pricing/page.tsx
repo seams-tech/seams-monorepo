@@ -240,16 +240,8 @@ export function PricingPage(): React.JSX.Element {
             </div>
           </header>
 
-          <section
-            className="h2-section h2-section--compact h2-rule"
-            aria-labelledby="pricing-plans-title"
-          >
+          <section className="h2-section h2-section--compact h2-rule" aria-label={t('plans')}>
             <div className="h2-shell">
-              <div className="h2-split-head">
-                <h2 id="pricing-plans-title" className="h2-display pricing-plans-title">
-                  {t('plansTitle')}
-                </h2>
-              </div>
               <div className="pricing-plans">
                 {plans.map((plan) => (
                   <PlanCard key={plan.id} plan={plan} selected={plan.id === selectedPlanId} />

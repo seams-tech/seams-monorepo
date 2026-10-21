@@ -81,10 +81,6 @@ export const messages = {
     ja: 'パスキーでのログイン、分散鍵ウォレット、アカウント復旧。プランを選んで始めましょう。',
   },
   startPlan: { en: 'Start with a plan', ja: 'プランを選んで始める' },
-  plansTitle: {
-    en: 'Pay for active users, with signing included',
-    ja: '署名を含む、アクティブユーザー数に応じた料金',
-  },
   poolNote: {
     en: '300 monthly signatures per active user, pooled across your app. Extra signatures: $0.05 per 1,000.',
     ja: 'アクティブユーザー1人につき月300回の署名をアプリ全体で共有。超過分は1,000回あたり$0.05。',

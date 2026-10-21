@@ -17,10 +17,6 @@
 
 /* ---------- plan cards: black panels that show the plan gradient when lit ---------- */
 
-.pricing-plans-title {
-  grid-column: 1 / -1;
-}
-
 .pricing-plans {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -59,13 +55,6 @@
 .pricing-plan:focus-visible {
   outline: 2px solid var(--h2-ink);
   outline-offset: 3px;
-}
-
-@media (min-width: 901px) {
-  .pricing-plan {
-    /* Leave room for the navbar and section heading. */
-    scroll-margin-top: 256px;
-  }
 }
 
 .pricing-plan__gradient {
@@ -194,6 +183,7 @@
   margin: 22px 0 0;
   font-size: var(--h2-text-title);
   line-height: 1.6;
+  text-align: center;
   color: var(--h2-graphite);
 }
 

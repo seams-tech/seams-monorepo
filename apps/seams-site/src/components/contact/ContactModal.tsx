@@ -32,6 +32,32 @@ function mailtoHref(message: PreparedMessage): string {
   return `mailto:${SALES_EMAIL_ADDRESS}?subject=${encodeURIComponent(message.subject)}&body=${encodeURIComponent(message.body)}`;
 }
 
+/* Webmail compose pages work without an email app on the device. Spaces are
+   encoded as %20, not +, because Outlook shows a + literally. */
+function queryString(params: Record<string, string>): string {
+  return Object.entries(params)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join('&');
+}
+
+function gmailComposeHref(message: PreparedMessage): string {
+  return `https://mail.google.com/mail/?${queryString({
+    view: 'cm',
+    fs: '1',
+    to: SALES_EMAIL_ADDRESS,
+    su: message.subject,
+    body: message.body,
+  })}`;
+}
+
+function outlookComposeHref(message: PreparedMessage): string {
+  return `https://outlook.office.com/mail/deeplink/compose?${queryString({
+    to: SALES_EMAIL_ADDRESS,
+    subject: message.subject,
+    body: message.body,
+  })}`;
+}
+
 type CopyTarget = 'message' | 'address';
 
 /* The async clipboard API can be blocked, e.g. in an embedded browser; the
@@ -73,11 +99,27 @@ function PreparedMessageNotice({ message }: { message: PreparedMessage }): React
   return (
     <div className="contact-notice" role="status">
       <p className="contact-notice__lead">
-        Your message is ready. If your email app did not open, copy the message and send it to{' '}
-        <a href={mailtoHref(message)}>{SALES_EMAIL_ADDRESS}</a>.
+        Your message is ready. If your email app did not open, send it from webmail, or copy the
+        message and send it to <a href={mailtoHref(message)}>{SALES_EMAIL_ADDRESS}</a>.
       </p>
       <pre className="contact-notice__message">{text}</pre>
       <div className="contact-notice__actions">
+        <a
+          className="h2-btn h2-btn--outline"
+          href={gmailComposeHref(message)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open in Gmail
+        </a>
+        <a
+          className="h2-btn h2-btn--outline"
+          href={outlookComposeHref(message)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open in Outlook
+        </a>
         <button
           type="button"
           className="h2-btn h2-btn--outline"

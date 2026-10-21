@@ -1529,7 +1529,7 @@ const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
     },
     {
       q: 'How is usage metered?',
-      a: 'Plans are based on monthly active users. Each user includes 300 signatures a month, pooled across your app. The first 250 users are free. See the pricing page for details.',
+      a: 'Plans are based on monthly active users. Each user includes 300 signatures a month, pooled across your app. The first 300 users are free. See the pricing page for details.',
     },
   ],
   pricing: [
@@ -1547,7 +1547,7 @@ const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
     },
     {
       q: 'What happens when my app grows past the free plan?',
-      a: 'The free plan stops at 250 active users or 25,000 signatures in a month. Recovery and key export stay open, with rate limits, so your users keep access to their funds. Add a card to continue on Growth at $99 a month, with 5,000 users included.',
+      a: 'The free plan stops at 300 active users or 30,000 signatures in a month. Recovery and key export stay open, with rate limits, so your users keep access to their funds. Add a card to continue on Growth at $99 a month, with 5,000 users included.',
     },
     {
       q: 'Can I use more than one free plan?',

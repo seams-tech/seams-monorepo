@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Miniflare } from 'miniflare';
@@ -21,10 +23,20 @@ import { WalletHome } from '../../../packages/wallet-console-server-ts/src/walle
 import { activateWalletProject } from '../../helpers/accountWalletProject.fixtures';
 import {
   activateConsoleDeploymentFixture,
+  activateRegionalGatewayFixture,
   fourRegionBinding,
   fourRegionProductionBinding,
 } from '../../helpers/tenantDeploymentFixtures';
+import type { TenantDeploymentBindingV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/types';
+import { TenantDeploymentD1ResourceIdentityV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/deploymentResource';
+import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import {
+  handleRegionalProductionAdmission,
+  syncRegionalProductionAdmission,
+} from '../../../packages/wallet-console-server-ts/src/tenantDeployment/productionAdmission';
+import { resumeGatewaySignatureCompletions } from '../../../packages/wallet-console-server-ts/src/walletPlacement/signatureCompletions';
+import {
+  publishSignaturesFromGateway,
   registrationLifecycleFromGateway,
   reserveFromGateway,
   unlockFromGateway,
@@ -83,20 +95,37 @@ function tenant(org: Organization, environment: 'prod' | 'dev'): RegistrationTen
   };
 }
 
-function runtime(): Miniflare {
+function runtime(state = 'state'): Miniflare {
   return new Miniflare({
     modules: true,
     script: 'export default { fetch() { return new Response("Free plan acceptance"); } };',
     compatibilityDate: '2026-04-17',
-    d1Databases: { DB: 'free-plan' },
-    d1Persist: path.join(output, 'state'),
+    d1Databases: { DB: 'free-plan', SIGNER_DB: 'free-plan-signer' },
+    d1Persist: path.join(output, state),
   });
 }
 
-async function migratedDatabase(worker: Miniflare): Promise<D1DatabaseLike> {
-  const database = await worker.getD1Database('DB');
+/** SIGNER_DB migrations of the candidate package when given, else of the installed one. */
+const signerMigrations = path.join(
+  process.env.SEAMS_WALLET_SERVER_CANDIDATE ??
+    path.dirname(
+      createRequire(path.join(repository, 'packages/wallet-console-server-ts/package.json')).resolve(
+        '@seams/wallet-server/package.json',
+      ),
+    ),
+  'migrations/d1-signer',
+);
+
+async function migratedDatabase(
+  worker: Miniflare,
+  binding: 'DB' | 'SIGNER_DB' = 'DB',
+): Promise<D1DatabaseLike> {
+  const database = await worker.getD1Database(binding);
   if (!isD1DatabaseLike(database)) throw new Error('Free plan D1 binding is unavailable');
-  const directory = path.join(repository, 'packages/wallet-console-server-ts/migrations/d1-console');
+  const directory =
+    binding === 'DB'
+      ? path.join(repository, 'packages/wallet-console-server-ts/migrations/d1-console')
+      : signerMigrations;
   for (const filename of (await readdir(directory)).sort()) {
     if (!filename.endsWith('.sql')) continue;
     const contents = await readFile(path.join(directory, filename), 'utf8');
@@ -139,7 +168,7 @@ async function createOrganization(
   database: D1DatabaseLike,
   services: Product,
   org: Organization,
-): Promise<void> {
+): Promise<{ readonly production: TenantDeploymentBindingV1 }> {
   const context = { orgId: org.orgId, actorUserId: org.ownerUserId };
   await services.core.orgProjects.upsertOrganization(context, { name: org.orgId });
   await services.core.organizationAccess.bootstrapInitialOwner({
@@ -161,11 +190,12 @@ async function createOrganization(
     projectId: org.projectId,
   });
   const tenantScope = { namespace, organizationId: org.orgId, projectId: org.projectId };
-  await activateConsoleDeploymentFixture(
-    database,
-    await fourRegionProductionBinding(Date.now(), org.productionLane, tenantScope),
-    `tco_${org.productionLane}`,
+  const production = await fourRegionProductionBinding(
+    Date.now(),
+    org.productionLane,
+    tenantScope,
   );
+  await activateConsoleDeploymentFixture(database, production, `tco_${org.productionLane}`);
   await activateConsoleDeploymentFixture(
     database,
     await fourRegionBinding(Date.now(), org.developmentLane, {
@@ -174,6 +204,7 @@ async function createOrganization(
     }),
     `tco_${org.developmentLane}`,
   );
+  return { production };
 }
 
 async function register(
@@ -486,6 +517,175 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
     ]);
     evidence.clock = { plan: clockPlan };
     await writeFile(path.join(output, 'evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`);
+  } finally {
+    await worker.dispose();
+  }
+});
+
+function regionalRuntimes(
+  signer: D1DatabaseLike,
+  binding: TenantDeploymentBindingV1,
+  writer: ReturnType<typeof parseTenantRuntimeWriterV1>,
+) {
+  const resource = TenantDeploymentD1ResourceIdentityV1.parse({
+    namespace,
+    accountId: writer.resource.accountId,
+    databaseId: writer.resource.databaseId,
+  });
+  // Every region of this fixture shares one SIGNER_DB; production has one per region.
+  const runtime = {
+    async fetch(request: Request): Promise<Response> {
+      const response = await handleRegionalProductionAdmission(request, {
+        database: signer,
+        resource,
+        versionId: writer.versionId,
+        deploymentLane: binding.deploymentLane,
+      });
+      if (!response) throw new Error('Unexpected runtime route');
+      return response;
+    },
+  };
+  return { US: runtime, WEUR: runtime, APAC: runtime, OC: runtime };
+}
+
+async function productionSigningPolicy(signer: D1DatabaseLike, org: Organization) {
+  return await queryD1One(
+    signer,
+    `SELECT decision, retry_after_ms, env_id FROM router_ab_normal_signing_admission_records
+     WHERE namespace = ? AND org_id = ? AND project_id = ? AND record_kind = 'project_policy'`,
+    [namespace, org.orgId, org.projectId],
+  );
+}
+
+test('Free plan stops production signing through the regional signing policy', async () => {
+  test.setTimeout(240_000);
+  await rm(path.join(output, 'signing-state'), { recursive: true, force: true });
+  const clock = new Clock(Date.now());
+  const worker = runtime('signing-state');
+  try {
+    const database = await migratedDatabase(worker);
+    const signer = await migratedDatabase(worker, 'SIGNER_DB');
+    const services = await product(database, clock, new Date(clock.ms + 400 * DAY_MS));
+    const org = organization('signing');
+    const { production } = await createOrganization(database, services, org);
+    const writer = parseTenantRuntimeWriterV1('walletRuntime', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
+      accountId,
+      databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    });
+    await activateRegionalGatewayFixture(signer, production, writer);
+    const runtimes = regionalRuntimes(signer, production, writer);
+    const sync = () =>
+      syncRegionalProductionAdmission({
+        database,
+        deploymentLane: org.productionLane,
+        runtimes,
+        nowMs: clock.ms,
+      });
+
+    // An active account opens production signing once; an unchanged decision is not resent.
+    await pass(services);
+    expect(await sync()).toBe('pushed');
+    expect(await sync()).toBe('unchanged');
+    expect(await productionSigningPolicy(signer, org)).toMatchObject({
+      decision: 'allowed',
+      env_id: 'prod',
+    });
+
+    // The Free limit without a card pauses new production signatures.
+    await deliverProductionUsers(services, org, 0, 300, clock.now());
+    await pass(services);
+    expect(
+      (await services.core.freePlan.getPlan({ orgId: org.orgId })).productionState,
+    ).toBe('free_limit_reached');
+    expect(await sync()).toBe('pushed');
+    expect(await productionSigningPolicy(signer, org)).toEqual({
+      decision: 'rejected',
+      retry_after_ms: 3_600_000,
+      env_id: 'prod',
+    });
+
+    // A verified card moves the account to Growth and opens signing again.
+    await addCard(services, org);
+    expect(await sync()).toBe('pushed');
+    expect(await productionSigningPolicy(signer, org)).toMatchObject({ decision: 'allowed' });
+
+    // The Console repeats its decision after an hour, so a lost or stale push heals.
+    clock.ms += 3_600_001;
+    expect(await sync()).toBe('pushed');
+  } finally {
+    await worker.dispose();
+  }
+});
+
+test('Gateway delivers completed production signatures to the Free plan count once', async () => {
+  test.skip(
+    !existsSync(path.join(signerMigrations, '0082_wallet_signature_completions.sql')),
+    'Requires @seams/wallet-server with SIGNER_DB migration 0082; set SEAMS_WALLET_SERVER_CANDIDATE',
+  );
+  test.setTimeout(240_000);
+  await rm(path.join(output, 'delivery-state'), { recursive: true, force: true });
+  const clock = new Clock(Date.now());
+  const worker = runtime('delivery-state');
+  try {
+    const database = await migratedDatabase(worker);
+    const signer = await migratedDatabase(worker, 'SIGNER_DB');
+    const services = await product(database, clock, new Date(clock.ms + 400 * DAY_MS));
+    const org = organization('delivery');
+    const { production } = await createOrganization(database, services, org);
+    // The completion trigger in seams-wallet writes these rows; its own journey covers it.
+    const completed = async (operationId: string, envId: string | null) =>
+      await signer
+        .prepare(
+          `INSERT INTO wallet_signature_completions
+            (namespace, tenant_id, authorized_operation_id, operation_kind, org_id, project_id,
+              env_id, completed_at_ms)
+           VALUES (?, ?, ?, 'evm.sign_transaction', ?, ?, ?, ?)`,
+        )
+        .bind(
+          namespace,
+          org.orgId,
+          operationId,
+          envId === null ? null : org.orgId,
+          envId === null ? null : org.projectId,
+          envId,
+          clock.ms,
+        )
+        .run();
+    await completed('signature-step-up', null);
+    await completed('signature-session', production.tenant.environmentId);
+    await completed('signature-other-environment', `${org.projectId}:dev`);
+    const authority = {
+      publishSignatures: (signatures: readonly { signatureId: string; completedAtMs: number }[]) =>
+        publishSignaturesFromGateway({
+          database,
+          catalogJson,
+          region: 'US',
+          localRegion: 'US',
+          tenant: tenant(org, 'prod'),
+          signatures,
+        }),
+    };
+    expect(
+      await resumeGatewaySignatureCompletions({ database: signer, binding: production, authority }),
+    ).toEqual({ delivered: 2, discarded: 0 });
+    // A lost acknowledgement replays the same signatures; the count does not move.
+    await completed('signature-session', production.tenant.environmentId);
+    expect(
+      await resumeGatewaySignatureCompletions({ database: signer, binding: production, authority }),
+    ).toEqual({ delivered: 1, discarded: 0 });
+    expect(await deliverOutbox(database, services, org)).toEqual({ delivered: 2, pending: 0 });
+    expect(
+      (await services.core.freePlan.getPlan({ orgId: org.orgId })).usage.productionSignatures,
+    ).toBe(2);
+    expect(
+      (
+        await queryD1All(
+          signer,
+          'SELECT authorized_operation_id FROM wallet_signature_completions',
+          [],
+        )
+      ).map((row) => row.authorized_operation_id),
+    ).toEqual(['signature-other-environment']);
   } finally {
     await worker.dispose();
   }

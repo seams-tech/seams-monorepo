@@ -1,7 +1,7 @@
 # Free plan card requirement and Growth move: implementation plan
 
-Status: phases 1–5 implemented on `dev` for the Console side; signature counts and
-the signing stop wait for seams-wallet. See [Implementation status](#implementation-status).
+Status: phases 1–5 implemented on `dev`; signature counts and the SDK code wait for a
+seams-wallet release. See [Implementation status](#implementation-status).
 Date: October 21, 2026.
 
 ## Outcome
@@ -191,16 +191,24 @@ decision:
 - **Growth move.** One statement changes the plan, pins `wallet-growth-v1`, and sets
   the 12-month lock date; the move notice is queued only if that statement commits.
 - **Test.** `tests/e2e/console/shared-account-free-plan.e2e.test.ts`.
+- **Signing stop.** The Console pushes each production lane's decision to its regional
+  Wallet runtimes, which install it as the project's normal-signing policy. Signing
+  admission already reads that policy and refuses with `project_policy_rejected`.
+  Recovery and key export do not read it. Migration `0102` records the last push.
+- **Signature counts.** seams-wallet migration `0082` records each successful
+  signature in the statement that completes its operation. The Gateway's scheduled
+  work sends the rows to the Console, which counts each signing operation once.
+- **SDK error code.** seams-wallet keeps the server's code on a refused setup, so the
+  SDK reports `production_paused`.
 
 Not built yet:
 
-- **Signature counts and the signing stop.** Signing does not reach Console per
-  request. The Wallet runtime (seams-wallet) must emit `production_signature` facts
-  through the same contract, and the stop must reach the Gateway through its
-  regional admission state. Until then, only the MAU limit and the card clock stop
-  production, and they stop sign-ups only.
-- **SDK error code.** The Wallet maps an unknown reservation code to "unavailable";
-  seams-wallet must pass `production_paused` to the SDK.
+- **seams-wallet release.** Signature counts and the SDK code need an
+  `@seams/wallet-server` and `@seams/wallet` release with seams-wallet `b5f523cb` and
+  `e7e289ad`, and the private pins moved to it. Deploy the private Gateway only with
+  that release; without migration `0082` its scheduled delivery fails.
+- **In-flight signatures at a stop.** A signature prepared before the stop cannot be
+  finalized after it (open decision 4).
 - **Growth charges.** The plan and price are persisted, but the feat-3 monthly close
   that bills them does not exist. The existing `wallet.monthly_active_resource`
   prepaid charge still applies.

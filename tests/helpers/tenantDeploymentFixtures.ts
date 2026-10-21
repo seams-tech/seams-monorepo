@@ -514,11 +514,12 @@ export async function activateRegionalGatewayFixture(
     databaseId: writer.resource.databaseId,
   });
   const local = new D1RegionalDeploymentAdmission(database, resource);
+  // The writer's own role carries its version; the other role gets a fresh one.
   const proof = regionalResourceProof(
     binding,
     resource.databaseId,
-    writer.versionId,
-    crypto.randomUUID(),
+    writer.role === 'gateway' ? writer.versionId : crypto.randomUUID(),
+    writer.role === 'walletRuntime' ? writer.versionId : crypto.randomUUID(),
     Date.now(),
   );
   const admission = {

@@ -182,6 +182,15 @@ export async function registrationLifecycleFromGateway(
   }
 }
 
+/** The Gateway's scheduled delivery of completed signatures, through the Console route. */
+export async function publishSignaturesFromGateway(
+  input: GatewayAdmissionInput & {
+    signatures: readonly { readonly signatureId: string; readonly completedAtMs: number }[];
+  },
+): Promise<void> {
+  await gatewayAdmission(input).publishSignatures(input.signatures);
+}
+
 /** An unlock publishes a fresh credential session for an established wallet. */
 export async function unlockFromGateway(
   input: GatewayAdmissionInput & { walletId: string; sessionLabel: string },

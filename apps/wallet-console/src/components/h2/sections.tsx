@@ -712,8 +712,10 @@ export function H2Start(): React.JSX.Element {
             {',\n  '}
             <span className="tok-prop">actions</span>
             {': [transfer('}
-            <span className="tok-str">'1000000'</span>
-            {')],\n});'}
+            <span className="tok-str">'1000000000000000000000000'</span>
+            {')], '}
+            <span className="tok-cm">{'// 1 NEAR'}</span>
+            {'\n});'}
           </div>
         </div>
       </div>

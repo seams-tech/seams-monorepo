@@ -15,7 +15,7 @@
   }
 }
 
-/* ---------- plan cards: taupe panels, like the frontpage duo ---------- */
+/* ---------- plan cards: black panels that show the plan gradient when lit ---------- */
 
 .pricing-plans {
   display: grid;
@@ -32,10 +32,10 @@
 
 .pricing-plan {
   --pricing-plan-gradient-opacity: 0;
-  --pricing-plan-ink: var(--h2-ink);
-  --pricing-plan-copy: var(--h2-smoke);
-  --pricing-plan-feature: var(--h2-graphite);
-  --pricing-plan-rule: var(--h2-stone);
+  --pricing-plan-ink: #ffffff;
+  --pricing-plan-copy: rgba(255, 255, 255, 0.72);
+  --pricing-plan-feature: rgba(255, 255, 255, 0.86);
+  --pricing-plan-rule: rgba(255, 255, 255, 0.24);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -44,7 +44,7 @@
   gap: 12px;
   padding: 28px 28px 26px;
   border-radius: var(--h2-radius-card);
-  background: var(--h2-taupe);
+  background: var(--h2-ink);
   scroll-margin-top: 96px;
   cursor: pointer;
 }
@@ -162,6 +162,22 @@
 .pricing-plan__cta {
   margin-top: auto;
   align-self: flex-start;
+}
+
+/* white button on the black card */
+.h2-page .pricing-plan .h2-btn--primary {
+  background: #ffffff;
+  color: var(--h2-ink);
+}
+
+.h2-page .pricing-plan .h2-btn--primary:active {
+  background: #ebe8e4;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-page .pricing-plan .h2-btn--primary:hover {
+    background: #ebe8e4;
+  }
 }
 
 .pricing-note {

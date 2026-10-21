@@ -1,4 +1,5 @@
 import React from 'react';
+import { GrainField } from '@seams-internal/grain-field';
 import { H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import '@/styles/h2.css';
@@ -32,57 +33,77 @@ function handleContactSubmit(event: React.FormEvent<HTMLFormElement>): void {
 export function ContactPage(): React.JSX.Element {
   return (
     <div className="h2-page">
-      <NavbarCompact />
+      <NavbarCompact appearance="light" />
       <div className="h2-col">
-        <main className="contact-page h2-rule" aria-labelledby="contact-page-title">
-          <section className="contact-page__panel">
-            <header className="contact-page__intro">
-              <p className="contact-page__kicker">Contact sales</p>
-              <h1 id="contact-page-title">Tell us what you&apos;re building.</h1>
-              <p>
-                Share a little context and we&apos;ll help you plan secure wallets, agent access,
-                and policy controls for your product.
+        <main aria-labelledby="contact-page-title">
+          <header className="h2-hero-simple h2-hero-simple--sage h2-hero-simple--grain">
+            <div className="h2-shell">
+              <GrainField field="mauve-ember" flow={1.6} />
+              <h1 id="contact-page-title" className="h2-display h2-hero-simple__title">
+                Tell us what you are building.
+              </h1>
+              <p className="h2-hero-simple__sub">
+                Share some context, and we will help you plan wallets, agent access, and policy for
+                your product.
               </p>
-            </header>
+            </div>
+          </header>
 
-            <form
-              className="contact-form"
-              aria-label="Contact sales form"
-              onSubmit={handleContactSubmit}
-            >
-              <div className="contact-form__row contact-form__row--two">
-                <label className="contact-form__field">
-                  <span className="contact-form__label">Name</span>
-                  <input type="text" name="name" autoComplete="name" required />
-                </label>
-                <label className="contact-form__field">
-                  <span className="contact-form__label">Work email</span>
-                  <input type="email" name="email" autoComplete="email" required />
-                </label>
+          <section
+            className="h2-section h2-section--compact h2-rule"
+            aria-labelledby="contact-form-title"
+          >
+            <div className="h2-shell contact-split">
+              <div>
+                <p className="h2-kicker contact-split__kicker">Contact sales</p>
+                <h2 id="contact-form-title" className="h2-display contact-split__title">
+                  Send us a message
+                </h2>
+                <p className="contact-split__copy">
+                  The form opens your email app with the message ready to send. You can also write
+                  to <a href={`mailto:${SALES_EMAIL_ADDRESS}`}>{SALES_EMAIL_ADDRESS}</a>.
+                </p>
               </div>
 
-              <label className="contact-form__field">
-                <span className="contact-form__label">Company</span>
-                <input type="text" name="company" autoComplete="organization" required />
-              </label>
+              <form
+                className="contact-form"
+                aria-label="Contact sales form"
+                onSubmit={handleContactSubmit}
+              >
+                <div className="contact-form__row">
+                  <label className="contact-form__field">
+                    <span className="contact-form__label">Name</span>
+                    <input type="text" name="name" autoComplete="name" required />
+                  </label>
+                  <label className="contact-form__field">
+                    <span className="contact-form__label">Work email</span>
+                    <input type="email" name="email" autoComplete="email" required />
+                  </label>
+                </div>
 
-              <label className="contact-form__field">
-                <span className="contact-form__label">Project details</span>
-                <textarea
-                  name="details"
-                  required
-                  rows={5}
-                  placeholder="What are you building, and where can Seams help?"
-                />
-              </label>
+                <label className="contact-form__field">
+                  <span className="contact-form__label">Company</span>
+                  <input type="text" name="company" autoComplete="organization" required />
+                </label>
 
-              <div className="contact-form__actions">
-                <button type="submit" className="contact-form__submit">
-                  Email sales
-                </button>
-                <span>Opens your default email app</span>
-              </div>
-            </form>
+                <label className="contact-form__field">
+                  <span className="contact-form__label">Project details</span>
+                  <textarea
+                    name="details"
+                    required
+                    rows={5}
+                    placeholder="What are you building, and where can Seams help?"
+                  />
+                </label>
+
+                <div className="contact-form__actions">
+                  <button type="submit" className="h2-btn h2-btn--primary">
+                    Email sales
+                  </button>
+                  <span>Opens your email app</span>
+                </div>
+              </form>
+            </div>
           </section>
         </main>
         <H2Footer />

@@ -54,6 +54,13 @@
   outline-offset: 4px;
 }
 
+@media (min-width: 901px) {
+  .pricing-plan {
+    /* Leave room for the navbar and the two-line section heading. */
+    scroll-margin-top: 256px;
+  }
+}
+
 .pricing-plan__gradient {
   opacity: var(--pricing-plan-gradient-opacity);
   transition: opacity 160ms ease;

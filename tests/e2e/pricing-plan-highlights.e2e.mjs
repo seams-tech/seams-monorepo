@@ -21,6 +21,9 @@ async function expectSelection(page, id) {
   await page.mouse.move(0, 0);
   assert.equal(new URL(page.url()).hash, `#${id}`);
   for (const plan of plans) await expectGradient(page, plan.id, plan.id === id);
+  if (page.viewportSize().width > 900) {
+    await expect(page.locator('#pricing-plans-title')).toBeInViewport({ ratio: 1 });
+  }
 }
 
 function planBounds() {
@@ -49,17 +52,23 @@ try {
       await page.getByRole('menuitem', { name: plan.menuName }).click();
       await expect(page.locator(`#${plan.id}`)).toBeInViewport();
       await expectSelection(page, plan.id);
-      await page
-        .locator('.pricing-plans')
-        .screenshot({ path: `${artifacts}/selected-${plan.id}.png` });
+      await page.screenshot({ path: `${artifacts}/selected-${plan.id}.png` });
       await page.reload();
       await expectSelection(page, plan.id);
-      results.push({ selected: plan.id, refreshPreserved: true });
+      results.push({ selected: plan.id, refreshPreserved: true, headingVisible: true });
     }
     await page.goBack();
     await expectSelection(page, 'growth');
     await page.goForward();
     await expectSelection(page, 'enterprise');
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    for (const plan of plans) {
+      await page.goto(`${origin}/pricing/#${plan.id}`);
+      await expectSelection(page, plan.id);
+      await expect(page.locator(`#${plan.id}`)).toBeInViewport({ ratio: 1 });
+    }
+    await page.screenshot({ path: `${artifacts}/desktop-short.png` });
 
     const colors = new Set();
     for (const plan of plans) {
@@ -91,7 +100,9 @@ try {
     for (const plan of plans) {
       await page.goto(`${origin}/pricing/#${plan.id}`);
       await expectSelection(page, plan.id);
-      const card = page.getByRole('link', { name: new RegExp(`^${plan.id} `, 'i') });
+      const card = page
+        .locator('.pricing-plans')
+        .getByRole('link', { name: new RegExp(`^${plan.id} `, 'i') });
       await expect(card).toHaveCSS('cursor', 'pointer');
       await expect(card.locator('.pricing-plan__cta')).toHaveCSS(
         'background-color',

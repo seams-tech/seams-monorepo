@@ -51,6 +51,8 @@ screenshots, and a trace go to `.artifacts/transaction-details-jank/`.
 Pricing plan links select the card named by the URL fragment. Each card has a
 distinct grain gradient. Hover and keyboard focus reveal a card's gradient while
 the selected plan remains highlighted. The Growth card is highlighted by default.
+Desktop plan links frame the plans section with its heading visible below the
+navbar. On mobile, links bring the chosen stacked card into view.
 Reduced-motion mode removes the fade, and touch input does not produce hover states.
 Each entire plan card is one link to its action, with a pointer cursor, a visible
 keyboard focus outline, and a black action button. Clicking card padding or using

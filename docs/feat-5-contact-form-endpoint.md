@@ -1,6 +1,7 @@
 # Contact form endpoint: implementation plan
 
-Status: proposed; implementation has not started.
+Status: proposed; implementation has not started. Decided on October 21, 2026:
+Turnstile from the start, and a reserved platform organization for the outbox.
 Date: October 21, 2026.
 
 ## Outcome
@@ -67,8 +68,17 @@ and refuses abuse with a rate limit and spam checks.
 - **Fill time:** the page sends the time it rendered the form. Less than 3
   seconds gives `held`. This is a weak signal only, because a client can lie.
 - **Content:** more than 3 links in `details` gives `held`.
-- **Turnstile (decision):** a Cloudflare Turnstile token, checked on the server,
-  stops most bots. It adds a third-party script to the page. See open decision 1.
+- **Turnstile (decided):** the contact page renders a Cloudflare Turnstile
+  widget and sends its token with the form. The route checks the token with
+  Turnstile's `siteverify` API, with the `remoteip` and the expected hostname,
+  before it validates anything else. A missing or failed token gives
+  `403 turnstile_failed`, and the page shows the `mailto:` fallback.
+  - The site key is a seams-site build variable (`VITE_TURNSTILE_SITE_KEY`). The
+    secret is a Console Worker secret (`TURNSTILE_SECRET_KEY`).
+  - Local and test runs use Cloudflare's published test keys, in `env.example`
+    and the Console dev variables.
+  - The widget loads a script from `challenges.cloudflare.com`. Load it only on
+    the contact page.
 - A `held` inquiry is stored but not emailed. The response is the same as for a
   `clean` one, so a bot learns nothing.
 
@@ -89,10 +99,15 @@ A Cloudflare WAF rate-limit rule on the path can add a first layer at the zone.
 
 - Add a `SALES_INQUIRY` template family, with a table rebuild like migration
   `0010`.
-- **Organization (decision):** create one reserved platform organization in the
-  migration, with no members, and attach inquiry rows to it. The dispatcher, the
-  retries, and the delivery log then work with no change. An organization with no
-  members does not show in any account's organization list. See open decision 2.
+- **Organization (decided):** the migration creates one reserved platform
+  organization with no members, and inquiry outbox rows belong to it. The
+  dispatcher, the retries, and the delivery log then work with no change.
+  - An organization with no members does not show in any account's organization
+    list.
+  - Fill its required columns the same way account creation does. Give it a
+    fixed id in a shared constant, so code never looks it up by name.
+  - Exclude it from the Platform support organization search and from billing
+    and usage work.
 - Recipient: `sales@seams.sh`. Subject: "Sales inquiry from <name> at <company>".
   The body holds the four fields and the inquiry id.
 - Reply-to: the visitor's address, so sales can answer with one click. This needs
@@ -112,17 +127,23 @@ A Cloudflare WAF rate-limit rule on the path can add a first layer at the zone.
 - A D1 test: one request creates one inquiry and one outbox row; a retry with the
   same `requestId` creates nothing new; a `held` inquiry creates no outbox row.
 - The route policy test with the new `public` requirement.
+- Turnstile checks with a stubbed `siteverify`: a valid token, a failed token, a
+  missing token, and a wrong hostname.
+- A test that the reserved organization has no members and does not appear in
+  organization lists, support search, or billing work.
 - An end-to-end test of the contact page against the local Console, with the
   capture email provider.
 
+## Decisions
+
+- **Turnstile from the start** (October 21, 2026). Bots are the main abuse risk
+  for a public form, and the honeypot and fill time are weak signals.
+- **Reserved platform organization for the outbox** (October 21, 2026). It reuses
+  the dispatcher, the retries, and the delivery log, with no second claim loop.
+
 ## Open decisions
 
-1. **Turnstile:** add it now (stronger, one third-party script), or start with
-   the honeypot, fill time, and rate limits only.
-2. **Organization for the outbox:** a reserved platform organization (this plan),
-   or a separate delivery state on the inquiry table with its own claim loop. The
-   second keeps `organizations` clean but duplicates the retry logic.
-3. **Production routing:** the company site must reach the Console API. Either
+1. **Production routing:** the company site must reach the Console API. Either
    proxy `/console/public/*` from the company site, or call the Wallet site origin
    with CORS for the company site origin only.
-4. **Retention:** 180 days is a proposal.
+2. **Retention:** 180 days is a proposal.

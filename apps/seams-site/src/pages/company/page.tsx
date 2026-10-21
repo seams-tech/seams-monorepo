@@ -237,7 +237,7 @@ export function CompanyPage(): React.JSX.Element {
             className="h2-section h2-section--compact h2-rule"
             aria-labelledby="company-details-title"
           >
-            <div className="h2-shell company-split">
+            <div className="h2-shell company-split company-details">
               <div>
                 <h2 id="company-details-title" className="h2-display company-split__title">
                   Seams Technologies KK

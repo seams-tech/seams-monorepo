@@ -9,6 +9,10 @@
   padding-left: 36px;
 }
 
+.company-hero .h2-hero-simple__title {
+  max-width: none;
+}
+
 @media (max-width: 900px) {
   .h2-hero-simple.company-hero {
     padding: 120px 0 28px;
@@ -28,6 +32,10 @@
 }
 
 /* ---------- product cards: taupe panels, like the frontpage duo ---------- */
+
+.company-products .h2-split-head {
+  grid-template-columns: 1fr;
+}
 
 .company-cards {
   display: grid;
@@ -114,6 +122,10 @@
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   gap: 28px 58px;
   align-items: start;
+}
+
+.company-details {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .company-split__title {

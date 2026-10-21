@@ -60,7 +60,7 @@
 .navbar-static__shell {
   position: relative;
   width: max-content;
-  min-width: min(720px, calc(100vw - 2rem));
+  min-width: min(600px, calc(100vw - 2rem));
   max-width: calc(100vw - 2rem);
   min-height: 52px;
   display: grid;

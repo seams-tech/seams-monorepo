@@ -243,6 +243,9 @@ body:has(.h2-page) {
   margin: 0 auto;
   border-left: 1px solid var(--h2-line);
   border-right: 1px solid var(--h2-line);
+  /* the stacking context for the hairlines and tick gaps, which sit at
+     z-index -1: above the column borders, below every card and banner */
+  isolation: isolate;
 }
 
 @media (max-width: 1160px) {
@@ -278,6 +281,7 @@ body:has(.h2-page) {
   transform: translateX(-50%);
   border-top: 1px solid var(--h2-line);
   pointer-events: none;
+  z-index: -1;
 }
 
 /* Crosshair ticks where the rule meets the column borders: 1px arms of page
@@ -285,7 +289,9 @@ body:has(.h2-page) {
    cover only the line pixels, so the gap never paints over a banner, card or
    gradient beside a tick; their length sets the breathing room around it.
    The box starts 11px above the rule, so the rule's line is its row 11 and a
-   column border is its column 10 (left) or 10 from the right. */
+   column border is its column 10 (left) or 10 from the right. The ticks sit
+   behind content (z-index -1, after the lines in tree order), so a card or
+   banner near a tick is never cut. */
 .h2-rule {
   --h2-tick-clear: linear-gradient(var(--h2-bg), var(--h2-bg));
 }
@@ -298,6 +304,7 @@ body:has(.h2-page) {
   right: -11px;
   height: 23px;
   pointer-events: none;
+  z-index: -1;
   background:
     /* 2px square ticks on each intersection */
     linear-gradient(var(--h2-ink), var(--h2-ink)) left 10px top 10px / 2px 2px no-repeat,
@@ -1954,6 +1961,13 @@ body:has(.h2-page) {
   isolation: isolate;
 }
 
+/* The demo cell's gradient is flush with the next rule's right tick and would
+   cover a quarter of it; nothing else meets that rule, so its ticks stay on
+   top. */
+.h2-hero + .h2-rule::after {
+  z-index: auto;
+}
+
 .h2-hero__demo .h2-themeswitch {
   justify-content: center;
   margin-top: 14px;
@@ -2672,6 +2686,8 @@ body:has(.h2-page) {
   inset-inline-start: 50%;
   border-inline-start: 1px solid var(--h2-line);
   pointer-events: none;
+  /* behind the next rule's tick gap, as the rules themselves */
+  z-index: -1;
 }
 
 .h2-startrow__text {

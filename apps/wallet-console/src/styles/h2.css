@@ -2824,6 +2824,7 @@ body:has(.h2-page) {
   height: 40px;
   border-radius: 10px;
   overflow: hidden;
+  background-color: #f7f5f1;
   color: #ffffff;
 }
 
@@ -2832,7 +2833,7 @@ body:has(.h2-page) {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+  box-shadow: inset 0 0 0 1px #ffffff;
   pointer-events: none;
 }
 
@@ -2840,11 +2841,7 @@ body:has(.h2-page) {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
 }
 
-.h2-security__item .h2-fieldtile {
-  background-color: #faf4e9;
-}
-
-.h2-security__item .h2-fieldtile .grain-field {
+.h2-fieldtile .grain-field {
   filter: grayscale(1) contrast(0.55);
   mix-blend-mode: multiply;
   opacity: 0.14;

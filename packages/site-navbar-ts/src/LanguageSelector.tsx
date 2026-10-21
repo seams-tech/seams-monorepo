@@ -144,12 +144,12 @@ export class LanguageSelector extends React.Component<LanguageSelectorProps, { o
           className={`site-language__trigger site-language__trigger--${placement}`}
           aria-label={label}
         >
-          <Languages size={19} strokeWidth={1.7} aria-hidden />
+          <Languages size={16} strokeWidth={1.7} aria-hidden />
           <span className="site-language__name" lang={locale}>
             <Select.Value />
           </span>
           <Select.Icon>
-            <ChevronDown size={15} aria-hidden />
+            <ChevronDown size={12} aria-hidden />
           </Select.Icon>
         </Select.Trigger>
         <Select.Portal>

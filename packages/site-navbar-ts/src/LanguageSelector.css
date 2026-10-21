@@ -1,7 +1,7 @@
 .site-language__trigger {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   width: fit-content;
   min-height: 44px;
   padding: 0;
@@ -16,7 +16,6 @@
 
 .site-language__trigger > span:last-child {
   display: inline-flex;
-  margin-left: 4px;
   color: var(--h2-ash);
 }
 
@@ -27,9 +26,9 @@
 
 .site-language__trigger--navbar {
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   min-height: 40px;
-  padding: 0 10px;
+  padding: 0 8px;
   border-radius: 9999px;
   font-size: 13px;
   white-space: nowrap;

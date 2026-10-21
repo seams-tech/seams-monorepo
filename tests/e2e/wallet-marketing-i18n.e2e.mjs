@@ -131,7 +131,9 @@ try {
   try {
     await page.goto(`${origin}/?campaign=language-test#wallet-security`);
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'Embedded wallets without the lock-in.',
+    );
     const navbar = page.locator('.navbar-static');
     const footer = page.getByRole('contentinfo');
     await checkNavbarMenu(page, 'Language', 'desktop-en');
@@ -149,7 +151,9 @@ try {
     await checkPreviews(page);
     await selectLanguage(page, footer, '言語', 'English');
     await expect(page).toHaveURL(`${origin}/?campaign=language-test#wallet-security`);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'Embedded wallets without the lock-in.',
+    );
     await page.goBack();
     await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
     await page.goForward();

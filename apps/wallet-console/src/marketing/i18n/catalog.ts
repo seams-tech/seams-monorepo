@@ -73,7 +73,10 @@ export const catalog = {
     en: 'Non-custodial embedded wallets opened with a passkey.',
     ja: 'パスキーで開く、ノンカストディアルの組み込みウォレット。認証、署名、復元をひとつのSDKで。',
   },
-  heroTitle: { en: 'Wallets you own.', ja: '所有できるウォレット。' },
+  heroTitle: {
+    en: 'Embedded wallets without the lock-in.',
+    ja: 'ロックインのない組み込みウォレット。',
+  },
   heroDescription: {
     en: 'Give every user a passkey wallet with device linking and recovery. Start free on our cloud. The code is open source, so you are never locked in.',
     ja: 'すべてのユーザーに、デバイスのリンクと復元に対応したパスキーウォレットを。当社のクラウドで無料で始められます。コードはオープンソースなので、ロックインされることはありません。',

@@ -11,7 +11,9 @@ const entries = [];
 
 async function openWallet(page) {
   await page.goto(walletUrl);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'Embedded wallets without the lock-in.',
+  );
 }
 
 function scrollToTop() {
@@ -40,7 +42,9 @@ async function checkWalletLanguages(page) {
   await navbar.getByRole('combobox', { name: '言語', exact: true }).click();
   await page.getByRole('option', { name: 'English', exact: true }).click();
   await expect(page).toHaveURL(english.href);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'Embedded wallets without the lock-in.',
+  );
   await page.goBack();
   await expect(page).toHaveURL(japanese.href);
   await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
@@ -90,7 +94,9 @@ try {
     await page.getByRole('menuitem', { name: 'Compare plans', exact: true }).click();
     await checkPricing(page, '', 'desktop-compare');
     await page.goBack();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'Embedded wallets without the lock-in.',
+    );
     await page.goForward();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(pricingTitle);
 

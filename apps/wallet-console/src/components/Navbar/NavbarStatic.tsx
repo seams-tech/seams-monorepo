@@ -288,8 +288,8 @@ export function NavbarStatic({
   const closeTimerRef = React.useRef<number | null>(null);
   const [openDropdown, setOpenDropdown] = React.useState<DropdownId | null>(null);
   const [paneSize, setPaneSize] = React.useState<{ w: number; h: number } | null>(null);
-  // Horizontal anchor: the popup centers on the trigger that opened it,
-  // clamped so the panel never overhangs the bar.
+  // Horizontal anchor: the popup's left edge lines up with the trigger that
+  // opened it, clamped so the panel never overhangs the bar.
   const [popupLeft, setPopupLeft] = React.useState<number | null>(null);
   // The card morphs between pane sizes only while already open; opening from
   // closed snaps to size so the panel doesn't grow out of the previous shape.
@@ -305,8 +305,8 @@ export function NavbarStatic({
   // Measure the active pane (panes are absolutely positioned at max-content,
   // so offset sizes are their natural dimensions even while hidden) and morph
   // the card chrome to it — the ElevenLabs-style resize between menus. The
-  // popup's left edge stays pinned to the first nav trigger for every pane,
-  // so switching menus only resizes the panel; it never slides around.
+  // popup's left edge follows the open menu's trigger, so each menu opens
+  // under its own label; switching menus glides the panel across.
   React.useLayoutEffect(() => {
     const previousOpen = prevOpenDropdownRef.current;
     prevOpenDropdownRef.current = openDropdown;
@@ -320,15 +320,13 @@ export function NavbarStatic({
     const paneW = pane.offsetWidth;
     const paneH = pane.offsetHeight;
     const shell = dropdownPopupRef.current?.offsetParent as HTMLElement | null;
-    const firstTrigger = shell?.querySelector<HTMLElement>(
-      '.navbar-static__links .navbar-static__link--button',
-    );
-    if (shell && firstTrigger) {
+    const trigger = dropdownButtonRefs.current[openDropdown];
+    if (shell && trigger) {
       const shellRect = shell.getBoundingClientRect();
       // an ancestor's css zoom scales rect coordinates but not offset/style
       // px; normalize rect-derived values back to layout px
       const zoom = shell.offsetWidth ? shellRect.width / shell.offsetWidth : 1;
-      const anchor = (firstTrigger.getBoundingClientRect().left - shellRect.left) / zoom;
+      const anchor = (trigger.getBoundingClientRect().left - shellRect.left) / zoom;
       // Only yield the anchor if a wide panel would overhang the bar's right edge.
       // Whole pixels keep the pane text on the pixel grid when it settles.
       setPopupLeft(Math.round(Math.max(8, Math.min(anchor, shellRect.width / zoom - paneW - 8))));

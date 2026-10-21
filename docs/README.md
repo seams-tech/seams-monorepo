@@ -21,6 +21,9 @@ of Platform and Wallet entry points and the reasons for that design.
   the plan for the 30-day card requirement and the warnings before a Growth move.
 - [Contact form endpoint](feat-5-contact-form-endpoint.md): the plan to store
   contact inquiries and email them to sales through the Console outbox.
+- [Pricing conversion funnel](feat-6-pricing-conversion-funnel.md): the plan for
+  the steps after a pricing card click: sign-in, onboarding, card setup, and the
+  contact form.
 - [Wallet database schema](wallet-saas/console-docs/wallet-db-schema.md).
 - [CLI release procedure](wallet-cli-release.md).
 - [Local/provider runtime qualification](../deployment/celld/README.md): retain

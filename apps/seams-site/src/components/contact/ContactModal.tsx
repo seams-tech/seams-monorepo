@@ -32,114 +32,6 @@ function mailtoHref(message: PreparedMessage): string {
   return `mailto:${SALES_EMAIL_ADDRESS}?subject=${encodeURIComponent(message.subject)}&body=${encodeURIComponent(message.body)}`;
 }
 
-/* Webmail compose pages work without an email app on the device. Spaces are
-   encoded as %20, not +, because Outlook shows a + literally. */
-function queryString(params: Record<string, string>): string {
-  return Object.entries(params)
-    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-    .join('&');
-}
-
-function gmailComposeHref(message: PreparedMessage): string {
-  return `https://mail.google.com/mail/?${queryString({
-    view: 'cm',
-    fs: '1',
-    to: SALES_EMAIL_ADDRESS,
-    su: message.subject,
-    body: message.body,
-  })}`;
-}
-
-function outlookComposeHref(message: PreparedMessage): string {
-  return `https://outlook.office.com/mail/deeplink/compose?${queryString({
-    to: SALES_EMAIL_ADDRESS,
-    subject: message.subject,
-    body: message.body,
-  })}`;
-}
-
-type CopyTarget = 'message' | 'address';
-
-/* The async clipboard API can be blocked, e.g. in an embedded browser; the
-   older copy command still works there. */
-async function copyText(text: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return;
-  } catch {
-    const area = document.createElement('textarea');
-    area.value = text;
-    area.setAttribute('readonly', '');
-    area.style.position = 'fixed';
-    area.style.opacity = '0';
-    document.body.appendChild(area);
-    area.select();
-    const copied = document.execCommand('copy');
-    area.remove();
-    if (!copied) throw new Error('copy command failed');
-  }
-}
-
-/* A mailto link does nothing when the visitor has no email app set up, and the
-   page cannot detect that. So after every submit, show the prepared message
-   with copy buttons as a path that always works. */
-function PreparedMessageNotice({ message }: { message: PreparedMessage }): React.JSX.Element {
-  const [copied, setCopied] = React.useState<CopyTarget | 'failed' | null>(null);
-  const text = `To: ${SALES_EMAIL_ADDRESS}\nSubject: ${message.subject}\n\n${message.body}`;
-
-  async function copy(target: CopyTarget): Promise<void> {
-    try {
-      await copyText(target === 'message' ? text : SALES_EMAIL_ADDRESS);
-      setCopied(target);
-    } catch {
-      setCopied('failed');
-    }
-  }
-
-  return (
-    <div className="contact-notice" role="status">
-      <p className="contact-notice__lead">
-        Your message is ready. If your email app did not open, send it from webmail, or copy the
-        message and send it to <a href={mailtoHref(message)}>{SALES_EMAIL_ADDRESS}</a>.
-      </p>
-      <pre className="contact-notice__message">{text}</pre>
-      <div className="contact-notice__actions">
-        <a
-          className="h2-btn h2-btn--outline"
-          href={gmailComposeHref(message)}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open in Gmail
-        </a>
-        <a
-          className="h2-btn h2-btn--outline"
-          href={outlookComposeHref(message)}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open in Outlook
-        </a>
-        <button
-          type="button"
-          className="h2-btn h2-btn--outline"
-          onClick={() => void copy('message')}
-        >
-          {copied === 'message' ? 'Message copied' : 'Copy message'}
-        </button>
-        <button
-          type="button"
-          className="h2-btn h2-btn--outline"
-          onClick={() => void copy('address')}
-        >
-          {copied === 'address' ? 'Address copied' : 'Copy address'}
-        </button>
-        {copied === 'failed' ? <span>Copy failed. Select the text above and copy it.</span> : null}
-      </div>
-    </div>
-  );
-}
-
 function readContactHash(): boolean {
   return typeof window !== 'undefined' && window.location.hash === CONTACT_LINK_TARGET;
 }
@@ -148,7 +40,6 @@ function readContactHash(): boolean {
    link from another site (for example https://seams.sh/#contact) opens it too. */
 export function ContactModalHost(): React.JSX.Element {
   const [open, setOpen] = React.useState<boolean>(readContactHash);
-  const [prepared, setPrepared] = React.useState<PreparedMessage | null>(null);
   const dialogRef = React.useRef<HTMLDialogElement>(null);
 
   React.useEffect(() => {
@@ -191,14 +82,11 @@ export function ContactModalHost(): React.JSX.Element {
       dialog.querySelector<HTMLInputElement>('input[name="name"]')?.focus();
     }
     if (!open && dialog.open) dialog.close();
-    if (!open) setPrepared(null);
   }, [open]);
 
   function handleContactSubmit(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    const message = prepareMessage(event.currentTarget);
-    setPrepared(message);
-    window.location.assign(mailtoHref(message));
+    window.location.assign(mailtoHref(prepareMessage(event.currentTarget)));
   }
 
   return (
@@ -268,8 +156,6 @@ export function ContactModalHost(): React.JSX.Element {
               </button>
               <span>Opens your email app</span>
             </div>
-
-            {prepared ? <PreparedMessageNotice message={prepared} /> : null}
           </form>
         ) : null}
       </div>

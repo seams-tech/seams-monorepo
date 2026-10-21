@@ -1615,8 +1615,6 @@ body:has(.h2-page) {
   justify-content: space-between;
   gap: 24px 48px;
   padding-top: 7px;
-  /* draws the row in from the column edges toward the centre */
-  padding-inline: clamp(0px, 4vw, 4rem);
 }
 
 @media (max-width: 560px) {

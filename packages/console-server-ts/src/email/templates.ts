@@ -23,9 +23,7 @@ import type {
   ConsoleEmailTemplateV1,
   FreePlanNoticeEmailV1,
   LowBalanceWarningEmailV1,
-  MembershipAccessChangedEmailV1,
   OrganizationInvitationEmailV1,
-  OwnerMembershipChangedEmailV1,
   PrepaidTopUpReceiptEmailV1,
   RenderedConsoleEmail,
   TeamSignupAlertEmailV1,
@@ -50,34 +48,6 @@ export interface OrganizationInvitationEmailV1Input {
   readonly expiresAt: string;
 }
 
-export type OwnerMembershipChangedEmailV1Input =
-  | {
-      readonly change: 'ADDED';
-      readonly organizationName: string;
-      readonly ownerDisplayName: string;
-      readonly changedByDisplayName: string;
-    }
-  | {
-      readonly change: 'REMOVED';
-      readonly organizationName: string;
-      readonly ownerDisplayName: string;
-      readonly changedByDisplayName: string;
-    };
-
-export type MembershipAccessChangedEmailV1Input =
-  | {
-      readonly change: 'SUSPENDED';
-      readonly organizationName: string;
-      readonly memberDisplayName: string;
-      readonly changedByDisplayName: string;
-    }
-  | {
-      readonly change: 'REMOVED';
-      readonly organizationName: string;
-      readonly memberDisplayName: string;
-      readonly changedByDisplayName: string;
-    };
-
 export interface PrepaidTopUpReceiptEmailV1Input {
   readonly organizationName: string;
   readonly purchaseId: string;
@@ -87,25 +57,14 @@ export interface PrepaidTopUpReceiptEmailV1Input {
   readonly consoleBaseUrl: string;
 }
 
-export type BillingRefundResultEmailV1Input =
-  | {
-      readonly outcome: 'SUCCEEDED';
-      readonly organizationName: string;
-      readonly refundId: string;
-      readonly amountMinor: number;
-      readonly balanceAfterMinor: number;
-      readonly consoleBaseUrl: string;
-      readonly failureCode?: never;
-    }
-  | {
-      readonly outcome: 'FAILED';
-      readonly organizationName: string;
-      readonly refundId: string;
-      readonly amountMinor: number;
-      readonly consoleBaseUrl: string;
-      readonly failureCode: string;
-      readonly balanceAfterMinor?: never;
-    };
+export interface BillingRefundResultEmailV1Input {
+  readonly outcome: 'SUCCEEDED';
+  readonly organizationName: string;
+  readonly refundId: string;
+  readonly amountMinor: number;
+  readonly balanceAfterMinor: number;
+  readonly consoleBaseUrl: string;
+}
 
 export interface LowBalanceWarningEmailV1Input {
   readonly organizationName: string;
@@ -156,46 +115,6 @@ export function buildOrganizationInvitationEmailV1(
   };
 }
 
-export function buildOwnerMembershipChangedEmailV1(
-  input: OwnerMembershipChangedEmailV1Input,
-): OwnerMembershipChangedEmailV1 {
-  const common = {
-    family: 'OWNER_MEMBERSHIP_CHANGED' as const,
-    version: 1 as const,
-    organizationName: requiredText(input.organizationName, 'organizationName'),
-    ownerDisplayName: requiredText(input.ownerDisplayName, 'ownerDisplayName'),
-    changedByDisplayName: requiredText(input.changedByDisplayName, 'changedByDisplayName'),
-  };
-  switch (input.change) {
-    case 'ADDED':
-      return { ...common, change: 'ADDED' };
-    case 'REMOVED':
-      return { ...common, change: 'REMOVED' };
-    default:
-      return assertNever(input);
-  }
-}
-
-export function buildMembershipAccessChangedEmailV1(
-  input: MembershipAccessChangedEmailV1Input,
-): MembershipAccessChangedEmailV1 {
-  const common = {
-    family: 'MEMBERSHIP_ACCESS_CHANGED' as const,
-    version: 1 as const,
-    organizationName: requiredText(input.organizationName, 'organizationName'),
-    memberDisplayName: requiredText(input.memberDisplayName, 'memberDisplayName'),
-    changedByDisplayName: requiredText(input.changedByDisplayName, 'changedByDisplayName'),
-  };
-  switch (input.change) {
-    case 'SUSPENDED':
-      return { ...common, change: 'SUSPENDED' };
-    case 'REMOVED':
-      return { ...common, change: 'REMOVED' };
-    default:
-      return assertNever(input);
-  }
-}
-
 export function buildPrepaidTopUpReceiptEmailV1(
   input: PrepaidTopUpReceiptEmailV1Input,
 ): PrepaidTopUpReceiptEmailV1 {
@@ -215,31 +134,17 @@ export function buildPrepaidTopUpReceiptEmailV1(
 export function buildBillingRefundResultEmailV1(
   input: BillingRefundResultEmailV1Input,
 ): BillingRefundResultEmailV1 {
-  const common = {
-    family: 'BILLING_REFUND_RESULT' as const,
-    version: 1 as const,
+  return {
+    family: 'BILLING_REFUND_RESULT',
+    version: 1,
+    outcome: 'SUCCEEDED',
     organizationName: requiredText(input.organizationName, 'organizationName'),
     refundId: requiredText(input.refundId, 'refundId'),
     amountMinor: positiveMinorAmount(input.amountMinor, 'amountMinor'),
-    currency: 'USD' as const,
+    currency: 'USD',
+    balanceAfterMinor: integerMinorAmount(input.balanceAfterMinor, 'balanceAfterMinor'),
     consoleBaseUrl: httpBaseUrl(input.consoleBaseUrl, 'consoleBaseUrl'),
   };
-  switch (input.outcome) {
-    case 'SUCCEEDED':
-      return {
-        ...common,
-        outcome: 'SUCCEEDED',
-        balanceAfterMinor: integerMinorAmount(input.balanceAfterMinor, 'balanceAfterMinor'),
-      };
-    case 'FAILED':
-      return {
-        ...common,
-        outcome: 'FAILED',
-        failureCode: requiredText(input.failureCode, 'failureCode'),
-      };
-    default:
-      return assertNever(input);
-  }
 }
 
 export function buildLowBalanceWarningEmailV1(
@@ -291,10 +196,6 @@ export function parseConsoleEmailTemplate(raw: unknown): ConsoleEmailTemplateV1 
       return parseAccountWelcome(record);
     case 'ORGANIZATION_INVITATION':
       return parseOrganizationInvitation(record);
-    case 'OWNER_MEMBERSHIP_CHANGED':
-      return parseOwnerMembershipChanged(record);
-    case 'MEMBERSHIP_ACCESS_CHANGED':
-      return parseMembershipAccessChanged(record);
     case 'PREPAID_TOP_UP_RECEIPT':
       return parsePrepaidTopUpReceipt(record);
     case 'BILLING_REFUND_RESULT':
@@ -359,14 +260,10 @@ export function renderConsoleEmailV1(
   switch (template.family) {
     case 'ACCOUNT_WELCOME':
       return renderAccountWelcome(template);
-    case 'OWNER_MEMBERSHIP_CHANGED':
-      return renderOwnerMembershipChanged(template);
-    case 'MEMBERSHIP_ACCESS_CHANGED':
-      return renderMembershipAccessChanged(template);
     case 'PREPAID_TOP_UP_RECEIPT':
       return renderPrepaidTopUpReceipt(template);
     case 'BILLING_REFUND_RESULT':
-      return renderBillingRefundResult(template);
+      return renderSucceededRefund(template);
     case 'LOW_BALANCE_WARNING':
       return renderLowBalanceWarning(template);
     case 'FREE_PLAN_NOTICE':
@@ -401,38 +298,6 @@ function parseOrganizationInvitation(record: UnknownRecord): OrganizationInvitat
   });
 }
 
-function parseOwnerMembershipChanged(record: UnknownRecord): OwnerMembershipChangedEmailV1 {
-  const common = {
-    organizationName: requiredRawString(record.organizationName, 'organizationName'),
-    ownerDisplayName: requiredRawString(record.ownerDisplayName, 'ownerDisplayName'),
-    changedByDisplayName: requiredRawString(record.changedByDisplayName, 'changedByDisplayName'),
-  };
-  switch (record.change) {
-    case 'ADDED':
-      return buildOwnerMembershipChangedEmailV1({ ...common, change: 'ADDED' });
-    case 'REMOVED':
-      return buildOwnerMembershipChangedEmailV1({ ...common, change: 'REMOVED' });
-    default:
-      throw new Error('Invalid owner membership email change');
-  }
-}
-
-function parseMembershipAccessChanged(record: UnknownRecord): MembershipAccessChangedEmailV1 {
-  const common = {
-    organizationName: requiredRawString(record.organizationName, 'organizationName'),
-    memberDisplayName: requiredRawString(record.memberDisplayName, 'memberDisplayName'),
-    changedByDisplayName: requiredRawString(record.changedByDisplayName, 'changedByDisplayName'),
-  };
-  switch (record.change) {
-    case 'SUSPENDED':
-      return buildMembershipAccessChangedEmailV1({ ...common, change: 'SUSPENDED' });
-    case 'REMOVED':
-      return buildMembershipAccessChangedEmailV1({ ...common, change: 'REMOVED' });
-    default:
-      throw new Error('Invalid membership access email change');
-  }
-}
-
 function parsePrepaidTopUpReceipt(record: UnknownRecord): PrepaidTopUpReceiptEmailV1 {
   requireUsd(record.currency);
   return buildPrepaidTopUpReceiptEmailV1({
@@ -447,30 +312,16 @@ function parsePrepaidTopUpReceipt(record: UnknownRecord): PrepaidTopUpReceiptEma
 
 function parseBillingRefundResult(record: UnknownRecord): BillingRefundResultEmailV1 {
   requireUsd(record.currency);
-  const common = {
+  if (record.outcome !== 'SUCCEEDED') throw new Error('Only a completed refund has an email');
+  rejectPresent(record, 'failureCode');
+  return buildBillingRefundResultEmailV1({
+    outcome: 'SUCCEEDED',
     organizationName: requiredRawString(record.organizationName, 'organizationName'),
     refundId: requiredRawString(record.refundId, 'refundId'),
     amountMinor: requiredRawNumber(record.amountMinor, 'amountMinor'),
+    balanceAfterMinor: requiredRawNumber(record.balanceAfterMinor, 'balanceAfterMinor'),
     consoleBaseUrl: requiredRawString(record.consoleBaseUrl, 'consoleBaseUrl'),
-  };
-  switch (record.outcome) {
-    case 'SUCCEEDED':
-      rejectPresent(record, 'failureCode');
-      return buildBillingRefundResultEmailV1({
-        ...common,
-        outcome: 'SUCCEEDED',
-        balanceAfterMinor: requiredRawNumber(record.balanceAfterMinor, 'balanceAfterMinor'),
-      });
-    case 'FAILED':
-      rejectPresent(record, 'balanceAfterMinor');
-      return buildBillingRefundResultEmailV1({
-        ...common,
-        outcome: 'FAILED',
-        failureCode: requiredRawString(record.failureCode, 'failureCode'),
-      });
-    default:
-      throw new Error('Invalid billing refund email outcome');
-  }
+  });
 }
 
 function parseLowBalanceWarning(record: UnknownRecord): LowBalanceWarningEmailV1 {
@@ -481,30 +332,6 @@ function parseLowBalanceWarning(record: UnknownRecord): LowBalanceWarningEmailV1
     thresholdMinor: requiredRawNumber(record.thresholdMinor, 'thresholdMinor'),
     consoleBaseUrl: requiredRawString(record.consoleBaseUrl, 'consoleBaseUrl'),
   });
-}
-
-function renderOwnerMembershipChanged(
-  template: OwnerMembershipChangedEmailV1,
-): RenderedConsoleEmail {
-  const added = template.change === 'ADDED';
-  const subject = added
-    ? `Owner added to ${template.organizationName}`
-    : `Owner removed from ${template.organizationName}`;
-  const sentence = added
-    ? `${template.ownerDisplayName} is now an owner of ${template.organizationName}.`
-    : `${template.ownerDisplayName} is no longer an owner of ${template.organizationName}.`;
-  const changedBy = `This change was made by ${template.changedByDisplayName}.`;
-  return {
-    subject,
-    text: `${sentence}\n\n${changedBy}`,
-    html: htmlMessage({
-      kicker: 'Team',
-      heading: subject,
-      paragraphs: [sentence, changedBy],
-      actionLabel: null,
-      actionUrl: null,
-    }),
-  };
 }
 
 function renderAccountWelcome(template: AccountWelcomeEmailV1): RenderedConsoleEmail {
@@ -557,30 +384,6 @@ function renderAccountWelcome(template: AccountWelcomeEmailV1): RenderedConsoleE
   return { subject, text, html };
 }
 
-function renderMembershipAccessChanged(
-  template: MembershipAccessChangedEmailV1,
-): RenderedConsoleEmail {
-  const suspended = template.change === 'SUSPENDED';
-  const subject = suspended
-    ? `Membership suspended for ${template.organizationName}`
-    : `Membership removed from ${template.organizationName}`;
-  const sentence = suspended
-    ? `${template.memberDisplayName}'s access to ${template.organizationName} has been suspended.`
-    : `${template.memberDisplayName}'s access to ${template.organizationName} has been removed.`;
-  const changedBy = `This change was made by ${template.changedByDisplayName}.`;
-  return {
-    subject,
-    text: `${sentence}\n\n${changedBy}`,
-    html: htmlMessage({
-      kicker: 'Team',
-      heading: subject,
-      paragraphs: [sentence, changedBy],
-      actionLabel: null,
-      actionUrl: null,
-    }),
-  };
-}
-
 function renderPrepaidTopUpReceipt(template: PrepaidTopUpReceiptEmailV1): RenderedConsoleEmail {
   const subject = `Top-up receipt for ${template.organizationName}`;
   const amount = usd(template.amountMinor);
@@ -607,20 +410,7 @@ function renderPrepaidTopUpReceipt(template: PrepaidTopUpReceiptEmailV1): Render
   };
 }
 
-function renderBillingRefundResult(template: BillingRefundResultEmailV1): RenderedConsoleEmail {
-  switch (template.outcome) {
-    case 'SUCCEEDED':
-      return renderSucceededRefund(template);
-    case 'FAILED':
-      return renderFailedRefund(template);
-    default:
-      return assertNever(template);
-  }
-}
-
-function renderSucceededRefund(
-  template: Extract<BillingRefundResultEmailV1, { readonly outcome: 'SUCCEEDED' }>,
-): RenderedConsoleEmail {
+function renderSucceededRefund(template: BillingRefundResultEmailV1): RenderedConsoleEmail {
   const subject = `Refund completed for ${template.organizationName}`;
   const details = `${usd(template.amountMinor)} was refunded. Your prepaid balance is ${usd(
     template.balanceAfterMinor,
@@ -637,30 +427,6 @@ function renderSucceededRefund(
         { label: 'Refund', value: usd(template.amountMinor) },
         { label: 'Balance', value: usd(template.balanceAfterMinor) },
         { label: 'Reference', value: template.refundId },
-      ],
-      actionLabel: 'View billing',
-      actionUrl: billingUrl(template.consoleBaseUrl),
-    }),
-  };
-}
-
-function renderFailedRefund(
-  template: Extract<BillingRefundResultEmailV1, { readonly outcome: 'FAILED' }>,
-): RenderedConsoleEmail {
-  const subject = `Refund failed for ${template.organizationName}`;
-  const details = `${usd(template.amountMinor)} could not be refunded. No refund was applied.`;
-  const reference = `Refund reference: ${template.refundId}. Error code: ${template.failureCode}.`;
-  return {
-    subject,
-    text: `${details}\n\n${reference}\n\nView billing: ${billingUrl(template.consoleBaseUrl)}`,
-    html: htmlMessage({
-      kicker: 'Billing',
-      heading: subject,
-      paragraphs: [details],
-      facts: [
-        { label: 'Amount', value: usd(template.amountMinor) },
-        { label: 'Reference', value: template.refundId },
-        { label: 'Error code', value: template.failureCode },
       ],
       actionLabel: 'View billing',
       actionUrl: billingUrl(template.consoleBaseUrl),

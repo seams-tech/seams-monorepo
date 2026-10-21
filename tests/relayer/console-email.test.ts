@@ -3,9 +3,7 @@ import {
   buildAccountWelcomeEmailV1,
   buildBillingRefundResultEmailV1,
   buildLowBalanceWarningEmailV1,
-  buildMembershipAccessChangedEmailV1,
   buildOrganizationInvitationEmailV1,
-  buildOwnerMembershipChangedEmailV1,
   buildPrepaidTopUpReceiptEmailV1,
   createAesGcmConsoleInvitationSecretCipher,
   createCaptureConsoleEmailProvider,
@@ -268,7 +266,7 @@ function retryableProviderResult(code: string): ConsoleEmailProviderSendResult {
 }
 
 test.describe('console transactional email', () => {
-  test('defines and renders the seven closed versioned template families', () => {
+  test('defines and renders the five closed versioned template families', () => {
     const templates: ConsoleEmailTemplateV1[] = [
       buildAccountWelcomeEmailV1({
         recipientDisplayName: 'Ada',
@@ -285,18 +283,6 @@ test.describe('console transactional email', () => {
         consoleBaseUrl: 'https://console.example.test',
         expiresAt: '2026-07-29T10:00:00.000Z',
       }),
-      buildOwnerMembershipChangedEmailV1({
-        change: 'ADDED',
-        organizationName: 'Acme',
-        ownerDisplayName: 'Bob',
-        changedByDisplayName: 'Alice',
-      }),
-      buildMembershipAccessChangedEmailV1({
-        change: 'SUSPENDED',
-        organizationName: 'Acme',
-        memberDisplayName: 'Carol',
-        changedByDisplayName: 'Alice',
-      }),
       buildPrepaidTopUpReceiptEmailV1({
         organizationName: 'Acme',
         purchaseId: 'purchase-1',
@@ -306,11 +292,11 @@ test.describe('console transactional email', () => {
         consoleBaseUrl: 'https://console.example.test',
       }),
       buildBillingRefundResultEmailV1({
-        outcome: 'FAILED',
+        outcome: 'SUCCEEDED',
         organizationName: 'Acme',
         refundId: 'refund-1',
         amountMinor: 1_000,
-        failureCode: 'provider_declined',
+        balanceAfterMinor: 7_000,
         consoleBaseUrl: 'https://console.example.test',
       }),
       buildLowBalanceWarningEmailV1({
@@ -333,7 +319,7 @@ test.describe('console transactional email', () => {
         expect(rendered.html).toContain('<!doctype html>');
       }
     }
-    expect(families.size).toBe(7);
+    expect(families.size).toBe(5);
     expect(() =>
       parseConsoleEmailTemplate({
         family: 'BILLING_REFUND_RESULT',

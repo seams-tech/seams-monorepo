@@ -584,25 +584,14 @@ async function buildTopUpReceiptEmailStatements(input: {
   });
 }
 
-type BillingRefundResultEmailStatementInput =
-  | {
-      state: D1ConsoleBillingState;
-      refund: BillingRefund;
-      outcome: 'SUCCEEDED';
-      balanceAfterMinor: number;
-      createdAtMs: number;
-      insertGuard?: 'PREVIOUS_STATEMENT_CHANGED_ONE';
-      failureCode?: never;
-    }
-  | {
-      state: D1ConsoleBillingState;
-      refund: BillingRefund;
-      outcome: 'FAILED';
-      failureCode: string;
-      createdAtMs: number;
-      insertGuard?: 'PREVIOUS_STATEMENT_CHANGED_ONE';
-      balanceAfterMinor?: never;
-    };
+/** Only a completed refund emails the owners; a failed refund shows in the console. */
+interface BillingRefundResultEmailStatementInput {
+  state: D1ConsoleBillingState;
+  refund: BillingRefund;
+  balanceAfterMinor: number;
+  createdAtMs: number;
+  insertGuard?: 'PREVIOUS_STATEMENT_CHANGED_ONE';
+}
 
 async function buildRefundResultEmailStatements(
   input: BillingRefundResultEmailStatementInput,
@@ -616,22 +605,15 @@ async function buildRefundResultEmailStatements(
     amountMinor: input.refund.amountMinor,
     consoleBaseUrl: input.state.emailConsoleBaseUrl,
   };
-  const template =
-    input.outcome === 'SUCCEEDED'
-      ? buildBillingRefundResultEmailV1({
-          ...common,
-          outcome: 'SUCCEEDED',
-          balanceAfterMinor: input.balanceAfterMinor,
-        })
-      : buildBillingRefundResultEmailV1({
-          ...common,
-          outcome: 'FAILED',
-          failureCode: input.failureCode,
-        });
+  const template = buildBillingRefundResultEmailV1({
+    ...common,
+    outcome: 'SUCCEEDED',
+    balanceAfterMinor: input.balanceAfterMinor,
+  });
   return await buildBillingOwnerEmailOutboxStatements({
     state: input.state,
     orgId: input.refund.orgId,
-    eventKey: `billing:refund:${input.refund.id}:${input.outcome.toLowerCase()}`,
+    eventKey: `billing:refund:${input.refund.id}:succeeded`,
     template,
     recipients,
     createdAtMs: input.createdAtMs,
@@ -2720,7 +2702,6 @@ async function finalizeRefundD1(input: {
     const refundEmailStatements = await buildRefundResultEmailStatements({
       state: input.state,
       refund: input.refund,
-      outcome: 'SUCCEEDED',
       balanceAfterMinor,
       createdAtMs: input.updatedAtMs,
       insertGuard: 'PREVIOUS_STATEMENT_CHANGED_ONE',
@@ -2815,19 +2796,7 @@ async function finalizeRefundD1(input: {
         input.refund.orgId,
         input.refund.id,
       );
-    if (nextStatus === 'failed' && failureCode) {
-      const emailStatements = await buildRefundResultEmailStatements({
-        state: input.state,
-        refund: input.refund,
-        outcome: 'FAILED',
-        failureCode,
-        createdAtMs: input.updatedAtMs,
-        insertGuard: 'PREVIOUS_STATEMENT_CHANGED_ONE',
-      });
-      await input.state.database.batch([transitionStatement, ...emailStatements]);
-    } else {
-      await transitionStatement.run();
-    }
+    await transitionStatement.run();
   }
 
   const updated = await loadRefundById({

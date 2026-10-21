@@ -644,39 +644,18 @@ test.describe('console organization access', () => {
         }
       }
 
-      const membershipEmails = await temporary.database
+      // owner and membership changes no longer send email
+      const changeEmails = await temporary.database
         .prepare(
-          `SELECT template_payload_json
+          `SELECT COUNT(*) AS count
              FROM console_email_outbox
             WHERE namespace = ?
               AND org_id = ?
-              AND recipient_email = ?
-              AND template_family = 'MEMBERSHIP_ACCESS_CHANGED'
-            ORDER BY created_at_ms, id`,
+              AND template_family IN ('MEMBERSHIP_ACCESS_CHANGED', 'OWNER_MEMBERSHIP_CHANGED')`,
         )
-        .bind('email-lifecycle', owner.orgId, acceptedMember.email)
-        .all<{ template_payload_json?: unknown }>();
-      const membershipChanges = (membershipEmails.results || []).map((row) =>
-        String(JSON.parse(String(row.template_payload_json)).change),
-      );
-      expect(membershipChanges).toEqual(['SUSPENDED', 'REMOVED']);
-
-      const ownerEmails = await temporary.database
-        .prepare(
-          `SELECT template_payload_json
-             FROM console_email_outbox
-            WHERE namespace = ?
-              AND org_id = ?
-              AND recipient_email = ?
-              AND template_family = 'OWNER_MEMBERSHIP_CHANGED'
-            ORDER BY created_at_ms, id`,
-        )
-        .bind('email-lifecycle', owner.orgId, secondOwner.email)
-        .all<{ template_payload_json?: unknown }>();
-      const ownerChanges = (ownerEmails.results || []).map((row) =>
-        String(JSON.parse(String(row.template_payload_json)).change),
-      );
-      expect(ownerChanges).toEqual(['ADDED', 'REMOVED']);
+        .bind('email-lifecycle', owner.orgId)
+        .first<{ count?: unknown }>();
+      expect(Number(changeEmails?.count)).toBe(0);
     } finally {
       cleanupTemporaryD1Database(temporary.tempDir);
     }

@@ -15,11 +15,7 @@ import {
   createConsoleInvitationEmailCancellationStatement,
 } from '../email/d1';
 import type { ConsoleInvitationSecretCipher } from '../email/secrets';
-import {
-  buildMembershipAccessChangedEmailV1,
-  buildOrganizationInvitationEmailV1,
-  buildOwnerMembershipChangedEmailV1,
-} from '../email/templates';
+import { buildOrganizationInvitationEmailV1 } from '../email/templates';
 import { ConsoleOrganizationAccessError } from './errors';
 import { createOrganizationInvitationToken, hashOrganizationInvitationToken } from './secret';
 import type {
@@ -321,84 +317,6 @@ async function createInvitationEmailStatement(
         expiresAt: input.expiresAt.toISOString(),
       }),
       invitationSecret: input.invitationSecret,
-      createdAt: input.now,
-      availableAt: input.now,
-    },
-  });
-}
-
-async function createOwnerMembershipChangedEmailStatement(
-  state: D1OrganizationAccessState,
-  input: {
-    readonly orgId: string;
-    readonly organizationName: string;
-    readonly ownerEmail: string;
-    readonly ownerDisplayName: string;
-    readonly changedByDisplayName: string;
-    readonly change: 'ADDED' | 'REMOVED';
-    readonly now: Date;
-  },
-): Promise<D1PreparedStatementLike | null> {
-  if (!state.email) return null;
-  const outboxId = makeId('console_email', input.now);
-  return await createConsoleEmailOutboxInsertStatement({
-    database: state.database,
-    namespace: state.namespace,
-    invitationSecretCipher: state.email.invitationSecretCipher,
-    insertGuard: 'PREVIOUS_STATEMENT_CHANGED_ONE',
-    email: {
-      outboxId,
-      dedupeKey: outboxId,
-      orgId: input.orgId,
-      recipient: {
-        email: input.ownerEmail,
-        displayName: input.ownerDisplayName,
-      },
-      template: buildOwnerMembershipChangedEmailV1({
-        change: input.change,
-        organizationName: input.organizationName,
-        ownerDisplayName: input.ownerDisplayName,
-        changedByDisplayName: input.changedByDisplayName,
-      }),
-      createdAt: input.now,
-      availableAt: input.now,
-    },
-  });
-}
-
-async function createMembershipAccessChangedEmailStatement(
-  state: D1OrganizationAccessState,
-  input: {
-    readonly orgId: string;
-    readonly organizationName: string;
-    readonly memberEmail: string;
-    readonly memberDisplayName: string;
-    readonly changedByDisplayName: string;
-    readonly change: 'SUSPENDED' | 'REMOVED';
-    readonly now: Date;
-  },
-): Promise<D1PreparedStatementLike | null> {
-  if (!state.email) return null;
-  const outboxId = makeId('console_email', input.now);
-  return await createConsoleEmailOutboxInsertStatement({
-    database: state.database,
-    namespace: state.namespace,
-    invitationSecretCipher: state.email.invitationSecretCipher,
-    insertGuard: 'PREVIOUS_STATEMENT_CHANGED_ONE',
-    email: {
-      outboxId,
-      dedupeKey: outboxId,
-      orgId: input.orgId,
-      recipient: {
-        email: input.memberEmail,
-        displayName: input.memberDisplayName,
-      },
-      template: buildMembershipAccessChangedEmailV1({
-        change: input.change,
-        organizationName: input.organizationName,
-        memberDisplayName: input.memberDisplayName,
-        changedByDisplayName: input.changedByDisplayName,
-      }),
       createdAt: input.now,
       availableAt: input.now,
     },
@@ -1544,16 +1462,6 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
     const now = this.state.now();
     const nowMs = now.getTime();
     const membershipId = makeId('org_mbr', now);
-    const ownerDisplayName = input.displayName?.trim() || email;
-    const ownerEmail = await createOwnerMembershipChangedEmailStatement(this.state, {
-      orgId,
-      organizationName: organization.name,
-      ownerEmail: email,
-      ownerDisplayName,
-      changedByDisplayName: ownerDisplayName,
-      change: 'ADDED',
-      now,
-    });
     const statements: D1PreparedStatementLike[] = [
       this.state.database
         .prepare(
@@ -1579,7 +1487,6 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
           orgId,
         ),
     ];
-    if (ownerEmail) statements.push(ownerEmail);
     statements.push(
       ownerEventStatement(this.state, {
         orgId,
@@ -2005,7 +1912,7 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
     });
     if (cancellation) statements.push(cancellation);
     if (existing.role === 'OWNER') {
-      const organization = await requireOrganizationState(this.state, existing.orgId);
+      await requireOrganizationState(this.state, existing.orgId);
       statements.push(
         ownerEventStatement(this.state, {
           orgId: existing.orgId,
@@ -2016,16 +1923,6 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
           now,
         }),
       );
-      const ownerEmail = await createOwnerMembershipChangedEmailStatement(this.state, {
-        orgId: existing.orgId,
-        organizationName: organization.name,
-        ownerEmail: email,
-        ownerDisplayName: email,
-        changedByDisplayName: email,
-        change: 'ADDED',
-        now,
-      });
-      if (ownerEmail) statements.push(ownerEmail);
     }
     try {
       await this.state.database.batch(statements);
@@ -2114,7 +2011,7 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
     membershipId: string,
     request: ChangeOrganizationMembershipRoleRequest,
   ): Promise<OrganizationMembershipWithAccess> {
-    const actor = await requireOwner(this.state, ctx);
+    await requireOwner(this.state, ctx);
     const target = await this.requireMembership(ctx.orgId, membershipId);
     if (target.userId === ctx.actorUserId) {
       throw accessError('self_role_change_forbidden', 409, 'Owners cannot change their own role');
@@ -2127,23 +2024,6 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
     const organization = await requireOrganizationState(this.state, ctx.orgId);
     const now = this.state.now();
     const nowMs = now.getTime();
-    const ownerChange =
-      target.role === 'OWNER' && grant.role !== 'OWNER'
-        ? 'REMOVED'
-        : target.role !== 'OWNER' && grant.role === 'OWNER'
-          ? 'ADDED'
-          : null;
-    const ownerEmail = ownerChange
-      ? await createOwnerMembershipChangedEmailStatement(this.state, {
-          orgId: ctx.orgId,
-          organizationName: organization.name,
-          ownerEmail: target.email,
-          ownerDisplayName: membershipDisplayName(target),
-          changedByDisplayName: membershipDisplayName(actor),
-          change: ownerChange,
-          now,
-        })
-      : null;
     const statements: D1PreparedStatementLike[] = [];
     if (target.role === 'OWNER' && grant.role !== 'OWNER') {
       const nextOwner = await queryD1One(
@@ -2190,7 +2070,6 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
         )
         .bind(grant.role, nowMs, this.state.namespace, ctx.orgId, target.id, target.role),
     );
-    if (ownerEmail) statements.push(ownerEmail);
     statements.push(
       this.state.database
         .prepare(
@@ -2305,7 +2184,7 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
     membershipId: string,
   ): Promise<OrganizationMembershipWithAccess> {
     const target = await this.requireMembership(ctx.orgId, membershipId);
-    const actor = await requireLifecycleAuthority(this.state, ctx, target);
+    await requireLifecycleAuthority(this.state, ctx, target);
     this.rejectSelfLifecycle(ctx, target);
     if (target.kind !== 'active') {
       throw accessError('membership_not_active', 409, 'Only an active membership can be suspended');
@@ -2317,18 +2196,9 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
         'An owner must become an administrator before suspension',
       );
     }
-    const organization = await requireOrganizationState(this.state, ctx.orgId);
+    await requireOrganizationState(this.state, ctx.orgId);
     const now = this.state.now();
     const nowMs = now.getTime();
-    const membershipEmail = await createMembershipAccessChangedEmailStatement(this.state, {
-      orgId: ctx.orgId,
-      organizationName: organization.name,
-      memberEmail: target.email,
-      memberDisplayName: membershipDisplayName(target),
-      changedByDisplayName: membershipDisplayName(actor),
-      change: 'SUSPENDED',
-      now,
-    });
     const statements: D1PreparedStatementLike[] = [
       this.state.database
         .prepare(
@@ -2345,7 +2215,6 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
         )
         .bind(nowMs, nowMs, this.state.namespace, ctx.orgId, target.id),
     ];
-    if (membershipEmail) statements.push(membershipEmail);
     const results = await this.state.database.batch<D1ResultLike<{ id: string }>>(statements);
     const mutationResult = results[0];
     const [changedMembership] = mutationResult?.results ?? [];
@@ -2398,7 +2267,7 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
     membershipId: string,
   ): Promise<OrganizationMembershipWithAccess> {
     const target = await this.requireMembership(ctx.orgId, membershipId);
-    const actor = await requireLifecycleAuthority(this.state, ctx, target);
+    await requireLifecycleAuthority(this.state, ctx, target);
     this.rejectSelfLifecycle(ctx, target);
     if (target.kind === 'removed') return membershipWithAccess(this.state, target);
     if (target.role === 'OWNER') {
@@ -2408,7 +2277,7 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
         'An owner must become an administrator before removal',
       );
     }
-    await this.removeNonOwner(target, actor);
+    await this.removeNonOwner(target);
     return membershipWithAccess(this.state, await this.requireMembership(ctx.orgId, target.id));
   }
 
@@ -2417,7 +2286,7 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
   ): Promise<OrganizationMembershipWithAccess> {
     const actor = await loadActor(this.state, ctx);
     if (actor.role !== 'OWNER') {
-      await this.removeNonOwner(actor, actor);
+      await this.removeNonOwner(actor);
       return membershipWithAccess(this.state, await this.requireMembership(ctx.orgId, actor.id));
     }
     const organization = await requireOrganizationState(this.state, ctx.orgId);
@@ -2439,15 +2308,6 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
     }
     const now = this.state.now();
     const nowMs = now.getTime();
-    const ownerEmail = await createOwnerMembershipChangedEmailStatement(this.state, {
-      orgId: ctx.orgId,
-      organizationName: organization.name,
-      ownerEmail: actor.email,
-      ownerDisplayName: membershipDisplayName(actor),
-      changedByDisplayName: membershipDisplayName(actor),
-      change: 'REMOVED',
-      now,
-    });
     const statements: D1PreparedStatementLike[] = [];
     if (organization.ownerAnchorMembershipId === actor.id) {
       statements.push(
@@ -2479,7 +2339,6 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
         )
         .bind(nowMs, nowMs, this.state.namespace, ctx.orgId, actor.id),
     );
-    if (ownerEmail) statements.push(ownerEmail);
     statements.push(
       this.state.database
         .prepare(
@@ -2775,22 +2634,10 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
     }
   }
 
-  private async removeNonOwner(
-    target: OrganizationMembership,
-    changedBy: OrganizationMembership,
-  ): Promise<void> {
-    const organization = await requireOrganizationState(this.state, target.orgId);
+  private async removeNonOwner(target: OrganizationMembership): Promise<void> {
+    await requireOrganizationState(this.state, target.orgId);
     const now = this.state.now();
     const nowMs = now.getTime();
-    const membershipEmail = await createMembershipAccessChangedEmailStatement(this.state, {
-      orgId: target.orgId,
-      organizationName: organization.name,
-      memberEmail: target.email,
-      memberDisplayName: membershipDisplayName(target),
-      changedByDisplayName: membershipDisplayName(changedBy),
-      change: 'REMOVED',
-      now,
-    });
     const statements: D1PreparedStatementLike[] = [
       this.state.database
         .prepare(
@@ -2807,7 +2654,6 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
         )
         .bind(nowMs, nowMs, this.state.namespace, target.orgId, target.id),
     ];
-    if (membershipEmail) statements.push(membershipEmail);
     statements.push(
       this.state.database
         .prepare(

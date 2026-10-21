@@ -2,6 +2,8 @@ import type { FreePlanNoticeV1 } from '../billing/freePlan';
 
 export type ConsoleEmailTemplateVersion = 1;
 
+/** Families a stored outbox row may carry; OWNER_MEMBERSHIP_CHANGED and
+    MEMBERSHIP_ACCESS_CHANGED are retired and appear only on old rows. */
 export type ConsoleEmailTemplateFamily =
   | 'ACCOUNT_WELCOME'
   | 'ORGANIZATION_INVITATION'
@@ -41,42 +43,6 @@ export interface AccountWelcomeEmailV1 {
   readonly docsBaseUrl: string;
 }
 
-export type OwnerMembershipChangedEmailV1 =
-  | {
-      readonly family: 'OWNER_MEMBERSHIP_CHANGED';
-      readonly version: 1;
-      readonly change: 'ADDED';
-      readonly organizationName: string;
-      readonly ownerDisplayName: string;
-      readonly changedByDisplayName: string;
-    }
-  | {
-      readonly family: 'OWNER_MEMBERSHIP_CHANGED';
-      readonly version: 1;
-      readonly change: 'REMOVED';
-      readonly organizationName: string;
-      readonly ownerDisplayName: string;
-      readonly changedByDisplayName: string;
-    };
-
-export type MembershipAccessChangedEmailV1 =
-  | {
-      readonly family: 'MEMBERSHIP_ACCESS_CHANGED';
-      readonly version: 1;
-      readonly change: 'SUSPENDED';
-      readonly organizationName: string;
-      readonly memberDisplayName: string;
-      readonly changedByDisplayName: string;
-    }
-  | {
-      readonly family: 'MEMBERSHIP_ACCESS_CHANGED';
-      readonly version: 1;
-      readonly change: 'REMOVED';
-      readonly organizationName: string;
-      readonly memberDisplayName: string;
-      readonly changedByDisplayName: string;
-    };
-
 export interface PrepaidTopUpReceiptEmailV1 {
   readonly family: 'PREPAID_TOP_UP_RECEIPT';
   readonly version: 1;
@@ -89,31 +55,18 @@ export interface PrepaidTopUpReceiptEmailV1 {
   readonly consoleBaseUrl: string;
 }
 
-export type BillingRefundResultEmailV1 =
-  | {
-      readonly family: 'BILLING_REFUND_RESULT';
-      readonly version: 1;
-      readonly outcome: 'SUCCEEDED';
-      readonly organizationName: string;
-      readonly refundId: string;
-      readonly amountMinor: number;
-      readonly currency: 'USD';
-      readonly balanceAfterMinor: number;
-      readonly consoleBaseUrl: string;
-      readonly failureCode?: never;
-    }
-  | {
-      readonly family: 'BILLING_REFUND_RESULT';
-      readonly version: 1;
-      readonly outcome: 'FAILED';
-      readonly organizationName: string;
-      readonly refundId: string;
-      readonly amountMinor: number;
-      readonly currency: 'USD';
-      readonly consoleBaseUrl: string;
-      readonly failureCode: string;
-      readonly balanceAfterMinor?: never;
-    };
+/** Only a completed refund sends an email; `outcome` stays in the stored payload. */
+export interface BillingRefundResultEmailV1 {
+  readonly family: 'BILLING_REFUND_RESULT';
+  readonly version: 1;
+  readonly outcome: 'SUCCEEDED';
+  readonly organizationName: string;
+  readonly refundId: string;
+  readonly amountMinor: number;
+  readonly currency: 'USD';
+  readonly balanceAfterMinor: number;
+  readonly consoleBaseUrl: string;
+}
 
 export interface LowBalanceWarningEmailV1 {
   readonly family: 'LOW_BALANCE_WARNING';
@@ -146,8 +99,6 @@ export interface TeamSignupAlertEmailV1 {
 export type ConsoleEmailTemplateV1 =
   | AccountWelcomeEmailV1
   | OrganizationInvitationEmailV1
-  | OwnerMembershipChangedEmailV1
-  | MembershipAccessChangedEmailV1
   | PrepaidTopUpReceiptEmailV1
   | BillingRefundResultEmailV1
   | LowBalanceWarningEmailV1

@@ -806,9 +806,7 @@ async function renderClaimedConsoleEmail(
       });
       return renderOrganizationInvitationEmailV1(claimed.template, invitationSecret);
     }
-    case 'OWNER_MEMBERSHIP_CHANGED':
     case 'ACCOUNT_WELCOME':
-    case 'MEMBERSHIP_ACCESS_CHANGED':
     case 'PREPAID_TOP_UP_RECEIPT':
     case 'BILLING_REFUND_RESULT':
     case 'LOW_BALANCE_WARNING':

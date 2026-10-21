@@ -212,11 +212,12 @@ test('D1 billing reconstructs balanced credit and persists provider-backed refun
       },
     });
     expect(failedExternal.refunds[0]?.status).toBe('failed');
+    // a failed refund shows in the console and sends no email
     expect(
       (await listBillingEmailRows(temporary.database)).filter(
         (row) => row.template_family === 'BILLING_REFUND_RESULT',
       ),
-    ).toHaveLength(4);
+    ).toHaveLength(2);
     const external = await billing.processStripeWebhookEvent({
       eventId: 'evt_d1_external_refund',
       eventType: 'refund.updated',
@@ -237,10 +238,10 @@ test('D1 billing reconstructs balanced credit and persists provider-backed refun
     const finalRefundEmails = (await listBillingEmailRows(temporary.database)).filter(
       (row) => row.template_family === 'BILLING_REFUND_RESULT',
     );
-    expect(finalRefundEmails).toHaveLength(6);
+    expect(finalRefundEmails).toHaveLength(4);
     expect(
       finalRefundEmails.map((row) => JSON.parse(row.template_payload_json).outcome).sort(),
-    ).toEqual(['FAILED', 'FAILED', 'SUCCEEDED', 'SUCCEEDED', 'SUCCEEDED', 'SUCCEEDED']);
+    ).toEqual(['SUCCEEDED', 'SUCCEEDED', 'SUCCEEDED', 'SUCCEEDED']);
 
     const opened = await billing.processStripeWebhookEvent({
       eventId: 'evt_d1_dispute_opened',

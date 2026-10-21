@@ -136,9 +136,16 @@
 }
 
 .pricing-note {
+  display: grid;
+  gap: 4px;
   margin: 22px 0 0;
-  font-size: var(--h2-text-base);
-  color: var(--h2-smoke);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--h2-ash);
+}
+
+.pricing-note p {
+  margin: 0;
 }
 
 @media (max-width: 900px) {

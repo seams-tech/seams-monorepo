@@ -198,21 +198,26 @@ export function PricingPage(): React.JSX.Element {
                 <h2 id="pricing-plans-title" className="h2-display">
                   Pay for active users, with signing included
                 </h2>
-                <p className="h2-split-head__copy">
-                  Each active user includes 300 signatures a month, pooled across your app. Above
-                  the pool, signatures cost $0.05 per 1,000. Every plan has the full SDK,
-                  development is free, and gas and chain fees pass through at cost.
-                </p>
               </div>
               <div className="pricing-plans">
                 {plans.map((plan) => (
                   <PlanCard key={plan.id} plan={plan} selected={plan.id === selectedPlanId} />
                 ))}
               </div>
-              <p className="pricing-note">
-                Growth prices are fixed for 12 months from sign-up. After that, they may change with
-                our own hosting costs.
-              </p>
+              <div className="pricing-note">
+                <p>
+                  Each active user includes 300 signatures a month, shared across your app. Extra
+                  signatures cost $0.05 per 1,000.
+                </p>
+                <p>
+                  Every plan has the full SDK. Development is free. Gas and chain fees are passed
+                  through at cost.
+                </p>
+                <p>
+                  Growth prices are fixed for 12 months from sign-up. After that, they may change
+                  with our own hosting costs.
+                </p>
+              </div>
             </div>
           </section>
 

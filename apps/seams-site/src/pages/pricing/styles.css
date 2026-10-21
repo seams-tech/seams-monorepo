@@ -29,6 +29,12 @@
   border-radius: var(--h2-radius-card);
   background: var(--h2-taupe);
   scroll-margin-top: 96px;
+  cursor: pointer;
+}
+
+.pricing-plan:focus-visible {
+  outline: 2px solid var(--h2-ink);
+  outline-offset: 4px;
 }
 
 .pricing-plan__gradient {

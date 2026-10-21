@@ -17,7 +17,7 @@ type Plan = {
   unit: string;
   summary: string;
   features: readonly string[];
-  cta: { label: string; to: string; primary: boolean };
+  cta: { label: string; to: string };
 };
 
 const plans: readonly Plan[] = [
@@ -35,7 +35,7 @@ const plans: readonly Plan[] = [
       'One free plan per organization',
       'Card required after 30 days, not charged',
     ],
-    cta: { label: 'Start building', to: '/docs/concepts/', primary: false },
+    cta: { label: 'Start building', to: '/docs/concepts/' },
   },
   {
     id: 'growth',
@@ -50,7 +50,7 @@ const plans: readonly Plan[] = [
       '300 signatures per user each month, pooled',
       '$0.05 per 1,000 signatures above the pool',
     ],
-    cta: { label: 'Start building', to: '/docs/concepts/', primary: true },
+    cta: { label: 'Start building', to: '/docs/concepts/' },
   },
   {
     id: 'enterprise',
@@ -65,7 +65,7 @@ const plans: readonly Plan[] = [
       'Signatures from $0.03 per 1,000',
       'Rollout planning with our team',
     ],
-    cta: { label: 'Contact sales', to: '/contact/', primary: false },
+    cta: { label: 'Contact sales', to: '/contact/' },
   },
 ];
 
@@ -82,10 +82,12 @@ function PlanCard({ plan, selected }: { plan: Plan; selected: boolean }): React.
   const ctaProps = linkProps(plan.cta.to);
 
   return (
-    <article
+    <a
       id={plan.id}
       className={selected ? 'pricing-plan pricing-plan--selected' : 'pricing-plan'}
-      aria-labelledby={`pricing-plan-${plan.id}`}
+      href={ctaProps.href}
+      onClick={ctaProps.onClick}
+      aria-labelledby={`pricing-plan-${plan.id} pricing-plan-cta-${plan.id}`}
     >
       <GrainField field={plan.field} className="pricing-plan__gradient" />
       <h3 id={`pricing-plan-${plan.id}`} className="pricing-plan__name">
@@ -101,18 +103,10 @@ function PlanCard({ plan, selected }: { plan: Plan; selected: boolean }): React.
           <li key={feature}>{feature}</li>
         ))}
       </ul>
-      <a
-        className={
-          plan.cta.primary
-            ? 'h2-btn h2-btn--primary pricing-plan__cta'
-            : 'h2-btn h2-btn--outline pricing-plan__cta'
-        }
-        href={ctaProps.href}
-        onClick={ctaProps.onClick}
-      >
+      <span id={`pricing-plan-cta-${plan.id}`} className="h2-btn h2-btn--primary pricing-plan__cta">
         {plan.cta.label}
-      </a>
-    </article>
+      </span>
+    </a>
   );
 }
 

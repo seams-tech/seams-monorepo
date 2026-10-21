@@ -52,6 +52,9 @@ Pricing plan links select the card named by the URL fragment. Each card has a
 distinct grain gradient. Hover and keyboard focus reveal a card's gradient while
 the selected plan remains highlighted. The Growth card is highlighted by default.
 Reduced-motion mode removes the fade, and touch input does not produce hover states.
+Each entire plan card is one link to its action, with a pointer cursor, a visible
+keyboard focus outline, and a black action button. Clicking card padding or using
+Enter follows the same destination as tapping the card on a touch screen.
 Run `node tests/e2e/pricing-plan-highlights.e2e.mjs` to check selection, all three
 palettes, hover, keyboard focus, refresh, history, and touch. Screenshots and a trace
 go to `output/playwright/pricing-plan-highlights/` with `result.json`.

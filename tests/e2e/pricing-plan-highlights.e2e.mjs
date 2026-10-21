@@ -77,7 +77,7 @@ try {
       await card.screenshot({ path: `${artifacts}/hover-${plan.id}.png` });
       await page.mouse.move(0, 0);
       await expectGradient(page, plan.id, false);
-      await card.getByRole('link').focus();
+      await card.focus();
       await expectGradient(page, plan.id, true);
       await page.locator('#pricing-title').click();
     }
@@ -87,6 +87,27 @@ try {
     await page.goto(`${origin}/pricing/#free`);
     await expectSelection(page, 'free');
     await expect(page.locator('#free canvas')).toHaveCSS('transition-duration', '0s');
+
+    for (const plan of plans) {
+      await page.goto(`${origin}/pricing/#${plan.id}`);
+      await expectSelection(page, plan.id);
+      const card = page.getByRole('link', { name: new RegExp(`^${plan.id} `, 'i') });
+      await expect(card).toHaveCSS('cursor', 'pointer');
+      await expect(card.locator('.pricing-plan__cta')).toHaveCSS(
+        'background-color',
+        'rgb(0, 0, 0)',
+      );
+      const destination = new URL(await card.getAttribute('href'), origin).href;
+      if (plan.id === 'growth') {
+        await card.focus();
+        await expect(card).toHaveCSS('outline-style', 'solid');
+        await card.press('Enter');
+      } else {
+        await card.click({ position: { x: 20, y: 20 } });
+      }
+      await expect(page).toHaveURL(destination);
+      await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+    }
 
     const mobile = await browser.newPage({
       viewport: { width: 390, height: 844 },
@@ -101,8 +122,8 @@ try {
     await expectSelection(mobile, 'free');
     await mobile.locator('#free').screenshot({ path: `${artifacts}/mobile-free.png` });
     await mobile.locator('#enterprise').tap();
-    await expectGradient(mobile, 'enterprise', false);
-    await expectGradient(mobile, 'free', true);
+    await expect(mobile).toHaveURL(new RegExp('/contact/?$'));
+    await expect(mobile.getByRole('heading', { level: 1 })).toBeVisible();
 
     await writeFile(
       `${artifacts}/result.json`,
@@ -114,6 +135,8 @@ try {
           focus: true,
           history: true,
           touch: true,
+          wholeCardNavigation: true,
+          blackButtons: true,
           reducedMotion: true,
         },
         null,
@@ -121,7 +144,7 @@ try {
       ),
     );
     console.log(
-      'Passed plan menu selection, distinct gradients, hover, focus, refresh, history, touch, and reduced motion.',
+      'Passed plan gradients, whole-card mouse and keyboard navigation, black buttons, refresh, history, touch, and reduced motion.',
     );
   } finally {
     await context.tracing.stop({ path: `${artifacts}/trace.zip` });

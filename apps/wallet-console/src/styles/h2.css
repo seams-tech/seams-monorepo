@@ -1995,7 +1995,7 @@ body:has(.h2-page) {
 
 /* Keep extra room around the Wallet demo without enlarging the card. */
 .h2-page--wallet .h2-hero__split {
-  --h2-hero-min-height: calc(591px + 4rem);
+  --h2-hero-min-height: calc(591px + 3rem);
 }
 
 @media (min-width: 981px) {

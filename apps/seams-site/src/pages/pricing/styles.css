@@ -517,9 +517,10 @@
 }
 
 .pricing-banner__card {
-  --pricing-banner-ink: var(--h2-ink);
-  --pricing-banner-copy: var(--h2-smoke);
-  --pricing-banner-shadow: none;
+  --pricing-banner-ink: #ffffff;
+  --pricing-banner-copy: rgba(255, 255, 255, 0.9);
+  /* keeps white text readable on the light parts of the hover gradient */
+  --pricing-banner-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -528,7 +529,7 @@
   gap: 6px;
   padding: 20px 20px 18px;
   border-radius: 22px;
-  background: var(--h2-taupe);
+  background: var(--h2-ink);
   color: var(--pricing-banner-ink);
   text-shadow: var(--pricing-banner-shadow);
 }
@@ -551,18 +552,10 @@
   color: var(--pricing-banner-ink);
 }
 
-/* the plan's gradient, as on its card at the top, fades in on hover or focus,
-   and the text turns white on it */
+/* the plan's gradient, as on its card at the top, fades in on hover or focus */
 .pricing-banner__card-gradient {
   opacity: 0;
   transition: opacity 200ms ease;
-}
-
-.pricing-banner__card:focus-visible {
-  --pricing-banner-ink: #ffffff;
-  --pricing-banner-copy: rgba(255, 255, 255, 0.9);
-  /* keeps white text readable on the light parts of the gradient */
-  --pricing-banner-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
 }
 
 .pricing-banner__card:focus-visible .pricing-banner__card-gradient {
@@ -570,12 +563,6 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .pricing-banner__card:hover {
-    --pricing-banner-ink: #ffffff;
-    --pricing-banner-copy: rgba(255, 255, 255, 0.9);
-    --pricing-banner-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
-  }
-
   .pricing-banner__card:hover .pricing-banner__card-gradient {
     opacity: 1;
   }

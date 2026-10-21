@@ -47,7 +47,7 @@
   padding: 56px 0 0.5rem;
 }
 
-/* beige cards with dark text; a gradient with white text on hover */
+/* White text and a shadow keep the copy readable over the gradients. */
 .company-card {
   position: relative;
   isolation: isolate;
@@ -58,11 +58,9 @@
   min-height: 300px;
   padding: 28px 28px 24px;
   border-radius: var(--h2-radius-card);
-  background: var(--h2-taupe);
-  color: var(--h2-ink);
-  transition:
-    color 200ms ease,
-    text-shadow 200ms ease;
+  background: var(--h2-ink);
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
 }
 
 .company-card:focus-visible {
@@ -72,41 +70,7 @@
 
 /* the site's link hover colour must not tint the card's text */
 .company-card:hover {
-  color: var(--h2-ink);
-}
-
-.company-card__gradient {
-  opacity: 0;
-  transition: opacity 200ms ease;
-}
-
-/* while the gradient shows, white text with a shadow stays readable on its
-   light and dark parts */
-.company-card:focus-visible {
   color: #ffffff;
-  text-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
-}
-
-.company-card:focus-visible .company-card__gradient {
-  opacity: 1;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .company-card:hover {
-    color: #ffffff;
-    text-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
-  }
-
-  .company-card:hover .company-card__gradient {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .company-card,
-  .company-card__gradient {
-    transition: none;
-  }
 }
 
 /* the site's h3 colour must not override the card's text colour */

@@ -122,19 +122,9 @@ function SiteLink({
 function ProductCard({ product }: { product: Product }): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const props = linkProps(product.to);
-  // The gradient shows on hover or focus; it only animates while shown.
-  const [lit, setLit] = React.useState(false);
   return (
-    <a
-      className="company-card"
-      href={props.href}
-      onClick={props.onClick}
-      onPointerEnter={() => setLit(true)}
-      onPointerLeave={() => setLit(false)}
-      onFocus={() => setLit(true)}
-      onBlur={() => setLit(false)}
-    >
-      <GrainField field={product.field} className="company-card__gradient" playing={lit} />
+    <a className="company-card" href={props.href} onClick={props.onClick}>
+      <GrainField field={product.field} />
       <h3 className="company-card__title">{product.title}</h3>
       <p className="company-card__copy">{product.copy}</p>
       <span className="company-card__cta">

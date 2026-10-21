@@ -147,6 +147,7 @@ async function product(database: D1DatabaseLike, clock: Clock) {
     namespace,
     deploymentId,
     usage: core.billingUsage,
+    planUsage: core.freePlan,
   });
   return { core, environments, wallets, executions, monthly, requestDatabase };
 }
@@ -344,6 +345,7 @@ test('Wallet monthly facts survive lost replies, restart, archive and a UTC mont
       namespace,
       deploymentId,
       usage: new LostUsageReply(services.core.billingUsage),
+      planUsage: services.core.freePlan,
     });
     await expect(lostReply.resumePending(20)).rejects.toThrow(
       'Controlled lost monthly usage response',

@@ -479,6 +479,30 @@ export async function fourRegionBinding(
   return result.value;
 }
 
+/** The four-region resource set of `fourRegionBinding`, bound to a production environment. */
+export async function fourRegionProductionBinding(
+  createdAtMs: number,
+  deploymentLane: string,
+  tenant: { readonly namespace: string; readonly organizationId: string; readonly projectId: string },
+) {
+  const development = await fourRegionBinding(createdAtMs, deploymentLane);
+  const body = developmentBindingBody(createdAtMs, deploymentLane);
+  const environmentId: `${string}:prod` = `${tenant.projectId}:prod`;
+  const result = await buildTenantDeploymentBindingV1({
+    ...body,
+    mode: { kind: 'production_mainnet_v1', environment: 'production', network: 'mainnet' },
+    resources: development.resources,
+    tenant: { ...tenant, environmentId },
+    browserCredential: {
+      ...body.browserCredential,
+      credentialId: 'ak_prod_fixture',
+      publishableKey: 'pk_prod_fixture',
+    },
+  });
+  if (!result.ok) throw new Error(result.message);
+  return result.value;
+}
+
 export async function activateRegionalGatewayFixture(
   database: D1DatabaseLike,
   binding: TenantDeploymentBindingV1,
@@ -511,6 +535,7 @@ export async function activateRegionalGatewayFixture(
 export async function activateConsoleDeploymentFixture(
   database: D1DatabaseLike,
   binding: TenantDeploymentBindingV1,
+  operationId: `tco_${string}` = 'tco_directory_fixture',
 ) {
   const store = createD1TenantDeploymentServiceV1({ database });
   await store.putBinding(binding);
@@ -519,7 +544,7 @@ export async function activateConsoleDeploymentFixture(
     store,
     binding,
     deploymentResource(binding.tenant.namespace, binding.resources[0].databaseId),
-    'tco_directory_fixture',
+    operationId,
     null,
     nowMs,
   );

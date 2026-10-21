@@ -177,6 +177,7 @@ export default {
                 }
               : { outcome: 'cancelled' as const }),
             nowMs: Date.now(),
+            deploymentLane: 'test',
           }),
         );
       }

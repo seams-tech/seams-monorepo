@@ -92,6 +92,7 @@ export async function verifyGatewaySessionLookup(
     wallet,
     expiresAtMs: nowMs + 60_000,
     writer: homeWriter,
+    deploymentLane: binding.deploymentLane,
   });
   const observed = new ObservedConsole(service);
   const timingHeaders = new Headers();

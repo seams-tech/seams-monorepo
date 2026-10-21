@@ -6,6 +6,7 @@ import { WalletRegionalDispatch } from '../../packages/wallet-console-server-ts/
 import { D1WalletRelocations } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
 import type { WalletRelocation } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
 import { relocationFixtureBindings } from '../fixtures/tenant-deployment/walletRelocationPreparation';
+import { registrationCompletionSession } from '../fixtures/tenant-deployment/registrationHomeAdmission';
 import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { verifyCleanupAssembly } from './cleanup-assembly.scenario';
 import { verifyActivationAssembly } from './activation-assembly.scenario';
@@ -710,7 +711,6 @@ test('relocation directory serializes competing moves and survives lost replies 
       if (!name.endsWith('.sql')) continue;
       const sql = await readFile(path.join(migrationDirectory, name), 'utf8');
       if (name === '0072_wallet_oceania.sql') {
-        await establish(runtime, 'pre-upgrade');
         const owner = wallet('pre-upgrade');
         const identity = [
           owner.namespace,
@@ -718,6 +718,41 @@ test('relocation directory serializes competing moves and survives lost replies 
           owner.projectId,
           owner.environmentId,
         ];
+        // Today's directory reads tables that later migrations add, so the established
+        // wallet is seeded in the persistence contract of this schema, like its claims.
+        const session = await registrationCompletionSession(owner.walletId);
+        await database.batch([
+          database
+            .prepare(
+              `INSERT INTO wallet_homes (namespace, organization_id, project_id, environment_id,
+              wallet_id, registration_id, request_digest, allocation, ceremony_id, preparation_id,
+              wallet_authority_id, device_id, wallet_auth_method_id, region, account_id,
+              database_id, state, reserved_at_ms, completed_at_ms)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'provided', ?, ?, ?, ?, ?, ?, ?, ?, 'established', ?, ?)`,
+            )
+            .bind(
+              ...identity,
+              owner.walletId,
+              `register-${owner.walletId}`,
+              '1'.repeat(64),
+              `wrc_${owner.walletId}`,
+              `regprep_${owner.walletId}`,
+              `wallet-authority:${owner.walletId}`,
+              `device:${owner.walletId}`,
+              `wallet-auth-method:${owner.walletId}`,
+              source.region,
+              source.accountId,
+              source.databaseId,
+              admittedAtMs - 100,
+              admittedAtMs - 100,
+            ),
+          database
+            .prepare(
+              `INSERT INTO wallet_session_locators
+            VALUES (?, ?, ?, ?, 'credential', ?, ?, ?)`,
+            )
+            .bind(...identity, session.locator.digest, owner.walletId, session.expiresAtMs),
+        ]);
         await database.batch([
           database
             .prepare(

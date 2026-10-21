@@ -14,17 +14,34 @@ import {
 import { handleWalletHomeServiceRequest } from '../../../packages/wallet-console-server-ts/src/walletPlacement/service';
 import { SessionLocator } from '../../../packages/wallet-console-server-ts/src/walletPlacement/sessionLocators';
 
-const scope = {
-  namespace: 'shared',
-  organizationId: 'owner',
-  projectId: 'project',
-  environmentId: 'project:dev',
+/** The tenant that registers. The default is the shared development tenant on lane `test`. */
+export interface RegistrationTenantFixture {
+  readonly scope: {
+    readonly namespace: string;
+    readonly organizationId: string;
+    readonly projectId: string;
+    readonly environmentId: string;
+  };
+  readonly environmentKey: string;
+  readonly deploymentLane: string;
+}
+
+const DEFAULT_TENANT: RegistrationTenantFixture = {
+  scope: {
+    namespace: 'shared',
+    organizationId: 'owner',
+    projectId: 'project',
+    environmentId: 'project:dev',
+  },
+  environmentKey: 'test',
+  deploymentLane: 'test',
 };
 
 class ConsoleBinding {
   constructor(
     private readonly database: D1DatabaseLike,
     private readonly catalogJson: string,
+    private readonly tenant: RegistrationTenantFixture,
   ) {}
 
   async fetch(request: Request): Promise<Response> {
@@ -46,9 +63,9 @@ class ConsoleBinding {
       admittedResources: WalletHomeCatalog.parse(
         JSON.parse(this.catalogJson),
       ).deploymentResources(),
-      scope,
-      environmentKey: 'test',
-      deploymentLane: 'test',
+      scope: this.tenant.scope,
+      environmentKey: this.tenant.environmentKey,
+      deploymentLane: this.tenant.deploymentLane,
     });
     if (!response) throw new Error('Unexpected placement service route');
     return response;
@@ -66,6 +83,7 @@ export async function reserveFromGateway(input: {
   localRegion: WalletRegion;
   operationId: string;
   origin: string;
+  tenant?: RegistrationTenantFixture;
 }) {
   return gatewayAdmission(input).reserve(gatewaySetupInput(input));
 }
@@ -73,16 +91,18 @@ export async function reserveFromGateway(input: {
 export function gatewaySetupInput(input: {
   operationId: string;
   origin: string;
+  tenant?: RegistrationTenantFixture;
 }): Parameters<WalletRegistrationReservationAuthority['reserve']>[0] {
   const rpId = parseWebAuthnRpId('wallet.test');
   if (!rpId.ok) throw new Error(rpId.error.message);
+  const tenant = input.tenant ?? DEFAULT_TENANT;
   return {
-    orgId: 'owner',
+    orgId: tenant.scope.organizationId,
     expectedOrigin: input.origin,
     runtimePolicyScope: {
-      orgId: 'owner',
-      projectId: 'project',
-      envId: 'test',
+      orgId: tenant.scope.organizationId,
+      projectId: tenant.scope.projectId,
+      envId: tenant.environmentKey,
       signingRootVersion: 'default',
     },
     signer: { signJwt: unexpectedSigning },
@@ -114,20 +134,22 @@ type GatewayAdmissionInput = {
   catalogJson: string;
   region: WalletRegion;
   localRegion: WalletRegion;
+  tenant?: RegistrationTenantFixture;
 };
 
 function gatewayAdmission(input: GatewayAdmissionInput): ConsoleRegistrationHomeAdmission {
+  const tenant = input.tenant ?? DEFAULT_TENANT;
   const localResource = WalletHomeCatalog.parse(JSON.parse(input.catalogJson)).select(
     input.localRegion,
   );
   return new ConsoleRegistrationHomeAdmission({
-    service: new ConsoleBinding(input.database, input.catalogJson),
+    service: new ConsoleBinding(input.database, input.catalogJson, tenant),
     writer: parseTenantRuntimeWriterV1('gateway', localResource.databaseId, {
       accountId: localResource.accountId,
       databaseId: localResource.databaseId,
     }),
-    scope,
-    environmentKey: 'test',
+    scope: tenant.scope,
+    environmentKey: tenant.environmentKey,
     localResource,
     catalogJson: input.catalogJson,
     ingressRegion: input.region,
@@ -158,6 +180,20 @@ export async function registrationLifecycleFromGateway(
         session: await registrationSessionLocator(walletId.value),
       });
   }
+}
+
+/** An unlock publishes a fresh credential session for an established wallet. */
+export async function unlockFromGateway(
+  input: GatewayAdmissionInput & { walletId: string; sessionLabel: string },
+): Promise<void> {
+  const walletId = parseWalletId(input.walletId);
+  if (!walletId.ok) throw new Error(walletId.error.message);
+  await gatewayAdmission(input).publish({
+    kind: 'credential',
+    walletId: walletId.value,
+    digest: await digestOpaqueValue(`${walletId.value}:${input.sessionLabel}`),
+    expiresAtMs: 4_102_444_800_000,
+  });
 }
 
 export async function registrationSessionLocator(wallet: string) {

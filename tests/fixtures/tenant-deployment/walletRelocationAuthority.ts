@@ -116,6 +116,7 @@ export default {
             outcome: 'established',
             session: await registrationCompletionSession(assignment.wallet.walletId),
             nowMs: relocationTimestamp(body.nowMs),
+            deploymentLane: 'test',
           }),
         );
       }

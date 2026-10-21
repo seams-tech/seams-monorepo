@@ -893,6 +893,7 @@ test('Wallet execution settles overshoot, zero quotes, and uncertain NEAR outcom
       namespace,
       deploymentId,
       usage: product.core.billingUsage,
+      planUsage: product.core.freePlan,
     });
     expect(await monthly.resumePending(20)).toEqual({ delivered: 2, pending: 0 });
     expect(await monthly.resumePending(20)).toEqual({ delivered: 0, pending: 0 });

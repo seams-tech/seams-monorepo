@@ -41,8 +41,8 @@ inputs = {
 files = {
     "celld.service": repository / "deployment/celld/celld.service",
     "nginx.conf.example": repository / "deployment/celld/nginx.conf.example",
-    "remote.py": source.with_name("google-single-vm.remote.py"),
-    "worker.mjs": source.with_name("google-single-vm.worker.mjs"),
+    "remote.py": source.with_name("single-vm.remote.py"),
+    "worker.mjs": source.with_name("single-vm.worker.mjs"),
     "native-release.tar.gz": ledger_directory / "native-release.tar.gz",
 }
 for name, file in files.items():

@@ -1,0 +1,408 @@
+{
+  "status": "passed_for_recorded_scope",
+  "scope": "celld 0.6.2-seams.7 built and run on two ordinary EC2 instances with S3 storage: single-node service and HTTPS boundary, and live Yao claims under owner loss, TCP rejection and silent packet loss with Wallet Server 0.17.0; no browser contracts, Console, or production ingress",
+  "region": "ap-southeast-1",
+  "zone": "ap-southeast-1a",
+  "instanceType": "m7i.xlarge",
+  "image": "ami-0080f2c6aa4e378b7",
+  "imds": "IMDSv2 required, hop limit 1",
+  "runtime": {
+    "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+    "patchSha256": "df1dab7009abf9dc8bcbbb07f694ff96a5106235927bfef9a63d770d14736bc7",
+    "sourceArchiveSha256": "52fadca649043d81c91f00a8f7826275bcf8480646f6ecebbcfeb83b11a31fa8",
+    "executableSha256": "656e1f8dcc00f881060f6d9badb9cb8d7ceedd50f86fa78421728683c5539864",
+    "version": "celld 0.6.2-seams.7",
+    "profile": "release",
+    "platform": "linux",
+    "architecture": "x64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "buildCommand": ["cargo", "build", "--locked", "-p", "celld", "--bin", "celld", "--release"]
+  },
+  "runtimeNote": "Built on node-1 with build.mjs. The executable differs from the Google .7 build (4cd1f113...), so these results qualify this executable.",
+  "clippy": {
+    "command": [
+      "cargo",
+      "clippy",
+      "--release",
+      "--locked",
+      "-p",
+      "celld",
+      "--bin",
+      "celld",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exitCode": 0
+  },
+  "nativeReleaseSha256": "1d1bf37f8b35dfa84861adef787f2fed277af64718bacfc28eeed00636d9c259",
+  "walletServer": {
+    "package": "@seams/wallet-server",
+    "version": "0.17.0",
+    "source": "published npm package installed in seams-monorepo",
+    "packageSha256": "99e015992114437bbaeeca9979af6716238aee347aeaa95fe491052586b3921c",
+    "manifestSha256": "8ccdc056a634be2bde4c6b87f62d4d59b26de4fb344ca2c5a636c37409eba8bd"
+  },
+  "publicRevision": "751291b79f8c7c36131a950bf989afb28b6faad4",
+  "publicRevisionTag": "seams-cli-v0.17.0",
+  "singleVm": {
+    "status": "passed",
+    "node": "node-1",
+    "command": "python3 tests/e2e/celld/aws-single-vm.e2e.py .artifacts/celld-aws-r190q-20261021-368752 node-1",
+    "artifactDirectory": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/celld-aws-r190q-20261021-368752/single-vm-service-5mq3pp18",
+    "resultSha256": "bf2f98c860ed1458e0f9741a121182d8bfb15d501b1a73adba07aa4c8daa3dca",
+    "result": {
+      "startedAtUtc": "2026-10-21 10:51:26 UTC",
+      "status": "passed",
+      "scope": "single-node process supervision, HTTPS forwarding and body limits; synthetic object restart continuity",
+      "stage": "supervised-restarts",
+      "runtimeSha256": "656e1f8dcc00f881060f6d9badb9cb8d7ceedd50f86fa78421728683c5539864",
+      "nginxPackageVersion": "1.24.0-2ubuntu7.18",
+      "nginxSha256": "a24def283d640db0bcad3c81b0630a3444b3079f6c50c956c9bd39330eaca544",
+      "effectiveUnitSha256": "6ebd09cbb4276277b657a5f692e721805a545e4cf9b8362c744d93946dbd8ee1",
+      "initialService": {
+        "MainPID": "20987",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStatus": "0",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "trustedForwarding": {
+        "status": 200,
+        "body": "{\"url\":\"https://r190.test:8443/inspect\",\"bytes\":5}",
+        "tls": "TLSv1.3",
+        "certificateSha256": "d453bb0738a0b850c82a5720bd7d0d46b98aa1da0f0093fd7f926bcd31339d80"
+      },
+      "exactBodyLimit": {
+        "status": 200,
+        "bytes": 1048576
+      },
+      "oversizedBody": {
+        "status": 413,
+        "bytes": 1048577
+      },
+      "healthReadiness": [
+        {
+          "status": 200,
+          "at": 1792579893.2792017
+        }
+      ],
+      "operatorBoundary": {
+        "privateStatus": 200,
+        "publicStatus": 404
+      },
+      "acknowledgedCounter": {
+        "status": 200,
+        "body": "{\"count\":1}",
+        "tls": "TLSv1.3",
+        "certificateSha256": "d453bb0738a0b850c82a5720bd7d0d46b98aa1da0f0093fd7f926bcd31339d80"
+      },
+      "afterGracefulRestart": {
+        "MainPID": "21022",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStatus": "0",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "gracefulCounter": {
+        "response": {
+          "status": 200,
+          "body": "{\"count\":1}",
+          "tls": "TLSv1.3",
+          "certificateSha256": "d453bb0738a0b850c82a5720bd7d0d46b98aa1da0f0093fd7f926bcd31339d80"
+        },
+        "observations": [
+          {
+            "status": 200,
+            "at": 1792579909.4404924
+          }
+        ]
+      },
+      "freshAcknowledgedCounterBeforeCrash": {
+        "status": 200,
+        "body": "{\"count\":2}",
+        "tls": "TLSv1.3",
+        "certificateSha256": "d453bb0738a0b850c82a5720bd7d0d46b98aa1da0f0093fd7f926bcd31339d80"
+      },
+      "afterForcedRestart": {
+        "MainPID": "21048",
+        "Result": "success",
+        "NRestarts": "1",
+        "ExecMainStatus": "0",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "forcedCounter": {
+        "response": {
+          "status": 200,
+          "body": "{\"count\":2}",
+          "tls": "TLSv1.3",
+          "certificateSha256": "d453bb0738a0b850c82a5720bd7d0d46b98aa1da0f0093fd7f926bcd31339d80"
+        },
+        "observations": [
+          {
+            "status": 200,
+            "at": 1792579919.817026
+          }
+        ]
+      },
+      "cleanup": {
+        "r190-nginx-provider.service": {
+          "stopExitCode": 0
+        },
+        "r190-celld-provider.service": {
+          "stopExitCode": 0
+        },
+        "syntheticPrivateKey": "removed from input directory and VM configuration"
+      }
+    }
+  },
+  "yao": {
+    "owner-loss": {
+      "status": "passed",
+      "artifactDirectory": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/celld-aws-r190q-20261021-368752/aws-yao-4qrx8iod",
+      "resultSha256": "dae6c10e0dbd595db2199fad89b7a9a54b829a6d1aeccc711d9c25cb0055fecd",
+      "sourceHashes": {
+        "aws-yao.e2e.py": "ab46057bb0769695f273386a56c890f87ac1de3a7244c96f9d54e5b1daba6bc9",
+        "aws-yao.remote.py": "3b474dbe132afc4db4c17a6ebf1718a1ffaad97dc170bf911b766ce2147bc082",
+        "yao-peer-disconnect.e2e.py": "9a1e24b44a598c2e38f33883e239105e541f3eb0917ca77568bccc9cc0eaf2d0",
+        "prepare-yao.mjs": "11cd48d3831435bd2f4e5d0db260de0c569cad260161ac18bc59344002eca5b5",
+        "packaged-wallet.e2e.py": "230de8cfe562ff6e1e100132cccb50f880d8f93f9e2d08d27990aee6529634e7",
+        "prepare-wallet.mjs": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+        "render.mjs": "8c0480068e7b96407ec9162542bc50cacce9a83b34695ecbe8028d2c98d2d8e9",
+        "yao-peer-disconnect-proxy.mjs": "e682c890d4c3a84090058ba7417bb0d174975c5733cb4748e481a0ca9952cae8",
+        "test-private-d1.mjs": "51a0e37626031c22c0e78b54afd2e0070ee6979ca6a6e51604eae0974ec1cfe2",
+        "cloudflare_private_d1_fixture.rs": "aac4847be834a93d6509ff6e7b76ba0b9c26dccbfd3ca0cff0dbb5d78691ff30"
+      },
+      "deploymentArchiveSha256": "4af727a6545d0c2e3d66e16b0dfb1f55223d43dc03095e82b01fb43076694e97",
+      "nodes": [
+        {
+          "kind": "node-1",
+          "instance": "i-0731eba84f31fca83",
+          "privateIp": "172.31.32.201",
+          "machine": {
+            "instanceType": "m7i.xlarge",
+            "zone": "ap-southeast-1a",
+            "cpu": {
+              "CoreCount": 2,
+              "ThreadsPerCore": 2
+            },
+            "platform": "Linux/UNIX"
+          }
+        },
+        {
+          "kind": "node-2",
+          "instance": "i-0f02d526ee150923b",
+          "privateIp": "172.31.41.78",
+          "machine": {
+            "instanceType": "m7i.xlarge",
+            "zone": "ap-southeast-1a",
+            "cpu": {
+              "CoreCount": 2,
+              "ThreadsPerCore": 2
+            },
+            "platform": "Linux/UNIX"
+          }
+        }
+      ],
+      "ownersBeforeFault": {
+        "a": {
+          "addr": "172.31.32.201:19081",
+          "epoch": 1
+        },
+        "b": {
+          "addr": "172.31.41.78:19081",
+          "epoch": 1
+        }
+      },
+      "faultUpperBoundMs": 2922,
+      "ceremonyTimeoutMs": 15000,
+      "interruptedExecution": {
+        "status": "recoverable_failure",
+        "code": "service_unavailable",
+        "retry_after_ms": 1000
+      },
+      "independentWalletCompletedAfterFault": true,
+      "survivorRestarts": "0",
+      "finalInstanceStates": ["stopped", "stopped"],
+      "remainingPeerRules": [],
+      "tunnelsRefused": true,
+      "cleanupErrors": [],
+      "killedOwnerExecMainStatus": "9",
+      "replacementOwner": {
+        "addr": "172.31.32.201:19081",
+        "epoch": 2
+      }
+    },
+    "peer-partition": {
+      "status": "passed",
+      "artifactDirectory": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/celld-aws-r190q-20261021-368752/aws-yao-50cmmdyh",
+      "resultSha256": "a21f3ceff95692a64241361657a6b1c1502c4f1ea7f2ff40d9e38ca041eada18",
+      "sourceHashes": {
+        "aws-yao.e2e.py": "ab46057bb0769695f273386a56c890f87ac1de3a7244c96f9d54e5b1daba6bc9",
+        "aws-yao.remote.py": "3b474dbe132afc4db4c17a6ebf1718a1ffaad97dc170bf911b766ce2147bc082",
+        "yao-peer-disconnect.e2e.py": "9a1e24b44a598c2e38f33883e239105e541f3eb0917ca77568bccc9cc0eaf2d0",
+        "prepare-yao.mjs": "11cd48d3831435bd2f4e5d0db260de0c569cad260161ac18bc59344002eca5b5",
+        "packaged-wallet.e2e.py": "230de8cfe562ff6e1e100132cccb50f880d8f93f9e2d08d27990aee6529634e7",
+        "prepare-wallet.mjs": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+        "render.mjs": "8c0480068e7b96407ec9162542bc50cacce9a83b34695ecbe8028d2c98d2d8e9",
+        "yao-peer-disconnect-proxy.mjs": "e682c890d4c3a84090058ba7417bb0d174975c5733cb4748e481a0ca9952cae8",
+        "test-private-d1.mjs": "51a0e37626031c22c0e78b54afd2e0070ee6979ca6a6e51604eae0974ec1cfe2",
+        "cloudflare_private_d1_fixture.rs": "aac4847be834a93d6509ff6e7b76ba0b9c26dccbfd3ca0cff0dbb5d78691ff30"
+      },
+      "deploymentArchiveSha256": "8fa584574c98f44d48a0883affb00f1c415eeddbb608be981c00c7e80523506e",
+      "nodes": [
+        {
+          "kind": "node-1",
+          "instance": "i-0731eba84f31fca83",
+          "privateIp": "172.31.32.201",
+          "machine": {
+            "instanceType": "m7i.xlarge",
+            "zone": "ap-southeast-1a",
+            "cpu": {
+              "CoreCount": 2,
+              "ThreadsPerCore": 2
+            },
+            "platform": "Linux/UNIX"
+          }
+        },
+        {
+          "kind": "node-2",
+          "instance": "i-0f02d526ee150923b",
+          "privateIp": "172.31.41.78",
+          "machine": {
+            "instanceType": "m7i.xlarge",
+            "zone": "ap-southeast-1a",
+            "cpu": {
+              "CoreCount": 2,
+              "ThreadsPerCore": 2
+            },
+            "platform": "Linux/UNIX"
+          }
+        }
+      ],
+      "ownersBeforeFault": {
+        "a": {
+          "addr": "172.31.32.201:19081",
+          "epoch": 1
+        },
+        "b": {
+          "addr": "172.31.41.78:19081",
+          "epoch": 1
+        }
+      },
+      "faultUpperBoundMs": 2488,
+      "ceremonyTimeoutMs": 15000,
+      "interruptedExecution": {
+        "status": "recoverable_failure",
+        "code": "service_unavailable",
+        "retry_after_ms": 1000
+      },
+      "independentWalletCompletedAfterFault": true,
+      "survivorRestarts": "0",
+      "finalInstanceStates": ["stopped", "stopped"],
+      "remainingPeerRules": [],
+      "tunnelsRefused": true,
+      "cleanupErrors": [],
+      "partitionRefusal": {
+        "status": 500,
+        "body": "Worker failed: rejected: DurableObjectRoutingError: The Durable Object owner is currently unreachable [at __durableObjectRoutingError (<anonymous>:2055:12) <- at invoke (<anonymous>:5196:30) <- at async Proxy.doFetch (<anonymous>:5246:30)]"
+      },
+      "partitionHeldMs": 20003,
+      "filteredPackets": 76,
+      "ownersUnchangedDuringPartition": true
+    },
+    "silent-partition": {
+      "status": "passed",
+      "artifactDirectory": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/celld-aws-r190q-20261021-368752/aws-yao-viqwpqw7",
+      "resultSha256": "33a8a174d9e9d02de35f4cbdd029cc544ac950c602d8de6242b5c715ed5cb8ea",
+      "sourceHashes": {
+        "aws-yao.e2e.py": "ab46057bb0769695f273386a56c890f87ac1de3a7244c96f9d54e5b1daba6bc9",
+        "aws-yao.remote.py": "3b474dbe132afc4db4c17a6ebf1718a1ffaad97dc170bf911b766ce2147bc082",
+        "yao-peer-disconnect.e2e.py": "9a1e24b44a598c2e38f33883e239105e541f3eb0917ca77568bccc9cc0eaf2d0",
+        "prepare-yao.mjs": "11cd48d3831435bd2f4e5d0db260de0c569cad260161ac18bc59344002eca5b5",
+        "packaged-wallet.e2e.py": "230de8cfe562ff6e1e100132cccb50f880d8f93f9e2d08d27990aee6529634e7",
+        "prepare-wallet.mjs": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+        "render.mjs": "8c0480068e7b96407ec9162542bc50cacce9a83b34695ecbe8028d2c98d2d8e9",
+        "yao-peer-disconnect-proxy.mjs": "e682c890d4c3a84090058ba7417bb0d174975c5733cb4748e481a0ca9952cae8",
+        "test-private-d1.mjs": "51a0e37626031c22c0e78b54afd2e0070ee6979ca6a6e51604eae0974ec1cfe2",
+        "cloudflare_private_d1_fixture.rs": "aac4847be834a93d6509ff6e7b76ba0b9c26dccbfd3ca0cff0dbb5d78691ff30"
+      },
+      "deploymentArchiveSha256": "630fad25e4cc35417d62d32b130f76e9a16401e98e92ac545a098a011d5ca7bd",
+      "nodes": [
+        {
+          "kind": "node-1",
+          "instance": "i-0731eba84f31fca83",
+          "privateIp": "172.31.32.201",
+          "machine": {
+            "instanceType": "m7i.xlarge",
+            "zone": "ap-southeast-1a",
+            "cpu": {
+              "CoreCount": 2,
+              "ThreadsPerCore": 2
+            },
+            "platform": "Linux/UNIX"
+          }
+        },
+        {
+          "kind": "node-2",
+          "instance": "i-0f02d526ee150923b",
+          "privateIp": "172.31.41.78",
+          "machine": {
+            "instanceType": "m7i.xlarge",
+            "zone": "ap-southeast-1a",
+            "cpu": {
+              "CoreCount": 2,
+              "ThreadsPerCore": 2
+            },
+            "platform": "Linux/UNIX"
+          }
+        }
+      ],
+      "ownersBeforeFault": {
+        "a": {
+          "addr": "172.31.32.201:19081",
+          "epoch": 1
+        },
+        "b": {
+          "addr": "172.31.41.78:19081",
+          "epoch": 1
+        }
+      },
+      "faultUpperBoundMs": 2697,
+      "ceremonyTimeoutMs": 15000,
+      "interruptedExecution": {
+        "status": "recoverable_failure",
+        "code": "service_unavailable",
+        "retry_after_ms": 1000
+      },
+      "independentWalletCompletedAfterFault": true,
+      "survivorRestarts": "0",
+      "finalInstanceStates": ["stopped", "stopped"],
+      "remainingPeerRules": [],
+      "tunnelsRefused": true,
+      "cleanupErrors": [],
+      "partitionRefusal": {
+        "status": 500,
+        "body": "Worker failed: rejected: DurableObjectRoutingError: The Durable Object owner is currently unreachable [at __durableObjectRoutingError (<anonymous>:2055:12) <- at invoke (<anonymous>:5196:30) <- at async Proxy.doFetch (<anonymous>:5246:30)]"
+      },
+      "partitionHeldMs": 20005,
+      "filteredPackets": 271,
+      "ownersUnchangedDuringPartition": true,
+      "heldReplyReleasedDuringPartition": true
+    }
+  },
+  "setupFailures": [
+    "EC2 refused the first launch with PendingVerification for the new account; the retry minutes later succeeded.",
+    "The first single-VM run failed at deploy-probe: celld deploy ran without AWS_REGION and addressed us-east-1. environment_or_infrastructure_failure in the test helper; single-vm.remote.py now exports the ledger region."
+  ],
+  "limitations": [
+    "Ordinary instances only. Singapore offers no SEV-SNP instance types.",
+    "The 16 selected browser contracts did not run on AWS. Their Google controller was never committed.",
+    "No S3 IAM denial check, backup restore, Console, or public certificate and ingress on AWS.",
+    "Both nodes share one availability zone. Cross-zone peers, release promotion and upgrade qualification remain open."
+  ]
+}

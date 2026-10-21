@@ -69,7 +69,8 @@ A forced node kill also preserves the tenant-root result after lease expiry and 
 The browser run uses one process and an S3 emulator. It does not establish distributed takeover.
 Separate real-GCS primitive checks pass on Google ordinary and Confidential VMs. They also cover denied bucket access.
 Broader factor, revocation, relocation, refresh, and retirement behavior remains open.
-AWS is outside the current scope. Full cloud Wallet, managed uploads, and distributed deployment remain open.
+An EC2 build of `.7` passes the single-VM and two-node Yao fault checks on AWS with S3. See [AWS EC2 evidence](evidence/aws-ec2.json).
+Full cloud Wallet, managed uploads, and distributed deployment remain open.
 No latency benefit or production security claim follows from this local proof.
 
 ## Build

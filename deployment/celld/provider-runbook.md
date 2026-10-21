@@ -16,7 +16,10 @@ Both VMs stop with no remaining temporary peer rules. Shared storage stays avail
 See [the `.7` runtime evidence](evidence/websocket-passthrough.json).
 The broader distributed lifecycle matrix, release promotion, and live cutover checks remain open.
 See [final Google package evidence](evidence/google-wallet-final-packages.json) and [earlier evidence and limitations](evidence/google-wallet.json).
-AWS qualification is outside the current scope. The deleted project `eigen-413918` must not be used.
+On AWS, a `.7` executable built on EC2 passes on two ordinary `m7i.xlarge` instances in `ap-southeast-1` with S3 storage.
+It passes the single-VM check and timed Yao owner loss, TCP rejection and silent packet loss with Wallet Server 0.17.0.
+See [AWS EC2 evidence](evidence/aws-ec2.json). The browser contracts, S3 denial, Console and SEV-SNP remain open on AWS.
+The deleted project `eigen-413918` must not be used.
 Qualification resources remain task-owned and tracked under the private `.artifacts` directory.
 
 ## Shared deployment
@@ -177,6 +180,70 @@ Keep the Worker artifacts, bindings, application secrets, and acceptance expecta
 Record the project, zone, machine type, CPU platform, image, TEE technology, runtime digest, and acceptance results.
 This test establishes compatibility with that Confidential VM configuration only.
 Attestation-controlled key release requires a separate design and test. See [Confidential VM attestation](https://docs.cloud.google.com/confidential-computing/confidential-vm/docs/attestation).
+
+## AWS EC2
+
+Use region `ap-southeast-1` and one subnet in `ap-southeast-1a`. Both qualification nodes use `m7i.xlarge`
+and the current Canonical Ubuntu 24.04 x86-64 image from the public SSM parameter.
+The three buckets have the same roles as in the Google fleet: fleet, A backup and B backup.
+An instance role grants object access to those three buckets only. Require IMDSv2 with a hop limit of 1.
+
+celld reads the instance-role credentials itself. Set `AWS_REGION` for the service and for every `celld` command.
+Without it, `celld deploy` addresses `us-east-1` and fails with `Received redirect without LOCATION`.
+Keep `S3_ENDPOINT` and `AWS_ENDPOINT_URL` unset. Those variables belong to the emulator runs only.
+
+The security group admits SSH from the operator address only. It has no standing rule for the peer port.
+The Yao driver opens TCP 19081 between the two private addresses for one run and revokes the rule afterwards.
+Singapore offers no AMD SEV-SNP instance types. The AWS run therefore covers ordinary instances only.
+
+## Minimal AWS resource setup
+
+Use a unique task identifier. It names the buckets, role, key pair and security group.
+Tag every resource with it. Build the runtime on one node with [build.mjs](build.mjs) and the pinned toolchain.
+Install the same executable on both nodes.
+
+```sh
+export AWS_REGION=ap-southeast-1 TASK=celld-aws-TASK_ID
+for kind in fleet backup-a backup-b; do
+  aws s3api create-bucket --bucket "$TASK-$kind" --create-bucket-configuration LocationConstraint=$AWS_REGION
+  aws s3api put-public-access-block --bucket "$TASK-$kind" --public-access-block-configuration \
+    BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+done
+
+# EC2_TRUST_POLICY lets ec2.amazonaws.com assume the role.
+# BUCKET_POLICY allows ListBucket on the three buckets and Get/Put/Delete/AbortMultipartUpload on their objects.
+aws iam create-role --role-name "$TASK" --assume-role-policy-document file://EC2_TRUST_POLICY
+aws iam put-role-policy --role-name "$TASK" --policy-name buckets --policy-document file://BUCKET_POLICY
+aws iam create-instance-profile --instance-profile-name "$TASK"
+aws iam add-role-to-instance-profile --instance-profile-name "$TASK" --role-name "$TASK"
+
+aws ec2 import-key-pair --key-name "$TASK" --public-key-material fileb://RESOURCE_DIRECTORY/ssh-key.pub
+GROUP=$(aws ec2 create-security-group --group-name "$TASK" --description "$TASK" \
+  --vpc-id VPC_ID --query GroupId --output text)
+aws ec2 authorize-security-group-ingress --group-id "$GROUP" --protocol tcp --port 22 --cidr OPERATOR_IP/32
+
+aws ec2 run-instances --count 2 --instance-type m7i.xlarge --subnet-id SUBNET_ID \
+  --image-id resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id \
+  --security-group-ids "$GROUP" --key-name "$TASK" --iam-instance-profile "Name=$TASK" \
+  --metadata-options HttpTokens=required,HttpEndpoint=enabled,HttpPutResponseHopLimit=1 \
+  --block-device-mappings 'DeviceName=/dev/sda1,Ebs={VolumeSize=60,VolumeType=gp3,Encrypted=true}'
+```
+
+Record the account, region, security group, buckets, and both instance IDs in `RESOURCE_DIRECTORY/resources.json`.
+Use `"provider": "aws"` and a `nodes` list of `{kind, instance}` entries.
+Place `runtime-build.json`, `native-release.tar.gz` and the SSH key beside it, as for the Google ledger.
+Each node needs `python3`, `iptables`, `iproute2`, the AWS CLI and the verified runtime at `/opt/seams/celld`.
+
+```sh
+python3 tests/e2e/celld/aws-single-vm.e2e.py RESOURCE_DIRECTORY node-1
+python3 tests/e2e/celld/aws-yao.e2e.py RESOURCE_DIRECTORY WALLET_SERVER_PACKAGE WALLET_CHECKOUT owner-loss
+```
+
+The AWS drivers mirror the Google drivers. Only the provider operations differ.
+SSH and SCP replace `gcloud compute`, and S3 replaces GCS.
+A temporary security-group rule replaces the temporary firewall rules and tags.
+The Yao driver starts both instances and stops them again during cleanup.
+A new account can refuse its first launch with `PendingVerification`. On 2026-10-21 this cleared within minutes.
 
 ## Required provider evidence
 

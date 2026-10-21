@@ -1,9 +1,10 @@
-"""Check the committed single-node service and HTTPS boundary on a task-owned VM."""
+"""Check the committed single-node service and HTTPS boundary on a task-owned Google or EC2 VM."""
 
 import hashlib
 from datetime import datetime, timezone
 import http.client
 import json
+import os
 from pathlib import Path
 import socket
 import ssl
@@ -16,6 +17,8 @@ import urllib.request
 
 root = Path(sys.argv[1]).resolve()
 inputs = json.loads((root / "inputs.json").read_text())
+if "region" in inputs:
+    os.environ["AWS_REGION"] = inputs["region"]
 unit = "r190-celld-provider.service"
 proxy_unit = "r190-nginx-provider.service"
 state = "celld-provider-" + inputs["id"]
@@ -107,7 +110,10 @@ try:
     effective = effective.replace("/etc/seams/celld.env", "/etc/seams/r190-celld-provider.env")
     effective = effective.replace("/var/lib/celld", "/var/lib/" + state).replace("StateDirectory=celld", "StateDirectory=" + state)
     (root / "effective.service").write_text(effective)
-    (root / "runtime.env").write_text("CELLD_BUCKET=" + inputs["bucket"] + "\n")
+    environment = "CELLD_BUCKET=" + inputs["bucket"] + "\n"
+    if "region" in inputs:
+        environment += "AWS_REGION=" + inputs["region"] + "\n"
+    (root / "runtime.env").write_text(environment)
     run(["sudo", "install", "-m", "600", str(root / "runtime.env"), "/etc/seams/r190-celld-provider.env"], "install-environment")
     run(["sudo", "install", "-m", "644", str(root / "effective.service"), "/etc/systemd/system/" + unit], "install-unit")
     record["effectiveUnitSha256"] = sha256(root / "effective.service")

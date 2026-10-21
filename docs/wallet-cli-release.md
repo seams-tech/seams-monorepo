@@ -17,9 +17,9 @@ verifies the manifest signature against the release root compiled into the binar
 
 The private workflow reads the public build with its own workflow token: the public
 repository is readable without a separate credential. The signing key never leaves the
-`release-signing` environment. The signed manifest is public data; the sign job prints it
-as base64 between `BEGIN SEAMS RELEASE MANIFEST BASE64` and `END SEAMS RELEASE MANIFEST
-BASE64`, with its SHA-256.
+`release-signing` environment. The signed manifest is public data. The sign job saves it
+as the `seams-cli-release-manifest-<version>-<public-revision>` artifact and records its
+SHA-256 in the job summary. Artifact delivery avoids GitHub's log secret masking.
 
 ## Steps
 
@@ -27,8 +27,9 @@ BASE64`, with its SHA-256.
    `Cargo.lock`) in `seams-wallet`, merge to `main`, and wait for `Build seams CLI` to pass.
 2. Dispatch the private workflow on `main`:
    `gh workflow run release-seams-cli.yml --ref main -f release_version=<v> -f public_revision=<sha> -f public_build_run_id=<run>`.
-3. Download the public build artifacts of that run into an empty folder, decode the
-   manifest from the sign job log, and check its SHA-256.
+3. Download the public build artifacts of that run into an empty folder. Download the
+   signed manifest artifact from the private signing run, then check its SHA-256
+   against the job summary.
 4. Verify each binary, the SBOM and the notices with the matching native binary:
    `seams-wallet-aarch64-apple-darwin release verify --manifest seams-release-manifest.json --artifact <file>`.
    Also confirm that an altered byte fails.

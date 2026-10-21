@@ -172,10 +172,15 @@ jobs:
             --manifest dist/seams-release-manifest.json \
             --artifact dist/THIRD_PARTY_NOTICES.md
 
-      # The signed manifest is public. The owner's account creates the
-      # seams-wallet release from it and the public build, and publishes the
-      # npm launcher (docs/wallet-cli-release.md).
-      - name: Print signed manifest
+      - name: Save signed manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: seams-cli-release-manifest-${{ inputs.release_version }}-${{ inputs.public_revision }}
+          path: dist/seams-release-manifest.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Record signed manifest digest
         run: |
           set -euo pipefail
           digest="$(sha256sum dist/seams-release-manifest.json | cut -d' ' -f1)"
@@ -185,7 +190,3 @@ jobs:
             echo "SHA-256 \`${digest}\`, public revision \`${SEAMS_PUBLIC_REVISION}\`, build run ${SEAMS_PUBLIC_BUILD_RUN_ID}."
           } >> "$GITHUB_STEP_SUMMARY"
           echo "seams-release-manifest.json sha256 ${digest}"
-          echo "BEGIN SEAMS RELEASE MANIFEST BASE64"
-          base64 -w0 dist/seams-release-manifest.json
-          echo
-          echo "END SEAMS RELEASE MANIFEST BASE64"

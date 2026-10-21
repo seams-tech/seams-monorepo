@@ -2,6 +2,7 @@ import React from 'react';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import './Footer.css';
 import SeamsWordmark from './icons/SeamsWordmark';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 type FooterLink = {
   label: string;
@@ -65,7 +66,7 @@ const footerGroups: FooterGroup[] = [
       { label: 'About', to: '/company/' },
       { label: 'Blog', to: '/company/#blog' },
       { label: 'Pricing', to: '/pricing/' },
-      { label: 'Contact Sales', to: '/contact/' },
+      { label: 'Contact Sales', to: CONTACT_LINK_TARGET },
     ],
   },
 ];

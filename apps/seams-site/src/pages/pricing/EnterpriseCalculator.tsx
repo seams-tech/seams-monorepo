@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* Published rates from docs/wallet-saas/pricing.md. Enterprise prices are
    negotiated, so the estimate applies only its published floors. */
@@ -125,7 +126,7 @@ function Range(props: {
 
 export function EnterpriseCalculator(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
-  const contactProps = linkProps('/contact/');
+  const contactProps = linkProps(CONTACT_LINK_TARGET);
   const [userStep, setUserStep] = React.useState(USER_STEPS.indexOf(100_000));
   const [perDay, setPerDay] = React.useState(10);
   const usersId = React.useId();

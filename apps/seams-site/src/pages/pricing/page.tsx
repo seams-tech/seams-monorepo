@@ -7,6 +7,7 @@ import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { EnterpriseCalculator } from './EnterpriseCalculator';
 import '@/styles/h2.css';
 import './styles.css';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 type PlanId = 'free' | 'growth' | 'enterprise';
 
@@ -66,7 +67,7 @@ const plans: readonly Plan[] = [
       'Signatures from $0.03 per 1,000',
       'Rollout planning with our team',
     ],
-    cta: { label: 'Contact sales', to: '/contact/' },
+    cta: { label: 'Contact sales', to: CONTACT_LINK_TARGET },
   },
 ];
 

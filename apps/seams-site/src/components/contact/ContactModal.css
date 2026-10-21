@@ -1,38 +1,81 @@
-/* ---------- headline left, form right ---------- */
+/* ---------- the modal: a white panel over a dimmed page ---------- */
 
-.contact-split {
+/* the dialog carries .h2-page for the palette; it is not a full page */
+.h2-page.contact-modal {
+  width: min(600px, calc(100vw - 32px));
+  max-width: none;
+  min-height: 0;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--h2-radius-card);
+  background: var(--h2-bg);
+  overflow: auto;
+  overscroll-behavior: contain;
+  box-shadow:
+    0 2px 6px rgba(10, 10, 10, 0.12),
+    0 24px 60px -12px rgba(10, 10, 10, 0.35);
+}
+
+.contact-modal::backdrop {
+  background: rgba(10, 10, 10, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+html:has(.contact-modal[open]) {
+  overflow: hidden;
+}
+
+.contact-modal__panel {
+  position: relative;
+  padding: 32px 28px 28px;
+}
+
+.contact-modal__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  gap: 28px 58px;
-  align-items: start;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--h2-graphite);
+  cursor: pointer;
 }
 
-.contact-split__kicker {
-  margin-bottom: 14px;
+@media (hover: hover) and (pointer: fine) {
+  .contact-modal__close:hover {
+    background: var(--h2-taupe);
+  }
 }
 
-.contact-split__title {
-  font-size: clamp(29px, 3.25vw, 41.5px);
+.contact-modal__close:focus-visible {
+  outline: 2px solid var(--h2-ink);
+  outline-offset: 2px;
 }
 
-.contact-split__copy {
-  margin: 16px 0 0;
-  max-width: 432px;
-  font-size: var(--h2-text-title);
+.contact-modal__title {
+  margin: 0;
+  padding-right: 40px;
+  font-size: clamp(26px, 3vw, 32px);
+}
+
+.contact-modal__copy {
+  margin: 10px 0 22px;
+  font-size: 14px;
   line-height: 1.55;
   color: var(--h2-smoke);
 }
 
-.contact-split__copy a {
+.contact-modal__copy a {
   color: var(--h2-ink);
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-@media (max-width: 900px) {
-  .contact-split {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* ---------- form: a taupe panel, like the site's cards ---------- */
@@ -110,6 +153,10 @@
 }
 
 @media (max-width: 600px) {
+  .contact-modal__panel {
+    padding: 24px 16px 16px;
+  }
+
   .contact-form {
     padding: 20px;
   }

@@ -13,8 +13,9 @@ and refuses abuse with a rate limit and spam checks.
 
 ## Current state
 
-- The contact page (`apps/seams-site/src/pages/contact/page.tsx`) opens a
-  `mailto:` link. Since `21b691b8`, it also shows the prepared message with copy
+- The contact form is a modal on every company site page
+  (`apps/seams-site/src/components/contact/ContactModal.tsx`, opened by a
+  `#contact` link). It opens a `mailto:` link. Since `21b691b8`, it also shows the prepared message with copy
   buttons, because a `mailto:` link does nothing without an email app.
 - No Console route accepts a request without a session. Every route in
   `packages/console-server-ts/src/router/consoleRouteDefinitions.ts` has a

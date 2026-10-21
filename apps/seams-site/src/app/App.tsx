@@ -3,6 +3,8 @@ import React from 'react';
 import { useSiteTheme } from '@/shared/hooks/useSiteTheme';
 import { normalizePathname } from '@/app/router/siteRouting';
 import { PAPER_LIGHT_COLORS } from '@/context/app-themes';
+import { ContactModalHost } from '@/components/contact/ContactModal';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 const HomePage = React.lazy(() =>
   import('@/pages/home2/page').then((module) => ({ default: module.HomePage })),
@@ -19,9 +21,6 @@ const PricingPage = React.lazy(() =>
 const CompanyPage = React.lazy(() =>
   import('@/pages/company/page').then((module) => ({ default: module.CompanyPage })),
 );
-const ContactPage = React.lazy(() =>
-  import('@/pages/contact/page').then((module) => ({ default: module.ContactPage })),
-);
 const NotFoundPage = React.lazy(() =>
   import('@/pages/not-found/page').then((module) => ({ default: module.NotFoundPage })),
 );
@@ -33,6 +32,15 @@ function WalletProductRedirect(): React.JSX.Element {
     window.location.replace(walletSiteOrigin);
   }, []);
   return <></>;
+}
+
+/* The contact page became a modal; old links open it over the home page. */
+function ContactRedirect(): null {
+  React.useEffect(() => {
+    window.history.replaceState(window.history.state, '', `/${CONTACT_LINK_TARGET}`);
+    window.dispatchEvent(new Event('site:navigate'));
+  }, []);
+  return null;
 }
 
 function DocumentThemeTokenBridge(): null {
@@ -61,6 +69,8 @@ function usePathname(): string {
     const onChange = () => setPathname(read());
     window.addEventListener('popstate', onChange);
     window.addEventListener('site:navigate', onChange as EventListener);
+    // a redirect can change the URL before this listener is attached
+    onChange();
     return () => {
       window.removeEventListener('popstate', onChange);
       window.removeEventListener('site:navigate', onChange as EventListener);
@@ -88,7 +98,7 @@ export const App: React.FC = () => {
       case '/company':
         return <CompanyPage />;
       case '/contact':
-        return <ContactPage />;
+        return <ContactRedirect />;
       default:
         return <NotFoundPage />;
     }
@@ -98,6 +108,7 @@ export const App: React.FC = () => {
     <>
       <DocumentThemeTokenBridge />
       <React.Suspense fallback={null}>{page}</React.Suspense>
+      <ContactModalHost />
     </>
   );
 };

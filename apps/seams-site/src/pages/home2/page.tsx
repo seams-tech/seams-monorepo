@@ -30,6 +30,7 @@ import {
   H2Security,
 } from '@/components/h2/sections';
 import '@/styles/h2.css';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* Umbrella front page: a simple headline, then a paged two-panel scene band
    showing the products (mock placeholders with the same footprint as the real
@@ -284,7 +285,7 @@ const heroScenes: HeroScene[] = [
 function HomeHeroCurrent(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const startProps = linkProps('/docs/concepts/');
-  const contactProps = linkProps('/contact/');
+  const contactProps = linkProps(CONTACT_LINK_TARGET);
   const agentsProps = linkProps('/ecommerce');
   const walletProps = linkProps('/wallet');
   const [page, setPage] = React.useState(0);
@@ -513,7 +514,7 @@ function renderAgentMediaCard(
 function HomeHeroMedia(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const startProps = linkProps('/docs/concepts/');
-  const contactProps = linkProps('/contact/');
+  const contactProps = linkProps(CONTACT_LINK_TARGET);
   const agentsProps = linkProps('/ecommerce');
   const [activeMediaItemId, setActiveMediaItemId] =
     React.useState<AgentMediaItemId>(defaultAgentMediaItemId);

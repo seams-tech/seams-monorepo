@@ -6,6 +6,7 @@ import { H2Footer } from '@/components/h2/sections';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import '@/styles/h2.css';
 import './styles.css';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 type Product = {
   title: string;
@@ -67,7 +68,7 @@ const principles: readonly Principle[] = [
 ];
 
 const links: readonly CompanyLink[] = [
-  { title: 'Contact', copy: 'Talk to the team', to: '/contact/', external: false },
+  { title: 'Contact', copy: 'Talk to the team', to: CONTACT_LINK_TARGET, external: false },
   {
     title: 'Documentation',
     copy: 'Concepts, guides, and the SDK reference',
@@ -154,7 +155,7 @@ export function CompanyPage(): React.JSX.Element {
               </p>
               <div className="h2-hero-simple__ctas">
                 <SiteLink
-                  to="/contact/"
+                  to={CONTACT_LINK_TARGET}
                   external={false}
                   className="h2-btn h2-btn--primary h2-btn--lg"
                 >

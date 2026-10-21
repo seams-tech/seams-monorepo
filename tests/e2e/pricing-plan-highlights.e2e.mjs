@@ -133,8 +133,10 @@ try {
     await expectSelection(mobile, 'free');
     await mobile.locator('#free').screenshot({ path: `${artifacts}/mobile-free.png` });
     await mobile.locator('#enterprise').tap();
-    await expect(mobile).toHaveURL(new RegExp('/contact/?$'));
-    await expect(mobile.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(mobile).toHaveURL(new RegExp('#contact$'));
+    await expect(
+      mobile.getByRole('dialog', { name: 'Tell us what you are building' }),
+    ).toBeVisible();
 
     await writeFile(
       `${artifacts}/result.json`,

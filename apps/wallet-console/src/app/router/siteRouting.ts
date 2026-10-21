@@ -44,7 +44,6 @@ export function resolveHref(target: string): string {
     case '/':
     case '/pricing':
     case '/company':
-    case '/contact':
     case '/ecommerce': {
       const base = SITE_LINKS.companyOrigin === '/' ? '' : SITE_LINKS.companyOrigin;
       return `${base}${toSiteAbsolutePath(target)}`;

@@ -12,6 +12,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import type { DropdownPane, SiteNavbarConfig } from '@seams-internal/site-navbar';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* The 'documentation' pane id historically maps to the "Products" trigger and
    vice versa; ids are kept stable so aria wiring and pane ordering don't churn. */
@@ -151,12 +152,12 @@ const aboutDropdownPane: DropdownPane = {
     {
       title: 'Support',
       description: 'Get help from the team',
-      to: '/contact/',
+      to: CONTACT_LINK_TARGET,
       icon: LifeBuoy,
       field: 'coral-tide',
     },
   ],
-  footerLinks: [{ label: 'Contact sales', to: '/contact/' }],
+  footerLinks: [{ label: 'Contact sales', to: CONTACT_LINK_TARGET }],
 };
 
 export const siteNavbarConfig: SiteNavbarConfig = {
@@ -173,7 +174,7 @@ export const siteNavbarConfig: SiteNavbarConfig = {
     {
       title: 'Talk to us',
       description: 'Plan pricing and deployment options with the Seams team',
-      to: '/contact/',
+      to: CONTACT_LINK_TARGET,
     },
   ],
 };

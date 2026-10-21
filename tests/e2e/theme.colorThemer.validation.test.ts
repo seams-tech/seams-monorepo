@@ -18,7 +18,6 @@ const ROUTES: RouteSpec[] = [
   { path: '/', readySelector: '#h2-home-title' },
   { path: '/pricing', readySelector: '#pricing-page-title' },
   { path: '/company', readySelector: '#company-page-title' },
-  { path: '/contact', readySelector: '#contact-page-title' },
   { path: '/wallet', readySelector: '#h2-hero-title' },
 ];
 
@@ -80,8 +79,8 @@ test.describe('Paper theme', () => {
   });
 
   test('keeps a visible keyboard focus indicator', async ({ page }) => {
-    await page.goto('/contact', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#contact-page-title')).toBeVisible();
+    await page.goto('/#contact', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#contact-modal-title')).toBeVisible();
 
     await page.getByRole('textbox', { name: 'Name' }).press('Tab');
     const focusStyle = await page.evaluate(readFocusedControlStyle);

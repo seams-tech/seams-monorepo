@@ -4,6 +4,7 @@ import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { H2Bento, H2Cases, H2Footer } from '@/components/h2/sections';
 import '@/styles/h2.css';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* Ecommerce Agents product page (ICP: commerce automation buyers). The
    workflow canvas in H2Cases is the hero visual placeholder until the
@@ -12,7 +13,7 @@ import '@/styles/h2.css';
 function EcommerceHero(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const startProps = linkProps('/docs/concepts/policy/mandates');
-  const contactProps = linkProps('/contact/');
+  const contactProps = linkProps(CONTACT_LINK_TARGET);
   const walletProps = linkProps('/wallet');
 
   return (

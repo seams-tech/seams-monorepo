@@ -27,6 +27,7 @@ import {
   type DemoThemeId,
 } from '@/context/app-themes';
 import '@/styles/h2.css';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* Shared section library for the h2 marketing pages (/, /wallet, /ecommerce).
    Every component renders inside a `.h2-page > .h2-col` wrapper and styles
@@ -1270,7 +1271,7 @@ export function H2Start(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const dashboardProps = linkProps('/dashboard');
   const docsProps = linkProps('/docs/concepts/');
-  const contactProps = linkProps('/contact/');
+  const contactProps = linkProps(CONTACT_LINK_TARGET);
   /* Which console screen sits in front. CSS `:has(:hover)` cannot express
      this: it only knows what the pointer is on *now*, so leaving either card
      snapped the stage back to its rest state and the right screen animated
@@ -1713,7 +1714,7 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
     links: [
       { label: 'About', to: '/company/' },
       { label: 'Blog', to: '/company/#blog' },
-      { label: 'Contact', to: '/contact/' },
+      { label: 'Contact', to: CONTACT_LINK_TARGET },
     ],
   },
 ];

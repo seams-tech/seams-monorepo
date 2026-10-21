@@ -1,7 +1,7 @@
 # Local VoiceID extension for MPC wallet signing
 
 Date: 2026-09-14
-Updated: 2026-09-16
+Updated: 2026-10-21
 Status: proposed extension; no VoiceID wallet factor or signing integration is
 implemented by this plan. Local gating and standalone remote admission are
 separate delivery stages.
@@ -25,6 +25,24 @@ part of this design.
 
 The MPC protocol and public wallet keys remain unchanged. New work belongs at
 the transaction-approval, local custody/access, and server-admission boundaries.
+
+## First MVP trust model
+
+Assume the user controls the device, its OS, and the signing runtime. Signing
+uses authority established on that device during wallet setup or through the
+existing device-linking flow. Linking requires scanning and approval from an
+authorized owner device. Voice approval cannot enroll an unauthorized device or
+replace wallet recovery, unlock, session authority, or server admission.
+
+The MVP checks the current enrolled speaker, usable audio, and explicit approval
+of the exact presented operation. It preserves operation expiry, cancellation,
+single consumption, and the wallet's existing authorization checks.
+
+Spoof detection and resistance to cloned or replayed speech are outside MVP
+acceptance. Camera evidence, authenticated capture, hardware attestation, and a
+new server-recognized VoiceID factor are later work. Protocol replay and reuse of
+an earlier approval remain rejected. Voice is a local approval interaction within
+existing device authority. This profile makes no spoof-resistance or liveness claim.
 
 ## Public extension and proprietary provider
 
@@ -177,16 +195,14 @@ transaction. Include the relevant asset, amount, destination, network, and fee
 bounds. Arbitrary contract calls require a supported trustworthy explanation;
 unknown or undecodable operations are denied by the initial allowlist.
 
-The starting wallet profile requires an explicit approval containing a short,
-fresh spoken cue tied to the current challenge. This reduces reuse of a cached
-generic approval. It adds listening time, which must be measured. The
-cryptographic nonce retains cryptographic entropy independently of the shorter
-spoken cue. Any later relaxed conversational profile needs its own evaluation.
+The starting wallet profile accepts an explicit approval or cancellation during
+the active prompt for the presented operation. It requires no random spoken cue
+or challenge-token recitation for spoof resistance. The pending request still
+carries its existing cryptographic operation binding, identity, and deadline.
 
-Local VoiceID checks the current speaker, approval content/cue, quality, spoofing
-signals, and supporting visual/source context. Current or recently observed
-presence can help attribution; it never supplies approval by itself. A prior
-robot command result cannot be reused for a wallet transaction.
+Local VoiceID checks the current enrolled speaker, approval content, and audio
+quality. AASIST/PAD and visual/source checks are outside the MVP approval path.
+A prior utterance or robot command result cannot approve a new wallet transaction.
 
 Collect approval only after the operation has been presented. Rejection,
 cancellation, ambiguity, timeout, insufficient speech, or a changed operation
@@ -259,9 +275,11 @@ A signed challenge proves participation of its key and binds a fresh response.
 It does not establish that a human spoke, that the microphone is genuine, or
 that the matcher was executed correctly.
 
-The controlled MVP trusts the selected native runtime and OS. Physical replay,
-cloned speech, nearby attackers, and misleading visual context remain in its
-evaluation scope. Full endpoint compromise is outside that MVP assurance claim.
+The controlled MVP assumes the user controls the authorized device, native
+runtime, and OS. Targeted acoustic replay, cloned speech, and endpoint compromise
+are outside its acceptance criteria. Ordinary speaker discrimination, recognition
+quality, and exact-operation lifecycle behavior remain in scope. Spoof resistance
+needs separate evaluation before any later profile claims it.
 
 For a server-recognized voice factor, select and document how the device enforces
 capture, template access, matching, approval binding, attempt limits, and key use.
@@ -296,11 +314,11 @@ existing biometric enclave or become a built-in Face ID modality. Platform
 feasibility is an explicit W2 gate. A browser may request the native approval
 flow, but a browser success flag cannot establish standalone voice admission.
 
-An unpredictable spoken cue helps against fixed recordings. It does not defeat
-live synthesis, relay, coercion, or compromised sensors by itself. Voice, PAD,
-visual timing, and source association retain independent uncertainty. An
-unqualified required check leads to denial or the existing explicit wallet
-authentication flow, with its actual method recorded accurately.
+Later spoof-resistant profiles may evaluate unpredictable spoken cues, PAD,
+visual timing, and source association. Each retains independent uncertainty and
+needs profile-specific evaluation. An unavailable or unqualified required check
+leads to denial or the existing explicit wallet authentication flow, with its
+actual method recorded accurately. The first MVP requires no PAD result.
 
 ## Implementation milestones
 
@@ -319,7 +337,7 @@ authentication flow, with its actual method recorded accurately.
       of private assets. Keep real model/provider evaluation in `seams-monorepo`.
 - [ ] Select the local trusted process boundary and how it exclusively controls
       the integration's signing entry point.
-- [ ] Set approval timeout, retry/rate limits, command/cue requirements, risk
+- [ ] Set approval timeout, retry/rate limits, approval/cancellation vocabulary, risk
       limits, and measurable acceptance criteria.
 
 Exit: a public extension contract and a private provider delivery boundary for
@@ -330,22 +348,29 @@ MPC behavior. No proprietary source is required to build or test the extension.
 
 - [ ] Use existing wallet authentication to prepare the native client's selected
       lane/session material. Do not add a VoiceID factor yet.
+- [ ] Require an authorized setup device or an owner-approved linked device.
+      Voice enrollment or approval cannot provision signing authority on another device.
 - [ ] Add the operation-bound challenge, deterministic summary, and pending
       approval lifecycle within the existing wallet workflow.
-- [ ] Adapt local VoiceID to the wallet's fresh approval/cue profile without
-      adding server challenges to ordinary robot interactions.
+- [ ] Adapt local VoiceID to the wallet's active approval profile without PAD,
+      random spoken cues, visual evidence, or authenticated sensor capture.
+      Keep wallet server challenges outside ordinary robot interactions.
 - [ ] Implement the optional public extension in `seams-wallet` and the private
       provider in `seams-monorepo`. Integrate the actual compiled native release
-      from local-plan L6; early development can use an explicit local build.
+      using local-plan L2 for the prototype. Clean-host distribution follows L6;
+      robot visual-context and spoof-detection milestones do not block W1.
 - [ ] Gate the actual client signing entry point; keep secret material and the
       reusable session handle inaccessible to the conversational caller.
 - [ ] Add exact-operation consumption, failure, cancellation, restart, and
       uncertain-outcome behavior.
+- [ ] Run an E2E scenario covering owner approval, another speaker, a changed
+      operation, expiry, cancellation, and duplicate approval delivery. Produce a
+      repeatable report with operation outcomes and timings, excluding biometric media.
 - [ ] Exercise the complete path on testnet and qualify the wallet-specific
       captures. A successful robot demo alone does not pass this gate.
-- [ ] Verify clean-host composition of exact extension/artifact releases without
-      private source access. Missing providers, unsupported versions/profiles,
-      cancellation, and artifact/bridge failure cannot bypass approval.
+- [ ] Verify the native provider against the public contract. Missing providers,
+      unsupported versions/profiles, cancellation, and artifact/bridge failure
+      cannot bypass approval. Clean-host distribution remains local-plan L6 work.
 
 Exit: every operation through the native integration needs fresh local approval
 and valid existing server authority. No claim of standalone VoiceID login or

@@ -3,6 +3,8 @@
 Date: 2026-09-16
 Status: proposed architecture; no virtual capture device, authenticated-capture
 protocol, or hardware-backed capture implementation exists yet.
+This work is deferred beyond the first user-controlled-device MVP. That MVP uses
+ordinary OS capture under the trust model in the local and wallet extension plans.
 
 Related plans:
 

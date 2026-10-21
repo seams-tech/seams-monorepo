@@ -1,7 +1,7 @@
 # Local VoiceID architecture and implementation plan
 
 Date: 2026-09-14
-Updated: 2026-09-16
+Updated: 2026-10-21
 Status: structure decisions, private Rust modules, domain types, and adapter
 contracts are in place, with boundary and compile-fail tests.
 The production runtime, host API, model adapters, and acceptance gates remain
@@ -16,7 +16,10 @@ Related plans:
 
 ## Product direction
 
-VoiceID helps a robot determine who spoke a command, whether that person is
+The first VoiceID MVP adds local spoken approval to an already authorized wallet
+on a user-controlled device. The wallet extension plan owns that integration.
+
+The broader robot product determines who spoke a command, whether that person is
 plausibly nearby, and whether the command can be attributed to that person in
 the current conversation. Voice analysis and available visual analysis run on
 the device. Raw audio, video, and biometric templates stay local.
@@ -38,19 +41,35 @@ never creates a general unlocked state.
 - Keep perception, command authorization, and physical safety as separate
   responsibilities.
 - Reuse useful audio components while replacing the old application lifecycle.
-- Wallet signing is an optional consumer addressed by its own plan.
-- Prototype the future authenticated hardware-capture boundary with a separate
+- The first MVP uses wallet signing under existing device/session authority,
+  addressed by its own plan. The perception engine stays independent of wallet types.
+- Prototype the later authenticated hardware-capture boundary with a separate
   macOS virtual capture device. Its simulated and Mac protected-key assurances
-  remain distinct from qualified hardware-protected capture.
+  remain distinct from qualified hardware-protected capture. This work does not
+  block the first MVP.
 - Develop the proprietary VoiceID engine and its provider implementation in
   `seams-monorepo/voiceId`; distribute versioned compiled native/WASM artifacts.
 - Keep the optional wallet extension and its minimal public provider contract in
   `seams-wallet`. Public SDK development requires no proprietary VoiceID source.
 
-### Proposed first delivery scope
+### First MVP scope — user-controlled device
 
-Start with one enrolled owner, English commands, one controlled indoor setting,
-one native device profile, and a small allowlist of low-risk robot interactions.
+Assume the user controls the device, its OS, and the local runtime. The device
+already has wallet signing authority through setup or the existing device-linking
+flow, which requires scanning and approval from an authorized owner device.
+VoiceID cannot provision another device, recover the wallet, or create signing authority.
+
+Start with one enrolled owner, English approval/cancellation commands, one native
+device profile, and a small transaction allowlist. Require current speaker matching,
+usable audio, and explicit approval after presenting the exact pending operation.
+Keep expiry, cancellation, operation binding, and existing wallet admission checks.
+
+Spoof detection, resistance to cloned or replayed speech, visual confirmation, and
+authenticated sensor capture are outside first-MVP acceptance. Retain AASIST as
+research tooling without loading it or requiring a passing PAD result in the MVP.
+Protocol replay and reuse of an earlier approval remain rejected by lifecycle checks.
+
+Later robot delivery adds low-risk interactions and visual/spatial context.
 Other people can be present; they remain unknown participants and can cause
 ambiguity. Simultaneous speech requires clarification rather than a best guess.
 
@@ -58,8 +77,8 @@ Use the existing Python package and model adapters as the evaluation baseline.
 The production engine is Rust, with a native shared library as the first artifact
 and explicitly provisioned runtime/model dependencies. The first development
 host is the current Apple Silicon Mac. Moonshine's native C API is the selected
-speech integration boundary; speaker/PAD backend choices and target-robot
-qualification remain open.
+speech integration boundary. The native speaker backend remains an MVP decision.
+PAD backend selection and target-robot qualification are later work.
 
 Keep execution direct, with bounded model work. Introduce process separation
 only where native-library isolation, cancellation, or the consumer boundary
@@ -67,9 +86,9 @@ requires it. A narrow public wallet extension is in scope for the integration;
 a general plugin framework, model-service mesh, and multi-device synchronization
 remain unnecessary. Browser WASM is a later, separately qualified delivery target.
 
-The product-scope assumptions remain provisional. L0 records deployment hardware,
-spoken language, action allowlist, and resource limits before they become release
-requirements. The structure decisions below are settled for this scaffold.
+L0 records the MVP capture profile, transaction allowlist, and resource limits.
+L0-L2 supply the local audio engine for wallet W0-W1. Robot hardware, visual
+context, spoof resistance, and authenticated capture do not block this first prototype.
 
 ## Guiding security principles
 
@@ -86,9 +105,10 @@ Evaluate three distinct claims: whether samples came through the expected
 sensor/processing path, whether the enrolled person spoke nearby, and whether
 that person authorized the exact command. A genuine microphone can capture a
 loudspeaker replay; a genuine camera can capture a screen showing a synthetic
-face. Sensor authentication leaves speaker, presentation-attack, visual/source
-association, and operation-specific intent checks necessary. A signed capture
-or a remembered presence observation never grants command authority by itself.
+face. Speaker matching and operation-specific intent checks remain necessary.
+Later spoof-resistant or visual profiles need their own evidence and evaluation.
+A signed capture or a remembered presence observation never grants command
+authority by itself.
 
 ### State the capture trust boundary explicitly
 
@@ -257,7 +277,7 @@ key enforcement are specified separately in the extension plan.
 | --- | --- |
 | Native capture | Acquire timestamped audio frames and camera frames when available. Preserve audio channel layout and report device/clock discontinuities. |
 | Utterance processing | Detect speech, stream transcription, identify utterance boundaries, and derive model input windows from the same captured source. |
-| Voice analysis | Assess quality, speaker similarity, and presentation-attack signals independently. Preserve uncertainty and model/calibration identity. |
+| Voice analysis | Assess quality and speaker similarity for the MVP. Later spoof-detection work remains independent. Preserve uncertainty and model/calibration identity. |
 | Visual context | Detect/track people, associate an enrolled face where supported, and maintain short-lived last-seen context. Treat face matching as probabilistic evidence. |
 | Spatial association | Relate audio direction to visual tracks using calibrated microphones, camera geometry, and robot pose where available. |
 | Attribution | Associate the current utterance with a participant using current voice and temporal/spatial context. Reject contradictory or ambiguous associations. |
@@ -287,9 +307,9 @@ device. On overflow, sequence gaps, device replacement, or clock reset, invalida
 affected observations and pending decisions. Do not silently stitch recordings
 across discontinuities.
 
-Transcription must use an actual incremental runtime API. Speaker and PAD models
-may evaluate bounded speech windows when enough current audio is available;
-they do not need to produce a result on every frame. Preserve shared capture and
+Transcription must use an actual incremental runtime API. Speaker matching may
+evaluate bounded speech windows when enough current audio is available;
+it does not need to produce a result on every frame. Preserve shared capture and
 utterance identities across all stages. A valid owner's earlier speech cannot
 authorize a different speaker's command later in the same buffer. Insufficient
 current speaker evidence requires a repeat or clarification.
@@ -301,9 +321,9 @@ zero memory while a timed-out native job still uses it. Test and document native
 library copies and best-effort cleanup limits rather than promising complete
 memory erasure.
 
-The existing energy-based speech detector, ECAPA integration, and research
-AASIST adapter are starting baselines. Their old recording lengths and
-thresholds are not release settings for conversational commands. Moonshine's
+The existing energy-based speech detector and ECAPA integration are starting
+baselines. Their old recording lengths and thresholds are not release settings
+for conversational commands. The AASIST adapter remains deferred research. Moonshine's
 old closed-set approval intent classifier is separate from the new robot
 command vocabulary.
 
@@ -408,18 +428,18 @@ authentication. Identity never overrides the robot's safety controller.
   Model downloading/updating is an explicit maintenance operation. Inference
   never silently downloads assets or calls a remote fallback.
 
-The MVP trusts the local OS, runtime, and configured sensor acquisition path.
-It evaluates physical replay and spoofing but does not claim resistance to a
-fully compromised endpoint or prove sensor provenance. Trusted hardware and
-sensor-path qualification are separate deployment decisions. Wallet use states
-its stronger or additional assumptions in the extension plan.
+The MVP assumes user control of the device, local OS, runtime, and configured
+sensor acquisition path. Spoof resistance and compromised-endpoint resistance are
+outside its acceptance criteria. It makes no sensor-origin or physical-liveness claim.
+Trusted hardware and sensor-path qualification are later deployment decisions.
+The wallet extension preserves existing device and session authority.
 
 ## Implementation sequence and exit gates
 
 ### L0 — Fix the first device and experiment contract
 
-- [ ] Select the actual robot/native host, OS, microphone channel access, camera,
-      playback reference, and robot pose interface. Record unavailable features.
+- [ ] Fix the MVP microphone and OS capture profile on the selected native host.
+      Robot array, camera, playback-reference, and pose qualification belong to later work.
 - [ ] Choose the first spoken language, owner setup, permitted commands, and supported
       audio-only behavior. Keep all initial actions low-risk.
 - [ ] Set measurable latency, memory, buffer, and operating-environment budgets.
@@ -447,13 +467,15 @@ Build on the retained adapters from the completed source cutover.
       attribution, enrollment, adapters, and consumers modules. Isolate native
       bindings from the portable module build.
 - [ ] Define capture, utterance, enrollment, stage-result, and command states.
+- [ ] Remove the mandatory PAD supporting gate from the scaffold's attribution
+      result before runtime implementation. Do not manufacture a passing PAD result
+      or add a spoof-detection bypass flag for the MVP.
 - [ ] Decouple retained PCM adapters from HTTP and old enrollment/phrase DTOs.
 - [ ] Preserve adapter, quality, aggregation, timeout, and cleanup tests.
 - [ ] Add a deterministic timestamped event-replay test input without making it
       a production sensor source or an alternative authorization path.
-- [ ] Implement the authenticated-capture domain and verifier according to the
-      macOS virtual capture-device plan. Keep raw OS capture, simulated evidence,
-      Mac protected-key evidence, and future hardware evidence distinct.
+- [ ] Keep MVP OS capture explicit at the adapter boundary. The authenticated-capture
+      domain and verifier belong to the later macOS virtual capture-device work.
 - [ ] Define engine/platform/consumer boundaries and coordinate the public
       wallet provider contract with W0. Keep wallet protocol types outside the
       perception core; wallet implementation does not block the robot slice.
@@ -465,10 +487,9 @@ Exit: model work and state tests run without the old TS application.
 ### L2 — Deliver the native audio vertical slice
 
 - [ ] Capture real PCM continuously with bounded buffers and discontinuity handling.
-- [ ] Exercise the audio slice through the separate macOS virtual capture device
-      and its evidence verifier. Treat this as protocol emulation, not proof of
-      hardware microphone origin.
-- [ ] Implement actual streaming transcription and per-utterance speaker/quality/PAD
+- [ ] Use the configured OS microphone through the validated capture adapter.
+      Require no separate capture process, signed evidence, or hardware-origin claim.
+- [ ] Implement actual streaming transcription and per-utterance speaker/quality
       assessment with independent states and bounded execution.
 - [ ] Verify loaded model/preprocessing/calibration artifacts against authenticated
       expected release identities before admitting inference; reject mismatches.
@@ -481,9 +502,8 @@ Exit: model work and state tests run without the old TS application.
 
 Exit: an enrolled owner can complete the audio slice on the selected device;
 stale results, unknown speakers, self-speech, and overload cannot trigger the
-test sink incorrectly. The old application has already been removed. This is an
-interim audio milestone; the conversational visual-context MVP also requires
-L3-L6.
+test sink incorrectly. This audio engine supports the first wallet prototype
+with W0-W1. The broader conversational robot product requires L3-L6.
 
 ### L3 — Add visual memory and source association
 
@@ -581,19 +601,19 @@ server-recognized wallet factor. Native delivery does not depend on L7.
 
 | Decision | Needed by |
 | --- | --- |
-| Actual device, array/channel access, camera, calibration and pose interfaces | L0; blocks hardware-specific capture/localization work. |
+| MVP microphone and OS capture profile | L0 on the selected Apple Silicon Mac. Robot array, camera, calibration, and pose interfaces belong to later hardware-specific work. |
 | Native structure | Selected: Rust 2024, Apple Silicon macOS development host, embedded shared library, Moonshine C API. Host API and real adapters remain steps 3/L2; release is L6. |
-| Speaker/PAD inference backends and production robot profile | L0/L2 qualification; retained Python integrations remain evaluation baselines. |
+| Native speaker inference backend | L0/L2; retained Python integration remains the evaluation baseline. PAD selection and robot qualification are later work. |
 | Exact public provider surface and release/version ownership | L1 with wallet W0; public contract in `seams-wallet`, private implementation in `seams-monorepo`. |
 | Allowed commands and the required evidence for camera-present and audio-only operation | L0; blocks executable policy. |
 | Face/tracking implementation and any mouth-motion check | L3; selected from target-device measurements and license review. |
 | Recent-context horizon, continuity rules, thresholds, and acceptable error rates | Initial rules in L0/L3; frozen before L5 evaluation. |
 | Device key protection and enrollment administration | L2; no claim of protected storage before implementation. |
-| Authenticated capture encoding, signer, verifier, and virtual-device transport | M0-M3 in the macOS virtual capture-device plan; STM32 replacement is M4. |
+| Authenticated capture encoding, signer, verifier, and virtual-device transport | Deferred beyond the first MVP. M0-M3 in the macOS virtual capture-device plan; STM32 replacement is M4. |
 | Multisubject corpus access and consent | L5; blocks biometric/security qualification. |
 | Artifact delivery and redistributable model/runtime dependencies | L0 license/packaging review and L6 clean-host release test. |
 | Browser/WASM model portability, capture, permissions and storage profile | L7; separately qualified after the native target. |
 
-The wallet extension can be designed alongside this work. It cannot turn an
-unqualified robot perception result into a financial authorization, and it is
-not a prerequisite for the local MVP.
+The wallet extension's W0-W1 milestones consume the L2 audio engine for the first
+MVP. Existing wallet authority and exact-operation approval remain necessary.
+Later robot and standalone device-admission milestones have separate acceptance gates.

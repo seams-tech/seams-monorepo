@@ -156,33 +156,28 @@ export function CompanyPage(): React.JSX.Element {
       <div className="h2-col">
         <main aria-labelledby="company-title">
           <header className="h2-hero-simple company-hero">
-            <div className="h2-shell company-hero__layout">
-              <div>
-                <h1 id="company-title" className="h2-display h2-hero-simple__title">
-                  {t('companyTitle')}
-                </h1>
-                <p className="h2-hero-simple__sub">{t('companyDescription')}</p>
-                <div className="h2-hero-simple__ctas">
-                  <SiteLink
-                    to={CONTACT_LINK_TARGET}
-                    external={false}
-                    className="h2-btn h2-btn--primary h2-btn--lg"
-                  >
-                    {t('contactUs')}
-                    <ArrowRightAnim size={12} />
-                  </SiteLink>
-                  <SiteLink
-                    to="/docs/concepts/"
-                    external={false}
-                    className="h2-btn h2-btn--outline h2-btn--lg"
-                  >
-                    {t('readDocs')}
-                    <ArrowRightAnim size={12} />
-                  </SiteLink>
-                </div>
-              </div>
-              <div className="company-hero__gradient" aria-hidden="true">
-                <GrainField field="teal-peach" playing={false} />
+            <div className="h2-shell">
+              <h1 id="company-title" className="h2-display h2-hero-simple__title">
+                {t('companyTitle')}
+              </h1>
+              <p className="h2-hero-simple__sub">{t('companyDescription')}</p>
+              <div className="h2-hero-simple__ctas">
+                <SiteLink
+                  to={CONTACT_LINK_TARGET}
+                  external={false}
+                  className="h2-btn h2-btn--primary h2-btn--lg"
+                >
+                  {t('contactUs')}
+                  <ArrowRightAnim size={12} />
+                </SiteLink>
+                <SiteLink
+                  to="/docs/concepts/"
+                  external={false}
+                  className="h2-btn h2-btn--outline h2-btn--lg"
+                >
+                  {t('readDocs')}
+                  <ArrowRightAnim size={12} />
+                </SiteLink>
               </div>
             </div>
           </header>

@@ -109,10 +109,12 @@
   }
 }
 
+/* the site's h3 colour must not override the card's text colour */
 .company-card__title {
   margin: 0;
   font-size: 21.5px;
   font-weight: 500;
+  color: inherit;
 }
 
 .company-card__copy {

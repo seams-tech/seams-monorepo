@@ -494,7 +494,7 @@ const ACCOUNT_NOTES: readonly ApiNoteProps[] = [
     icon: Fingerprint,
     field: 'sky-sand',
   },
-  { title: 'Recovery', body: 'Email or a linked device', icon: LifeBuoy, field: 'glacier-ink' },
+  { title: 'Recovery', body: 'Email or a linked device', icon: LifeBuoy, field: 'periwinkle' },
 ];
 
 const POLICY_NOTES: readonly ApiNoteProps[] = [
@@ -631,45 +631,16 @@ export function H2Start(): React.JSX.Element {
               ))}
             </div>
           </div>
-          {/* the documented setup and registration calls of @seams/wallet
-              (seams-wallet apps/docs/src/examples/setup.tsx and
-              registration-input.ts) */}
+          {/* the documented registration call of @seams/wallet
+              (seams-wallet apps/docs/src/examples/registration-input.ts) */}
           <div className="h2-code h2-code--lg" aria-label="Register a wallet with the SDK">
             <span className="tok-kw">import</span>
-            {' {\n  seamsTestnetConfig,\n  useSeams,\n} '}
+            {' { useSeams } '}
             <span className="tok-kw">from</span>{' '}
             <span className="tok-str">'@seams/wallet/react'</span>
-            {';\n'}
-            <span className="tok-kw">import</span>
-            {' { parseWebAuthnRpId } '}
-            <span className="tok-kw">from</span>{' '}
-            <span className="tok-str">'@seams/wallet/advanced'</span>
             {';\n\n'}
             <span className="tok-kw">const</span>
-            {' config = seamsTestnetConfig({\n  '}
-            <span className="tok-prop">walletOrigin</span>
-            {': '}
-            <span className="tok-str">'https://wallet.example.com'</span>
-            {',\n  '}
-            <span className="tok-prop">relayerUrl</span>
-            {': '}
-            <span className="tok-str">'https://relayer.example.com'</span>
-            {',\n  '}
-            <span className="tok-prop">publishableKey</span>
-            {': '}
-            <span className="tok-str">'YOUR_PUBLISHABLE_KEY'</span>
-            {',\n});\n\n'}
-            <span className="tok-cm">{'// inside <SeamsWebProvider config={config}>\n'}</span>
-            <span className="tok-kw">const</span>
-            {' { registerWallet } = useSeams();\n'}
-            <span className="tok-kw">const</span>
-            {' rpId = parseWebAuthnRpId('}
-            <span className="tok-str">'wallet.example.com'</span>
-            {');\n'}
-            <span className="tok-kw">if</span>
-            {' (!rpId.ok) '}
-            <span className="tok-kw">throw new</span>
-            {' Error(rpId.error.message);\n\n'}
+            {' { registerWallet } = useSeams();\n\n'}
             <span className="tok-kw">const</span>
             {' result = '}
             <span className="tok-kw">await</span>
@@ -687,9 +658,7 @@ export function H2Start(): React.JSX.Element {
             <span className="tok-prop">kind</span>
             {': '}
             <span className="tok-str">'server_allocated'</span>
-            {' },\n  signerSelection, '}
-            <span className="tok-cm">{'// which chain signers to create'}</span>
-            {'\n});'}
+            {' },\n  signerSelection,\n});'}
           </div>
         </div>
       </div>
@@ -709,17 +678,16 @@ export function H2Start(): React.JSX.Element {
               ))}
             </div>
           </div>
-          {/* the public unlock option and the documented confirmation config
-              of @seams/wallet (seams-wallet core/types/sdkSentEvents.ts and
+          {/* the public unlock option and NEAR transaction call of @seams/wallet
+              (seams-wallet core/types/sdkSentEvents.ts and
               apps/docs/src/examples/transaction-review.tsx) */}
           <div
             className="h2-code h2-code--lg"
-            aria-label="Open a signing session and require approval"
+            aria-label="Open a signing session and send a transfer"
           >
             <span className="tok-kw">import</span>
             {' { transfer, useSeams, useWallet } '}
-            <span className="tok-kw">from</span>
-            {'\n  '}
+            <span className="tok-kw">from</span>{' '}
             <span className="tok-str">'@seams/wallet/react'</span>
             {';\n\n'}
             <span className="tok-kw">const</span>
@@ -735,27 +703,14 @@ export function H2Start(): React.JSX.Element {
             {': 15 * 60_000, '}
             <span className="tok-prop">remainingUses</span>
             {': 5 },\n});\n\n'}
-            <span className="tok-cm">{'// the owner confirms this transfer\n'}</span>
             <span className="tok-kw">await</span>
             {' near.signAndSendTransaction({\n  '}
             <span className="tok-prop">receiverId</span>
             {': near.accountId,\n  '}
             <span className="tok-prop">actions</span>
             {': [transfer('}
-            <span className="tok-str">'0'</span>
-            {')],\n  '}
-            <span className="tok-prop">options</span>
-            {': {\n    '}
-            <span className="tok-prop">confirmationConfig</span>
-            {': {\n      '}
-            <span className="tok-prop">uiMode</span>
-            {': '}
-            <span className="tok-str">'modal'</span>
-            {',\n      '}
-            <span className="tok-prop">behavior</span>
-            {': '}
-            <span className="tok-str">'requireClick'</span>
-            {',\n    },\n  },\n});'}
+            <span className="tok-str">'1000000'</span>
+            {')],\n});'}
           </div>
         </div>
       </div>

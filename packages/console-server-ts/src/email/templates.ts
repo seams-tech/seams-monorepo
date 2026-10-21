@@ -341,6 +341,7 @@ export function renderOrganizationInvitationEmailV1(
     subject,
     text,
     html: htmlMessage({
+      kicker: 'Invitation',
       heading: subject,
       paragraphs: [
         `${template.inviterDisplayName} invited you to join ${template.organizationName} as ${role}.`,
@@ -497,6 +498,7 @@ function renderOwnerMembershipChanged(
     subject,
     text: `${sentence}\n\n${changedBy}`,
     html: htmlMessage({
+      kicker: 'Team',
       heading: subject,
       paragraphs: [sentence, changedBy],
       actionLabel: null,
@@ -531,6 +533,7 @@ function renderAccountWelcome(template: AccountWelcomeEmailV1): RenderedConsoleE
     'Cheers,\nThe Seams team',
   ].join('\n\n');
   const html = renderEmailLayoutHtml({
+    kicker: 'Welcome',
     preheader: setup,
     heading: subject,
     blocks: [
@@ -569,6 +572,7 @@ function renderMembershipAccessChanged(
     subject,
     text: `${sentence}\n\n${changedBy}`,
     html: htmlMessage({
+      kicker: 'Team',
       heading: subject,
       paragraphs: [sentence, changedBy],
       actionLabel: null,
@@ -588,6 +592,7 @@ function renderPrepaidTopUpReceipt(template: PrepaidTopUpReceiptEmailV1): Render
     subject,
     text: `${details}\n\n${reference}\n\nView billing: ${billingUrl(template.consoleBaseUrl)}`,
     html: htmlMessage({
+      kicker: 'Billing',
       heading: subject,
       paragraphs: [details],
       facts: [
@@ -625,6 +630,7 @@ function renderSucceededRefund(
     subject,
     text: `${details}\n\n${reference}\n\nView billing: ${billingUrl(template.consoleBaseUrl)}`,
     html: htmlMessage({
+      kicker: 'Billing',
       heading: subject,
       paragraphs: [details],
       facts: [
@@ -648,6 +654,7 @@ function renderFailedRefund(
     subject,
     text: `${details}\n\n${reference}\n\nView billing: ${billingUrl(template.consoleBaseUrl)}`,
     html: htmlMessage({
+      kicker: 'Billing',
       heading: subject,
       paragraphs: [details],
       facts: [
@@ -670,6 +677,7 @@ function renderLowBalanceWarning(template: LowBalanceWarningEmailV1): RenderedCo
     subject,
     text: `${details}\n\nTop up: ${billingUrl(template.consoleBaseUrl)}`,
     html: htmlMessage({
+      kicker: 'Billing',
       heading: subject,
       paragraphs: [details],
       actionLabel: 'Top up balance',
@@ -689,6 +697,7 @@ function renderTeamSignupAlert(template: TeamSignupAlertEmailV1): RenderedConsol
     subject,
     text: paragraphs.join('\n\n'),
     html: htmlMessage({
+      kicker: 'New sign-up',
       heading: subject,
       paragraphs: [paragraphs[0] ?? subject],
       facts: [
@@ -868,11 +877,18 @@ function renderFreePlanNotice(template: FreePlanNoticeEmailV1): RenderedConsoleE
   return {
     subject,
     text: `${paragraphs.join('\n\n')}\n\n${actionLabel}: ${url}`,
-    html: htmlMessage({ heading: subject, paragraphs, actionLabel, actionUrl: url }),
+    html: htmlMessage({
+      kicker: 'Free plan',
+      heading: subject,
+      paragraphs,
+      actionLabel,
+      actionUrl: url,
+    }),
   };
 }
 
 function htmlMessage(input: {
+  readonly kicker: string;
   readonly heading: string;
   readonly paragraphs: readonly string[];
   readonly facts?: readonly EmailFact[];
@@ -882,6 +898,7 @@ function htmlMessage(input: {
   const blocks: EmailBlock[] = input.paragraphs.map((text) => ({ kind: 'paragraph', text }));
   if (input.facts) blocks.push({ kind: 'facts', rows: input.facts });
   return renderEmailLayoutHtml({
+    kicker: input.kicker,
     preheader: input.paragraphs[0] ?? input.heading,
     heading: input.heading,
     blocks,

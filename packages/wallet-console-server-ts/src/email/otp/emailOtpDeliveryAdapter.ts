@@ -83,6 +83,7 @@ export function renderEmailOtpMessage(
     subject: copy.subject,
     text,
     html: renderEmailLayoutHtml({
+      kicker: 'Security code',
       preheader: copy.introduction,
       heading: copy.heading,
       blocks: [

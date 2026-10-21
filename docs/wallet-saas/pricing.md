@@ -47,8 +47,11 @@ keep that cost bounded:
    organization, so one app cannot split its users over several free plans.
 3. **A hard stop at the free limits until a card is on file.** At 300 MAU, new
    sign-ups stop. At 30,000 signatures in a month, signing stops. With a card on
-   file, the organization moves to Growth.
-4. **An internal alert on the total free-plan cost.** Start with an alert at
+   file, the organization moves to Growth automatically, after a warning at 80%
+   of a limit.
+4. **A card after 60 days.** From day 60, production needs a card on file to
+   continue. The card is not charged while usage stays inside the Free limits.
+5. **An internal alert on the total free-plan cost.** Start with an alert at
    $500 a month of Cloudflare cost for all free organizations together.
 
 Cost of one free organization each month:
@@ -273,7 +276,8 @@ cost.
 4. Update the Wallet price definitions in the Console billing code. The public
    pricing page in `apps/seams-site` already shows this model.
 5. Build the free plan limits in the Console: the origin check across free
-   organizations, the hard stop, the card requirement, and the cost alert.
+   organizations, the hard stop, the cost alert, and the card and Growth-move
+   rules in [the Free plan card plan](../feat-4-free-plan-card-and-growth-move.md).
 6. Meter production environments only. Exclude Development environments from
    MAU and signature counts.
 7. Pin the accepted Growth price version to each organization for 12 months.

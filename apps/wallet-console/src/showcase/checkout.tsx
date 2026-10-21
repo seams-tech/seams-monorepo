@@ -1,3 +1,4 @@
+import { t } from '@/marketing/i18n/browser';
 import './embeddedFocus';
 import '@seams/wallet/react/styles';
 import './showcase.css';
@@ -41,7 +42,7 @@ function Checkout(): React.JSX.Element {
     <section className="checkout-market" aria-labelledby="checkout-market-title">
       <span className="checkout-lot">{market.lot}</span>
       <h1 id="checkout-market-title">{market.question}</h1>
-      <div className="checkout-odds" role="radiogroup" aria-label="Outcome">
+      <div className="checkout-odds" role="radiogroup" aria-label={t('outcome')}>
         {sides.map((option) => (
           <label key={option}>
             <input
@@ -51,7 +52,7 @@ function Checkout(): React.JSX.Element {
               checked={side === option}
               onChange={() => setSide(option)}
             />
-            {option} <strong>{market.outcomes[option].odds}</strong>
+            {t(option === 'Yes' ? 'yes' : 'no')} <strong>{market.outcomes[option].odds}</strong>
           </label>
         ))}
       </div>
@@ -64,7 +65,9 @@ function Checkout(): React.JSX.Element {
           refresh(side);
         }}
       >
-        <span>Buy {side}</span>
+        <span>
+          {t('buy')} {t(side === 'Yes' ? 'yes' : 'no')}
+        </span>
         <span aria-hidden="true">→</span>
       </button>
       {outcome ? (
@@ -98,7 +101,7 @@ function CheckoutReview({
       <div className="checkout-review-heading">
         <span className="checkout-eyebrow">{market.sale}</span>
       </div>
-      <h2>Review purchase</h2>
+      <h2>{t('reviewPurchase')}</h2>
       <PurchaseSummary
         key={quote.expiresAtMs}
         quote={quote}
@@ -130,55 +133,61 @@ function PurchaseSummary({
       <div className="checkout-summary-card">
         <div className="checkout-summary-claim">
           <span className="checkout-side">
-            {quote.side} · {outcome.odds}
+            {t(quote.side === 'Yes' ? 'yes' : 'no')} · {outcome.odds}
           </span>
           <span>{outcome.claim}</span>
         </div>
         <div className="checkout-summary-row checkout-summary-values">
           <div>
-            <span className="checkout-summary-label">You pay</span>
+            <span className="checkout-summary-label">{t('youPay')}</span>
             <strong className="checkout-amount">{market.pay}</strong>
-            <span className="checkout-summary-label">units</span>
+            <span className="checkout-summary-label">{t('units')}</span>
           </div>
           <div>
-            <span className="checkout-summary-label">Payout if {quote.side}</span>
+            <span className="checkout-summary-label">
+              {t('payoutIf')} {t(quote.side === 'Yes' ? 'yes' : 'no')}
+            </span>
             <strong className="checkout-amount">{outcome.positions}</strong>
-            <span className="checkout-summary-label">units</span>
+            <span className="checkout-summary-label">{t('units')}</span>
           </div>
         </div>
       </div>
       <dl className="checkout-details">
-        <dt>Price</dt>
-        <dd>{outcome.price} units per position</dd>
-        <dt>Minimum payout</dt>
-        <dd>{outcome.minimumPositions} units</dd>
-        <dt>Trading fee</dt>
+        <dt>{t('price')}</dt>
         <dd>
-          {market.fee} units <span className="checkout-included">(included)</span>
+          {outcome.price} {t('unitsPerPosition')}
         </dd>
-        <dt>Network fee</dt>
-        <dd>Free</dd>
+        <dt>{t('minimumPayout')}</dt>
+        <dd>
+          {outcome.minimumPositions} {t('units')}
+        </dd>
+        <dt>{t('tradingFee')}</dt>
+        <dd>
+          {market.fee} {t('units')}{' '}
+          <span className="checkout-included">{t('includedParentheses')}</span>
+        </dd>
+        <dt>{t('networkFee')}</dt>
+        <dd>{t('free')}</dd>
       </dl>
       <p className="checkout-note">
-        Each position pays 1 unit if {quote.side} wins. If the price moves, you get at least the
-        minimum payout.
+        {t('purchaseNote').replace('{side}', t(quote.side === 'Yes' ? 'yes' : 'no'))}
       </p>
       <div className="checkout-expiry" data-urgent={seconds <= quoteUrgentSeconds || undefined}>
         <div>
-          <span>{seconds === 0 ? 'Quote expired' : 'Quote expires in'}</span>
+          <span>{seconds === 0 ? t('quoteExpired') : t('quoteExpires')}</span>
           {seconds === 0 ? (
             <button
               className="checkout-refresh"
               type="button"
               onClick={() => onRefresh(quote.side)}
             >
-              Refresh quote
+              {t('refreshQuote')}
             </button>
           ) : (
             <strong>{seconds}s</strong>
           )}
         </div>
-        <progress aria-label="Quote time remaining" max={quoteLifetimeSeconds} value={seconds} />
+        <progress aria-label={t('quoteTime')} max={quoteLifetimeSeconds} value={seconds} />
       </div>
       <div className="checkout-actions">
         <button
@@ -187,11 +196,11 @@ function PurchaseSummary({
           disabled={seconds === 0}
           onClick={controls.continueToWallet}
         >
-          <span>Confirm in wallet</span>
+          <span>{t('confirmWallet')}</span>
           <span aria-hidden="true">→</span>
         </button>
         <button className="checkout-cancel" type="button" onClick={controls.cancel}>
-          Back to market
+          {t('backToMarket')}
         </button>
       </div>
     </>

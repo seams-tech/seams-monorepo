@@ -275,6 +275,8 @@ function buildFrontend(site, component, walletLanes) {
       );
     }
     assertFile(path.join(WALLET_SITE_OUTPUT, 'index.html'), 'Wallet site entry');
+    assertFile(path.join(WALLET_SITE_OUTPUT, 'ja', 'index.html'), 'Japanese Wallet site entry');
+    assertFile(path.join(WALLET_SITE_OUTPUT, 'sitemap.xml'), 'Wallet site sitemap');
     assertFile(path.join(WALLET_SITE_OUTPUT, 'docs', 'index.html'), 'Wallet docs entry');
     return;
   }
@@ -317,6 +319,7 @@ function writeWalletConsoleRedirects(site) {
   ];
   const lines = [
     '/docs /docs/ 301',
+    '/ja /ja/ 301',
     `/pricing ${site.origin}/pricing 302`,
     `/pricing/* ${site.origin}/pricing/:splat 302`,
     `/company ${site.origin}/company 302`,
@@ -498,6 +501,8 @@ function buildSmokeChecks(site, component, walletLanes) {
   if (component === 'wallet-site') {
     return smokeChecks('wallet-site', site.walletSiteOrigin, [
       '/',
+      '/ja/',
+      '/sitemap.xml',
       '/docs/',
       '/docs/concepts/',
       '/docs/releases',

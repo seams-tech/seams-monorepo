@@ -1,3 +1,4 @@
+import { t } from '@/marketing/i18n/browser';
 import React from 'react';
 import { Play } from 'lucide-react';
 import { ComponentPreview } from './ComponentPreview';
@@ -14,13 +15,18 @@ type Preview = {
   y: number;
 };
 
-const defaultPreview: Preview = { id: 'transaction-modal', label: 'Transactions', x: 420, y: 100 };
+const defaultPreview: Preview = {
+  id: 'transaction-modal',
+  label: t('transactions'),
+  x: 420,
+  y: 100,
+};
 
 const previews: readonly Preview[] = [
-  { id: 'create', label: 'Authentication', x: 0, y: 0 },
+  { id: 'create', label: t('authentication'), x: 0, y: 0 },
   defaultPreview,
-  { id: 'prediction-market', label: 'Custom Components', x: 840, y: -70 },
-  { id: 'profile', label: 'Recover and Link Devices', x: 1260, y: 60 },
+  { id: 'prediction-market', label: t('customComponents'), x: 840, y: -70 },
+  { id: 'profile', label: t('recoverLink'), x: 1260, y: 60 },
 ];
 
 type BackgroundPlacement = { kind: BackgroundPreviewKind; x: number; y: number };
@@ -240,9 +246,7 @@ export function ComponentShowcase(): React.JSX.Element {
             other banners do */}
         <FieldBanner field="teal-peach">
           <h2 id="component-showcase-title" className="h2-display h2-eco__title h2-banner__title">
-            Use built-in wallet components,
-            <br />
-            or use your own.
+            {t('componentsTitle')}
           </h2>
         </FieldBanner>
       </section>
@@ -261,7 +265,7 @@ export function ComponentShowcase(): React.JSX.Element {
               ref={selector}
               className="component-showcase__selector"
               role="radiogroup"
-              aria-label="Components"
+              aria-label={t('components')}
               onChange={selectPreview.bind(null, setSelected)}
             >
               {previews.map(renderSelectorChoice.bind(null, selected))}
@@ -269,8 +273,8 @@ export function ComponentShowcase(): React.JSX.Element {
             <button
               type="button"
               className="component-showcase__playback"
-              aria-label={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
-              title={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
+              aria-label={playback.kind === 'playing' ? t('pausePlayback') : t('playPlayback')}
+              title={playback.kind === 'playing' ? t('pausePlayback') : t('playPlayback')}
               onClick={togglePlayback.bind(null, playback, setPlayback, setRun)}
             >
               {playback.kind === 'playing' ? (

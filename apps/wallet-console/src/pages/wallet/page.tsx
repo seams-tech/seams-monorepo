@@ -1,3 +1,4 @@
+import { t } from '@/marketing/i18n/browser';
 import React from 'react';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import {
@@ -18,20 +19,15 @@ export function WalletPage(): React.JSX.Element {
       <div className="h2-col">
         <H2DemoHero
           authDefaultModeWhenNoDetectedAccount="register"
-          title={<>Wallets that open with a passkey</>}
-          sub={
-            <>
-              Users sign in with Face ID or a fingerprint. No seed phrases, only they control their
-              funds, and email gets them back in. Try it here.
-            </>
-          }
+          title={t('heroTitle')}
+          sub={t('heroDescription')}
         />
         <H2Networks />
         <ComponentShowcase />
         <H2Start />
         <H2Security />
         <H2Cta />
-        <H2Footer faq="wallet" />
+        <H2Footer />
       </div>
     </div>
   );

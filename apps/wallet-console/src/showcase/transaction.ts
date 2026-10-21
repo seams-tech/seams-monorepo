@@ -1,3 +1,4 @@
+import { t } from '@/marketing/i18n/browser';
 import './embeddedFocus';
 import '@wallet-ui/sdk/wallet-ui.css';
 import './showcase.css';
@@ -30,7 +31,7 @@ const transfer: TxDisplayModel = {
     {
       id: 'transfer',
       kind: 'generic.contractCall',
-      label: 'Transfer ETH',
+      label: t('transferEth'),
       to: `0x2F01${'0'.repeat(32)}4EC9`,
     },
   ],
@@ -56,7 +57,7 @@ function model(): ConfirmSurfaceModel {
         detailsInitiallyOpen: false,
       },
       header: {
-        heading: 'Review your transfer',
+        heading: t('reviewTransfer'),
         website: { kind: 'ready', text: 'shop.example.com' },
         chainDetails: { kind: 'ready', text: 'Base' },
       },
@@ -67,8 +68,8 @@ function model(): ConfirmSurfaceModel {
         theme: 'light',
         explorers: { near: 'https://nearblocks.io', evm: explorer },
         decision: { kind: 'ready', onConfirm: confirm },
-        confirmText: 'Confirm with passkey',
-        cancelText: 'Cancel',
+        confirmText: t('confirmPasskey'),
+        cancelText: t('cancel'),
         onCancel: review,
       },
     },

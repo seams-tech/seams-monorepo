@@ -1,8 +1,80 @@
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { translate } from './src/marketing/i18n/catalog';
+import { localeFromUrl, type Locale } from './src/marketing/i18n/locale';
+
+const walletSiteUrl = new URL(process.env.VITE_WALLET_SITE_ORIGIN || 'https://wallet.seams.sh/');
+walletSiteUrl.pathname = `${walletSiteUrl.pathname.replace(/\/$/, '')}/`;
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function languageHtml(html: string, language: Locale): string {
+  const english = walletSiteUrl.href;
+  const japanese = new URL('ja/', walletSiteUrl).href;
+  const canonical = language === 'ja' ? japanese : english;
+  const title = escapeHtml(translate(language, 'pageTitle'));
+  const description = escapeHtml(translate(language, 'pageDescription'));
+  const metadata = `
+    <meta data-wallet-meta name="description" content="${description}" />
+    <link data-wallet-meta rel="canonical" href="${escapeHtml(canonical)}" />
+    <link data-wallet-meta rel="alternate" hreflang="en" href="${escapeHtml(english)}" />
+    <link data-wallet-meta rel="alternate" hreflang="ja" href="${escapeHtml(japanese)}" />
+    <link data-wallet-meta rel="alternate" hreflang="x-default" href="${escapeHtml(english)}" />
+    <meta data-wallet-meta property="og:type" content="website" />
+    <meta data-wallet-meta property="og:title" content="${title}" />
+    <meta data-wallet-meta property="og:description" content="${description}" />
+    <meta data-wallet-meta property="og:url" content="${escapeHtml(canonical)}" />
+    <meta data-wallet-meta property="og:locale" content="${language === 'ja' ? 'ja_JP' : 'en_US'}" />
+    <meta data-wallet-meta property="og:locale:alternate" content="${language === 'ja' ? 'en_US' : 'ja_JP'}" />
+    <meta data-wallet-meta name="twitter:card" content="summary" />
+    <meta data-wallet-meta name="twitter:title" content="${title}" />
+    <meta data-wallet-meta name="twitter:description" content="${description}" />`;
+  return html
+    .replace(/<html lang="[^"]*"/, `<html lang="${language}"`)
+    .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
+    .replace(/\s*<(?:meta|link) data-wallet-meta[^>]*>/g, '')
+    .replace('</head>', `${metadata}\n  </head>`);
+}
+
+const walletLanguagePages: Plugin = {
+  name: 'wallet-language-pages',
+  enforce: 'post',
+  transformIndexHtml(html, context) {
+    if (context.path.includes('/showcase/')) return html;
+    const url = new URL(context.originalUrl || context.path, walletSiteUrl);
+    return languageHtml(html, localeFromUrl(url));
+  },
+  generateBundle(_options, bundle) {
+    const entry = bundle['index.html'];
+    if (!entry || entry.type !== 'asset' || typeof entry.source !== 'string') {
+      throw new Error('Wallet marketing build requires index.html');
+    }
+    this.emitFile({
+      type: 'asset',
+      fileName: 'ja/index.html',
+      source: languageHtml(entry.source, 'ja'),
+    });
+    const english = escapeHtml(walletSiteUrl.href);
+    const japanese = escapeHtml(new URL('ja/', walletSiteUrl).href);
+    this.emitFile({
+      type: 'asset',
+      fileName: 'sitemap.xml',
+      source: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url><loc>${english}</loc><xhtml:link rel="alternate" hreflang="en" href="${english}"/><xhtml:link rel="alternate" hreflang="ja" href="${japanese}"/><xhtml:link rel="alternate" hreflang="x-default" href="${english}"/></url>
+  <url><loc>${japanese}</loc><xhtml:link rel="alternate" hreflang="en" href="${english}"/><xhtml:link rel="alternate" hreflang="ja" href="${japanese}"/><xhtml:link rel="alternate" hreflang="x-default" href="${english}"/></url>
+</urlset>\n`,
+    });
+  },
+};
 
 export default defineConfig(() => {
   const appRoot = fileURLToPath(new URL('.', import.meta.url));
@@ -13,7 +85,7 @@ export default defineConfig(() => {
   const walletUi = `${dirname(createRequire(import.meta.url).resolve('@seams/wallet/package.json'))}/dist/esm`;
   return {
     base,
-    plugins: [react()],
+    plugins: [react(), walletLanguagePages],
     server: {
       host: 'localhost',
       port: 4005,

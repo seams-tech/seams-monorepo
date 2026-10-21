@@ -1,3 +1,4 @@
+import { locale, t } from '@/marketing/i18n/browser';
 import React from 'react';
 import { Layers2, LockKeyhole } from 'lucide-react';
 import type { PreviewId } from './ComponentShowcase';
@@ -28,13 +29,13 @@ function embeddedRoute(id: PreviewId): string {
 function embeddedTitle(id: PreviewId): string {
   switch (id) {
     case 'profile':
-      return 'Recover and Link Devices';
+      return t('recoverLink');
     case 'create':
-      return 'Authentication';
+      return t('authentication');
     case 'transaction-modal':
-      return 'Transaction modal';
+      return t('transactionModal');
     case 'prediction-market':
-      return 'Prediction market';
+      return t('predictionMarket');
   }
 }
 
@@ -87,7 +88,7 @@ export function ComponentPreview({
         className="showcase-preview__embed"
         data-preview={id}
         title={title}
-        src={`${import.meta.env.BASE_URL}showcase/${route}/${id === 'profile' ? '' : `?backdrop=${backdrop}`}`}
+        src={`${import.meta.env.BASE_URL}showcase/${route}/?lang=${locale}&backdrop=${backdrop}`}
       />
     );
   }
@@ -105,7 +106,7 @@ export function ComponentPreview({
       </div>
       <div className="showcase-preview__footer">
         <Layers2 aria-hidden />
-        Powered by seams
+        {t('poweredBy')}
       </div>
     </article>
   );

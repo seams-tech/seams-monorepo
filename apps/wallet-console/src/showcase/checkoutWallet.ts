@@ -1,3 +1,4 @@
+import { t } from '@/marketing/i18n/browser';
 import './embeddedFocus';
 import '@wallet-ui/sdk/wallet-ui.css';
 import './checkoutWallet.css';
@@ -106,7 +107,7 @@ function model(): ConfirmSurfaceModel {
         detailsInitiallyOpen: false,
       },
       header: {
-        heading: 'Approve purchase',
+        heading: t('approvePurchase'),
         website: { kind: 'ready', text: 'shop.example.com' },
         chainDetails: { kind: 'ready', text: 'Base Sepolia' },
       },
@@ -117,8 +118,8 @@ function model(): ConfirmSurfaceModel {
         theme: 'light',
         explorers: { near: 'https://testnet.nearblocks.io', evm: explorer },
         decision: { kind: 'ready', onConfirm: confirm },
-        confirmText: 'Confirm with passkey',
-        cancelText: 'Cancel',
+        confirmText: t('confirmPasskey'),
+        cancelText: t('cancel'),
         onCancel: () => post({ type: 'checkout-finished', confirmed: false }),
         onBack: () => post({ type: 'checkout-back' }),
       },

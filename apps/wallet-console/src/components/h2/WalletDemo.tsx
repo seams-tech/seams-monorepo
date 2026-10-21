@@ -1,3 +1,4 @@
+import { locale, t } from '@/marketing/i18n/browser';
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
@@ -19,7 +20,7 @@ function selectDemoPasskeyColumn(module: typeof import('@/components/DemoPasskey
   return { default: module.DemoPasskeyColumn };
 }
 const DemoPasskeyColumnLazy = React.lazy(loadDemoPasskeyColumn);
-const demoPageNames = ['Login', 'Transactions', 'Account recovery'];
+const demoPageNames = [t('login'), t('transactions'), t('accountRecovery')];
 type WalletDemoProps = { authDefaultModeWhenNoDetectedAccount?: HostedAuthMenuMode };
 
 /* Grab-and-drag horizontal scrolling for a single-line chip row. Dragging only
@@ -110,7 +111,8 @@ function WalletDemoContent({
 
   return (
     <>
-      <HeroDemoCell>
+      <HeroDemoCell aria-label={t('demoEnglish')}>
+        {locale === 'ja' ? <span className="h2-demo__language">{t('demoEnglish')}</span> : null}
         <Theme
           theme={activePreset.mode}
           tokens={demoReactTokens(activePreset)}
@@ -135,7 +137,7 @@ function WalletDemoContent({
             ref={themeTrackRef}
             className="h2-themeswitch__track"
             role="group"
-            aria-label="Preview theme"
+            aria-label={t('previewTheme')}
           >
             {DEMO_THEME_PRESETS.map((theme) => (
               <button
@@ -154,11 +156,11 @@ function WalletDemoContent({
       </HeroDemoCell>
 
       {/* Pager lives at the split level so it sits on the divider/border junction */}
-      <div className="h2-pager" role="group" aria-label="Demo screens">
+      <div className="h2-pager" role="group" aria-label={t('demoScreens')}>
         <button
           type="button"
           className="h2-pager__btn"
-          aria-label="Previous demo screen"
+          aria-label={t('previousDemo')}
           disabled={demoPage === 0}
           onClick={() => setDemoPage((p) => Math.max(0, p - 1))}
         >
@@ -176,7 +178,7 @@ function WalletDemoContent({
         <button
           type="button"
           className="h2-pager__btn"
-          aria-label="Next demo screen"
+          aria-label={t('nextDemo')}
           disabled={demoPage >= maxPage}
           onClick={() => setDemoPage((p) => Math.min(maxPage, p + 1))}
         >

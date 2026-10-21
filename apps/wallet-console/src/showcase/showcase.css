@@ -9,6 +9,11 @@ body {
   overscroll-behavior: auto;
 }
 
+html:lang(ja) body {
+  font-family: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif;
+  line-break: strict;
+}
+
 /* Keep native modality, dismissal, and focus handling while omitting its tint.
    The animation override also prevents the host's fade from restoring the tint. */
 html[data-modal-backdrop='none'] dialog.seams-wallet-overlay-dialog::backdrop,

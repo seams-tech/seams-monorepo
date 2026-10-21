@@ -49,12 +49,33 @@ export type MobileExtraLink = {
 
 /** The site's own menus and link targets; the navbar supplies the design. */
 export type SiteNavbarConfig = {
+  labels: SiteNavbarLabels;
   panes: Record<DropdownId, DropdownPane>;
   homeHref: string;
   aboutHref: string;
   dashboardHref: string;
   /** Extra links under the mobile Plans section, e.g. a sales contact. */
   mobilePlanLinks?: MobileExtraLink[];
+};
+
+export type SiteNavbarLabels = {
+  primary: string;
+  home: string;
+  dashboard: string;
+  openMenu: string;
+  closeMenu: string;
+  companyOverview: string;
+  companyMission: string;
+};
+
+export const ENGLISH_NAVBAR_LABELS: SiteNavbarLabels = {
+  primary: 'Primary',
+  home: 'Seams home',
+  dashboard: 'Dashboard',
+  openMenu: 'Open menu',
+  closeMenu: 'Close menu',
+  companyOverview: 'View company overview',
+  companyMission: 'Learn more about the Seams team and mission',
 };
 
 /** The site router: an in-app navigation and the props for a link. */
@@ -92,27 +113,6 @@ function paneVisualClass(paneId: DropdownId, activeId: DropdownId | null): strin
   if (!activeId) return 'is-after';
   return paneOrderIndex(paneId) < paneOrderIndex(activeId) ? 'is-before' : 'is-after';
 }
-
-const primaryDropdownTriggers: DropdownTriggerConfig[] = [
-  {
-    id: 'documentation',
-    label: 'Products',
-  },
-  {
-    id: 'products',
-    label: 'Documentation',
-  },
-];
-
-const aboutDropdownTrigger: DropdownTriggerConfig = {
-  id: 'about',
-  label: 'About Us',
-};
-
-const pricingDropdownTrigger: DropdownTriggerConfig = {
-  id: 'pricing',
-  label: 'Pricing',
-};
 
 function isClickInsideRoot(target: EventTarget | null, root: HTMLElement | null): boolean {
   return !!(target instanceof Node && root && root.contains(target));
@@ -165,6 +165,7 @@ export function SiteNavbar({
     about: aboutDropdownPane,
     pricing: pricingDropdownPane,
   } = config.panes;
+  const labels = config.labels;
   const dropdownPanes = [
     productsDropdownPane,
     documentationDropdownPane,
@@ -656,7 +657,7 @@ export function SiteNavbar({
       className={`navbar-static${appearance === 'light' ? ' navbar-static--light' : ''}${
         layout === 'compact' ? ' navbar-static--compact' : ''
       }${isHidden ? ' is-hidden' : ''}`}
-      aria-label="Primary"
+      aria-label={labels.primary}
     >
       <div className={`navbar-static__shell${hasScrolled ? ' is-scrolled' : ''}`}>
         <div className="navbar-static__left">
@@ -664,7 +665,7 @@ export function SiteNavbar({
             className="navbar-static__brand"
             href={homeProps.href}
             onClick={homeProps.onClick}
-            aria-label="Seams home"
+            aria-label={labels.home}
           >
             <Wordmark className="navbar-static__brand-wordmark" height={17} />
           </a>
@@ -672,9 +673,10 @@ export function SiteNavbar({
 
         <div className="navbar-static__center">
           <div className="navbar-static__links">
-            {primaryDropdownTriggers.map(renderDropdownTrigger)}
-            {renderDropdownTrigger(pricingDropdownTrigger)}
-            {renderDropdownTrigger(aboutDropdownTrigger)}
+            {renderDropdownTrigger(documentationDropdownPane)}
+            {renderDropdownTrigger(productsDropdownPane)}
+            {renderDropdownTrigger(pricingDropdownPane)}
+            {renderDropdownTrigger(aboutDropdownPane)}
           </div>
         </div>
 
@@ -685,13 +687,13 @@ export function SiteNavbar({
               href={getStartedProps.href}
               onClick={onDashboardClick}
             >
-              <span>Dashboard</span>
+              <span>{labels.dashboard}</span>
               <Arrow size={14} />
             </a>
             <button
               type="button"
               className="navbar-static__mobile-toggle"
-              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-label={isMobileMenuOpen ? labels.closeMenu : labels.openMenu}
               onClick={() => setIsMobileMenuOpen((open) => !open)}
             >
               <span
@@ -751,7 +753,7 @@ export function SiteNavbar({
             setIsMobileAboutOpen(false);
           }}
         >
-          <span>Products</span>
+          <span>{documentationDropdownPane.label}</span>
           <ChevronDown
             size={16}
             className={`navbar-static__chevron${isMobileProductsOpen ? ' is-open' : ''}`}
@@ -760,7 +762,9 @@ export function SiteNavbar({
         </button>
         <div className={`navbar-static__mobile-submenu${isMobileProductsOpen ? ' is-open' : ''}`}>
           <section className="navbar-static__mobile-section">
-            <h3 className="navbar-static__mobile-section-title">Products</h3>
+            <h3 className="navbar-static__mobile-section-title">
+              {documentationDropdownPane.kicker}
+            </h3>
             {documentationDropdownPane.rows.map((row) => {
               const rowProps = getNavLinkProps(row.to);
               return (
@@ -788,7 +792,7 @@ export function SiteNavbar({
             setIsMobileAboutOpen(false);
           }}
         >
-          <span>Documentation</span>
+          <span>{productsDropdownPane.label}</span>
           <ChevronDown
             size={16}
             className={`navbar-static__chevron${isMobileDocumentationOpen ? ' is-open' : ''}`}
@@ -799,7 +803,7 @@ export function SiteNavbar({
           className={`navbar-static__mobile-submenu${isMobileDocumentationOpen ? ' is-open' : ''}`}
         >
           <section className="navbar-static__mobile-section">
-            <h3 className="navbar-static__mobile-section-title">Documentation</h3>
+            <h3 className="navbar-static__mobile-section-title">{productsDropdownPane.kicker}</h3>
             {productsDropdownPane.rows.map((row) => {
               const rowProps = getNavLinkProps(row.to);
               return (
@@ -827,7 +831,7 @@ export function SiteNavbar({
             setIsMobilePricingOpen(false);
           }}
         >
-          <span>About Us</span>
+          <span>{aboutDropdownPane.label}</span>
           <ChevronDown
             size={16}
             className={`navbar-static__chevron${isMobileAboutOpen ? ' is-open' : ''}`}
@@ -836,7 +840,7 @@ export function SiteNavbar({
         </button>
         <div className={`navbar-static__mobile-submenu${isMobileAboutOpen ? ' is-open' : ''}`}>
           <section className="navbar-static__mobile-section">
-            <h3 className="navbar-static__mobile-section-title">Company</h3>
+            <h3 className="navbar-static__mobile-section-title">{aboutDropdownPane.kicker}</h3>
             {aboutDropdownPane.rows.map((row) => {
               const rowProps = getNavLinkProps(row.to);
               return (
@@ -857,8 +861,8 @@ export function SiteNavbar({
             href={aboutRootProps.href}
             onClick={aboutRootProps.onClick}
           >
-            <span>View company overview</span>
-            <small>Learn more about the Seams team and mission</small>
+            <span>{labels.companyOverview}</span>
+            <small>{labels.companyMission}</small>
           </a>
         </div>
         <button
@@ -872,7 +876,7 @@ export function SiteNavbar({
             setIsMobileAboutOpen(false);
           }}
         >
-          <span>Pricing</span>
+          <span>{pricingDropdownPane.label}</span>
           <ChevronDown
             size={16}
             className={`navbar-static__chevron${isMobilePricingOpen ? ' is-open' : ''}`}
@@ -881,7 +885,7 @@ export function SiteNavbar({
         </button>
         <div className={`navbar-static__mobile-submenu${isMobilePricingOpen ? ' is-open' : ''}`}>
           <section className="navbar-static__mobile-section">
-            <h3 className="navbar-static__mobile-section-title">Plans</h3>
+            <h3 className="navbar-static__mobile-section-title">{pricingDropdownPane.kicker}</h3>
             {pricingDropdownPane.rows.map((row) => {
               const rowProps = getNavLinkProps(row.to);
               return (
@@ -918,7 +922,7 @@ export function SiteNavbar({
             href={getStartedProps.href}
             onClick={onDashboardClick}
           >
-            <span>Dashboard</span>
+            <span>{labels.dashboard}</span>
             <Arrow size={14} />
           </a>
         </div>

@@ -1,4 +1,6 @@
 import React from 'react';
+import { locale, t } from '@/marketing/i18n/browser';
+import { figureCatalog } from '@/marketing/i18n/catalog';
 import keychain from '../../../showcase/motion/credentials/index.html?raw';
 import interlock from '../../../showcase/motion/interlock/index.html?raw';
 import devices from '../../../showcase/motion/delegation/index.html?raw';
@@ -19,8 +21,11 @@ function scriptSource(html: string, id: 'hl-kernel' | 'hl-figure'): string {
 type PlayPath = ReadonlyArray<readonly [x: number, y: number, ms: number]>;
 
 function figureDocument(html: string, pointerX: number, pointerY: number, play: PlayPath): string {
+  const copy: Record<string, string> = {};
+  for (const [key, translation] of Object.entries(figureCatalog)) copy[key] = translation[locale];
+  const serializedCopy = JSON.stringify(copy).replaceAll('<', '\\u003c');
   return `<!doctype html>
-<html lang="en" data-theme="light">
+<html lang="${locale}" data-theme="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 :root { color-scheme: light; --muted: #777169; }
@@ -40,6 +45,7 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 #read { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 </style></head>
 <body><div id="stage" data-pointer-x="${pointerX}" data-pointer-y="${pointerY}" data-play="${play.join(' ')}"></div><output id="read" aria-live="polite"></output>
+<script>const walletFigureCopy = ${serializedCopy}; window.walletFigureText = function(key) { return walletFigureCopy[key]; };</script>
 <script>${scriptSource(html, 'hl-kernel')}</script>
 <script>${embed}</script>
 <script type="module">${scriptSource(html, 'hl-figure')}</script>
@@ -68,23 +74,23 @@ const infrastructurePlay: PlayPath = [
 
 const figures = {
   keychain: {
-    title: 'Keys you control',
+    title: t('keysControl'),
     document: figureDocument(keychain, 150, 180, keychainPlay),
   },
   interlock: {
-    title: 'Scoped permissions',
+    title: t('scopedPermissions'),
     document: figureDocument(interlock, 200, 160, [[200, 160, 0]]),
   },
   devices: {
-    title: 'Linked devices',
+    title: t('linkedDevices'),
     document: figureDocument(devices, 200, 160, [[200, 160, 0]]),
   },
   infrastructure: {
-    title: 'Self-hostable',
+    title: t('selfHostable'),
     document: figureDocument(infrastructure, 205, 157, infrastructurePlay),
   },
   signing: {
-    title: 'Two shares, one signed transaction',
+    title: t('signingFigure'),
     document: figureDocument(signing, 200, 160, [[200, 160, 0]]),
   },
 };

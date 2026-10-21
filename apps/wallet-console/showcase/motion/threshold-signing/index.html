@@ -717,6 +717,10 @@ var HL = (() => {
   };
 })();
 </script>
+<script type="module">
+import { t } from "/src/marketing/i18n/browser.ts";
+window.walletFigureText = t;
+</script>
 <script type="module" id="hl-figure">
 /* @license MIT License — Copyright (c) 2026 Lucas Marques. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 /* global HL, hairline */
@@ -1090,13 +1094,13 @@ function tick(state, _dt, now) {
     }
     setTrace(state.result.mark, SIGNATURE_EASE(signed));
   }
-  state.read.textContent = 'rest';
+  state.read.textContent = window.walletFigureText('rest');
   if (state.active) {
-    if (input < 1) state.read.textContent = 'two shares';
-    else if (policy < 1) state.read.textContent = 'policy checks';
-    else if (output < 1) state.read.textContent = 'authorized';
-    else if (signed < 1) state.read.textContent = 'signing';
-    else state.read.textContent = 'signed';
+    if (input < 1) state.read.textContent = window.walletFigureText('twoShares');
+    else if (policy < 1) state.read.textContent = window.walletFigureText('checkingPolicy');
+    else if (output < 1) state.read.textContent = window.walletFigureText('authorized');
+    else if (signed < 1) state.read.textContent = window.walletFigureText('signing');
+    else state.read.textContent = window.walletFigureText('signed');
   }
   state.stage.setAttribute('aria-pressed', String(state.active));
   return !HL.tdone(state.motion.clock, now);
@@ -1113,7 +1117,7 @@ function resizeFigure(stage, svg, transactionLabel) {
   svg.setAttribute('viewBox', compact ? `60 ${top} 420 ${height}` : '0 0 560 280');
   stage.style.aspectRatio = compact ? `420 / ${height}` : '2 / 1';
   svg.style.aspectRatio = compact ? `420 / ${height}` : '2 / 1';
-  transactionLabel.textContent = compact ? 'Signed' : 'Signed transaction';
+  transactionLabel.textContent = compact ? 'Signed' : window.walletFigureText('signedTransaction');
   for (const text of svg.querySelectorAll('text')) {
     text.style.fontSize = compact ? '10px' : '';
   }
@@ -1194,7 +1198,7 @@ function mount({ stage, svg, read }, lag) {
     label(
       svg,
       [center[0], source.labelTop - 8],
-      index === 0 ? 'User’s device' : 'Your infrastructure',
+      index === 0 ? window.walletFigureText('userDevice') : window.walletFigureText('yourInfrastructure'),
     );
   }
   // Keep shared wires beneath every signal and the policy stack above the join.
@@ -1205,13 +1209,13 @@ function mount({ stage, svg, read }, lag) {
   const result = transaction(svg, resultP, front);
   const gateCenter = gateP(0, 0, 0);
   const resultCenter = resultP(0, 0, 0);
-  label(svg, [gateCenter[0], gate.labelBottom + 15], 'Policy checks');
+  label(svg, [gateCenter[0], gate.labelBottom + 15], window.walletFigureText('policyChecks'));
   const transactionLabel = label(
     svg,
     [resultCenter[0], result.labelBottom + 15],
-    'Signed transaction',
+    window.walletFigureText('signedTransaction'),
   );
-  label(svg, [280, 260], '2-of-2 threshold · neither share signs alone');
+  label(svg, [280, 260], window.walletFigureText('thresholdExplanation'));
   const state = {
     stage,
     read,
@@ -1229,7 +1233,7 @@ function mount({ stage, svg, read }, lag) {
   stage.setAttribute('role', 'button');
   stage.setAttribute(
     'aria-label',
-    'Animate two independent key shares authorizing one signed transaction',
+    window.walletFigureText('signingInstruction'),
   );
   state.loop = HL.register(stage, tick.bind(null, state));
   state.loop.wake();
@@ -1253,7 +1257,7 @@ function mount({ stage, svg, read }, lag) {
 hairline({
   name: 'threshold-signing',
   means:
-    'Two key shares rise from their bases. Three policies approve one signed transaction. Hover or press Enter to animate.',
+    window.walletFigureText('signingMeaning'),
   rules: [1, 3, 4, 6, 7, 8, 9],
   range: [0, 0.15, 0.3],
   mount,

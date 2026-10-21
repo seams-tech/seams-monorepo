@@ -1,3 +1,4 @@
+import { t } from '@/marketing/i18n/browser';
 import {
   Bot,
   Building2,
@@ -16,87 +17,87 @@ import type { DropdownPane, SiteNavbarConfig } from '@seams-internal/site-navbar
    vice versa; ids are kept stable so aria wiring and pane ordering don't churn. */
 const documentationDropdownPane: DropdownPane = {
   id: 'documentation',
-  label: 'Products',
-  kicker: 'Products',
+  label: t('products'),
+  kicker: t('products'),
   rows: [
     {
-      title: 'Embedded Wallet',
-      description: 'Non-custodial wallets with policy-bound keys and sessions',
+      title: t('embeddedWallet'),
+      description: t('embeddedDescription'),
       to: '/wallet',
       icon: Wallet,
       field: 'teal-peach',
     },
     {
-      title: 'Ecommerce Agents',
-      description: 'AI agents with scoped credentials, acting inside policy',
+      title: t('ecommerceAgents'),
+      description: t('agentsDescription'),
       to: '/ecommerce',
       icon: Bot,
       field: 'azure-coral',
     },
     {
-      title: 'Biometric Authentication',
-      description: 'Passkey authentication. VoiceID is planned.',
+      title: t('biometricAuth'),
+      description: t('biometricDescription'),
       to: '/docs/concepts/auth-methods/passkeys',
       icon: Fingerprint,
       field: 'aqua-evergreen',
     },
   ],
   highlight: {
-    title: 'Live demo',
-    description: 'Create a passkey wallet on the Embedded Wallet page',
+    title: t('liveDemo'),
+    description: t('liveDemoDescription'),
     to: '/wallet',
     field: 'teal-peach',
   },
-  footerLinks: [{ label: 'Plan pricing', to: '/pricing/' }],
+  footerLinks: [{ label: t('planPricing'), to: '/pricing/' }],
 };
 
 const productsDropdownPane: DropdownPane = {
   id: 'products',
-  label: 'Documentation',
-  kicker: 'Documentation',
+  label: t('documentation'),
+  kicker: t('documentation'),
   rows: [
     {
-      title: 'Get Started',
-      description: 'Install the SDK, create a wallet, and sign with policy',
+      title: t('getStarted'),
+      description: t('getStartedDescription'),
       to: '/docs/',
       icon: Rocket,
       field: 'sky-sand',
     },
     {
-      title: 'Tools and Guides',
-      description: 'Auth, sessions, wallet UI, policy, and the SDK reference',
+      title: t('toolsGuides'),
+      description: t('toolsDescription'),
       to: '/docs/guides/',
       icon: Wrench,
       field: 'slate-amber',
     },
     {
-      title: 'Use cases',
-      description: 'Mandates, delegated agents, and agent-driven commerce',
+      title: t('useCasesNav'),
+      description: t('useCasesDescription'),
       to: '/docs/use-cases/',
       icon: ListChecks,
       field: 'mauve-ember',
     },
   ],
   highlight: {
-    title: 'Architecture',
-    description: 'How passkeys, policy, and signing fit together',
+    title: t('architecture'),
+    description: t('architectureDescription'),
     to: '/docs/concepts/architecture',
     field: 'slate-amber',
   },
   footerLinks: [
-    { label: 'Read the docs', to: '/docs/' },
-    { label: 'Releases', to: '/docs/releases' },
+    { label: t('readDocs'), to: '/docs/' },
+    { label: t('releases'), to: '/docs/releases' },
   ],
 };
 
 const pricingDropdownPane: DropdownPane = {
   id: 'pricing',
-  label: 'Pricing',
-  kicker: 'Plans',
+  label: t('pricing'),
+  kicker: t('plans'),
   rows: [
     {
-      title: 'Free',
-      description: 'Up to 300 monthly active users',
+      title: t('free'),
+      description: t('freeDescription'),
       to: '/pricing/#free',
       icon: Sprout,
       meta: '$0',
@@ -104,42 +105,42 @@ const pricingDropdownPane: DropdownPane = {
     },
     {
       title: 'Growth',
-      description: '5,000 users included, then $0.004 per user',
+      description: t('growthDescription'),
       to: '/pricing/#growth',
       icon: TrendingUp,
-      meta: '$99 / mo',
+      meta: t('monthlyPrice'),
       field: 'azure-coral',
     },
     {
       title: 'Enterprise',
-      description: 'From $0.003 per user on committed volume',
+      description: t('enterpriseDescription'),
       to: '/pricing/#enterprise',
       icon: Rocket,
-      meta: 'Custom',
+      meta: t('custom'),
       field: 'mauve-ember',
     },
   ],
   footerLinks: [
-    { label: 'Compare plans', to: '/pricing/' },
-    { label: 'Estimate your price', to: '/pricing/#calculator' },
+    { label: t('comparePlans'), to: '/pricing/' },
+    { label: t('estimatePrice'), to: '/pricing/#calculator' },
   ],
 };
 
 const aboutDropdownPane: DropdownPane = {
   id: 'about',
-  label: 'About Us',
-  kicker: 'Company',
+  label: t('aboutUs'),
+  kicker: t('company'),
   rows: [
     {
-      title: 'Company',
-      description: 'Who we are and what we are building',
+      title: t('company'),
+      description: t('companyDescription'),
       to: '/company/',
       icon: Building2,
       field: 'sky-sand',
     },
     {
-      title: 'Blog',
-      description: 'Writing from the Seams team',
+      title: t('blog'),
+      description: t('blogDescription'),
       to: '/company/#blog',
       icon: PenLine,
       field: 'teal-peach',
@@ -149,6 +150,15 @@ const aboutDropdownPane: DropdownPane = {
 };
 
 export const siteNavbarConfig: SiteNavbarConfig = {
+  labels: {
+    primary: t('primaryNavigation'),
+    home: t('seamsHome'),
+    dashboard: t('dashboard'),
+    openMenu: t('openMenu'),
+    closeMenu: t('closeMenu'),
+    companyOverview: t('companyOverview'),
+    companyMission: t('companyMission'),
+  },
   panes: {
     products: productsDropdownPane,
     documentation: documentationDropdownPane,

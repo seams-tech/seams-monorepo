@@ -11,7 +11,11 @@ import {
   Wallet,
   Wrench,
 } from 'lucide-react';
-import type { DropdownPane, SiteNavbarConfig } from '@seams-internal/site-navbar';
+import {
+  ENGLISH_NAVBAR_LABELS,
+  type DropdownPane,
+  type SiteNavbarConfig,
+} from '@seams-internal/site-navbar';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* The 'documentation' pane id historically maps to the "Products" trigger and
@@ -161,6 +165,7 @@ const aboutDropdownPane: DropdownPane = {
 };
 
 export const siteNavbarConfig: SiteNavbarConfig = {
+  labels: ENGLISH_NAVBAR_LABELS,
   panes: {
     products: productsDropdownPane,
     documentation: documentationDropdownPane,

@@ -1,4 +1,5 @@
 import './embeddedFocus';
+import '@/marketing/i18n/browser';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { AccountMenuButtonMock } from '@seams/wallet/react/profile';

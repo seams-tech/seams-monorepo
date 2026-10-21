@@ -1,3 +1,4 @@
+import { t } from '@/marketing/i18n/browser';
 import type {
   AuthMenuLinkDeviceState,
   AuthMenuLinkDeviceViewModel,
@@ -24,10 +25,10 @@ export function linkMenu(linkDevice: AuthMenuLinkDeviceState): AuthMenuLinkDevic
     linkDevice,
     appearance: paperIframeAppearance(),
     hostname: 'shop.example.com',
-    closeLabel: 'Back',
-    heading: 'Link this device',
-    subtitle: 'Scan this code with your other device to connect this one.',
-    ctaLabel: 'Create passkey',
+    closeLabel: t('back'),
+    heading: t('linkDevice'),
+    subtitle: t('scanDevice'),
+    ctaLabel: t('createPasskeyButton'),
     showProgress: false,
     status: { kind: 'idle', interaction: 'actionable' },
   };
@@ -42,10 +43,10 @@ export function recoveryEntry(code: string, error: string | null): AuthMenuRecov
     recoveryCodeError: error,
     appearance: paperIframeAppearance(),
     hostname: 'shop.example.com',
-    closeLabel: 'Back',
-    heading: 'Recover wallet',
-    subtitle: 'Use your recovery code to restore access.',
-    ctaLabel: 'Recover with Passkey',
+    closeLabel: t('back'),
+    heading: t('recoverWalletHeading'),
+    subtitle: t('useRecoveryCode'),
+    ctaLabel: t('recoverPasskey'),
     showProgress: false,
     status: { kind: 'idle', interaction: 'actionable' },
   };
@@ -65,13 +66,10 @@ export function passkeyRecovery(
     recoveryCodeError: null,
     appearance: paperIframeAppearance(),
     hostname: 'shop.example.com',
-    closeLabel: 'Back',
-    heading: stage === 'sign_in_ready' ? 'Wallet recovered' : 'Create a new passkey',
-    subtitle:
-      stage === 'sign_in_ready'
-        ? 'Unlock your wallet to continue.'
-        : 'Secure your wallet on this device.',
-    ctaLabel: 'Create new passkey',
+    closeLabel: t('back'),
+    heading: stage === 'sign_in_ready' ? t('walletRecovered') : t('newPasskey'),
+    subtitle: stage === 'sign_in_ready' ? t('unlockContinue') : t('secureDevice'),
+    ctaLabel: t('newPasskeyButton'),
     showProgress: false,
     status: { kind: 'idle', interaction: 'actionable' },
   };
@@ -91,10 +89,10 @@ export function googleRecovery(
     recoveryCodeError: null,
     appearance: paperIframeAppearance(),
     hostname: 'shop.example.com',
-    closeLabel: 'Back',
-    heading: stage === 'sign_in_ready' ? 'Wallet recovered' : 'Recover with Google',
-    subtitle: 'Restore access to your wallet.',
-    ctaLabel: 'Continue with Google',
+    closeLabel: t('back'),
+    heading: stage === 'sign_in_ready' ? t('walletRecovered') : t('recoverGoogle'),
+    subtitle: t('restoreAccess'),
+    ctaLabel: t('continueGoogle'),
     showProgress: false,
     status: { kind: 'idle', interaction: 'actionable' },
   };

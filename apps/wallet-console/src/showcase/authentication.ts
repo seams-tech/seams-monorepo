@@ -1,3 +1,4 @@
+import { t } from '@/marketing/i18n/browser';
 import './embeddedFocus';
 import '@wallet-ui/sdk/wallet-ui.css';
 import '@fontsource/hanken-grotesk/400.css';
@@ -37,17 +38,17 @@ function registration(
     mode: 'register',
     appearance: paperIframeAppearance(),
     hostname: 'shop.example.com',
-    closeLabel: 'Back',
-    heading: 'Create a wallet',
-    subtitle: 'Your keys. Your next chapter.',
-    ctaLabel: 'Create with passkey',
+    closeLabel: t('back'),
+    heading: t('createWallet'),
+    subtitle: t('yourKeys'),
+    ctaLabel: t('createPasskey'),
     showProgress: false,
     enabledExternalProviders: ['google'],
     status,
     showRegistrationInput: false,
     passkeyNameReadOnly: true,
     passkeyName: 'alex',
-    passkeyNameLabel: 'Wallet name',
+    passkeyNameLabel: t('walletName'),
   };
 }
 
@@ -59,10 +60,10 @@ function login(
     mode: 'login',
     appearance: paperIframeAppearance(),
     hostname: 'shop.example.com',
-    closeLabel: 'Back',
-    heading: 'Unlock wallet',
-    subtitle: 'Welcome back.',
-    ctaLabel: 'Continue with passkey',
+    closeLabel: t('back'),
+    heading: t('unlockWallet'),
+    subtitle: t('welcomeBackPeriod'),
+    ctaLabel: t('continuePasskey'),
     showProgress: false,
     enabledExternalProviders: ['google'],
     status,
@@ -109,10 +110,10 @@ result.innerHTML = `
   <p role="status"></p>
   <div class="authentication-result__actions">
     <button type="button" data-showcase-next>
-      Next
+      ${t('next')}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
     </button>
-    <button type="button" data-authentication-reset>Start over</button>
+    <button type="button" data-authentication-reset>${t('startOver')}</button>
   </div>`;
 stage.append(result);
 const next = result.querySelector<HTMLButtonElement>('[data-showcase-next]');
@@ -151,7 +152,7 @@ function reset(): void {
 }
 
 function openLink(): void {
-  show(linkMenu({ kind: 'ready', qrCodeDataURL: linkingCode, message: 'Waiting for approval' }));
+  show(linkMenu({ kind: 'ready', qrCodeDataURL: linkingCode, message: t('waitingApproval') }));
   // The remote device's approval arrives independently of this menu's controls.
   cancelApproval = schedulePlayback(approveLink, 4000);
 }
@@ -162,7 +163,7 @@ function approveLink(): void {
     state.model.kind === 'link_device' &&
     state.model.linkDevice.kind === 'ready'
   ) {
-    show(linkMenu({ kind: 'passkey_required', message: 'Device approved' }));
+    show(linkMenu({ kind: 'passkey_required', message: t('deviceApproved') }));
   }
 }
 
@@ -255,12 +256,12 @@ function complete(heading: string, message: string): void {
 // The demo shows the new sign-in method as the end of recovery. The SDK's
 // separate unlock with that method is left out here.
 function completeRecovery(): void {
-  complete('Wallet recovered', 'Your wallet is ready on this device.');
+  complete(t('walletRecovered'), t('readyOnDevice'));
 }
 
 function finishAuthentication(mode: 'login' | 'register'): void {
-  if (mode === 'register') complete('Wallet created', 'Your wallet is ready on this device.');
-  else complete("You're in", 'Your wallet is unlocked.');
+  if (mode === 'register') complete(t('walletCreated'), t('readyOnDevice'));
+  else complete(t('signedIn'), t('walletUnlocked'));
 }
 
 // A passkey wait shows the SDK's passkey ring; the result card's ring then
@@ -270,10 +271,10 @@ function promptAuthentication(mode: 'login' | 'register', method: 'passkey' | 'g
     method === 'passkey'
       ? {
           kind: 'busy',
-          headline: mode === 'register' ? 'Creating passkey wallet…' : 'Unlocking wallet…',
+          headline: mode === 'register' ? t('creatingWallet') : t('unlockingWallet'),
           illustration: 'passkey',
         }
-      : { kind: 'busy', headline: 'Signing you in…' };
+      : { kind: 'busy', headline: t('signingIn') };
   show(mode === 'register' ? registration(status) : login(status));
   if (reducedMotion.matches) {
     cancelApproval = schedulePlayback(() => finishAuthentication(mode), waitMilliseconds);
@@ -290,7 +291,7 @@ function recover(method: 'passkey' | 'google'): void {
   if (state.kind !== 'menu' || state.model.kind !== 'recovery') return;
   const code = state.model.recoveryCode;
   if (code.toUpperCase().replaceAll(/[^0-9A-Z]/g, '') !== recoveryCode.replaceAll('-', '')) {
-    show(recoveryEntry(code, 'Check your recovery code and try again.'));
+    show(recoveryEntry(code, t('checkRecovery')));
     return;
   }
   show(
@@ -321,7 +322,7 @@ function onIntent(intent: AuthMenuIntent): void {
       show(recoveryEntry(recoveryCode, null));
       return;
     case 'link_device_create_passkey':
-      complete('Device linked', 'Your wallet is ready on this device.');
+      complete(t('deviceLinked'), t('readyOnDevice'));
       return;
     case 'recovery_code_changed':
       show(recoveryEntry(intent.recoveryCode, null));

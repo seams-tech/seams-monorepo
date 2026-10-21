@@ -3371,8 +3371,104 @@ body:has(.h2-page) {
   padding: 72px 36px 64px;
 }
 
-/* four equal columns: the logo in the first, the FAQ and link groups in
-   the other three (their inner grids share the gap, so the columns align) */
+.h2-footer__inner > .h2-footer__faq {
+  margin-bottom: 72px;
+}
+
+.wallet-language__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--h2-ink);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.h2-demo__language {
+  position: absolute;
+  z-index: 1;
+  top: 14px;
+  left: 16px;
+  color: var(--h2-graphite);
+  font-size: 12px;
+}
+
+.wallet-language__trigger > span:last-child {
+  display: inline-flex;
+  margin-left: 4px;
+  color: var(--h2-ash);
+}
+
+.wallet-language__trigger:focus-visible {
+  outline: 2px solid var(--h2-ink);
+  outline-offset: 5px;
+  border-radius: 4px;
+}
+
+.wallet-language__menu {
+  z-index: 1000;
+  min-width: 180px;
+  max-height: var(--radix-select-content-available-height);
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--site-border);
+  border-radius: 10px;
+  background: var(--site-surface, #fff);
+  color: var(--site-text-primary);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 10%);
+  font:
+    15px/1.5 'Hanken Grotesk',
+    'Hiragino Kaku Gothic ProN',
+    'Yu Gothic',
+    Meiryo,
+    sans-serif;
+}
+
+.wallet-language__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  outline: none;
+}
+
+.wallet-language__option[data-highlighted] {
+  background: var(--site-surface-muted);
+}
+
+html:lang(ja) .h2-page {
+  font-family: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif;
+  line-break: strict;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+html:lang(ja) .h2-display {
+  letter-spacing: -0.025em;
+  line-height: 1.4;
+}
+
+html:lang(ja) .h2-footer__col a,
+html:lang(ja) .h2-footer__faq-q {
+  line-height: 1.7;
+}
+
+html:lang(ja) .h2-hero__sub,
+html:lang(ja) .h2-startrow__text p {
+  line-height: 1.85;
+}
+
+/* The brand and the three link columns share one aligned grid. */
 .h2-footer__grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3385,7 +3481,7 @@ body:has(.h2-page) {
 .h2-footer__brand {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   margin-left: calc(var(--h2-inset) - 36px);
 }
 
@@ -3455,9 +3551,10 @@ body:has(.h2-page) {
 }
 
 /* each question reads as a footer link with a chevron, like a menu row */
-/* block, not flex: a wrapped question keeps its chevron after the last word */
 .h2-footer__faq-q {
-  display: block;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
   width: fit-content;
   max-width: 100%;
   margin: 0;
@@ -3472,13 +3569,9 @@ body:has(.h2-page) {
   cursor: pointer;
 }
 
-.h2-footer__faq-tail {
-  white-space: nowrap;
-}
-
 .h2-footer__faq-q svg {
+  flex-shrink: 0;
   display: inline-block;
-  margin-left: 5px;
   vertical-align: -2px;
   color: var(--h2-ash);
   transition:

@@ -26,6 +26,11 @@
 		rewrite * /wallet-static/
 		reverse_proxy 127.0.0.1:4008
 	}
+	redir /wallet/ja /wallet/ja/ 308
+	handle /wallet/ja/ {
+		rewrite * /wallet-static/ja/
+		reverse_proxy 127.0.0.1:4008
+	}
 	@wallet_marketing_assets path /wallet-static/*
 	handle @wallet_marketing_assets {
 		reverse_proxy 127.0.0.1:4008

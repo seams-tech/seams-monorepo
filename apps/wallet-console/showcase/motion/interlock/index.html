@@ -717,6 +717,10 @@ var HL = (() => {
   };
 })();
 </script>
+<script type="module">
+import { t } from "/src/marketing/i18n/browser.ts";
+window.walletFigureText = t;
+</script>
 <script type="module" id="hl-figure">
 /* @license MIT License — Copyright (c) 2026 Lucas Marques. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 /* global HL, hairline */
@@ -1130,15 +1134,15 @@ function tick(state, _dt, now) {
   drawWheel(state, state.wheels[2], front);
   drawDial(state, front);
   drawFence(state, drop);
-  let phase = 'rest';
-  if (forward > 0) phase = 'picking up middle';
-  if (forward > MIDDLE_PICKUP) phase = 'picking up rear';
-  if (forward > MIDDLE_PICKUP + REAR_PICKUP) phase = 'aligning rear';
-  if (reverse > 0) phase = 'aligning middle';
-  if (finish > 0) phase = 'aligning front';
-  if (drop > 0) phase = 'pin dropping';
-  if (drop === 1) phase = 'unlocked';
-  if (!state.active && progress > 0) phase = 'resetting';
+  let phase = window.walletFigureText('rest');
+  if (forward > 0) phase = window.walletFigureText('pickingMiddle');
+  if (forward > MIDDLE_PICKUP) phase = window.walletFigureText('pickingRear');
+  if (forward > MIDDLE_PICKUP + REAR_PICKUP) phase = window.walletFigureText('aligningRear');
+  if (reverse > 0) phase = window.walletFigureText('aligningMiddle');
+  if (finish > 0) phase = window.walletFigureText('aligningFront');
+  if (drop > 0) phase = window.walletFigureText('pinDropping');
+  if (drop === 1) phase = window.walletFigureText('unlocked');
+  if (!state.active && progress > 0) phase = window.walletFigureText('resetting');
   state.read.textContent = phase;
   return !HL.tdone(state.motion.clock, now);
 }
@@ -1266,7 +1270,7 @@ function mount({ stage, svg, read }, duration) {
   stage.setAttribute('role', 'button');
   stage.setAttribute(
     'aria-label',
-    'Turn the dial to engage and align three wheels, then release the locking pin',
+    window.walletFigureText('interlockInstruction'),
   );
   stage.setAttribute('aria-pressed', 'false');
   bag.on(stage, 'keydown', keydown.bind(null, state));
@@ -1276,7 +1280,7 @@ function mount({ stage, svg, read }, duration) {
 hairline({
   name: 'interlock',
   means:
-    'The dial picks up each wheel in turn. Aligned gates let the locking pin drop. Hover or press Enter.',
+    window.walletFigureText('interlockMeaning'),
   rules: [1, 4, 5, 6, 7, 8, 9],
   range: [3400, 4400, 5600],
   mount,

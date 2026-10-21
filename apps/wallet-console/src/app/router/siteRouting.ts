@@ -1,4 +1,6 @@
 import { readFrontendSiteLinks } from '@/frontendConfig';
+import { locale } from '@/marketing/i18n/browser';
+import { walletLanguageUrl, type Locale } from '@/marketing/i18n/locale';
 
 const SITE_LINKS = readFrontendSiteLinks(import.meta.env);
 
@@ -15,6 +17,10 @@ export function getDocsOrigin(): string {
 
 export function isHttpUrl(value: string): boolean {
   return /^https?:\/\//.test(value);
+}
+
+export function getWalletLanguageHref(language: Locale): string {
+  return walletLanguageUrl(new URL(window.location.href), SITE_LINKS.walletPath, language);
 }
 
 function toSiteAbsolutePath(pathOrHash: string): string {
@@ -34,7 +40,13 @@ export function resolveHref(target: string): string {
   if (isHttpUrl(target)) return target;
   if (target.startsWith('#')) return toSiteAbsolutePath(target);
 
-  if (target === '/wallet') return SITE_LINKS.walletPath;
+  if (normalizePathname(target) === '/wallet') {
+    return walletLanguageUrl(
+      new URL(target, window.location.origin),
+      SITE_LINKS.walletPath,
+      locale,
+    );
+  }
 
   const docsHref = maybeDocsHref(target);
   if (docsHref) return docsHref;

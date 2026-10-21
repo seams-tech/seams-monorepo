@@ -1,3 +1,4 @@
+import { t } from '@/marketing/i18n/browser';
 import React from 'react';
 import type { HostedAuthMenuMode } from '@seams/wallet/react';
 import { GrainField } from '@seams-internal/grain-field';
@@ -38,10 +39,10 @@ function DemoUnavailable(): React.JSX.Element {
   return (
     <HeroDemoCell>
       <div className="h2-demo__unavailable" role="status">
-        <p>The live demo is temporarily unavailable.</p>
-        <p>You can still explore the wallet features below.</p>
+        <p>{t('demoUnavailable')}</p>
+        <p>{t('demoExplore')}</p>
         <button className="h2-btn h2-btn--outline" type="button" onClick={reloadPage}>
-          Reload page
+          {t('reload')}
         </button>
       </div>
     </HeroDemoCell>
@@ -58,7 +59,7 @@ export class WalletDemoSlot extends React.Component<DemoProps, DemoState> {
   render(): React.ReactNode {
     if (this.state.kind === 'unavailable') return <DemoUnavailable />;
     return (
-      <React.Suspense fallback={<HeroDemoCell aria-label="Loading live demo" />}>
+      <React.Suspense fallback={<HeroDemoCell aria-label={t('demoLoading')} />}>
         <WalletDemo {...this.props} />
       </React.Suspense>
     );

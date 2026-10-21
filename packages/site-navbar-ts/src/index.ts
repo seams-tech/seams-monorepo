@@ -1,4 +1,5 @@
 export {
+  ENGLISH_NAVBAR_LABELS,
   SiteNavbar,
   type DropdownId,
   type DropdownPane,
@@ -8,6 +9,7 @@ export {
   type MobileExtraLink,
   type NavbarStaticProps,
   type SiteNavbarConfig,
+  type SiteNavbarLabels,
   type SiteNavbarProps,
   type SiteNavbarRouter,
 } from './SiteNavbar';

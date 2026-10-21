@@ -1,3 +1,4 @@
+import { locale, t } from '@/marketing/i18n/browser';
 import OverlayController from '@wallet-ui/SeamsWeb/walletIframe/client/overlay/overlay-controller';
 import {
   requestSurfaceIdentity,
@@ -26,7 +27,7 @@ type Phase = 'mounting' | 'review' | 'review_again' | 'preparing' | 'approval' |
 const dialogWidthCssPx = 420;
 const toastWidthCssPx = 360;
 
-const confirmedMessage = 'Purchase confirmed.';
+const confirmedMessage = t('purchaseConfirmed');
 
 /* Drives the SDK's production overlay through a custom review, its handoff to
    the wallet approval, and the receipt toast that follows. The approval runs
@@ -87,13 +88,13 @@ export class CheckoutSession {
     }
     if (this.phase !== 'review') return;
     this.phase = 'preparing';
-    this.iframe.src = `${import.meta.env.BASE_URL}showcase/checkout/wallet/?side=${this.side}`;
+    this.iframe.src = `${import.meta.env.BASE_URL}showcase/checkout/wallet/?side=${this.side}&lang=${locale}`;
   };
 
-  readonly cancel = (): void => this.finish('Checkout closed.');
+  readonly cancel = (): void => this.finish(t('checkoutClosed'));
 
   readonly fail = (error: unknown): void =>
-    this.finish(error instanceof Error ? error.message : 'Checkout could not open.');
+    this.finish(error instanceof Error ? error.message : t('checkoutFailed'));
 
   readonly dispose = (): void => {
     this.phase = 'closed';
@@ -115,7 +116,7 @@ export class CheckoutSession {
     if (this.receiptView === 'toast') {
       this.overlay.apply({
         kind: 'compact_request_modal',
-        presentation: modalWalletIframeSurfacePresentation('Transaction receipt'),
+        presentation: modalWalletIframeSurfacePresentation(t('transactionReceipt')),
         geometry: this.toastGeometry(),
         focusTrap: false,
         identity: this.identity,
@@ -123,7 +124,11 @@ export class CheckoutSession {
       return;
     }
     const presentation = modalWalletIframeSurfacePresentation(
-      reviewing ? 'Review purchase' : this.receiptView ? 'Transaction receipt' : 'Wallet approval',
+      reviewing
+        ? t('reviewPurchase')
+        : this.receiptView
+          ? t('transactionReceipt')
+          : t('walletApproval'),
     );
     const geometry = dialogGeometry(
       presentation,
@@ -146,7 +151,7 @@ export class CheckoutSession {
 
   private readonly sendLayout = (): void => {
     const dialog = dialogGeometry(
-      modalWalletIframeSurfacePresentation('Wallet approval'),
+      modalWalletIframeSurfacePresentation(t('walletApproval')),
       window.innerHeight,
     );
     if (dialog === null) return;
@@ -190,7 +195,7 @@ export class CheckoutSession {
       this.phase = 'review_again';
       this.resize();
     } else if (message.type === 'checkout-finished' && typeof message.confirmed === 'boolean') {
-      this.finish(message.confirmed ? confirmedMessage : 'Declined in the wallet.');
+      this.finish(message.confirmed ? confirmedMessage : t('declinedWallet'));
     } else if (
       message.type === 'checkout-receipt-view' &&
       (message.view === 'expanded' || message.view === 'toast') &&

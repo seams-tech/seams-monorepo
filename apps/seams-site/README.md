@@ -62,6 +62,36 @@ Check deep links from marketing and Console with the configured `VITE_DOCS_ORIGI
 
 ## Dashboard inline modal scrolling
 
+## Wallet marketing languages
+
+The Wallet marketing app in `apps/wallet-console` serves English at `/` and
+Japanese at `/ja/`. The URL selects the language. The footer selector preserves
+query parameters and section anchors. Local development uses `/wallet` and
+`/wallet/ja/` through Caddy.
+
+Keep translations in `apps/wallet-console/src/marketing/i18n/catalog.ts`. Every
+message requires English and Japanese text. Both languages use the same React
+components. The Vite build emits language-specific HTML metadata and a sitemap.
+Showcase frames receive the language through `?lang=ja`.
+
+Documentation, Console, live SDK dialogs, and the SDK account-menu preview remain
+in English. Japanese labels identify these destinations. Translate SDK-owned
+surfaces in `seams-wallet` and consume an exact release here.
+
+To check a built marketing preview, run:
+
+```sh
+pnpm -C apps/wallet-console build:marketing
+pnpm -C apps/wallet-console exec vite preview --host 127.0.0.1 --port 4018
+# In another terminal:
+node tests/e2e/wallet-marketing-i18n.e2e.mjs
+```
+
+The E2E scenario writes screenshots, a trace, and `result.json` under
+`output/playwright/wallet-marketing-i18n/`.
+
+## Dashboard inline modal scrolling
+
 Keep one scroll host active while an inline modal is open. The backdrop owns
 scrolling, and `.dashboard-main` stays scroll-locked. Extend the backdrop beyond
 the visible frame to avoid exposing its boundary during elastic overscroll.

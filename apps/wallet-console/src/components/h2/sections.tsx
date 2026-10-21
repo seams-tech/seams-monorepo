@@ -1,3 +1,4 @@
+import { t } from '@/marketing/i18n/browser';
 import React from 'react';
 import {
   ChevronDown,
@@ -21,42 +22,30 @@ import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMark
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import '@/styles/h2.css';
+import { LanguageSelector } from '@/marketing/LanguageSelector';
 
-/* Shared section library for the h2 marketing pages (/, /wallet, /ecommerce).
-   Every component renders inside a `.h2-page > .h2-col` wrapper and styles
-   itself from src/styles/h2.css. */
+/* Wallet marketing sections share the same components in both languages. */
 
 /* ---------- demo hero ---------- */
 
 /* Compact product forks under the CTAs, each on its own moving gradient chip */
 const productForks: readonly { label: string; to: string; field: GrainFieldName }[] = [
-  { label: 'Wallet', to: '/wallet', field: 'teal-peach' },
-  { label: 'Harness', to: 'https://seams.sh/ecommerce', field: 'mauve-ember' },
-  { label: 'API', to: '/docs/concepts/', field: 'azure-coral' },
+  { label: t('wallet'), to: '/wallet', field: 'teal-peach' },
+  { label: t('harness'), to: 'https://seams.sh/ecommerce', field: 'mauve-ember' },
+  { label: t('api'), to: '/docs/concepts/', field: 'azure-coral' },
 ];
 
 export type H2DemoHeroProps = {
-  title?: React.ReactNode;
-  sub?: React.ReactNode;
+  title: React.ReactNode;
+  sub: React.ReactNode;
   authDefaultModeWhenNoDetectedAccount?: HostedAuthMenuMode;
 };
 
 export function H2DemoHero({
-  title = (
-    <>
-      {/* non-breaking hyphen keeps "policy-based" on one line */}
-      Secure commerce accounts with policy{'‑'}based permissions
-    </>
-  ),
-  sub = (
-    <>
-      One SDK for authentication, wallets, credentials, and delegated access, wherever people and AI
-      agents act on your store. Register with a passkey right here and you have a working account:
-      wallet included, recovery built in, every action signed.
-    </>
-  ),
+  title,
+  sub,
   authDefaultModeWhenNoDetectedAccount,
-}: H2DemoHeroProps = {}): React.JSX.Element {
+}: H2DemoHeroProps): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const startProps = linkProps('/docs/');
   const authProps = linkProps('/docs/guides/authentication');
@@ -75,15 +64,15 @@ export function H2DemoHero({
               href={startProps.href}
               onClick={startProps.onClick}
             >
-              Start building
+              {t('startBuilding')}
               <ArrowRightAnim size={12} />
             </a>
             <a className="h2-btn h2-btn--outline" href={authProps.href} onClick={authProps.onClick}>
-              How auth works
+              {t('howAuthWorks')}
               <ArrowRightAnim size={12} />
             </a>
           </div>
-          <div className="h2-hero__forks" aria-label="Products">
+          <div className="h2-hero__forks" aria-label={t('products')}>
             {productForks.map((fork) => {
               const forkProps = linkProps(fork.to);
               return (
@@ -115,9 +104,9 @@ export function H2DemoHero({
 
 export function H2Networks(): React.JSX.Element {
   return (
-    <section className="h2-section h2-rule h2-logos" aria-label="Supported networks">
+    <section className="h2-section h2-rule h2-logos" aria-label={t('supportedNetworks')}>
       <div className="h2-shell">
-        <div className="h2-logos__row" aria-label="Supported networks">
+        <div className="h2-logos__row" aria-label={t('supportedNetworks')}>
           {NETWORK_MARKS.map((mark) => (
             <span key={mark.name} className="h2-logo">
               <NetworkMarkLockup mark={mark} />
@@ -242,36 +231,36 @@ type WalletCapability = {
 const walletCapabilities: readonly WalletCapability[] = [
   {
     figure: 'keychain',
-    label: 'Keys you control',
-    title: 'Non-custodial',
-    copy: 'Keys are split, so no one party can sign alone.',
+    label: t('keysControl'),
+    title: t('nonCustodial'),
+    copy: t('splitKeysDescription'),
     icon: KeyRound,
     field: 'teal-peach',
     playMs: 3600,
   },
   {
     figure: 'interlock',
-    label: 'Scoped permissions',
-    title: 'Permissions',
-    copy: 'Checks limit what apps and agents can sign.',
+    label: t('scopedPermissions'),
+    title: t('permissions'),
+    copy: t('permissionsDescription'),
     icon: SlidersHorizontal,
     field: 'azure-coral',
     playMs: 5600,
   },
   {
     figure: 'devices',
-    label: 'Linked devices',
-    title: 'Multiple devices',
-    copy: 'Link another device for access and recovery.',
+    label: t('linkedDevices'),
+    title: t('multipleDevices'),
+    copy: t('devicesDescription'),
     icon: MonitorSmartphone,
     field: 'aqua-evergreen',
     playMs: 3600,
   },
   {
     figure: 'infrastructure',
-    label: 'Self-hostable',
-    title: 'Self-hosted',
-    copy: 'Run signing on your own infrastructure.',
+    label: t('selfHostable'),
+    title: t('selfHosted'),
+    copy: t('hostingDescription'),
     icon: Server,
     field: 'slate-amber',
     playMs: 3800,
@@ -405,7 +394,7 @@ export function H2Security(): React.JSX.Element {
         <div className="h2-security">
           <div>
             <h2 id="h2-security-title" className="h2-display h2-security__title">
-              Custody and control, built in
+              {t('custodyTitle')}
             </h2>
             <div className="h2-security__items">
               {walletCapabilities.map((capability, index) => (
@@ -453,11 +442,11 @@ export function H2Security(): React.JSX.Element {
           onAnimationEnd={advance}
         />
       </div>
-      <div className="h2-pager" role="group" aria-label="Custody views">
+      <div className="h2-pager" role="group" aria-label={t('custodyViews')}>
         <button
           type="button"
           className="h2-pager__btn"
-          aria-label="Previous custody view"
+          aria-label={t('previousCustody')}
           onClick={switchView}
         >
           <ChevronLeft aria-hidden />
@@ -465,7 +454,7 @@ export function H2Security(): React.JSX.Element {
         <button
           type="button"
           className="h2-pager__dots h2-security__pause"
-          aria-label={paused ? 'Resume automatic cycling' : 'Pause automatic cycling'}
+          aria-label={paused ? t('resumeCycling') : t('pauseCycling')}
           aria-pressed={paused}
           onClick={setPaused.bind(null, !paused)}
         >
@@ -475,7 +464,7 @@ export function H2Security(): React.JSX.Element {
         <button
           type="button"
           className="h2-pager__btn"
-          aria-label="Next custody view"
+          aria-label={t('nextCustody')}
           onClick={switchView}
         >
           <ChevronRight aria-hidden />
@@ -492,14 +481,14 @@ export function H2Security(): React.JSX.Element {
 const CONSOLE_SCREENS = [
   {
     id: 'overview' as const,
-    label: 'Overview',
+    label: t('overview'),
     src: '/wallet-preview/wallet-console-dashboard.png?v=1',
   },
   {
     id: 'audit' as const,
-    label: 'Observability',
+    label: t('observability'),
     src: '/wallet-preview/wallet-console-audit.png?v=1',
-    callout: 'Export to CSV in one click',
+    callout: t('csvExport'),
   },
 ];
 
@@ -514,24 +503,24 @@ type ApiNoteProps = {
 
 const ACCOUNT_NOTES: readonly ApiNoteProps[] = [
   {
-    title: 'Passkey sign-up',
-    body: 'A non-custodial wallet in one call',
+    title: t('passkeySignup'),
+    body: t('signupDescription'),
     icon: Fingerprint,
     field: 'sky-sand',
   },
-  { title: 'Recovery', body: 'Email or a linked device', icon: LifeBuoy, field: 'aqua-evergreen' },
+  { title: t('recovery'), body: t('recoveryDescription'), icon: LifeBuoy, field: 'aqua-evergreen' },
 ];
 
 const POLICY_NOTES: readonly ApiNoteProps[] = [
   {
-    title: 'Signing sessions',
-    body: 'An expiry and a use limit per unlock',
+    title: t('signingSessions'),
+    body: t('sessionsDescription'),
     icon: Timer,
     field: 'azure-coral',
   },
   {
-    title: 'Approvals',
-    body: 'The owner confirms in the wallet',
+    title: t('approvals'),
+    body: t('approvalsDescription'),
     icon: ShieldCheck,
     field: 'mauve-ember',
   },
@@ -648,11 +637,11 @@ export function H2Start(): React.JSX.Element {
     >
       <FieldBanner field="teal-peach" className="h2-starthead">
         <h2 id="h2-start-title" className="h2-display h2-banner__title">
-          Add wallets and permissions with a few API calls
+          {t('integrationTitle')}
         </h2>
         <div className="h2-banner__actions">
           <a className="h2-btn h2-btn--primary" href={docsProps.href} onClick={docsProps.onClick}>
-            Explore documentation
+            {t('exploreDocumentation')}
             <ArrowRightAnim size={12} />
           </a>
         </div>
@@ -662,8 +651,8 @@ export function H2Start(): React.JSX.Element {
       <div className="h2-startrow h2-rule h2-rule--midtick">
         <div className="h2-shell h2-startrow__grid">
           <div className="h2-startrow__text">
-            <h3>Accounts and Wallets API</h3>
-            <p>One passkey creates the account and its wallet. Recovery is built in.</p>
+            <h3>{t('accountsApi')}</h3>
+            <p>{t('accountsDescription')}</p>
             <div className="h2-startrow__notes">
               {ACCOUNT_NOTES.map((note) => (
                 <ApiNote key={note.title} {...note} />
@@ -672,7 +661,7 @@ export function H2Start(): React.JSX.Element {
           </div>
           {/* the documented registration call of @seams/wallet
               (seams-wallet apps/docs/src/examples/registration-input.ts) */}
-          <div className="h2-code h2-code--lg" aria-label="Register a wallet with the SDK">
+          <div className="h2-code h2-code--lg" aria-label={t('registrationCode')}>
             <span className="tok-kw">import</span>
             {' { useSeams } '}
             <span className="tok-kw">from</span>{' '}
@@ -702,11 +691,8 @@ export function H2Start(): React.JSX.Element {
       <div className="h2-startrow h2-rule h2-rule--midtick">
         <div className="h2-shell h2-startrow__grid">
           <div className="h2-startrow__text">
-            <h3>Sessions and Approvals API</h3>
-            <p>
-              One unlock opens a signing session with limits. Transactions that matter wait for the
-              owner.
-            </p>
+            <h3>{t('sessionsApi')}</h3>
+            <p>{t('sessionsApiDescription')}</p>
             <div className="h2-startrow__notes">
               {POLICY_NOTES.map((note) => (
                 <ApiNote key={note.title} {...note} />
@@ -716,10 +702,7 @@ export function H2Start(): React.JSX.Element {
           {/* the public unlock option and NEAR transaction call of @seams/wallet
               (seams-wallet core/types/sdkSentEvents.ts and
               apps/docs/src/examples/transaction-review.tsx) */}
-          <div
-            className="h2-code h2-code--lg"
-            aria-label="Open a signing session and send a transfer"
-          >
+          <div className="h2-code h2-code--lg" aria-label={t('signingCode')}>
             <span className="tok-kw">import</span>
             {' { transfer, useSeams } '}
             <span className="tok-kw">from</span>{' '}
@@ -756,10 +739,8 @@ export function H2Start(): React.JSX.Element {
       <div className="h2-consolehead h2-rule h2-rule--midtick">
         <FieldBanner field="teal-peach">
           <div>
-            <h3 className="h2-display h2-banner__title">Wallet console</h3>
-            <p className="h2-banner__sub">
-              Manage wallets, policies, and your team in one place. No code needed.
-            </p>
+            <h3 className="h2-display h2-banner__title">{t('walletConsole')}</h3>
+            <p className="h2-banner__sub">{t('consoleDescription')}</p>
           </div>
           <div className="h2-banner__actions">
             <a
@@ -767,7 +748,7 @@ export function H2Start(): React.JSX.Element {
               href={dashboardProps.href}
               onClick={dashboardProps.onClick}
             >
-              Open wallet console
+              {t('openConsole')}
               <ArrowRightAnim size={12} />
             </a>
           </div>
@@ -792,7 +773,7 @@ export function H2Start(): React.JSX.Element {
               rather than tabs: the stage is an image, so there is no tab
               panel for a tab to own. */}
           <div className="h2-consoleband__stagewrap">
-            <div className="h2-consoleband__switch" role="group" aria-label="Show a console screen">
+            <div className="h2-consoleband__switch" role="group" aria-label={t('showConsole')}>
               {CONSOLE_SCREENS.map((screen) => {
                 const selected = consoleFocus === screen.id;
                 return (
@@ -816,11 +797,7 @@ export function H2Start(): React.JSX.Element {
                 );
               })}
             </div>
-            <div
-              className="h2-consoleband__stage"
-              role="img"
-              aria-label={`Wallet console overview and observability pages, ${CONSOLE_SCREENS.find((screen) => screen.id === consoleFocus)?.label} in front`}
-            >
+            <div className="h2-consoleband__stage" role="img" aria-label={t('consolePreview')}>
               {CONSOLE_SCREENS.map((screen) => (
                 // the back card is a pointer shortcut to the same switch as
                 // its button; the switch stays the accessible control
@@ -868,84 +845,52 @@ type FaqGroup = {
   items: readonly FaqItem[];
 };
 
-type FaqAudience = 'home' | 'wallet';
-
-const faqs: Record<FaqAudience, readonly FaqGroup[]> = {
-  home: [
-    {
-      heading: 'Seams',
-      items: [
-        {
-          q: 'What is Seams?',
-          a: 'Seams is key and credential infrastructure for ecommerce: one SDK for authentication, non-custodial wallets, a credentials and permissions layer, and delegated access for staff and AI agents.',
-        },
-        {
-          q: 'How do we get started?',
-          a: 'The SDK is self-serve: install it, register an account with a passkey, and apply a policy template. For marketplaces and merchant fleets, contact us and we’ll plan the rollout together.',
-        },
-      ],
-    },
-    {
-      heading: 'Agents',
-      items: [
-        {
-          q: 'What can AI agents do with Seams?',
-          a: 'Agents get their own identity and scoped credentials. They can act on commerce events: follow-ups, refunds, listing updates, but only inside the merchant’s policy. Risky actions route to a human approval gate with passkey or biometric confirmation.',
-        },
-        {
-          q: 'How do merchants stay in control?',
-          a: 'Policy runs before anything executes: roles, amount limits, thresholds, expiry, and revocation. Every decision is attributed and logged, and delegated credentials can be revoked at any time.',
-        },
-      ],
-    },
-  ],
-  wallet: [
-    {
-      heading: 'Security',
-      items: [
-        {
-          q: 'Is Seams custodial?',
-          a: 'No. Signing keys are split between the user’s device and your infrastructure: neither side can sign alone, and exporting a key always requires a fresh authorized flow from the owner.',
-          more: { label: 'The custody model', to: '/docs/concepts/custody/' },
-        },
-        {
-          q: 'What if a user loses their device?',
-          a: 'They recover on a new device with their email or recovery code, then add a new passkey. The wallet and its address stay the same, so no funds have to move.',
-          more: { label: 'Wallet sessions', to: '/docs/concepts/sessions/wallet-sessions' },
-        },
-      ],
-    },
-    {
-      heading: 'Integration',
-      items: [
-        {
-          q: 'How do API keys work?',
-          a: 'Your backend authenticates with API keys; end users and agents authenticate with passkeys and scoped credentials. Signing always requires the user-side key share, so API keys alone can never move funds or export keys.',
-          more: { label: 'Sign-in methods', to: '/docs/concepts/auth-methods/' },
-        },
-        {
-          q: 'Which networks are supported?',
-          a: 'Ethereum and EVM networks, NEAR, Stripe Tempo, Circle Arc, Hyperliquid, and Polygon today, with more networks added as merchant demand grows.',
-        },
-      ],
-    },
-    {
-      heading: 'Hosting & pricing',
-      items: [
-        {
-          q: 'Can we run Seams ourselves?',
-          a: 'Yes. Use the hosted service, or run signing on your own serverless infrastructure. The SDK and the custody model are the same either way.',
-          more: { label: 'Architecture', to: '/docs/concepts/architecture' },
-        },
-        {
-          q: 'How is usage metered?',
-          a: 'Plans are based on monthly active users. The first 300 users are free. See the pricing page for plan allowances.',
-          more: { label: 'See pricing', to: '/pricing/' },
-        },
-      ],
-    },
-  ],
-};
+const walletFaqs: readonly FaqGroup[] = [
+  {
+    heading: t('security'),
+    items: [
+      {
+        q: t('custodialQuestion'),
+        a: t('custodialAnswer'),
+        more: { label: t('custodyModel'), to: '/docs/concepts/custody/' },
+      },
+      {
+        q: t('lostDeviceQuestion'),
+        a: t('lostDeviceAnswer'),
+        more: { label: t('walletSessions'), to: '/docs/concepts/sessions/wallet-sessions' },
+      },
+    ],
+  },
+  {
+    heading: t('integration'),
+    items: [
+      {
+        q: t('apiKeysQuestion'),
+        a: t('apiKeysAnswer'),
+        more: { label: t('signInMethods'), to: '/docs/concepts/auth-methods/' },
+      },
+      {
+        q: t('networksQuestion'),
+        a: t('networksAnswer'),
+      },
+    ],
+  },
+  {
+    heading: t('hostingPricing'),
+    items: [
+      {
+        q: t('hostingQuestion'),
+        a: t('hostingAnswer'),
+        more: { label: t('architecture'), to: '/docs/concepts/architecture' },
+      },
+      {
+        q: t('meteringQuestion'),
+        a: t('meteringAnswer'),
+        more: { label: t('seePricing'), to: '/pricing/' },
+      },
+    ],
+  },
+];
 
 type FaqPopFrame = { left: number; top: number; w: number; h: number };
 
@@ -1068,7 +1013,7 @@ function H2FooterFaq({ groups }: { groups: readonly FaqGroup[] }): React.JSX.Ele
       }}
     >
       <h2 id={`${baseId}-title`} className="h2-footer__faq-title">
-        FAQs
+        {t('faq')}
       </h2>
 
       <div className="h2-footer__links">
@@ -1113,12 +1058,8 @@ function H2FooterFaq({ groups }: { groups: readonly FaqGroup[] }): React.JSX.Ele
                     setPinned(true);
                   }}
                 >
-                  {item.q.slice(0, item.q.lastIndexOf(' ') + 1)}
-                  {/* the last word and the chevron never wrap apart */}
-                  <span className="h2-footer__faq-tail">
-                    {item.q.slice(item.q.lastIndexOf(' ') + 1)}
-                    <ChevronDown size={14} strokeWidth={1.75} aria-hidden="true" />
-                  </span>
+                  <span>{item.q}</span>
+                  <ChevronDown size={14} strokeWidth={1.75} aria-hidden="true" />
                 </button>
               );
             })}
@@ -1191,51 +1132,51 @@ type H2FooterLink = {
 
 const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
   {
-    heading: 'Products',
+    heading: t('products'),
     links: [
-      { label: 'Embedded Wallet', to: '/wallet' },
-      { label: 'Ecommerce Agents', to: 'https://seams.sh/ecommerce' },
-      { label: 'Custody Model', to: '/docs/concepts/custody/' },
-      { label: 'Wallet Sessions', to: '/docs/concepts/sessions/wallet-sessions' },
+      { label: t('embeddedWallet'), to: '/wallet' },
+      { label: t('ecommerceAgents'), to: 'https://seams.sh/ecommerce' },
+      { label: t('custodyLink'), to: '/docs/concepts/custody/' },
+      { label: t('walletSessions'), to: '/docs/concepts/sessions/wallet-sessions' },
     ],
   },
   {
-    heading: 'Platform',
+    heading: t('platform'),
     links: [
-      { label: 'Authentication', to: '/docs/concepts/auth-methods/' },
-      { label: 'Passkeys', to: '/docs/concepts/auth-methods/passkeys' },
-      { label: 'Wallets & Signatures', to: '/docs/concepts/threshold-signing/' },
-      { label: 'Permissions & Policy', to: '/docs/concepts/policy/mandates' },
+      { label: t('authLink'), to: '/docs/concepts/auth-methods/' },
+      { label: t('passkeys'), to: '/docs/concepts/auth-methods/passkeys' },
+      { label: t('walletsSignatures'), to: '/docs/concepts/threshold-signing/' },
+      { label: t('permissionsPolicy'), to: '/docs/concepts/policy/mandates' },
     ],
   },
   {
-    heading: 'Developers',
+    heading: t('developers'),
     links: [
-      { label: 'Documentation', to: '/docs/concepts/' },
-      { label: 'Architecture', to: '/docs/concepts/architecture' },
-      { label: 'Wallet Iframe', to: '/docs/concepts/custody/wallet-iframe' },
+      { label: t('documentation'), to: '/docs/concepts/' },
+      { label: t('architecture'), to: '/docs/concepts/architecture' },
+      { label: t('walletIframe'), to: '/docs/concepts/custody/wallet-iframe' },
     ],
   },
   {
-    heading: 'Resources',
+    heading: t('resources'),
     links: [
-      { label: 'Guides', to: '/docs/guides/' },
-      { label: 'Use Cases', to: '/docs/use-cases/' },
-      { label: 'Pricing', to: '/pricing/' },
+      { label: t('guides'), to: '/docs/guides/' },
+      { label: t('useCases'), to: '/docs/use-cases/' },
+      { label: t('pricing'), to: '/pricing/' },
     ],
   },
   {
-    heading: 'Socials',
+    heading: t('socials'),
     links: [
       { label: 'X', to: 'https://x.com/lowerarchy', external: true },
       { label: 'GitHub', to: 'https://github.com/seams-tech', external: true },
     ],
   },
   {
-    heading: 'Company',
+    heading: t('company'),
     links: [
-      { label: 'About', to: '/company/' },
-      { label: 'Blog', to: '/company/#blog' },
+      { label: t('about'), to: '/company/' },
+      { label: t('blog'), to: '/company/#blog' },
     ],
   },
 ];
@@ -1252,17 +1193,17 @@ export function H2Cta(): React.JSX.Element {
       <FieldBanner field="teal-peach">
         <div>
           <h2 id="h2-cta-title" className="h2-display h2-banner__title">
-            Wallets your users can never lose
+            {t('closingTitle')}
           </h2>
-          <p className="h2-banner__sub">Passkeys, split keys and recovery in one SDK.</p>
+          <p className="h2-banner__sub">{t('closingDescription')}</p>
         </div>
         <div className="h2-banner__actions">
           <a className="h2-btn h2-btn--outline" href={docsProps.href} onClick={docsProps.onClick}>
-            Explore docs
+            {t('exploreDocs')}
             <ArrowRightAnim size={12} />
           </a>
           <a className="h2-btn h2-btn--primary" href={startProps.href} onClick={startProps.onClick}>
-            Start building
+            {t('startBuilding')}
             <ArrowRightAnim size={12} />
           </a>
         </div>
@@ -1271,29 +1212,24 @@ export function H2Cta(): React.JSX.Element {
   );
 }
 
-type H2FooterProps = {
-  /* pages with an FAQ show it as the footer's first row, above the links */
-  faq?: FaqAudience;
-};
-
-export function H2Footer({ faq }: H2FooterProps): React.JSX.Element {
+export function H2Footer(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const homeProps = linkProps('https://seams.sh/');
 
   return (
-    <footer className="h2-footer h2-rule" aria-label="Site footer">
+    <footer className="h2-footer h2-rule" aria-label={t('siteFooter')}>
       <div className="h2-footer__inner">
+        <H2FooterFaq groups={walletFaqs} />
         <div className="h2-footer__grid">
           <div className="h2-footer__brand">
-            <a href={homeProps.href} onClick={homeProps.onClick} aria-label="Seams home">
+            <a href={homeProps.href} onClick={homeProps.onClick} aria-label={t('seamsHome')}>
               <SeamsWordmark height={20} />
             </a>
+            <LanguageSelector />
           </div>
 
           <div className="h2-footer__main">
-            {faq ? <H2FooterFaq groups={faqs[faq]} /> : null}
-
-            <div className="h2-footer__links">
+            <nav className="h2-footer__links" aria-label={t('footerNavigation')}>
               {footerGroups.map((group) => (
                 <div className="h2-footer__col" key={group.heading}>
                   <h3>{group.heading}</h3>
@@ -1301,7 +1237,7 @@ export function H2Footer({ faq }: H2FooterProps): React.JSX.Element {
                     const props = linkProps(link.to);
                     return (
                       <a
-                        key={link.label}
+                        key={link.to}
                         href={props.href}
                         onClick={props.onClick}
                         {...(link.external
@@ -1314,7 +1250,7 @@ export function H2Footer({ faq }: H2FooterProps): React.JSX.Element {
                   })}
                 </div>
               ))}
-            </div>
+            </nav>
           </div>
         </div>
       </div>

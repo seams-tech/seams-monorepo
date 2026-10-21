@@ -1,3 +1,4 @@
+import { t } from '@/marketing/i18n/browser';
 import { BookOpen, Check, Fingerprint, KeyRound, Layers2, LockKeyhole } from 'lucide-react';
 
 export type BackgroundPreviewKind = 'unlock' | 'recovery' | 'payment' | 'receipt';
@@ -10,8 +11,8 @@ function backgroundContent(kind: BackgroundPreviewKind): React.JSX.Element {
           <div className="showcase-preview__icon">
             <Fingerprint />
           </div>
-          <h3>Welcome back</h3>
-          <p className="showcase-preview__subtitle">Your wallet is ready.</p>
+          <h3>{t('welcomeBack')}</h3>
+          <p className="showcase-preview__subtitle">{t('walletReady')}</p>
           <div className="showcase-preview__profile">
             <span className="showcase-preview__avatar">AC</span>
             <span>
@@ -21,7 +22,7 @@ function backgroundContent(kind: BackgroundPreviewKind): React.JSX.Element {
           </div>
           <div className="showcase-preview__primary">
             <Fingerprint />
-            Unlock with passkey
+            {t('unlockPasskey')}
           </div>
         </>
       );
@@ -31,10 +32,10 @@ function backgroundContent(kind: BackgroundPreviewKind): React.JSX.Element {
           <div className="showcase-preview__icon">
             <KeyRound />
           </div>
-          <h3>Recover your wallet</h3>
-          <p className="showcase-preview__subtitle">A fresh start, with the same wallet.</p>
+          <h3>{t('recoverWallet')}</h3>
+          <p className="showcase-preview__subtitle">{t('sameWallet')}</p>
           <div className="showcase-background__code">XXXX − XXXX − XXXX</div>
-          <div className="showcase-preview__primary">Continue</div>
+          <div className="showcase-preview__primary">{t('continue')}</div>
         </>
       );
     case 'payment':
@@ -44,19 +45,19 @@ function backgroundContent(kind: BackgroundPreviewKind): React.JSX.Element {
             <BookOpen />
           </div>
           <h3>The Field Notes</h3>
-          <p className="showcase-preview__subtitle">Studio North · Order #1042</p>
+          <p className="showcase-preview__subtitle">{t('order')}</p>
           <div className="showcase-background__amount">$24.00</div>
           <dl className="showcase-background__details">
             <div>
-              <dt>Pay with</dt>
+              <dt>{t('payWith')}</dt>
               <dd>USDC on Base</dd>
             </div>
             <div>
-              <dt>Network fee</dt>
-              <dd>Included</dd>
+              <dt>{t('networkFee')}</dt>
+              <dd>{t('included')}</dd>
             </div>
           </dl>
-          <div className="showcase-preview__primary">Pay $24.00</div>
+          <div className="showcase-preview__primary">{t('payAmount')}</div>
         </>
       );
     case 'receipt':
@@ -65,23 +66,23 @@ function backgroundContent(kind: BackgroundPreviewKind): React.JSX.Element {
           <div className="showcase-preview__icon">
             <Check />
           </div>
-          <h3>Transfer confirmed</h3>
-          <p className="showcase-preview__subtitle">Your transfer reached its destination.</p>
+          <h3>{t('transferConfirmed')}</h3>
+          <p className="showcase-preview__subtitle">{t('transferArrived')}</p>
           <div className="showcase-background__amount">
             125.00 <small>USDC</small>
           </div>
           <dl className="showcase-background__details">
             <div>
-              <dt>To</dt>
+              <dt>{t('to')}</dt>
               <dd>Studio North</dd>
             </div>
             <div>
-              <dt>Network</dt>
+              <dt>{t('network')}</dt>
               <dd>Base</dd>
             </div>
             <div>
-              <dt>Status</dt>
-              <dd>Confirmed</dd>
+              <dt>{t('status')}</dt>
+              <dd>{t('confirmed')}</dd>
             </div>
           </dl>
         </>
@@ -106,7 +107,7 @@ export function BackgroundPreview({ kind }: { kind: BackgroundPreviewKind }): Re
       <div className="showcase-preview__content">{backgroundContent(kind)}</div>
       <div className="showcase-preview__footer">
         <Layers2 />
-        Powered by seams
+        {t('poweredBy')}
       </div>
     </div>
   );

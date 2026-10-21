@@ -621,18 +621,24 @@
   color: var(--pricing-banner-copy);
 }
 
-/* a text link with the stripe arrow, which animates on card hover */
+/* a white pill with the stripe arrow, so the card's action reads as a button
+   on the black card and on the hover gradient; the arrow animates on card hover */
 .pricing-banner__card-cta {
   display: inline-flex;
   align-items: center;
   gap: 2px;
   align-self: flex-start;
-  /* the link sits at the bottom of the taller card */
+  /* the button sits at the bottom of the taller card */
   margin-top: auto;
-  padding-top: 10px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 9999px;
+  background: #ffffff;
   font-size: 14px;
   font-weight: 600;
-  color: var(--pricing-banner-ink);
+  color: var(--h2-ink);
+  text-shadow: none;
+  box-shadow: 0 1px 2px rgba(10, 10, 10, 0.18);
 }
 
 @media (max-width: 900px) {

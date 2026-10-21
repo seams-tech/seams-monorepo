@@ -3330,7 +3330,7 @@ body:has(.h2-page) {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: calc(var(--h2-band-h) / 2);
+    min-height: var(--h2-band-h);
     padding-block: 0;
   }
 }

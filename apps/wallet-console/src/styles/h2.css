@@ -1615,6 +1615,7 @@ body:has(.h2-page) {
   justify-content: space-between;
   gap: 24px 48px;
   padding-top: 7px;
+  padding-inline: clamp(0px, 3vw, 3rem);
 }
 
 @media (max-width: 560px) {
@@ -1632,7 +1633,7 @@ body:has(.h2-page) {
   align-items: center;
   gap: 9px;
   color: var(--h2-ash);
-  font-size: clamp(15.5px, 1.4vw, 18px);
+  font-size: clamp(15.5px, 1.3vw, 17px);
   font-weight: 600;
   white-space: nowrap;
 }

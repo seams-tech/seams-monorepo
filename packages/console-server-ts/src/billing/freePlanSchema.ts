@@ -159,6 +159,13 @@ export const FREE_PLAN_D1_SCHEMA_SQL = Object.freeze([
   `CREATE TRIGGER IF NOT EXISTS billing_plan_usage_facts_retained
     BEFORE DELETE ON billing_plan_usage_facts
     BEGIN SELECT RAISE(ABORT, 'billing_plan_usage_fact_retained'); END`,
+  `CREATE TRIGGER IF NOT EXISTS organizations_delete_retained_free_plan
+    BEFORE DELETE ON organizations
+    WHEN EXISTS (SELECT 1 FROM billing_plan_usage_facts
+        WHERE namespace = OLD.namespace AND org_id = OLD.id)
+      OR EXISTS (SELECT 1 FROM billing_payment_customers
+        WHERE namespace = OLD.namespace AND org_id = OLD.id)
+    BEGIN SELECT RAISE(ABORT, 'organization_delete_has_billing_history'); END`,
   `CREATE TABLE IF NOT EXISTS billing_plan_notices (
     namespace TEXT NOT NULL,
     org_id TEXT NOT NULL,

@@ -1734,9 +1734,11 @@ export function H2Cta({
     <>
       <div>
         <h2 id="h2-cta-title" className="h2-display h2-cta__title">
-          Wallets your users can never lose
+          Build with the Seams SDK
         </h2>
-        <p className="h2-cta__sub">Passkeys, split keys and recovery in one SDK.</p>
+        <p className="h2-cta__sub">
+          Passkey sign-in, split-key wallets, and account recovery. Free for up to 300 users.
+        </p>
       </div>
       <div className="h2-cta__actions">
         <a className="h2-btn h2-btn--outline" href={docsProps.href} onClick={docsProps.onClick}>
@@ -1751,7 +1753,7 @@ export function H2Cta({
 
   if (appearance === 'banner') {
     return (
-      <section className="h2-cta h2-cta--banner" aria-labelledby="h2-cta-title">
+      <section className="h2-cta h2-cta--banner h2-rule" aria-labelledby="h2-cta-title">
         <div className="h2-shell h2-cta__banner">
           <GrainField field="teal-peach" flow={1.6} />
           {content}

@@ -1660,16 +1660,9 @@ export function H2Faq({ audience }: H2FaqProps): React.JSX.Element {
     <section className="h2-section h2-rule" aria-labelledby="h2-faq-title">
       <div className="h2-shell">
         <div className="h2-faq">
-          <div>
-            <h2 id="h2-faq-title" className="h2-display h2-faq__title">
-              {t('faqTitle')}
-            </h2>
-            {audience === 'pricing' ? (
-              <div className="h2-faq__gradient" aria-hidden="true">
-                <GrainField field="teal-peach" playing={false} />
-              </div>
-            ) : null}
-          </div>
+          <h2 id="h2-faq-title" className="h2-display h2-faq__title">
+            {t('faqTitle')}
+          </h2>
           <div className="h2-faq__list">{items.map(renderFaqItem)}</div>
         </div>
       </div>

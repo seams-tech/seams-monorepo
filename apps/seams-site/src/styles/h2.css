@@ -3674,15 +3674,6 @@ body:has(.h2-page) {
   font-size: clamp(27px, 2.9vw, 38px);
 }
 
-.h2-faq__gradient {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  aspect-ratio: 4 / 3;
-  margin-top: 28px;
-  border-radius: var(--h2-radius-card);
-}
-
 .h2-faq__list details {
   border-bottom: 1px dashed var(--h2-stone);
 }

@@ -240,7 +240,10 @@ export function PricingPage(): React.JSX.Element {
             </div>
           </header>
 
-          <section className="h2-section h2-section--compact h2-rule" aria-label={t('plans')}>
+          <section
+            className="h2-section h2-section--compact h2-rule pricing-plans-section"
+            aria-label={t('plans')}
+          >
             <div className="h2-shell">
               <div className="pricing-plans">
                 {plans.map((plan) => (

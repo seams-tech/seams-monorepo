@@ -1,5 +1,13 @@
 import { consoleApplicationUrl } from '../boundary/normalization';
 import {
+  formatEmailDate,
+  formatEmailDateTime,
+  formatEmailMonth,
+  renderEmailLayoutHtml,
+  type EmailBlock,
+  type EmailFact,
+} from './layout';
+import {
   FREE_PLAN_CARD_GRACE_DAYS,
   FREE_PLAN_CARD_REMINDER_DAYS,
   FREE_PLAN_LIMITS_V1,
@@ -327,7 +335,7 @@ export function renderOrganizationInvitationEmailV1(
   const text = [
     `${template.inviterDisplayName} invited you to join ${template.organizationName} as ${role}.`,
     `Accept the invitation: ${invitationUrl.toString()}`,
-    `This invitation expires ${template.expiresAt}.`,
+    `This invitation expires ${formatEmailDateTime(template.expiresAt)}.`,
   ].join('\n\n');
   return {
     subject,
@@ -336,7 +344,7 @@ export function renderOrganizationInvitationEmailV1(
       heading: subject,
       paragraphs: [
         `${template.inviterDisplayName} invited you to join ${template.organizationName} as ${role}.`,
-        `This invitation expires ${template.expiresAt}.`,
+        `This invitation expires ${formatEmailDateTime(template.expiresAt)}.`,
       ],
       actionLabel: 'Accept invitation',
       actionUrl: invitationUrl.toString(),
@@ -522,7 +530,27 @@ function renderAccountWelcome(template: AccountWelcomeEmailV1): RenderedConsoleE
     question,
     'Cheers,\nThe Seams team',
   ].join('\n\n');
-  const html = `<!doctype html><html><body style="margin:0;background:#ffffff;color:#151515;font-family:Arial,Helvetica,sans-serif"><div style="max-width:600px;margin:0 auto;padding:40px 24px;font-size:17px;line-height:1.6"><p>${escapeHtml(greeting)}</p><p>Welcome to Seams.</p><p>${escapeHtml(setup)}</p><p>${escapeHtml(purpose)}</p><p>Here are three good places to start:</p><ol><li><a href="${escapeHtml(consoleUrl)}">Open your console</a></li><li><a href="${escapeHtml(quickstartUrl)}">Follow the quickstart</a></li><li><a href="${escapeHtml(architectureUrl)}">See how Seams works</a></li></ol><p><strong>${escapeHtml(question)}</strong></p><p>Cheers,<br>The Seams team</p></div></body></html>`;
+  const html = renderEmailLayoutHtml({
+    preheader: setup,
+    heading: subject,
+    blocks: [
+      { kind: 'paragraph', text: greeting },
+      { kind: 'paragraph', text: setup },
+      { kind: 'paragraph', text: purpose },
+      { kind: 'paragraph', text: 'Here are three good places to start:' },
+      {
+        kind: 'links',
+        items: [
+          { label: 'Open your console', url: consoleUrl },
+          { label: 'Follow the quickstart', url: quickstartUrl },
+          { label: 'See how Seams works', url: architectureUrl },
+        ],
+      },
+      { kind: 'paragraph', text: question },
+    ],
+    action: null,
+    closing: 'Cheers, the Seams team',
+  });
   return { subject, text, html };
 }
 
@@ -554,13 +582,20 @@ function renderPrepaidTopUpReceipt(template: PrepaidTopUpReceiptEmailV1): Render
   const amount = usd(template.amountMinor);
   const balance = usd(template.balanceAfterMinor);
   const details = `We received your ${amount} prepaid top-up. Your balance is ${balance}.`;
-  const reference = `Purchase ${template.purchaseId} on ${template.purchasedAt}.`;
+  const purchasedAt = formatEmailDateTime(template.purchasedAt);
+  const reference = `Purchase ${template.purchaseId} on ${purchasedAt}.`;
   return {
     subject,
     text: `${details}\n\n${reference}\n\nView billing: ${billingUrl(template.consoleBaseUrl)}`,
     html: htmlMessage({
       heading: subject,
-      paragraphs: [details, reference],
+      paragraphs: [details],
+      facts: [
+        { label: 'Top-up', value: amount },
+        { label: 'Balance', value: balance },
+        { label: 'Purchase', value: template.purchaseId },
+        { label: 'Date', value: purchasedAt },
+      ],
       actionLabel: 'View billing',
       actionUrl: billingUrl(template.consoleBaseUrl),
     }),
@@ -591,7 +626,12 @@ function renderSucceededRefund(
     text: `${details}\n\n${reference}\n\nView billing: ${billingUrl(template.consoleBaseUrl)}`,
     html: htmlMessage({
       heading: subject,
-      paragraphs: [details, reference],
+      paragraphs: [details],
+      facts: [
+        { label: 'Refund', value: usd(template.amountMinor) },
+        { label: 'Balance', value: usd(template.balanceAfterMinor) },
+        { label: 'Reference', value: template.refundId },
+      ],
       actionLabel: 'View billing',
       actionUrl: billingUrl(template.consoleBaseUrl),
     }),
@@ -609,7 +649,12 @@ function renderFailedRefund(
     text: `${details}\n\n${reference}\n\nView billing: ${billingUrl(template.consoleBaseUrl)}`,
     html: htmlMessage({
       heading: subject,
-      paragraphs: [details, reference],
+      paragraphs: [details],
+      facts: [
+        { label: 'Amount', value: usd(template.amountMinor) },
+        { label: 'Reference', value: template.refundId },
+        { label: 'Error code', value: template.failureCode },
+      ],
       actionLabel: 'View billing',
       actionUrl: billingUrl(template.consoleBaseUrl),
     }),
@@ -635,14 +680,26 @@ function renderLowBalanceWarning(template: LowBalanceWarningEmailV1): RenderedCo
 
 function renderTeamSignupAlert(template: TeamSignupAlertEmailV1): RenderedConsoleEmail {
   const subject = `New Console sign-up: ${template.organizationName}`;
+  const signedUpAt = formatEmailDateTime(template.signedUpAt);
   const paragraphs = [
     `${template.accountDisplayName} (${template.accountEmail}) created the organization ${template.organizationName}.`,
-    `Signed up at ${template.signedUpAt}.`,
+    `Signed up on ${signedUpAt}.`,
   ];
   return {
     subject,
     text: paragraphs.join('\n\n'),
-    html: htmlMessage({ heading: subject, paragraphs, actionLabel: null, actionUrl: null }),
+    html: htmlMessage({
+      heading: subject,
+      paragraphs: [paragraphs[0] ?? subject],
+      facts: [
+        { label: 'Name', value: template.accountDisplayName },
+        { label: 'Email', value: template.accountEmail },
+        { label: 'Organization', value: template.organizationName },
+        { label: 'Signed up', value: signedUpAt },
+      ],
+      actionLabel: null,
+      actionUrl: null,
+    }),
   };
 }
 
@@ -742,12 +799,7 @@ function monthUtcText(value: string): string {
 }
 
 function utcDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    timeZone: 'UTC',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return formatEmailDate(iso);
 }
 
 function freePlanLimitSentence(limit: FreePlanLimitV1): string {
@@ -786,7 +838,7 @@ function renderFreePlanNotice(template: FreePlanNoticeEmailV1): RenderedConsoleE
         ? 'You will move to Growth at the Free limit'
         : 'Add a card before the Free limit';
       paragraphs = [
-        `${organization} used 80% of a Free limit in ${notice.monthUtc}: ${freePlanLimitSentence(notice.limit)}.`,
+        `${organization} used 80% of a Free limit in ${formatEmailMonth(notice.monthUtc)}: ${freePlanLimitSentence(notice.limit)}.`,
         notice.cardOnFile
           ? 'At the limit, your organization moves to Growth at $99 a month. Production does not stop.'
           : 'At the limit, production sign-ups and signing stop until you add a card. With a card, your organization moves to Growth at $99 a month.',
@@ -796,7 +848,7 @@ function renderFreePlanNotice(template: FreePlanNoticeEmailV1): RenderedConsoleE
     case 'free_limit_stop':
       subject = 'Production sign-ups or signing are paused. Add a card.';
       paragraphs = [
-        `${organization} reached a Free limit in ${notice.monthUtc}: ${freePlanLimitSentence(notice.limit)}.`,
+        `${organization} reached a Free limit in ${formatEmailMonth(notice.monthUtc)}: ${freePlanLimitSentence(notice.limit)}.`,
         keepOpen,
         'Add a card to move to Growth at $99 a month. Production resumes at once.',
       ];
@@ -823,30 +875,25 @@ function renderFreePlanNotice(template: FreePlanNoticeEmailV1): RenderedConsoleE
 function htmlMessage(input: {
   readonly heading: string;
   readonly paragraphs: readonly string[];
+  readonly facts?: readonly EmailFact[];
   readonly actionLabel: string | null;
   readonly actionUrl: string | null;
 }): string {
-  let body = `<h1>${escapeHtml(input.heading)}</h1>`;
-  for (const paragraph of input.paragraphs) {
-    body += `<p>${escapeHtml(paragraph)}</p>`;
-  }
-  if (input.actionLabel && input.actionUrl) {
-    body += `<p><a href="${escapeHtml(input.actionUrl)}">${escapeHtml(input.actionLabel)}</a></p>`;
-  }
-  return `<!doctype html><html><body>${body}<p>Seams</p></body></html>`;
+  const blocks: EmailBlock[] = input.paragraphs.map((text) => ({ kind: 'paragraph', text }));
+  if (input.facts) blocks.push({ kind: 'facts', rows: input.facts });
+  return renderEmailLayoutHtml({
+    preheader: input.paragraphs[0] ?? input.heading,
+    heading: input.heading,
+    blocks,
+    action:
+      input.actionLabel && input.actionUrl
+        ? { label: input.actionLabel, url: input.actionUrl }
+        : null,
+  });
 }
 
 function billingUrl(consoleBaseUrl: string): string {
   return consoleApplicationUrl(new URL(consoleBaseUrl), '/dashboard/billing').toString();
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
 }
 
 function invitationRoleLabel(role: ConsoleEmailInvitationRole): string {

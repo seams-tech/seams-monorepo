@@ -246,7 +246,7 @@ export function PricingPage(): React.JSX.Element {
           >
             <div className="h2-shell">
               <div className="h2-split-head">
-                <h2 id="pricing-plans-title" className="h2-display">
+                <h2 id="pricing-plans-title" className="h2-display pricing-plans-title">
                   {t('plansTitle')}
                 </h2>
               </div>

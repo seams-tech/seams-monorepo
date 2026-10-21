@@ -40,12 +40,6 @@ The default page is `http://localhost:4001/wallet`. Set `SEAMS_WALLET_SITE_ORIGI
 to test another wallet page URL. Screenshots, `result.json`, and `trace.zip` go to
 `.artifacts/wallet-component-showcase/`.
 
-For the embedded checkout's resize behavior, run
-`node tests/e2e/checkout-details-motion.e2e.mjs`. This uses the same checkout page
-at the canvas's dimensions, independently of the separate live login widget.
-Set `SEAMS_CHECKOUT_DEMO_URL` for another checkout URL. Per-frame measurements,
-screenshots, and a trace go to `.artifacts/transaction-details-jank/`.
-
 ## Public site navigation
 
 Pricing plan links select the card named by the URL fragment. Each card has a
@@ -60,21 +54,11 @@ Enter follows the same destination as tapping the card on a touch screen.
 All pricing action buttons use the shared Stripe-style arrow. Hovering a plan or
 banner card animates its button arrow. Touch input keeps the resting arrow, and
 reduced-motion mode removes the transition.
-Run `node tests/e2e/pricing-plan-highlights.e2e.mjs` to check selection, all three
-palettes, hover, keyboard focus, refresh, history, and touch. Screenshots and a trace
-go to `output/playwright/pricing-plan-highlights/` with `result.json`.
 
 The wallet marketing app owns the wallet page. Pricing, company, and contact pages
 belong to the company site. Wallet links use document navigation and the configured
 company origin. Deployed wallet hosts redirect existing pricing and company URLs
 to the company site. Pricing anchors scroll after the page loads, including on refresh.
-
-Run `node tests/e2e/wallet-site-navigation.e2e.mjs` with the local frontend running.
-The scenario checks desktop and mobile pricing links, plan anchors, keyboard input,
-browser history, refresh, and company navigation. Screenshots, `result.json`, and
-`trace.zip` go to `output/playwright/wallet-site-navigation/`. Set
-`SEAMS_SITE_ORIGIN` and `SEAMS_WALLET_SITE_ORIGIN` to check separate site origins.
-Set `SEAMS_NAVIGATION_ARTIFACTS` to choose another artifact directory.
 
 Run `node tests/e2e/site-documentation-links.e2e.mjs` to check documentation links
 from the homepage, wallet, pricing, and company pages. It checks every linked docs

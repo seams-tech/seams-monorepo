@@ -54,7 +54,7 @@ and refuses abuse with a rate limit and spam checks.
 
 ### 3. Storage
 
-- New table `console_sales_inquiries` in a forward migration (`0011`):
+- New table `console_sales_inquiries` in the next forward migration (`0012`):
   `namespace`, `id`, `request_id` (unique), `name`, `email`, `company`, `details`,
   `source_hash`, `spam_verdict` (`clean`, `held`), `created_at_ms`.
 - `source_hash` is an HMAC of `cf-connecting-ip` with a server secret, not a

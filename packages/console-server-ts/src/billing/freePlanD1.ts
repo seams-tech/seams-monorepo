@@ -25,7 +25,6 @@ import {
   evaluateFreePlan,
   freePlanCardDeadlineMs,
   freePlanNoticeKey,
-  growthPriceLockedUntilMs,
   monthUtcOf,
   paymentMethodState,
   type BillingPlanKindV1,
@@ -71,7 +70,6 @@ export interface BillingPlanViewV1 {
   readonly cardDeadlineAt: string | null;
   readonly planStartedAt: string | null;
   readonly priceVersion: string | null;
-  readonly priceLockedUntil: string | null;
   readonly productionState: ProductionStateV1;
   readonly card: PaymentMethodStateV1;
   readonly usage: {
@@ -136,7 +134,6 @@ function parsePlan(row: D1Row): BillingPlanV1 {
         freeStartedAtMs,
         startedAtMs: positiveMs(row.plan_started_at_ms, 'plan_started_at_ms'),
         priceVersion: requiredText(row.price_version, 'price_version'),
-        priceLockedUntilMs: positiveMs(row.price_locked_until_ms, 'price_locked_until_ms'),
       };
     case 'enterprise':
       return {
@@ -144,10 +141,6 @@ function parsePlan(row: D1Row): BillingPlanV1 {
         freeStartedAtMs,
         startedAtMs: positiveMs(row.plan_started_at_ms, 'plan_started_at_ms'),
         priceVersion: requiredText(row.price_version, 'price_version'),
-        priceLockedUntilMs:
-          row.price_locked_until_ms === null
-            ? null
-            : positiveMs(row.price_locked_until_ms, 'price_locked_until_ms'),
       };
     default:
       throw new Error('Stored billing plan is invalid');
@@ -185,10 +178,7 @@ function parseCard(row: D1Row, nowMs: number): PaymentMethodStateV1 {
 /** The next time a free account can change without a usage or card event. */
 function nextEvaluationMs(plan: BillingPlanV1, nowMs: number): number {
   const now = new Date(nowMs);
-  let next = Math.min(
-    nowMs + DAY_MS,
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
-  );
+  let next = Math.min(nowMs + DAY_MS, Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
   if (plan.kind === 'free') {
     for (const day of [...FREE_PLAN_CARD_REMINDER_DAYS, FREE_PLAN_CARD_GRACE_DAYS]) {
       const at = plan.freeStartedAtMs + day * DAY_MS;
@@ -558,7 +548,6 @@ export class D1FreePlanService {
       cardDeadlineAt: plan.kind === 'free' ? iso(freePlanCardDeadlineMs(plan)) : null,
       planStartedAt: iso(plan.startedAtMs),
       priceVersion: plan.priceVersion ?? null,
-      priceLockedUntil: iso(plan.priceLockedUntilMs),
       // The persisted state is what admission enforces; the view never claims otherwise.
       productionState: snapshot.productionState,
       card: snapshot.card,
@@ -575,12 +564,12 @@ export class D1FreePlanService {
     const recipients = await this.loadRecipients(orgId);
     const statements: D1PreparedStatementLike[] = [];
     if (evaluation.kind === 'move_to_growth') {
-      // Plan, pinned price, lock date, and production state change in one statement.
+      // Plan, pinned price version, and production state change in one statement.
       statements.push(
         this.database
           .prepare(
             `UPDATE billing_account_plans SET plan = 'growth', plan_started_at_ms = ?,
-               price_version = ?, price_locked_until_ms = ?, production_state = 'active',
+               price_version = ?, production_state = 'active',
                production_state_changed_at_ms = CASE WHEN production_state = 'active'
                  THEN production_state_changed_at_ms ELSE ? END,
                evaluation_due_at_ms = ?, updated_at_ms = ?
@@ -589,7 +578,6 @@ export class D1FreePlanService {
           .bind(
             nowMs,
             WALLET_GROWTH_PLAN_PRICE_V1.version,
-            growthPriceLockedUntilMs(nowMs),
             nowMs,
             nextEvaluationMs(snapshot.plan, nowMs),
             nowMs,
@@ -599,7 +587,9 @@ export class D1FreePlanService {
           ),
       );
       for (const notice of evaluation.notices) {
-        statements.push(...(await this.noticeStatements(snapshot, notice, recipients, nowMs, true)));
+        statements.push(
+          ...(await this.noticeStatements(snapshot, notice, recipients, nowMs, true)),
+        );
       }
     } else {
       statements.push(
@@ -622,7 +612,9 @@ export class D1FreePlanService {
           ),
       );
       for (const notice of evaluation.notices) {
-        statements.push(...(await this.noticeStatements(snapshot, notice, recipients, nowMs, false)));
+        statements.push(
+          ...(await this.noticeStatements(snapshot, notice, recipients, nowMs, false)),
+        );
       }
     }
     const results = await this.database.batch<D1ResultLike>(statements);
@@ -654,14 +646,7 @@ export class D1FreePlanService {
            SELECT ?, ?, ?, ?, ?, ? WHERE ${guardedByPrevious ? 'changes() = 1' : 'true'}
            ON CONFLICT DO NOTHING`,
         )
-        .bind(
-          this.namespace,
-          snapshot.orgId,
-          key,
-          notice.kind,
-          JSON.stringify(notice),
-          nowMs,
-        ),
+        .bind(this.namespace, snapshot.orgId, key, notice.kind, JSON.stringify(notice), nowMs),
     ];
     if (!this.emailConsoleBaseUrl) return statements;
     const template = buildFreePlanNoticeEmailV1({
@@ -713,7 +698,8 @@ export class D1FreePlanService {
       const membershipId = String(row.membership_id || '').trim();
       const email = String(row.email || '').trim();
       const displayName = String(row.display_name || '').trim();
-      if (membershipId && email && displayName) recipients.push({ membershipId, email, displayName });
+      if (membershipId && email && displayName)
+        recipients.push({ membershipId, email, displayName });
     }
     return recipients;
   }

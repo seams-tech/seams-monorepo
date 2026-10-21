@@ -2,8 +2,8 @@ import { formatD1ExecStatement, type D1DatabaseLike } from '../boundary/d1';
 
 /**
  * Plan state, the card clock, verified payment methods, production usage counts,
- * and sent notices, per billing account. Migrations 0010 (Console core) and 0101
- * (Wallet Console) create the same objects on deployed databases.
+ * and sent notices, per billing account. Migrations 0010 and 0011 (Console core) and
+ * 0101 and 0103 (Wallet Console) create the same objects on deployed databases.
  */
 export const FREE_PLAN_D1_SCHEMA_SQL = Object.freeze([
   `CREATE TABLE IF NOT EXISTS billing_free_plan_release (
@@ -20,7 +20,6 @@ export const FREE_PLAN_D1_SCHEMA_SQL = Object.freeze([
     free_started_at_ms INTEGER NOT NULL CHECK (free_started_at_ms > 0),
     plan_started_at_ms INTEGER,
     price_version TEXT,
-    price_locked_until_ms INTEGER,
     production_state TEXT NOT NULL
       CHECK (production_state IN ('active', 'card_required', 'free_limit_reached')),
     production_state_changed_at_ms INTEGER NOT NULL,
@@ -31,21 +30,13 @@ export const FREE_PLAN_D1_SCHEMA_SQL = Object.freeze([
     FOREIGN KEY (namespace, org_id, billing_account_id)
       REFERENCES organization_billing_accounts(namespace, org_id, id),
     CHECK (
-      (plan = 'free' AND plan_started_at_ms IS NULL AND price_version IS NULL
-        AND price_locked_until_ms IS NULL)
-      OR (plan = 'growth' AND plan_started_at_ms > 0 AND length(price_version) > 0
-        AND price_locked_until_ms > plan_started_at_ms)
+      (plan = 'free' AND plan_started_at_ms IS NULL AND price_version IS NULL)
+      OR (plan = 'growth' AND plan_started_at_ms > 0 AND length(price_version) > 0)
       OR (plan = 'enterprise' AND plan_started_at_ms > 0 AND length(price_version) > 0
         AND production_state = 'active')
     ),
     CHECK (plan = 'free' OR production_state <> 'free_limit_reached')
   )`,
-  `CREATE TRIGGER IF NOT EXISTS billing_account_plans_price_lock
-    BEFORE UPDATE OF price_version, price_locked_until_ms ON billing_account_plans
-    WHEN OLD.plan = 'growth' AND OLD.price_locked_until_ms > NEW.updated_at_ms
-      AND (NEW.price_version IS NOT OLD.price_version
-        OR NEW.price_locked_until_ms IS NOT OLD.price_locked_until_ms)
-    BEGIN SELECT RAISE(ABORT, 'billing_plan_price_locked'); END`,
   `INSERT INTO billing_account_plans
     (namespace, org_id, billing_account_id, plan, free_started_at_ms, production_state,
       production_state_changed_at_ms, updated_at_ms)

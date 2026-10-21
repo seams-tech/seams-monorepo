@@ -51,8 +51,16 @@ const DAY_MS = 86_400_000;
 const accountId = '0123456789abcdef0123456789abcdef';
 const catalogJson = JSON.stringify([
   WalletHome.parse({ region: 'US', accountId, databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }),
-  WalletHome.parse({ region: 'WEUR', accountId, databaseId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }),
-  WalletHome.parse({ region: 'APAC', accountId, databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }),
+  WalletHome.parse({
+    region: 'WEUR',
+    accountId,
+    databaseId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  }),
+  WalletHome.parse({
+    region: 'APAC',
+    accountId,
+    databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  }),
   WalletHome.parse({ region: 'OC', accountId, databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' }),
 ]);
 
@@ -109,9 +117,9 @@ function runtime(state = 'state'): Miniflare {
 const signerMigrations = path.join(
   process.env.SEAMS_WALLET_SERVER_CANDIDATE ??
     path.dirname(
-      createRequire(path.join(repository, 'packages/wallet-console-server-ts/package.json')).resolve(
-        '@seams/wallet-server/package.json',
-      ),
+      createRequire(
+        path.join(repository, 'packages/wallet-console-server-ts/package.json'),
+      ).resolve('@seams/wallet-server/package.json'),
     ),
   'migrations/d1-signer',
 );
@@ -190,11 +198,7 @@ async function createOrganization(
     projectId: org.projectId,
   });
   const tenantScope = { namespace, organizationId: org.orgId, projectId: org.projectId };
-  const production = await fourRegionProductionBinding(
-    Date.now(),
-    org.productionLane,
-    tenantScope,
-  );
+  const production = await fourRegionProductionBinding(Date.now(), org.productionLane, tenantScope);
   await activateConsoleDeploymentFixture(database, production, `tco_${org.productionLane}`);
   await activateConsoleDeploymentFixture(
     database,
@@ -292,16 +296,18 @@ async function noticeEmails(database: D1DatabaseLike, org: Organization) {
      ORDER BY created_at_ms, id`,
     [namespace, org.orgId],
   );
-  return rows.map((row) => {
-    const payload = JSON.parse(String(row.template_payload_json)) as {
-      notice: { kind: string; day?: number; cardOnFile?: boolean };
-    };
-    return payload.notice.kind === 'card_reminder'
-      ? `card_reminder:${payload.notice.day}`
-      : payload.notice.kind === 'free_limit_warning'
-        ? `free_limit_warning:${payload.notice.cardOnFile ? 'card' : 'no_card'}`
-        : payload.notice.kind;
-  }).sort();
+  return rows
+    .map((row) => {
+      const payload = JSON.parse(String(row.template_payload_json)) as {
+        notice: { kind: string; day?: number; cardOnFile?: boolean };
+      };
+      return payload.notice.kind === 'card_reminder'
+        ? `card_reminder:${payload.notice.day}`
+        : payload.notice.kind === 'free_limit_warning'
+          ? `free_limit_warning:${payload.notice.cardOnFile ? 'card' : 'no_card'}`
+          : payload.notice.kind;
+    })
+    .sort();
 }
 
 async function addCard(services: Product, org: Organization) {
@@ -381,18 +387,12 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
     expect(verified.plan).toMatchObject({ plan: 'growth', productionState: 'active' });
     const pinned = await queryD1One(
       database,
-      `SELECT price_version, plan_started_at_ms, price_locked_until_ms FROM billing_account_plans
+      `SELECT price_version, plan_started_at_ms FROM billing_account_plans
        WHERE namespace = ? AND org_id = ?`,
       [namespace, stopOrg.orgId],
     );
     expect(pinned?.price_version).toBe('wallet-growth-v1');
-    const lockedUntil = new Date(Number(pinned?.price_locked_until_ms));
-    const startedAt = new Date(Number(pinned?.plan_started_at_ms));
-    expect(
-      (lockedUntil.getUTCFullYear() - startedAt.getUTCFullYear()) * 12 +
-        lockedUntil.getUTCMonth() -
-        startedAt.getUTCMonth(),
-    ).toBe(12);
+    expect(Number(pinned?.plan_started_at_ms)).toBe(clock.ms);
     expect((await register(database, stopOrg, 'prod', 'after-growth')).ok).toBe(true);
     await pass(services);
     expect(await noticeEmails(database, stopOrg)).toEqual([
@@ -411,7 +411,10 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
     await pass(services);
     const cardedPlan = await services.core.freePlan.getPlan({ orgId: carded.orgId });
     expect(cardedPlan).toMatchObject({ plan: 'growth', productionState: 'active' });
-    expect(await noticeEmails(database, carded)).toEqual(['free_limit_warning:card', 'growth_move']);
+    expect(await noticeEmails(database, carded)).toEqual([
+      'free_limit_warning:card',
+      'growth_move',
+    ]);
     const replayed = PlatformPlanUsageEventV1.parse({
       version: 1,
       kind: 'plan_usage',
@@ -476,13 +479,17 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
     });
     await expect(
       services.core.freePlan.reconcileCardSetup({ orgId: carded.orgId }, foreign.checkoutSessionId),
-    ).rejects.toMatchObject({ code: 'card_setup_not_found' } satisfies Partial<ConsoleBillingError>);
+    ).rejects.toMatchObject({
+      code: 'card_setup_not_found',
+    } satisfies Partial<ConsoleBillingError>);
 
     // A card ends the restriction at once; it stays on Free inside the limits.
-    clockPlan = (await services.core.freePlan.reconcileCardSetup(
-      { orgId: clockOrg.orgId },
-      foreign.checkoutSessionId,
-    )).plan;
+    clockPlan = (
+      await services.core.freePlan.reconcileCardSetup(
+        { orgId: clockOrg.orgId },
+        foreign.checkoutSessionId,
+      )
+    ).plan;
     expect(clockPlan).toMatchObject({ plan: 'free', productionState: 'active' });
     expect((await register(database, clockOrg, 'prod', 'with-card')).ok).toBe(true);
 
@@ -500,7 +507,10 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
     if (!detached) throw new Error('Detached card event was not parsed');
     expect(await services.core.freePlan.handleWebhookEvent(detached)).toEqual({ accepted: true });
     clockPlan = await services.core.freePlan.getPlan({ orgId: clockOrg.orgId });
-    expect(clockPlan).toMatchObject({ productionState: 'card_required', card: { kind: 'removed' } });
+    expect(clockPlan).toMatchObject({
+      productionState: 'card_required',
+      card: { kind: 'removed' },
+    });
 
     // A replacement card that later expires restricts production again.
     const replacement = await addCard(services, clockOrg);
@@ -508,7 +518,10 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
     clock.ms = Date.UTC(cardExpiry.getUTCFullYear(), cardExpiry.getUTCMonth() + 1, 1, 1);
     await pass(services);
     clockPlan = await services.core.freePlan.getPlan({ orgId: clockOrg.orgId });
-    expect(clockPlan).toMatchObject({ productionState: 'card_required', card: { kind: 'expired' } });
+    expect(clockPlan).toMatchObject({
+      productionState: 'card_required',
+      card: { kind: 'expired' },
+    });
     expect(await noticeEmails(database, clockOrg)).toEqual([
       'card_reminder:16',
       'card_reminder:23',
@@ -568,10 +581,14 @@ test('Free plan stops production signing through the regional signing policy', a
     const services = await product(database, clock, new Date(clock.ms + 400 * DAY_MS));
     const org = organization('signing');
     const { production } = await createOrganization(database, services, org);
-    const writer = parseTenantRuntimeWriterV1('walletRuntime', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
-      accountId,
-      databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    });
+    const writer = parseTenantRuntimeWriterV1(
+      'walletRuntime',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      {
+        accountId,
+        databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      },
+    );
     await activateRegionalGatewayFixture(signer, production, writer);
     const runtimes = regionalRuntimes(signer, production, writer);
     const sync = () =>
@@ -594,9 +611,9 @@ test('Free plan stops production signing through the regional signing policy', a
     // The Free limit without a card pauses new production signatures.
     await deliverProductionUsers(services, org, 0, 300, clock.now());
     await pass(services);
-    expect(
-      (await services.core.freePlan.getPlan({ orgId: org.orgId })).productionState,
-    ).toBe('free_limit_reached');
+    expect((await services.core.freePlan.getPlan({ orgId: org.orgId })).productionState).toBe(
+      'free_limit_reached',
+    );
     expect(await sync()).toBe('pushed');
     expect(await productionSigningPolicy(signer, org)).toEqual({
       decision: 'rejected',

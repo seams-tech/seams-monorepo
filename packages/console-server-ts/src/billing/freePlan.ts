@@ -25,7 +25,6 @@ export const WALLET_GROWTH_PLAN_PRICE_V1 = Object.freeze({
   activeUserOverageMicros: 4_000,
   signaturesPerActiveUser: 300,
   signatureOveragePerThousandMinor: 5,
-  priceLockMonths: 12,
 } as const);
 
 export type BillingPlanKindV1 = 'free' | 'growth' | 'enterprise';
@@ -39,21 +38,18 @@ export type BillingPlanV1 =
       readonly freeStartedAtMs: number;
       readonly startedAtMs?: never;
       readonly priceVersion?: never;
-      readonly priceLockedUntilMs?: never;
     }
   | {
       readonly kind: 'growth';
       readonly freeStartedAtMs: number;
       readonly startedAtMs: number;
       readonly priceVersion: string;
-      readonly priceLockedUntilMs: number;
     }
   | {
       readonly kind: 'enterprise';
       readonly freeStartedAtMs: number;
       readonly startedAtMs: number;
       readonly priceVersion: string;
-      readonly priceLockedUntilMs: number | null;
     };
 
 interface CardDisplayV1 {
@@ -163,27 +159,6 @@ export function freePlanDay(plan: BillingPlanV1, nowMs: number): number {
 
 export function freePlanCardDeadlineMs(plan: BillingPlanV1): number {
   return plan.freeStartedAtMs + FREE_PLAN_CARD_GRACE_DAYS * DAY_MS;
-}
-
-/** The lock ends on the same day of the month, 12 months later (clamped to the month end). */
-export function growthPriceLockedUntilMs(startedAtMs: number): number {
-  const start = new Date(startedAtMs);
-  const target = new Date(
-    Date.UTC(
-      start.getUTCFullYear(),
-      start.getUTCMonth() + WALLET_GROWTH_PLAN_PRICE_V1.priceLockMonths,
-      1,
-      start.getUTCHours(),
-      start.getUTCMinutes(),
-      start.getUTCSeconds(),
-      start.getUTCMilliseconds(),
-    ),
-  );
-  const lastDay = new Date(
-    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
-  ).getUTCDate();
-  target.setUTCDate(Math.min(start.getUTCDate(), lastDay));
-  return target.getTime();
 }
 
 /** A card is valid through the last day of its expiry month. */

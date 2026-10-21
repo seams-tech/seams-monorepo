@@ -32,14 +32,16 @@ export type DashboardPaymentCard =
 export interface DashboardBillingPlan {
   readonly plan: 'free' | 'growth' | 'enterprise';
   readonly cardDeadlineAt: string | null;
-  readonly priceLockedUntil: string | null;
   readonly productionState: 'active' | 'card_required' | 'free_limit_reached';
   readonly card: DashboardPaymentCard;
   readonly usage: {
     readonly monthUtc: string;
     readonly productionActiveUsers: number;
     readonly productionSignatures: number;
-    readonly limits: { readonly productionActiveUsers: number; readonly productionSignatures: number };
+    readonly limits: {
+      readonly productionActiveUsers: number;
+      readonly productionSignatures: number;
+    };
   };
   readonly banners: readonly DashboardFreePlanBanner[];
 }
@@ -156,7 +158,6 @@ export function decodeDashboardBillingPlan(raw: unknown): DashboardBillingPlan |
   return {
     plan,
     cardDeadlineAt: text(value.cardDeadlineAt),
-    priceLockedUntil: text(value.priceLockedUntil),
     productionState,
     card,
     usage: {

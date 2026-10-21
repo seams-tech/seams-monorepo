@@ -55,7 +55,8 @@ is $99 a month with 5,000 MAU, then $0.004 per MAU.
 
 - A Free limit is 300 MAU or 30,000 signatures, whichever comes first.
 - Send each notice once per threshold per month.
-- The Growth price version is pinned on the day of the move, for 12 months.
+- The move records the Growth price version (`wallet-growth-v1`). Growth has no
+  price lock.
 - Growth charges start on the day of the move. The month of the move is charged
   pro rata. See open decision 2.
 - An organization stays on Growth until an owner switches it back. An owner can
@@ -123,8 +124,8 @@ email and as a Console banner. The banner stays until the condition ends.
 ### 5. Automatic move to Growth
 
 - When an account with a usable card reaches 100% of a Free limit, change its
-  plan to `growth` in one transaction. Pin the Growth price version and its
-  12-month lock date in the same transaction.
+  plan to `growth` in one transaction. Record the Growth price version in the
+  same transaction.
 - Send the move notice after the transaction commits.
 - When a verified card arrives for an account in `free_limit_reached`, run the
   same move, then set the production state to `active`.
@@ -147,7 +148,7 @@ email and as a Console banner. The banner stays until the condition ends.
 - Every notice in the table is sent once, at the right time, by email and
   banner.
 - An organization with a card moves to Growth at the first Free limit, with no
-  production stop, and its Growth price is pinned for 12 months.
+  production stop, and its Growth price version is recorded.
 - Development environments are never restricted and never counted.
 - Recovery and key export stay open in every state.
 - No new serial Console call or database round trip is on the registration,
@@ -188,8 +189,11 @@ decision:
   not read the state.
 - **Notices and banners.** One `FREE_PLAN_NOTICE` email family, each notice keyed
   once per account; banners on the billing page and the dashboard.
-- **Growth move.** One statement changes the plan, pins `wallet-growth-v1`, and sets
-  the 12-month lock date; the move notice is queued only if that statement commits.
+- **Growth move.** One statement changes the plan and records `wallet-growth-v1`; the
+  move notice is queued only if that statement commits.
+- **No price lock.** Migrations `0011` (Console core) and `0103` (Wallet Console)
+  remove the 12-month lock date, its check, and its trigger. The lock was never a
+  pricing decision.
 - **Test.** `tests/e2e/console/shared-account-free-plan.e2e.test.ts`.
 - **Signing stop.** The Console pushes each production lane's decision to its regional
   Wallet runtimes, which install it as the project's normal-signing policy. Signing

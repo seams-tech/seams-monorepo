@@ -716,8 +716,7 @@ function freePlanLimitSentence(limit: FreePlanLimitV1): string {
 function renderFreePlanNotice(template: FreePlanNoticeEmailV1): RenderedConsoleEmail {
   const notice = template.notice;
   const organization = template.organizationName;
-  const keepOpen =
-    'Recovery and key export stay open. Development environments keep working.';
+  const keepOpen = 'Recovery and key export stay open. Development environments keep working.';
   let subject: string;
   let paragraphs: string[];
   let actionLabel = 'Add a card';
@@ -763,7 +762,7 @@ function renderFreePlanNotice(template: FreePlanNoticeEmailV1): RenderedConsoleE
       subject = `Your organization moved to Growth: ${usd(notice.monthlyBaseMinor)} a month from ${utcDate(notice.startedAt)}`;
       paragraphs = [
         `${organization} reached a Free limit and moved to the Growth plan on ${utcDate(notice.startedAt)}.`,
-        'Growth includes 5,000 monthly active users, then $0.004 per user. Your Growth prices stay locked for 12 months.',
+        'Growth includes 5,000 monthly active users, then $0.004 per user.',
       ];
       actionLabel = 'View billing';
       break;

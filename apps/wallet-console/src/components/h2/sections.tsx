@@ -294,16 +294,22 @@ function WalletCapabilityCell({
   capability,
   index,
   playing,
+  lead,
   onHover,
 }: {
   capability: WalletCapability;
   index: number;
   playing: boolean;
+  /* the figure of the lit row; a phone shows only this one */
+  lead: boolean;
   onHover: (index: number, inside: boolean) => void;
 }): React.JSX.Element {
   const hovered = React.useCallback((inside: boolean) => onHover(index, inside), [onHover, index]);
   return (
-    <div className={`h2-security__cell${playing ? ' is-active' : ''}`}>
+    <div
+      className={`h2-security__cell${playing ? ' is-active' : ''}`}
+      data-lead={lead || undefined}
+    >
       <WalletFigure figure={capability.figure} playing={playing} onHover={hovered} />
       <span>{capability.label}</span>
     </div>
@@ -401,6 +407,7 @@ export function H2Security(): React.JSX.Element {
                     capability={capability}
                     index={index}
                     playing={index === playingFeature || index === trailingFeature}
+                    lead={index === litFeature}
                     onHover={focusFeature}
                   />
                 ))}

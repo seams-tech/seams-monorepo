@@ -20,8 +20,7 @@ function getLayout(gallery) {
   const viewport = gallery.querySelector('.component-showcase__viewport').getBoundingClientRect();
   const active = gallery.querySelector('[data-active="true"]');
   const card = active.getBoundingClientRect();
-  const rail = gallery.querySelector('.component-showcase__rail').getBoundingClientRect();
-  const selector = gallery.querySelector('.component-showcase__selector').getBoundingClientRect();
+  const controls = gallery.querySelector('.component-showcase__controls').getBoundingClientRect();
   let inactiveInert = true;
   for (const element of gallery.querySelectorAll(
     '.component-showcase__position:not([data-active="true"])',
@@ -36,11 +35,7 @@ function getLayout(gallery) {
       card.right <= viewport.right &&
       card.top >= viewport.top &&
       card.bottom <= viewport.bottom,
-    controlsFit:
-      rail.left >= 0 &&
-      rail.right <= innerWidth &&
-      selector.left >= 0 &&
-      selector.right <= innerWidth,
+    controlsFit: controls.left >= 0 && controls.right <= innerWidth,
     pageFits: document.documentElement.scrollWidth <= innerWidth,
     inactiveInert,
     activeInteractive: !active.inert,
@@ -90,11 +85,6 @@ async function expectSelection(gallery, name) {
       .getByRole('radiogroup', { name: 'Components', exact: true })
       .getByRole('radio', { name, exact: true }),
   ).toBeChecked();
-  await expect(
-    gallery
-      .getByRole('radiogroup', { name: 'Component pagination' })
-      .getByRole('radio', { name, exact: true }),
-  ).toBeChecked();
   await settle(gallery);
   switch (name) {
     case 'Authentication':
@@ -140,9 +130,13 @@ try {
   await page.goto(origin);
   const gallery = page.getByRole('region', { name: 'Wallet component showcase' });
   const selector = gallery.getByRole('radiogroup', { name: 'Components', exact: true });
-  const pagination = gallery.getByRole('radiogroup', { name: 'Component pagination' });
   await expect(selector.getByRole('radio')).toHaveCount(4);
-  await expect(pagination.getByRole('radio')).toHaveCount(4);
+  // The playback control sits in the same pill as the component choices.
+  await expect(
+    gallery
+      .locator('.component-showcase__controls')
+      .getByRole('button', { name: 'Pause playback' }),
+  ).toBeVisible();
   await expectSelection(gallery, 'Transactions');
   await selector.getByRole('radio', { name: 'Authentication', exact: true }).locator('..').click();
   await expectSelection(gallery, 'Authentication');
@@ -178,7 +172,7 @@ try {
   ).toBeVisible();
   await capture(gallery, 'desktop-authentication');
 
-  await gallery.getByRole('button', { name: 'Next component' }).click();
+  await selector.getByRole('radio', { name: 'Transactions', exact: true }).locator('..').click();
   await expectSelection(gallery, 'Transactions');
   const modal = gallery.frameLocator('iframe[title="Transaction modal"]');
   await modal.getByRole('button', { name: 'Confirm with passkey' }).click();
@@ -192,7 +186,10 @@ try {
   }
   await capture(gallery, 'desktop-transaction-receipt');
 
-  await gallery.getByRole('button', { name: 'Next component' }).click();
+  await selector
+    .getByRole('radio', { name: 'Custom Components', exact: true })
+    .locator('..')
+    .click();
   await expectSelection(gallery, 'Custom Components');
   const market = gallery.frameLocator('iframe[title="Prediction market"]');
   await market.getByRole('button', { name: 'Buy Yes', exact: true }).click();
@@ -206,24 +203,18 @@ try {
     timeout: 10000,
   });
 
-  await gallery.getByRole('button', { name: 'Next component' }).click();
-  await expectSelection(gallery, 'Recover and Link Devices');
-  await capture(gallery, 'desktop-account');
-  await gallery.getByRole('button', { name: 'Next component' }).click();
-  await expectSelection(gallery, 'Authentication');
-  await gallery.getByRole('button', { name: 'Previous component' }).click();
-  await expectSelection(gallery, 'Recover and Link Devices');
-
-  // Either selector changes the same carousel, including native arrow-key navigation.
-  await selector.getByRole('radio', { name: 'Authentication', exact: true }).locator('..').click();
-  await selector.getByRole('radio', { name: 'Authentication', exact: true }).focus();
-  await page.keyboard.press('ArrowRight');
-  await expectSelection(gallery, 'Transactions');
-  await pagination
+  await selector
     .getByRole('radio', { name: 'Recover and Link Devices', exact: true })
     .locator('..')
     .click();
   await expectSelection(gallery, 'Recover and Link Devices');
+  await capture(gallery, 'desktop-account');
+
+  // The selector supports native arrow-key navigation.
+  await selector.getByRole('radio', { name: 'Authentication', exact: true }).locator('..').click();
+  await selector.getByRole('radio', { name: 'Authentication', exact: true }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expectSelection(gallery, 'Transactions');
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const checked = [];
@@ -246,8 +237,6 @@ try {
       {
         passed: true,
         components,
-        synchronizedSelectors: true,
-        wraparound: true,
         completeTransactionLifecycles: true,
         checked,
         errors,
@@ -257,7 +246,7 @@ try {
     ),
   );
   console.log(
-    'Passed the four-component carousel, synchronized selectors, wraparound, full transaction lifecycles, and mobile layouts.',
+    'Passed the four-component carousel, full transaction lifecycles, and mobile layouts.',
   );
 } finally {
   await context.tracing.stop({ path: `${artifacts}/trace.zip` });

@@ -280,43 +280,56 @@ body:has(.h2-page) {
   pointer-events: none;
 }
 
-/* Crosshair ticks where the rule meets the column borders: a rounded square
-   patch of page background interrupts both lines, with a square tick in the
-   gap. The patch is an SVG because gradients cannot draw a rounded square;
-   its fill is --h2-bg. */
+/* Crosshair ticks where the rule meets the column borders: 1px arms of page
+   background interrupt both lines, with a square tick in the gap. The arms
+   cover only the line pixels, so the gap never paints over a banner, card or
+   gradient beside a tick; their length sets the breathing room around it.
+   The box starts 11px above the rule, so the rule's line is its row 11 and a
+   column border is its column 10 (left) or 10 from the right. */
 .h2-rule {
-  --h2-tick-patch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='23'%3E%3Crect width='22' height='23' rx='8' fill='%23ffffff'/%3E%3C/svg%3E");
+  --h2-tick-clear: linear-gradient(var(--h2-bg), var(--h2-bg));
 }
 
 .h2-rule::after {
   content: '';
   position: absolute;
-  top: -11.5px;
+  top: -11px;
   left: -11px;
   right: -11px;
   height: 23px;
   pointer-events: none;
-  border-radius: 14px;
   background:
-    /* 2px square ticks, centered on each intersection */
-    linear-gradient(var(--h2-ink), var(--h2-ink)) left 10px center / 2px 2px no-repeat,
-    linear-gradient(var(--h2-ink), var(--h2-ink)) right 10px center / 2px 2px no-repeat,
-    /* page-background patches: the lines stop at a rounded square clearing
-       (its size sets the breathing room around each tick) */
-    var(--h2-tick-patch) left center / 22px 23px no-repeat,
-    var(--h2-tick-patch) right center / 22px 23px no-repeat;
+    /* 2px square ticks on each intersection */
+    linear-gradient(var(--h2-ink), var(--h2-ink)) left 10px top 10px / 2px 2px no-repeat,
+    linear-gradient(var(--h2-ink), var(--h2-ink)) right 10px top 10px / 2px 2px no-repeat,
+    /* gaps in the rule, then in the column borders */ var(--h2-tick-clear) left top 11px / 22px 1px
+      no-repeat,
+    var(--h2-tick-clear) right top 11px / 22px 1px no-repeat,
+    var(--h2-tick-clear) left 10px top / 1px 23px no-repeat,
+    var(--h2-tick-clear) right 10px top / 1px 23px no-repeat;
 }
 
 /* Variant with a third tick at the row's center, for rows whose grid draws
-   a center divider: same corner ticks, plus the mid intersection */
+   a center divider (at 50% of the row, which is 50% of this box too): same
+   corner ticks, plus the mid intersection */
 .h2-rule--midtick::after {
   background:
-    linear-gradient(var(--h2-ink), var(--h2-ink)) left 10px center / 2px 2px no-repeat,
-    linear-gradient(var(--h2-ink), var(--h2-ink)) right 10px center / 2px 2px no-repeat,
-    linear-gradient(var(--h2-ink), var(--h2-ink)) center / 2px 2px no-repeat,
-    var(--h2-tick-patch) left center / 22px 23px no-repeat,
-    var(--h2-tick-patch) right center / 22px 23px no-repeat,
-    var(--h2-tick-patch) center / 22px 23px no-repeat;
+    linear-gradient(var(--h2-ink), var(--h2-ink)) left 10px top 10px / 2px 2px no-repeat,
+    linear-gradient(var(--h2-ink), var(--h2-ink)) right 10px top 10px / 2px 2px no-repeat,
+    linear-gradient(var(--h2-ink), var(--h2-ink)) center top 10px / 2px 2px no-repeat,
+    var(--h2-tick-clear) left top 11px / 22px 1px no-repeat,
+    var(--h2-tick-clear) right top 11px / 22px 1px no-repeat,
+    var(--h2-tick-clear) center top 11px / 22px 1px no-repeat,
+    var(--h2-tick-clear) left 10px top / 1px 23px no-repeat,
+    var(--h2-tick-clear) right 10px top / 1px 23px no-repeat,
+    linear-gradient(
+        to right,
+        transparent 50%,
+        var(--h2-bg) 50%,
+        var(--h2-bg) calc(50% + 1px),
+        transparent calc(50% + 1px)
+      )
+      left top / 100% 23px no-repeat;
 }
 
 /* No column borders below 1160px: keep the rule clean, drop the ticks */
@@ -1597,6 +1610,16 @@ body:has(.h2-page) {
   padding-inline: clamp(0px, 5vw, 5rem);
 }
 
+@media (max-width: 560px) {
+  .h2-logos__row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-items: start;
+    gap: 18px 16px;
+    padding-inline: 8px;
+  }
+}
+
 .h2-logo {
   display: inline-flex;
   align-items: center;
@@ -1775,6 +1798,19 @@ body:has(.h2-page) {
   margin-top: 28px;
 }
 
+/* on phones the two buttons grow to fill the row together; a button that
+   wraps fills its own row, so the pair never sits at two ragged widths */
+@media (max-width: 560px) {
+  .h2-hero__ctas {
+    align-self: stretch;
+  }
+
+  .h2-hero__ctas > .h2-btn {
+    flex: 1 1 auto;
+    height: 44px;
+  }
+}
+
 /* product forks: small gradient chips, one fabric per future product page */
 .h2-hero__forks {
   display: flex;
@@ -1832,7 +1868,9 @@ body:has(.h2-page) {
   /* min-width:0 stops min-content widening the 1fr column */
   min-width: 0;
   min-height: var(--h2-hero-min-height);
-  padding: 78px 36px 32px;
+  /* the side padding, which the theme chip row breaks out of */
+  --h2-demo-pad-x: 36px;
+  padding: 78px var(--h2-demo-pad-x) 32px;
   border-left: 1px solid var(--h2-stone);
   /* shown until the gradient's first frame */
   background-color: color-mix(in srgb, var(--h2-taupe) 55%, var(--h2-bg) 45%);
@@ -1845,17 +1883,18 @@ body:has(.h2-page) {
   margin-top: 14px;
 }
 
-/* the chip row scrolls edge to edge: break out of the demo column's 36px side
+/* the chip row scrolls edge to edge: break out of the demo column's side
    padding, then re-add it inside so the chips still start on the content rail.
    The negative margins cancel the added width, so the row's layout footprint
-   is unchanged. The side padding also leaves room for the active chip's
-   outer ring. */
+   is unchanged. The inner padding is never under the 16px page gutter, which
+   also leaves room for the active chip's outer ring. */
 .h2-hero__demo .h2-themeswitch__track {
-  width: calc(100% + 72px);
-  max-width: calc(100% + 72px);
-  margin-inline: -36px;
-  padding-inline: 36px;
-  scroll-padding-inline: 36px;
+  --h2-themeswitch-gutter: max(var(--h2-demo-pad-x), 16px);
+  width: calc(100% + 2 * var(--h2-demo-pad-x));
+  max-width: calc(100% + 2 * var(--h2-demo-pad-x));
+  margin-inline: calc(-1 * var(--h2-demo-pad-x));
+  padding-inline: var(--h2-themeswitch-gutter);
+  scroll-padding-inline: var(--h2-themeswitch-gutter);
 }
 
 .h2-page--wallet .passkey-demo {
@@ -2101,13 +2140,26 @@ body:has(.h2-page) {
     border-top: 1px solid var(--h2-stone);
     /* stacked layout: let the cell size to content again */
     min-height: 0;
-    padding: 44px 22px 50px;
+    --h2-demo-pad-x: 22px;
+    padding: 44px var(--h2-demo-pad-x) 50px;
   }
 }
 
 @media (max-width: 560px) {
+  /* tighter spacing above the demo, so the passkey button shows in a
+     phone's first screen */
+  .h2-hero__main {
+    padding-top: 88px;
+    padding-bottom: 28px;
+  }
+
+  .h2-hero__forks {
+    margin-top: 22px;
+  }
+
   .h2-hero__demo {
-    padding: 36px 7px 44px;
+    --h2-demo-pad-x: 7px;
+    padding: 24px var(--h2-demo-pad-x) 44px;
   }
 
   /* The SDK auth card sizes itself to the viewport (min(100dvw, 420px)), so
@@ -2481,6 +2533,25 @@ body:has(.h2-page) {
   }
 }
 
+/* On a phone the rows above already name all four capabilities, so the
+   stage shows one figure, the lit row's, instead of repeating them as a
+   grid. With no lit row it shows the first. */
+@media (max-width: 560px) {
+  .h2-security__grid {
+    grid-template-columns: minmax(0, 240px);
+    justify-content: center;
+  }
+
+  .h2-security__cell:nth-child(n) {
+    border: 0;
+  }
+
+  .h2-security__grid:has([data-lead]) .h2-security__cell:not([data-lead]),
+  .h2-security__grid:not(:has([data-lead])) .h2-security__cell:not(:first-child) {
+    display: none;
+  }
+}
+
 /* ---------- get-started band (stacked two-column rows) ---------- */
 
 /* the heading is a banner card, one inset above the first row's rule */
@@ -2810,9 +2881,11 @@ body:has(.h2-page) {
   inset-block-start: calc(7% + 33px);
   width: 80%;
   overflow: hidden;
+  /* the screenshot loads lazily; a tinted card until then, not a white one */
+  aspect-ratio: 2970 / 1680;
   border-radius: 14px;
   border: 1px solid #e3ded6;
-  background: var(--h2-bg);
+  background: color-mix(in srgb, var(--h2-taupe) 50%, var(--h2-bg));
   box-shadow: 0 30px 70px -34px rgba(15, 23, 42, 0.32);
   /* Back card: 12% of the stage's width right (12 / 80 of the card) and 7%
      of the card's own height up, which leaves a strip of it above the front
@@ -2899,6 +2972,16 @@ body:has(.h2-page) {
     border-radius: 18px 18px 0 0;
   }
 
+  /* a whole console page is unreadable at phone width, so the stage shows
+     its top-left part at about twice the size; the stage clips the rest */
+  .h2-consoleband__stage {
+    aspect-ratio: 4 / 3.4;
+  }
+
+  .h2-consoleband__screen {
+    width: 190%;
+  }
+
   /* too small to point at anything legibly at this width */
   .h2-consoleband__callout {
     display: none;
@@ -2941,6 +3024,24 @@ body:has(.h2-page) {
 
 .h2-code--lg::-webkit-scrollbar {
   display: none;
+}
+
+/* on phones the long lines run past the card's right edge. A shadow on that
+   edge shows that the card scrolls; a cover in the card's colour rides at
+   the end of the code (attached `local`) and hides it once scrolled there. */
+@media (max-width: 560px) {
+  .h2-code--lg {
+    --h2-code-bg: color-mix(in srgb, var(--h2-taupe) 60%, var(--h2-bg));
+    padding: 20px;
+    font-size: 12px;
+    line-height: 20px;
+    background:
+      linear-gradient(to left, var(--h2-code-bg) 40%, transparent) right center / 32px 100%
+        no-repeat local,
+      radial-gradient(farthest-side at 100% 50%, rgba(10, 10, 10, 0.14), transparent) right center /
+        16px 100% no-repeat scroll,
+      var(--h2-code-bg);
+  }
 }
 
 .h2-code .tok-kw {
@@ -3448,5 +3549,44 @@ body:has(.h2-page) {
   /* questions are too long for two phone columns */
   .h2-footer__faq .h2-footer__links {
     grid-template-columns: 1fr;
+  }
+}
+
+/* touch screens: controls that look small still take a 40–44px tap. The
+   padding grows the hit area and the negative margin keeps the layout. */
+@media (pointer: coarse) {
+  .h2-fork {
+    padding-block: 13px;
+    margin-block: -13px;
+  }
+
+  .h2-hero__demo .h2-themeswitch__btn {
+    min-height: 40px;
+  }
+
+  /* the SDK card's "Unlock wallet" link is one line of text */
+  .h2-hero__demo .seams-auth-intent-switch button {
+    padding-block: 15px;
+    margin-block: -15px;
+  }
+
+  .h2-pager__btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .h2-pager__dots {
+    height: 44px;
+  }
+
+  /* the progress line starts past the pager's right end */
+  .h2-security__progress {
+    inset-inline-start: calc(50% + 72px);
+  }
+
+  /* rows sit back to back, so only taller rows give a larger target */
+  .h2-footer__faq-q,
+  .h2-footer__col a {
+    padding-block: 10px;
   }
 }

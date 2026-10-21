@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { ComponentPreview } from './ComponentPreview';
 import { BackgroundPreview, type BackgroundPreviewKind } from './BackgroundPreview';
 import { FieldBanner } from '@/components/h2/sections';
@@ -44,7 +44,6 @@ const backgroundPreviews: readonly BackgroundPlacement[] = [
   { kind: 'payment', x: 2100, y: -240 },
 ];
 
-// Both selectors resolve to the same component at the DOM boundary.
 function readPreview(value: string): Preview | null {
   for (const preview of previews) {
     if (preview.id === value) return preview;
@@ -59,15 +58,6 @@ function selectPreview(
   if (!(event.target instanceof HTMLInputElement)) return;
   const preview = readPreview(event.target.value);
   if (preview !== null) setPreview(preview);
-}
-
-function stepPreview(
-  setSelected: React.Dispatch<React.SetStateAction<Preview>>,
-  selected: Preview,
-  direction: -1 | 1,
-): void {
-  const index = previews.indexOf(selected);
-  setSelected(previews[(index + direction + previews.length) % previews.length]);
 }
 
 function setPointerMotion(event: React.PointerEvent<HTMLElement>): void {
@@ -120,29 +110,6 @@ function renderSelectorChoice(selected: Preview, preview: Preview): React.JSX.El
   );
 }
 
-function renderRailChoice(selected: Preview, preview: Preview): React.JSX.Element {
-  return (
-    <label
-      className="component-showcase__choice component-showcase__dot-choice"
-      key={preview.id}
-      title={preview.label}
-    >
-      <input
-        type="radio"
-        name="showcase-component"
-        value={preview.id}
-        checked={preview.id === selected.id}
-        aria-label={preview.label}
-        aria-controls="showcase-canvas"
-        readOnly
-      />
-      <span aria-hidden="true">
-        <span className={`h2-pager__dot${preview.id === selected.id ? ' is-active' : ''}`} />
-      </span>
-    </label>
-  );
-}
-
 function renderPreview(
   selected: Preview,
   run: number,
@@ -184,6 +151,16 @@ function renderBackground(preview: BackgroundPlacement): React.JSX.Element {
       <BackgroundPreview kind={preview.kind} />
     </div>
   );
+}
+
+/* On a narrow screen the choices scroll inside the pill. Scrolls the row
+   itself, not the page, so the selected choice shows. */
+function revealSelectedChoice(selector: HTMLDivElement | null): void {
+  if (selector === null || selector.scrollWidth <= selector.clientWidth) return;
+  const choice = selector.querySelector<HTMLElement>('input:checked')?.closest('label');
+  if (!choice) return;
+  const left = choice.offsetLeft - (selector.clientWidth - choice.offsetWidth) / 2;
+  selector.scrollTo({ left, behavior: 'smooth' });
 }
 
 type PlaybackState = { kind: 'playing' } | { kind: 'paused'; reason: 'control' | 'interaction' };
@@ -251,7 +228,9 @@ export function ComponentShowcase(): React.JSX.Element {
   const onComplete = React.useCallback(completePlayback.bind(null, setSelected), []);
   const onInteract = React.useCallback(interruptPlayback.bind(null, setPlayback), []);
   const visibilityObserver = React.useRef<IntersectionObserver | null>(null);
+  const selector = React.useRef<HTMLDivElement>(null);
   React.useEffect(listenForPreviewNext.bind(null, setSelected), []);
+  React.useEffect(() => revealSelectedChoice(selector.current), [selected]);
 
   return (
     <>
@@ -276,13 +255,37 @@ export function ComponentShowcase(): React.JSX.Element {
         onKeyDownCapture={setKeyboardMotion}
       >
         <div className="component-showcase__frame">
-          <div
-            className="component-showcase__selector"
-            role="radiogroup"
-            aria-label="Components"
-            onChange={selectPreview.bind(null, setSelected)}
-          >
-            {previews.map(renderSelectorChoice.bind(null, selected))}
+          {/* one pill holds the component choices and the playback control */}
+          <div className="component-showcase__controls">
+            <div
+              ref={selector}
+              className="component-showcase__selector"
+              role="radiogroup"
+              aria-label="Components"
+              onChange={selectPreview.bind(null, setSelected)}
+            >
+              {previews.map(renderSelectorChoice.bind(null, selected))}
+            </div>
+            <button
+              type="button"
+              className="component-showcase__playback"
+              aria-label={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
+              title={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
+              onClick={togglePlayback.bind(null, playback, setPlayback, setRun)}
+            >
+              {playback.kind === 'playing' ? (
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                >
+                  <path d="M8 5v14M16 5v14" />
+                </svg>
+              ) : (
+                <Play aria-hidden />
+              )}
+            </button>
           </div>
           <div
             className="component-showcase__viewport"
@@ -298,49 +301,6 @@ export function ComponentShowcase(): React.JSX.Element {
               {backgroundPreviews.map(renderBackground)}
             </div>
             <div className="component-showcase__fade" aria-hidden="true" />
-          </div>
-        </div>
-        <button
-          type="button"
-          className="h2-pager__btn component-showcase__playback"
-          aria-label={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
-          title={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
-          onClick={togglePlayback.bind(null, playback, setPlayback, setRun)}
-        >
-          {playback.kind === 'playing' ? (
-            <svg viewBox="0 0 24 24" aria-hidden="true" stroke="currentColor" strokeLinecap="round">
-              <path d="M8 5v14M16 5v14" />
-            </svg>
-          ) : (
-            <Play aria-hidden />
-          )}
-        </button>
-        <div className="component-showcase__navigation">
-          <div className="component-showcase__rail" aria-label="Component navigation">
-            <button
-              type="button"
-              className="h2-pager__btn"
-              aria-label="Previous component"
-              onClick={stepPreview.bind(null, setSelected, selected, -1)}
-            >
-              <ChevronLeft aria-hidden />
-            </button>
-            <div
-              className="h2-pager__dots"
-              role="radiogroup"
-              aria-label="Component pagination"
-              onChange={selectPreview.bind(null, setSelected)}
-            >
-              {previews.map(renderRailChoice.bind(null, selected))}
-            </div>
-            <button
-              type="button"
-              className="h2-pager__btn"
-              aria-label="Next component"
-              onClick={stepPreview.bind(null, setSelected, selected, 1)}
-            >
-              <ChevronRight aria-hidden />
-            </button>
           </div>
         </div>
       </section>

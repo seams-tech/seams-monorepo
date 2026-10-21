@@ -23,22 +23,44 @@
   z-index: 3;
 }
 
-.component-showcase__selector {
+/* One pill straddles the section's top rule: the component choices, then the
+   playback control at its end */
+.component-showcase__controls {
   position: absolute;
   top: 0;
   left: 50%;
   z-index: 4;
   transform: translate(-50%, -50%);
-  display: grid;
-  grid-template-columns: repeat(4, max-content);
-  width: max-content;
-  max-width: calc(100% - 44px);
+  display: flex;
+  align-items: center;
   gap: 4px;
-  margin: 0;
+  width: max-content;
+  max-width: calc(100% - 32px);
   padding: 3px;
   border: 1px solid color-mix(in srgb, var(--h2-ink) 7%, var(--h2-bg));
   border-radius: 9999px;
   background: var(--h2-bg);
+}
+
+.component-showcase__selector {
+  /* the offset parent of its choices, for scrolling one into view */
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  /* on a narrow screen the choices scroll inside the pill, and the playback
+     control stays in view at its end */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  border-radius: 9999px;
+}
+
+.component-showcase__selector::-webkit-scrollbar {
+  display: none;
 }
 
 .component-showcase__selector .component-showcase__choice > span {
@@ -119,11 +141,11 @@
   min-height: 0;
 }
 
-/* at 900px and below the selector has two rows and reaches about 40px into
-   the card, so the card keeps its copy clear of it */
+/* the controls pill reaches about 20px into the card, so the card keeps its
+   copy clear of it */
 @media (max-width: 900px) {
   .component-showcase__intro .h2-banner {
-    padding-bottom: 64px;
+    padding-bottom: 44px;
   }
 }
 
@@ -195,30 +217,6 @@
   background:
     linear-gradient(to right, var(--h2-bg), transparent 13%, transparent 87%, var(--h2-bg)),
     linear-gradient(to bottom, var(--h2-bg), transparent 8%, transparent 92%, var(--h2-bg));
-}
-
-.component-showcase__navigation {
-  position: relative;
-  height: 0;
-}
-
-.component-showcase__rail {
-  position: relative;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  width: fit-content;
-  margin: 0 auto;
-  transform: translateY(-50%);
-}
-
-.component-showcase__dot-choice > span {
-  width: 18px;
-  min-height: 28px;
-  padding: 0;
-  border-radius: 9999px;
 }
 
 .component-showcase__position:has(> .showcase-preview__embed) {
@@ -505,11 +503,7 @@
 
 @media (max-width: 900px) {
   .component-showcase__frame {
-    padding-top: 48px;
-  }
-  .component-showcase__selector {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    border-radius: 24px;
+    padding-top: 28px;
   }
 }
 
@@ -522,11 +516,13 @@
   .component-showcase__position {
     width: min(360px, calc(100vw - 58px));
   }
+  /* the longer top fade keeps the faded cards clear of the controls pill */
   .component-showcase__fade {
     background: linear-gradient(
       to bottom,
       var(--h2-bg),
-      transparent 7%,
+      var(--h2-bg) 6%,
+      transparent 18%,
       transparent 93%,
       var(--h2-bg)
     );
@@ -557,38 +553,45 @@
   }
 }
 
-@media (pointer: coarse) {
-  .component-showcase__rail .h2-pager__btn,
-  .component-showcase__playback {
-    width: 44px;
-    height: 44px;
-  }
-  .component-showcase__rail .h2-pager__dots {
-    height: 44px;
-    gap: 0;
-    padding-inline: 6px;
-  }
-  .component-showcase__dot-choice > span {
-    width: 44px;
-    min-height: 42px;
-  }
-}
-
 .component-showcase__playback {
-  position: absolute;
-  right: 20px;
-  bottom: 0;
-  transform: translateY(50%);
-  z-index: 5;
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--showcase-soft);
+  color: var(--showcase-ink);
+  cursor: pointer;
 }
 .component-showcase__playback svg {
+  width: 15px;
+  height: 15px;
   fill: none;
   stroke-width: 1.5;
 }
+.component-showcase__playback:focus-visible {
+  outline: 2px solid var(--showcase-ink);
+  outline-offset: 2px;
+}
 
-@media (max-width: 600px) {
-  .component-showcase__playback {
-    bottom: 32px;
-    transform: none;
+@media (hover: hover) and (pointer: fine) {
+  .component-showcase__playback:hover {
+    background: var(--showcase-line);
+  }
+}
+
+/* a 44px hit area around the 34px control and choices */
+@media (pointer: coarse) {
+  .component-showcase__playback::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+  }
+  .component-showcase__choice > span {
+    min-height: 40px;
   }
 }

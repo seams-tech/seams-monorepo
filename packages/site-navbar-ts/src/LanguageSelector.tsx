@@ -5,7 +5,7 @@ import './LanguageSelector.css';
 
 export type SiteLocale = 'en' | 'ja';
 
-const MENU_GAP_PX = 8;
+const MENU_GAP_PX = 4;
 const CLOSE_DELAY_MS = 120;
 
 const languages: Record<SiteLocale, { label: string; description: string | null }> = {

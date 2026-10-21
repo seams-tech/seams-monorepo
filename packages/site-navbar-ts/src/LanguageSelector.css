@@ -85,15 +85,15 @@
     0 6px 18px -10px rgba(4, 3, 14, 0.16);
 
   z-index: 1000;
-  min-width: 200px;
+  min-width: 180px;
   max-width: calc(100vw - 32px);
   max-height: var(--radix-select-content-available-height);
-  padding: 4px;
+  padding: 3px;
   overflow-y: auto;
   overscroll-behavior: contain;
   color-scheme: light;
   color: var(--h2-ink);
-  border-radius: 14px;
+  border-radius: 12px;
   font: 400 var(--h2-text-title) / 1.5 var(--h2-font);
   -webkit-font-smoothing: antialiased;
 }
@@ -106,18 +106,18 @@
 .site-language__option {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 6px 10px;
-  border-radius: 9px;
+  gap: 6px;
+  min-height: 32px;
+  padding: 3px 8px;
+  border-radius: 8px;
   cursor: pointer;
   outline: none;
 }
 
 .site-language__flag {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   overflow: hidden;
   border-radius: 50%;
 }

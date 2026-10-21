@@ -1821,6 +1821,8 @@ body:has(.h2-page) {
 }
 
 .h2-fork {
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -1828,11 +1830,72 @@ body:has(.h2-page) {
   font-weight: 600;
   color: var(--h2-graphite);
   text-decoration: none;
+  /* the press state below is the tap feedback; no grey system flash */
+  -webkit-tap-highlight-color: transparent;
   transition: color 150ms ease;
+}
+
+/* A pill behind the chip and label. It is drawn from the row's centre, not
+   the padding box, so the taller touch hit area does not stretch it. */
+.h2-fork::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: -6px;
+  right: -9px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--h2-taupe);
+  opacity: 0;
+  transform: translateY(-50%) scale(0.92);
+  transition:
+    opacity 150ms ease,
+    transform 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .h2-fork:hover {
   color: var(--h2-ink);
+}
+
+.h2-fork:focus-visible {
+  outline: none;
+  color: var(--h2-ink);
+}
+
+.h2-fork:focus-visible::before {
+  opacity: 1;
+  transform: translateY(-50%);
+  box-shadow: 0 0 0 2px var(--h2-ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-fork:hover::before {
+    opacity: 1;
+    transform: translateY(-50%);
+  }
+
+  .h2-fork:hover .h2-fork__chip {
+    transform: scale(1.12) rotate(-4deg);
+  }
+}
+
+/* Press: the pill flashes in at once, a shade darker, and fades out over
+   150ms on release, so a quick tap still shows. */
+.h2-fork:active {
+  color: var(--h2-ink);
+}
+
+.h2-fork:active::before {
+  opacity: 1;
+  background: color-mix(in srgb, var(--h2-ink) 10%, var(--h2-taupe));
+  transform: translateY(-50%) scale(0.96);
+  transition: none;
+}
+
+.h2-fork:active .h2-fork__chip {
+  transform: scale(0.88);
+  transition-duration: 80ms;
 }
 
 .h2-fork__chip {
@@ -1843,6 +1906,19 @@ body:has(.h2-page) {
   overflow: hidden;
   border-radius: 5px;
   box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+  transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h2-fork::before,
+  .h2-fork__chip {
+    transition: opacity 150ms ease;
+  }
+
+  .h2-fork:hover .h2-fork__chip,
+  .h2-fork:active .h2-fork__chip {
+    transform: none;
+  }
 }
 
 .h2-hero__note {

@@ -250,7 +250,7 @@ export function PricingPage(): React.JSX.Element {
             </div>
           </section>
 
-          <H2Cta />
+          <H2Cta appearance="banner" />
 
           <EnterpriseCalculator />
 

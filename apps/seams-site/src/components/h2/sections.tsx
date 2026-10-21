@@ -1718,32 +1718,53 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
   },
 ];
 
-/* ---------- closing call to action: a rounded teal-peach banner ---------- */
+/* ---------- closing call to action ---------- */
 
-export function H2Cta(): React.JSX.Element {
+/* The band is a cream band fading into the sky-sand grain; the banner is a
+   rounded teal-peach panel like the hero. */
+export function H2Cta({
+  appearance = 'band',
+}: {
+  readonly appearance?: 'band' | 'banner';
+}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const docsProps = linkProps('/docs/');
   const startProps = linkProps('/dashboard');
-
-  return (
-    <section className="h2-cta" aria-labelledby="h2-cta-title">
-      <div className="h2-shell h2-cta__banner">
-        <GrainField field="teal-peach" flow={1.6} />
-        <div>
-          <h2 id="h2-cta-title" className="h2-display h2-cta__title">
-            Wallets your users can never lose
-          </h2>
-          <p className="h2-cta__sub">Passkeys, split keys and recovery in one SDK.</p>
-        </div>
-        <div className="h2-cta__actions">
-          <a className="h2-btn h2-btn--outline" href={docsProps.href} onClick={docsProps.onClick}>
-            Explore docs
-          </a>
-          <a className="h2-btn h2-btn--primary" href={startProps.href} onClick={startProps.onClick}>
-            Start building
-          </a>
-        </div>
+  const content = (
+    <>
+      <div>
+        <h2 id="h2-cta-title" className="h2-display h2-cta__title">
+          Wallets your users can never lose
+        </h2>
+        <p className="h2-cta__sub">Passkeys, split keys and recovery in one SDK.</p>
       </div>
+      <div className="h2-cta__actions">
+        <a className="h2-btn h2-btn--outline" href={docsProps.href} onClick={docsProps.onClick}>
+          Explore docs
+        </a>
+        <a className="h2-btn h2-btn--primary" href={startProps.href} onClick={startProps.onClick}>
+          Start building
+        </a>
+      </div>
+    </>
+  );
+
+  if (appearance === 'banner') {
+    return (
+      <section className="h2-cta h2-cta--banner" aria-labelledby="h2-cta-title">
+        <div className="h2-shell h2-cta__banner">
+          <GrainField field="teal-peach" flow={1.6} />
+          {content}
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section className="h2-cta h2-rule" aria-labelledby="h2-cta-title">
+      <div className="h2-cta__grain" aria-hidden="true">
+        <GrainField field="sky-sand" />
+      </div>
+      <div className="h2-shell h2-cta__inner">{content}</div>
     </section>
   );
 }

@@ -1,4 +1,4 @@
-import { blinkMenuItem } from '@/components/menuItemBlink';
+import { blinkMenuItem } from '@seams-internal/site-navbar';
 import React from 'react';
 import { toast } from 'sonner';
 import {

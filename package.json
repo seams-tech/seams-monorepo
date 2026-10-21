@@ -33,7 +33,7 @@
     "voiceId:demo": "pnpm -C voiceId dev:all",
     "build": "pnpm -C packages/console-server-ts build && pnpm -C packages/wallet-console-server-ts build && pnpm -C apps/wallet-console build && pnpm -C apps/seams-site build",
     "type-check:router-server": "pnpm -C packages/console-server-ts build:types && pnpm -C packages/wallet-console-server-ts type-check && pnpm -C packages/wallet-console-server-ts build:types",
-    "type-check:app": "pnpm -C packages/console-shared-ts type-check && pnpm -C packages/grain-field-ts type-check && pnpm -C packages/wallet-console-shared-ts type-check && pnpm -C apps/seams-site typecheck && pnpm -C apps/wallet-console typecheck",
+    "type-check:app": "pnpm -C packages/console-shared-ts type-check && pnpm -C packages/grain-field-ts type-check && pnpm -C packages/site-navbar-ts type-check && pnpm -C packages/wallet-console-shared-ts type-check && pnpm -C apps/seams-site typecheck && pnpm -C apps/wallet-console typecheck",
     "type-check": "pnpm type-check:router-server && pnpm type-check:app",
     "check": "pnpm lint && pnpm type-check && pnpm -C tests type-check:fixtures && pnpm -C tests check:console-core-wallet-import-boundaries && pnpm test:scripts",
     "router": "node ./scripts/local-wallet/dev-local-workers.mjs --mode logs",

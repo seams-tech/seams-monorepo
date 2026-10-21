@@ -20,6 +20,7 @@
     "@fontsource/hanken-grotesk": "^5.2.8",
     "@seams-internal/console-shared": "workspace:*",
     "@seams-internal/grain-field": "workspace:*",
+    "@seams-internal/site-navbar": "workspace:*",
     "@seams-internal/wallet-console-shared": "workspace:*",
     "@seams/wallet": "0.15.6",
     "@radix-ui/react-select": "^2.0.0",

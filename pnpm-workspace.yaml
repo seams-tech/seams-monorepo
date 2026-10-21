@@ -6,6 +6,7 @@ packages:
   - packages/wallet-console-server-ts
   - packages/console-server-ts
   - packages/grain-field-ts
+  - packages/site-navbar-ts
   - voiceId
   - apps/seams-site
   - apps/wallet-console

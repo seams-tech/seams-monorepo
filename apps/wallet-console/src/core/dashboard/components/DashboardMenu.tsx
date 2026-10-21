@@ -1,6 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
-import { blinkMenuItem } from '@/components/menuItemBlink';
+import { blinkMenuItem } from '@seams-internal/site-navbar';
 
 // Matches the dashboard-menu-exit animation in styles.css.
 const DASHBOARD_MENU_EXIT_MS = 160;

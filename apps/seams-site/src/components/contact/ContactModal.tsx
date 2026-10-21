@@ -1,5 +1,6 @@
 import { useTranslation } from '@/i18n/browser';
 import type { Translate } from '@/i18n/catalog';
+import { GrainField } from '@seams-internal/grain-field';
 import React from 'react';
 import '@/styles/h2.css';
 import './ContactModal.css';
@@ -124,12 +125,15 @@ export function ContactModalHost(): React.JSX.Element {
             />
           </svg>
         </button>
-        <h2 id="contact-modal-title" className="h2-display contact-modal__title">
-          {t('contactTitle')}
-        </h2>
-        <p className="contact-modal__copy">
-          {t('contactCopy')} <a href={`mailto:${SALES_EMAIL_ADDRESS}`}>{SALES_EMAIL_ADDRESS}</a>.
-        </p>
+        <div className="contact-modal__intro">
+          <GrainField field="teal-peach" playing={open} />
+          <h2 id="contact-modal-title" className="h2-display contact-modal__title">
+            {t('contactTitle')}
+          </h2>
+          <p className="contact-modal__copy">
+            {t('contactCopy')} <a href={`mailto:${SALES_EMAIL_ADDRESS}`}>{SALES_EMAIL_ADDRESS}</a>.
+          </p>
+        </div>
 
         {open ? (
           <form

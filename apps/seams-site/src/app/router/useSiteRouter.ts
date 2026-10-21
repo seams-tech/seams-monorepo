@@ -12,8 +12,11 @@ function navigateInternal(href: string): void {
   const target = new URL(href, window.location.origin);
 
   if (currentHref === href) {
+    // A hash link must act even when the URL already has its hash, e.g. a
+    // #contact link while the URL ends in #contact but the modal is closed.
+    if (target.hash) window.dispatchEvent(new Event('site:navigate'));
     // Allow same-route nav clicks (for routes like /pricing) to reset scroll.
-    if (!target.hash) window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    else window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     return;
   }
 

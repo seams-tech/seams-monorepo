@@ -628,7 +628,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     consoleSession.claims,
     currentOrgId,
     scopedOnboardingSelectedProjectId,
-    pathname,
     persistedOrganizationId,
     scopedPersistedProjectId,
     scopedPersistedEnvironmentId,

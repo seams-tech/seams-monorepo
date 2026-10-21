@@ -1012,7 +1012,7 @@ const reasons: readonly Reason[] = [
     title: 'Own your accounts. Leave any time.',
     coverLabel: 'Open source',
     field: 'teal-peach',
-    copy: 'The wallet SDK and signer runtimes are open source under Apache-2.0, and users can export their keys. Your accounts do not depend on our company. Self-hosted deployment is coming soon.',
+    copy: 'The wallet SDK and signer runtimes are open source under Apache-2.0, and users can export their keys. Your accounts do not depend on our company. Seams runs on Cloudflare Workers, and our runtime build runs on Google Cloud and AWS VMs. Self-serve deployment tooling is coming soon.',
   },
   {
     title: 'Wallets your users do not lose.',
@@ -1652,7 +1652,7 @@ const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
     },
     {
       q: 'Can I self-host Seams?',
-      a: 'The code is open source today. Tooling to deploy Seams to your own Cloudflare account or your own servers is in progress. Contact us for early access.',
+      a: 'Yes, with our help. The code is open source. Seams runs on Cloudflare Workers, and our runtime build runs on Google Cloud and AWS virtual machines. Self-serve tooling to deploy Seams to your own cloud account is still coming. Contact us for early access.',
     },
     {
       q: 'Which chains do you support?',

@@ -307,7 +307,8 @@ export type WalletHomeReservation =
     }
   | {
       readonly ok: false;
-      readonly code: 'ceremony_conflict';
+      /** production_paused: the organization's Free plan state stops new production sign-ups. */
+      readonly code: 'ceremony_conflict' | 'production_paused';
       readonly assignment?: never;
       readonly disposition?: never;
     };

@@ -217,7 +217,7 @@ function reservationFromResponse(
     };
   }
   if (value.ok === false) {
-    if (value.code === 'ceremony_conflict') {
+    if (value.code === 'ceremony_conflict' || value.code === 'production_paused') {
       return { ok: false, code: value.code };
     }
     if (

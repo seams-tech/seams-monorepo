@@ -131,6 +131,17 @@ function scopeBindings(wallet: WalletOwnershipKey): string[] {
   return [wallet.namespace, wallet.organizationId, wallet.projectId, wallet.environmentId];
 }
 
+/**
+ * The persisted Free plan state stops new sign-ups in production environments only.
+ * Bind namespace, organization, and environment as ?1, ?2, and ?4. Existing wallets,
+ * recovery, and key export never read this state.
+ */
+const PRODUCTION_PAUSED_SQL = `SELECT 1 FROM billing_account_plans plan
+  JOIN environments environment ON environment.namespace = plan.namespace
+    AND environment.org_id = plan.org_id
+  WHERE plan.namespace = ?1 AND plan.org_id = ?2 AND environment.id = ?4
+    AND environment.env_key = 'prod' AND plan.production_state <> 'active'`;
+
 export class D1WalletHomeDirectory {
   constructor(
     private readonly database: D1DatabaseLike,
@@ -192,6 +203,7 @@ export class D1WalletHomeDirectory {
          AND NOT EXISTS (SELECT 1 FROM wallet_homes WHERE namespace = ?1 AND ceremony_id = ?13)
          AND NOT EXISTS (SELECT 1 FROM tenant_deployment_cutovers
            WHERE deployment_lane = ?18 AND state_kind IN ('awaiting_browser_credential', 'ready'))
+         AND NOT EXISTS (${PRODUCTION_PAUSED_SQL})
        RETURNING *, 0 AS setup_paused`,
       )
       .bind(
@@ -232,14 +244,16 @@ export class D1WalletHomeDirectory {
     if (!row) {
       const paused = await queryD1One(
         this.database,
-        `SELECT operation_id FROM tenant_deployment_cutovers
-         WHERE deployment_lane = ?1 AND state_kind IN ('awaiting_browser_credential', 'ready')
-         LIMIT 1`,
-        [deploymentLane],
+        `SELECT EXISTS (SELECT 1 FROM tenant_deployment_cutovers
+           WHERE deployment_lane = ?5 AND state_kind IN ('awaiting_browser_credential', 'ready'))
+           AS setup_paused,
+         EXISTS (${PRODUCTION_PAUSED_SQL}) AS production_paused`,
+        [...scopeBindings(wallet), deploymentLane],
       );
-      if (paused) {
+      if (paused?.setup_paused === 1) {
         throw new WalletPlacementError('registration_paused', 'Wallet registration is paused');
       }
+      if (paused?.production_paused === 1) return { ok: false, code: 'production_paused' };
       const collision = await this.findByCeremony(
         wallet.namespace,
         input.proposedRegistrationAllocation.ceremonyId,

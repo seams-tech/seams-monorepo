@@ -11,7 +11,7 @@ const siteLinkColor = '1;38;5;214';
 const localSites = [
   { label: 'Seams', url: 'http://localhost:4001/wallet' },
   { label: 'Dashboard', url: 'http://localhost:4001/dashboard' },
-  { label: 'Docs', url: 'https://docs.localhost:4003' },
+  { label: 'Docs', url: 'https://docs.localhost:4003/docs/' },
 ];
 
 dotenv.config({ path: localEnvPath, override: false });
@@ -54,7 +54,7 @@ function localSiteEnvironment(environment) {
     ]),
     VITE_DOCS_ORIGIN: firstNonEmptyString([
       environment.VITE_DOCS_ORIGIN,
-      'https://docs.localhost:4003',
+      'https://docs.localhost:4003/docs',
     ]),
     VITE_RP_ID_BASE: firstNonEmptyString([environment.VITE_RP_ID_BASE, 'localhost']),
     VITE_ROUTER_AB_NORMAL_SIGNING_WORKER_ID: firstNonEmptyString([

@@ -1,7 +1,9 @@
 const FRONTEND_CONFIG = {
   baseUrl: String(import.meta.env.VITE_SITE_ORIGIN ?? '').trim() || '/',
-  docsOrigin:
-    String(import.meta.env.VITE_DOCS_ORIGIN ?? '').trim() || 'https://wallet.seams.sh/docs',
+  docsOrigin: new URL(
+    '/docs',
+    String(import.meta.env.VITE_DOCS_ORIGIN ?? '').trim() || 'https://docs.localhost:4003/docs',
+  ).href,
 };
 
 const DOCS_PREFIX = '/docs';

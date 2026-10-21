@@ -23,7 +23,7 @@ artifact at `.artifacts/wallet-docs` first. Follow the
 | Company entry           | `http://localhost:4001`                 |
 | Wallet page             | `http://localhost:4001/wallet`          |
 | Wallet Console          | `http://localhost:4001/dashboard`       |
-| Documentation preview   | `https://docs.localhost:4003`           |
+| Documentation preview   | `https://docs.localhost:4003/docs/`     |
 | Isolated wallet service | `https://localhost:4002/wallet-service` |
 | Gateway                 | `https://localhost:4101`                |
 

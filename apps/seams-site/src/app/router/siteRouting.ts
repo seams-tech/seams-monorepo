@@ -1,5 +1,8 @@
 const DOCS_PREFIX = '/docs';
-const DEFAULT_DOCS_ORIGIN = 'https://docs.localhost:4003';
+const DOCS_ORIGIN = new URL(
+  DOCS_PREFIX,
+  String(import.meta.env.VITE_DOCS_ORIGIN || '').trim() || 'https://docs.localhost:4003/docs',
+).href;
 
 function stripTrailingSlash(path: string): string {
   if (path.length <= 1) return path;
@@ -12,8 +15,7 @@ export function getSiteBase(): string {
 }
 
 export function getDocsOrigin(): string {
-  const origin = String(import.meta.env.VITE_DOCS_ORIGIN || '').trim() || DEFAULT_DOCS_ORIGIN;
-  return stripTrailingSlash(origin);
+  return DOCS_ORIGIN;
 }
 
 export function isHttpUrl(value: string): boolean {

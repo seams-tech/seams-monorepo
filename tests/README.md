@@ -60,6 +60,12 @@ browser history, refresh, and company navigation. Screenshots, `result.json`, an
 `SEAMS_SITE_ORIGIN` and `SEAMS_WALLET_SITE_ORIGIN` to check separate site origins.
 Set `SEAMS_NAVIGATION_ARTIFACTS` to choose another artifact directory.
 
+Run `node tests/e2e/site-documentation-links.e2e.mjs` to check documentation links
+from the homepage, wallet, pricing, and company pages. It checks every linked docs
+destination, desktop navigation, mobile keyboard navigation, and refresh. Evidence
+goes to `output/playwright/site-documentation-links/`. `SEAMS_DOCS_ORIGIN` sets
+the docs base URL, including `/docs/`.
+
 ## Gates
 
 - `pnpm test` runs the Console operating E2E cases on a fresh managed local stack.

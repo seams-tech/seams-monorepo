@@ -5,6 +5,9 @@ import './LanguageSelector.css';
 
 export type SiteLocale = 'en' | 'ja';
 
+const MENU_GAP_PX = 8;
+const CLOSE_DELAY_MS = 120;
+
 const languages: Record<SiteLocale, { label: string; description: string | null }> = {
   en: { label: 'English', description: null },
   ja: { label: '日本語', description: 'Japanese' },
@@ -65,46 +68,107 @@ function parseLanguage(onChange: (locale: SiteLocale) => void, value: string): v
   if (value === 'en' || value === 'ja') onChange(value);
 }
 
-export function LanguageSelector({
-  placement,
-  locale,
-  label,
-  onChange,
-}: {
+type LanguageSelectorProps = {
   placement: 'navbar' | 'footer';
   locale: SiteLocale;
   label: string;
   onChange: (locale: SiteLocale) => void;
-}): React.JSX.Element {
+};
+
+function containsPointer(element: HTMLElement | null, event: PointerEvent): boolean {
+  if (!element) return false;
+  const rect = element.getBoundingClientRect();
+  // Include the gap between the trigger and its portaled menu.
   return (
-    <Select.Root value={locale} onValueChange={parseLanguage.bind(null, onChange)}>
-      <Select.Trigger
-        className={`site-language__trigger site-language__trigger--${placement}`}
-        aria-label={label}
-      >
-        <Languages size={19} strokeWidth={1.7} aria-hidden />
-        <span className="site-language__name" lang={locale}>
-          <Select.Value />
-        </span>
-        <Select.Icon>
-          <ChevronDown size={15} aria-hidden />
-        </Select.Icon>
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Content
-          className="site-language__menu"
-          position="popper"
-          side="bottom"
-          align={placement === 'navbar' ? 'end' : 'start'}
-          sideOffset={8}
-          collisionPadding={16}
-        >
-          <Select.Viewport>
-            <LanguageOption language="en" />
-            <LanguageOption language="ja" />
-          </Select.Viewport>
-        </Select.Content>
-      </Select.Portal>
-    </Select.Root>
+    event.clientX >= rect.left - MENU_GAP_PX &&
+    event.clientX <= rect.right + MENU_GAP_PX &&
+    event.clientY >= rect.top - MENU_GAP_PX &&
+    event.clientY <= rect.bottom + MENU_GAP_PX
   );
+}
+
+export class LanguageSelector extends React.Component<LanguageSelectorProps, { open: boolean }> {
+  state = { open: false };
+  private readonly trigger = React.createRef<HTMLButtonElement>();
+  private readonly menu = React.createRef<HTMLDivElement>();
+  private closeTimer: number | null = null;
+
+  componentDidMount(): void {
+    // Select blocks outside pointer targets while open. Coordinates still
+    // let the mouse dismiss it when moving toward another navbar menu.
+    document.addEventListener('pointermove', this.onPointerMove);
+  }
+
+  componentWillUnmount(): void {
+    document.removeEventListener('pointermove', this.onPointerMove);
+    this.cancelClose();
+  }
+
+  private cancelClose(): void {
+    if (this.closeTimer === null) return;
+    window.clearTimeout(this.closeTimer);
+    this.closeTimer = null;
+  }
+
+  private close = (): void => {
+    this.cancelClose();
+    this.setState({ open: false });
+  };
+
+  private onOpenChange = (open: boolean): void => {
+    this.cancelClose();
+    this.setState({ open });
+  };
+
+  private onPointerMove = (event: PointerEvent): void => {
+    if (!this.state.open || event.pointerType !== 'mouse') return;
+    if (containsPointer(this.trigger.current, event) || containsPointer(this.menu.current, event)) {
+      this.cancelClose();
+      return;
+    }
+    if (this.closeTimer !== null) return;
+    this.closeTimer = window.setTimeout(this.close, CLOSE_DELAY_MS);
+  };
+
+  render(): React.JSX.Element {
+    const { placement, locale, label, onChange } = this.props;
+    return (
+      <Select.Root
+        open={this.state.open}
+        onOpenChange={this.onOpenChange}
+        value={locale}
+        onValueChange={parseLanguage.bind(null, onChange)}
+      >
+        <Select.Trigger
+          ref={this.trigger}
+          className={`site-language__trigger site-language__trigger--${placement}`}
+          aria-label={label}
+        >
+          <Languages size={19} strokeWidth={1.7} aria-hidden />
+          <span className="site-language__name" lang={locale}>
+            <Select.Value />
+          </span>
+          <Select.Icon>
+            <ChevronDown size={15} aria-hidden />
+          </Select.Icon>
+        </Select.Trigger>
+        <Select.Portal>
+          <Select.Content
+            ref={this.menu}
+            className="site-language__menu"
+            position="popper"
+            side="bottom"
+            align={placement === 'navbar' ? 'end' : 'start'}
+            sideOffset={MENU_GAP_PX}
+            collisionPadding={16}
+          >
+            <Select.Viewport>
+              <LanguageOption language="en" />
+              <LanguageOption language="ja" />
+            </Select.Viewport>
+          </Select.Content>
+        </Select.Portal>
+      </Select.Root>
+    );
+  }
 }

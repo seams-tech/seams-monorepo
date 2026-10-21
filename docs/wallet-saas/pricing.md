@@ -32,8 +32,8 @@ have a published price.
 - **Buyers compare MAU prices.** Dynamic and Privy publish MAU prices. A price in
   the same unit shows the difference at once: $99 against $249, and $0.0025
   against $0.005.
-- **Our cost follows signatures.** A user who makes 30 transactions a day costs
-  about 50 times more than the registration of that user. The allowance and the
+- **Our cost follows signatures.** A user who makes 10 signatures a day costs
+  about 30 times more each month than the registration of that user. The allowance and the
   published overage keep heavy apps profitable.
 - **The allowance covers normal use.** 100 signatures a month is about 3 a day.
   At that level, the margin at $0.0025 per MAU is 60% or more.
@@ -65,8 +65,15 @@ Method:
 | **Measured total**        |                                    | **$0.000074** |
 
 - A new user costs about **$0.0001** when we add the unmeasured row writes.
-- One signature uses about 360 ms of CPU. With requests and storage, one
-  signature costs about **$0.00001**.
+- One signature uses about 270 ms of CPU across Gateway, Router, and
+  SigningWorker. With requests and storage, one signature costs about
+  **$0.00001**. This is an upper estimate.
+- CORS preflights are a cost per browser session, not per signature. The Gateway
+  answers preflights with `Access-Control-Max-Age: 600`. At registration start,
+  the SDK sends an early `OPTIONS` fetch to each signing route, and the browser
+  sends a preflight before each of these fetches. The sample has 4 `OPTIONS`
+  requests per user, about 60 ms of CPU in total. Later signatures in the next 10
+  minutes send no preflight.
 
 Cloudflare prices used (Workers Paid, October 2, 2026 price page):
 
@@ -83,18 +90,19 @@ Cloudflare prices used (Workers Paid, October 2, 2026 price page):
 The $5 monthly plan fee and the included monthly usage are not in the per-unit
 figures.
 
-## Cost and price at 30 transactions a day
+## Cost and price at 10 signatures a day
 
-One user makes 900 signatures a month and costs us about $0.009. The pool
-covers 100 of those signatures, so 800 per user are overage. The table assumes
-that 10% of users are new each month.
+The planning assumption is 10 signatures per user per day on average. One user
+makes 300 signatures a month and costs us about $0.003. The pool covers 100 of
+those signatures, so 200 per user are overage. The table assumes that 10% of
+users are new each month.
 
 | Users     | Signatures / month | Our cost |      Seams | Margin | Seams per user |
 | --------- | -----------------: | -------: | ---------: | -----: | -------------: |
-| 1,000     |            900,000 |       $9 |       $139 |    94% |         $0.139 |
-| 10,000    |          9,000,000 |      $90 |    $511.50 |    82% |         $0.051 |
-| 100,000   |         90,000,000 |     $901 |  $4,336.50 |    79% |         $0.043 |
-| 1,000,000 |        900,000,000 |   $9,010 | $42,586.50 |    79% |         $0.043 |
+| 1,000     |            300,000 |       $3 |       $109 |    97% |         $0.109 |
+| 10,000    |          3,000,000 |      $30 |    $211.50 |    86% |         $0.021 |
+| 100,000   |         30,000,000 |     $301 |  $1,336.50 |    77% |         $0.013 |
+| 1,000,000 |        300,000,000 |   $3,010 | $12,586.50 |    76% |         $0.013 |
 
 The overage price is 5 times our signature cost, so the margin stays near 80%
 for heavy apps. The Enterprise floor of $0.03 per 1,000 keeps it near 67%.
@@ -147,21 +155,26 @@ We expect Dynamic to quote Enterprise prices for these apps.
 
 - Up to 3 signatures per user per day, Seams costs half of Dynamic or less at
   every size.
-- Above that, Seams is above Dynamic's list price. No profitable Seams price can
-  match that list price: at 30 a day, one user costs us $0.009, and Dynamic lists
-  $0.005. To match it with an 80% margin, one signature must use about 50 ms of
-  CPU, 7 times less than now.
+- At 10 a day, Seams is below Dynamic's list price up to about 10,000 users and
+  above it from about 100,000 users.
+- At 10 a day, one user costs us $0.003 a month, and Dynamic lists $0.005. At
+  Dynamic's price, our margin can be 40% at most. Half of Dynamic's price is below
+  our cost.
+- To charge half of Dynamic's price ($0.0025 per MAU) for 300 signatures with a
+  50% margin, one signature must cost $0.000004. After the request fees, that
+  leaves about 160 ms of CPU. Now a signature uses about 270 ms.
 
-The same workload of 30 transactions a day, compared with Privy:
+The same workload of 10 signatures a day, compared with Privy:
 
 | Users     |      Seams | Privy pay-as-you-go | Privy Enterprise |
 | --------- | ---------: | ------------------: | ---------------: |
-| 1,000     |       $139 |             $10,500 |             $900 |
-| 10,000    |    $511.50 |             $91,500 |           $9,000 |
-| 100,000   |  $4,336.50 |            $906,000 |          $90,000 |
-| 1,000,000 | $42,586.50 |          $9,051,000 |         $900,000 |
+| 1,000     |       $109 |              $4,500 |             $300 |
+| 10,000    |    $211.50 |             $31,500 |           $3,000 |
+| 100,000   |  $1,336.50 |            $306,000 |          $30,000 |
+| 1,000,000 | $12,586.50 |          $3,051,000 |         $300,000 |
 
-- Seams is 6 times or more below Privy Enterprise at every size.
+- Seams is below Privy Enterprise at every size: almost 3 times below at 1,000
+  users, and 14–24 times below from 10,000 users.
 - Do not name competitors on the public page. Their prices change.
 
 Sources:
@@ -177,12 +190,13 @@ Sources:
 - The tail logs do not show D1 or Durable Object row writes.
 - Durable Object duration from `wallTime` is a lower bound. An object stays
   billed while it cannot hibernate.
-- At 900 signatures per user, a 2 times error in the signature cost moves the
-  margin from 80% to 60%.
+- At 300 signatures per user, a 2 times error in the signature cost moves the
+  margin at 100,000 users from 77% to 55%.
 
 ## Before publication
 
-1. Measure a run of 600 or more signatures for one user, on warm isolates.
+1. Measure a run of 300 or more signatures for one user, on warm isolates, and
+   one later browser session for the preflight cost.
 2. Read D1 and Durable Object row counts for that run from the Cloudflare
    analytics.
 3. Recompute the margin table.

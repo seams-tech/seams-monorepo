@@ -7,27 +7,38 @@ this model yet.
 
 ## Price model
 
-Seams charges for signatures. Users are unlimited and free.
+Seams charges per monthly active user (MAU), at half of Dynamic's list price or
+less. Each MAU includes a signature allowance. Signatures above the allowance
+have a published price.
 
-| Plan       | Price            | Included signatures | Overage                         |
-| ---------- | ---------------- | ------------------: | ------------------------------- |
-| Free       | $0               |        100,000 / mo | None. Upgrade to continue.      |
-| Growth     | $99 / month      |      2,000,000 / mo | $0.05 per 1,000 signatures      |
-| Enterprise | Committed volume |          Negotiated | From $0.03 per 1,000 signatures |
+| Plan       | Price                         | Users included | Signature allowance |
+| ---------- | ----------------------------- | -------------: | ------------------- |
+| Free       | $0                            |    Up to 1,000 | 100,000 / month     |
+| Growth     | $99 / month                   |    Up to 5,000 | 100 per MAU, pooled |
+| Growth     | + $0.0025 per MAU above 5,000 |              — | 100 per MAU, pooled |
+| Enterprise | Committed volume              |     Negotiated | Negotiated          |
 
-- Gas and chain fees pass through at cost.
-- Registration has a fair-use rate limit. A new user costs about $0.0001, so bot
-  sign-ups are cheap but not free.
+- **Pooled allowance:** the app gets 100 signatures for each MAU, for all its
+  users together. With 10,000 MAU, the pool is 1,000,000 signatures. A few busy
+  users do not cause a charge if the average stays below 100.
+- **Above the pool:** $0.05 per 1,000 signatures on Growth. Enterprise starts at
+  $0.03 per 1,000 signatures.
+- **Gas and chain fees** pass through at cost.
+- **Registration** has a fair-use rate limit. A new user costs about $0.0001, so
+  bot sign-ups are cheap but not free.
 
-## Why we meter signatures
+## Why this shape
 
-- Our Cloudflare cost follows signatures, not users. A user who makes 30
-  transactions a day costs about 50 times more than the registration of that user.
-- A per-user price loses money for busy apps. At $0.0025 per user, a user with
-  600 signatures a month costs us $0.006.
-- Ecommerce Agents fit this meter. One agent is one user with thousands of
-  signatures.
-- "Unlimited users" separates us from Privy, which prices by user tiers.
+- **Buyers compare MAU prices.** Dynamic and Privy publish MAU prices. A price in
+  the same unit shows the difference at once: $99 against $249, and $0.0025
+  against $0.005.
+- **Our cost follows signatures.** A user who makes 30 transactions a day costs
+  about 50 times more than the registration of that user. The allowance and the
+  published overage keep heavy apps profitable.
+- **The allowance covers normal use.** 100 signatures a month is about 3 a day.
+  At that level, the margin at $0.0025 per MAU is 60% or more.
+- **We publish what Dynamic hides.** Dynamic says "rate limits apply" and gives no
+  numbers. We publish the allowance and the overage price.
 
 ## Measured cost
 
@@ -74,19 +85,19 @@ figures.
 
 ## Cost and price at 30 transactions a day
 
-One user makes 900 signatures a month and costs us about $0.009. The table
-assumes that 10% of users are new each month.
+One user makes 900 signatures a month and costs us about $0.009. The pool
+covers 100 of those signatures, so 800 per user are overage. The table assumes
+that 10% of users are new each month.
 
-| Users     | Signatures / month | Our cost |   Seams | Margin | Seams per user |
-| --------- | -----------------: | -------: | ------: | -----: | -------------: |
-| 100       |             90,000 |       $1 |      $0 |      — |             $0 |
-| 1,000     |            900,000 |       $9 |     $99 |    91% |         $0.099 |
-| 10,000    |          9,000,000 |      $90 |    $449 |    80% |         $0.045 |
-| 100,000   |         90,000,000 |     $901 |  $4,499 |    80% |         $0.045 |
-| 1,000,000 |        900,000,000 |   $9,010 | $44,999 |    80% |         $0.045 |
+| Users     | Signatures / month | Our cost |      Seams | Margin | Seams per user |
+| --------- | -----------------: | -------: | ---------: | -----: | -------------: |
+| 1,000     |            900,000 |       $9 |       $139 |    94% |         $0.139 |
+| 10,000    |          9,000,000 |      $90 |    $511.50 |    82% |         $0.051 |
+| 100,000   |         90,000,000 |     $901 |  $4,336.50 |    79% |         $0.043 |
+| 1,000,000 |        900,000,000 |   $9,010 | $42,586.50 |    79% |         $0.043 |
 
-The Growth overage price is 5 times our signature cost, so the margin stays near
-80% at every size. The Enterprise floor of $0.03 per 1,000 keeps it near 67%.
+The overage price is 5 times our signature cost, so the margin stays near 80%
+for heavy apps. The Enterprise floor of $0.03 per 1,000 keeps it near 67%.
 
 ## Competitor prices
 
@@ -101,21 +112,56 @@ Read from the public pricing pages on October 21, 2026.
 | Signatures | 50,000 free, then $0.01 each            | No fee; unpublished rate limits |
 | Enterprise | From $0.001 per signature               | Custom                          |
 
-MAU means monthly active users. Privy's pay-as-you-go price starts when an app
-exceeds 10,000 MAU or 50,000 signatures.
+Privy's pay-as-you-go price starts when an app exceeds 10,000 MAU or 50,000
+signatures.
 
-The same workload of 30 transactions a day, per month:
+### Dynamic: "Rate limits apply"
 
-| Users     |   Seams | Privy pay-as-you-go | Privy Enterprise | Dynamic list |
-| --------- | ------: | ------------------: | ---------------: | -----------: |
-| 1,000     |     $99 |             $10,500 |             $900 |         $249 |
-| 10,000    |    $449 |             $91,500 |           $9,000 |         $274 |
-| 100,000   |  $4,499 |            $906,000 |          $90,000 |         $724 |
-| 1,000,000 | $44,999 |          $9,051,000 |         $900,000 |       $5,224 |
+Dynamic's Growth plan has no signature fee, but its pricing page says "Rate
+limits apply". The limits are not published. We expect an app with heavy
+signing to reach those limits and move to Dynamic's Enterprise plan at a custom
+price. We have not confirmed this. Thus Dynamic's list price is a real price only
+for light use, which is about the same use that our pooled allowance covers.
 
-- Seams is 20 times below Privy Enterprise at every size.
-- Dynamic's list price is below our own cost at this volume. We expect its rate
-  limits to move such apps to its Enterprise plan. Do not match that list price.
+Every published Seams price is below the matching Dynamic price:
+
+| Item                 | Dynamic                  | Seams                      |
+| -------------------- | ------------------------ | -------------------------- |
+| Live app, few users  | $249 / month             | $0 up to 1,000 MAU         |
+| Up to 5,000 MAU      | $249 / month             | $99 / month                |
+| Each MAU above 5,000 | $0.005                   | $0.0025                    |
+| Heavy signing        | Rate limits, then custom | $0.05 per 1,000 signatures |
+
+Seams compared with Dynamic's list price, per month:
+
+| Signatures per user per day | 1,000 users      | 10,000 users        | 100,000 users       | 1,000,000 users         |
+| --------------------------: | ---------------- | ------------------- | ------------------- | ----------------------- |
+|                         0.3 | **$0** vs $249   | **$111.50** vs $274 | **$336.50** vs $724 | **$2,586.50** vs $5,224 |
+|                           1 | **$0** vs $249   | **$111.50** vs $274 | **$336.50** vs $724 | **$2,586.50** vs $5,224 |
+|                           3 | **$0** vs $249   | **$111.50** vs $274 | **$336.50** vs $724 | **$2,586.50** vs $5,224 |
+|                          10 | **$109** vs $249 | **$211.50** vs $274 | $1,336.50 vs $724¹  | $12,586.50 vs $5,224¹   |
+|                          30 | **$139** vs $249 | $511.50 vs $274¹    | $4,336.50 vs $724¹  | $42,586.50 vs $5,224¹   |
+
+¹ Dynamic's list price applies here only if its rate limits allow this volume.
+We expect Dynamic to quote Enterprise prices for these apps.
+
+- Up to 3 signatures per user per day, Seams costs half of Dynamic or less at
+  every size.
+- Above that, Seams is above Dynamic's list price. No profitable Seams price can
+  match that list price: at 30 a day, one user costs us $0.009, and Dynamic lists
+  $0.005. To match it with an 80% margin, one signature must use about 50 ms of
+  CPU, 7 times less than now.
+
+The same workload of 30 transactions a day, compared with Privy:
+
+| Users     |      Seams | Privy pay-as-you-go | Privy Enterprise |
+| --------- | ---------: | ------------------: | ---------------: |
+| 1,000     |       $139 |             $10,500 |             $900 |
+| 10,000    |    $511.50 |             $91,500 |           $9,000 |
+| 100,000   |  $4,336.50 |            $906,000 |          $90,000 |
+| 1,000,000 | $42,586.50 |          $9,051,000 |         $900,000 |
+
+- Seams is 6 times or more below Privy Enterprise at every size.
 - Do not name competitors on the public page. Their prices change.
 
 Sources:

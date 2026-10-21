@@ -15,8 +15,8 @@ of Platform and Wallet entry points and the reasons for that design.
 - [Bring your own authentication](wallet-saas/console-docs/byo-auth.md).
 - [Account settings](wallet-saas/console-docs/account-settings.md).
 - [Billing](wallet-saas/console-docs/wallet-billing.md).
-- [Pricing and costs](wallet-saas/pricing.md): the proposed signature-metered
-  price model and the measured Cloudflare cost behind it.
+- [Pricing and costs](wallet-saas/pricing.md): the proposed MAU price with a
+  pooled signature allowance, and the measured Cloudflare cost behind it.
 - [Wallet database schema](wallet-saas/console-docs/wallet-db-schema.md).
 - [CLI release procedure](wallet-cli-release.md).
 - [Local/provider runtime qualification](../deployment/celld/README.md): retain

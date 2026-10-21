@@ -473,7 +473,7 @@ const CONSOLE_SCREENS = [
   },
   {
     id: 'audit' as const,
-    label: 'Audit logs',
+    label: 'Observability',
     src: '/wallet-preview/wallet-console-audit.png?v=1',
     callout: 'Export to CSV in one click',
   },
@@ -777,7 +777,7 @@ export function H2Start(): React.JSX.Element {
             <div
               className="h2-consoleband__stage"
               role="img"
-              aria-label={`Wallet console overview and audit log pages, ${CONSOLE_SCREENS.find((screen) => screen.id === consoleFocus)?.label} in front`}
+              aria-label={`Wallet console overview and observability pages, ${CONSOLE_SCREENS.find((screen) => screen.id === consoleFocus)?.label} in front`}
             >
               {CONSOLE_SCREENS.map((screen) => (
                 // the back card is a pointer shortcut to the same switch as

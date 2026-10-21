@@ -2841,13 +2841,13 @@ body:has(.h2-page) {
 }
 
 .h2-security__item .h2-fieldtile {
-  background-color: #eee4d4;
+  background-color: #f5eddf;
 }
 
 .h2-security__item .h2-fieldtile .grain-field {
-  filter: grayscale(1);
+  filter: grayscale(1) contrast(0.55);
   mix-blend-mode: multiply;
-  opacity: 0.35;
+  opacity: 0.22;
 }
 
 /* the name and its one-liner share a line; on a narrow screen the

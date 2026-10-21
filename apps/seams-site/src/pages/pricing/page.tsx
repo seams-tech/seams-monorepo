@@ -4,7 +4,6 @@ import { H2Faq, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
-import { useGlassRefraction } from '@/components/glass/useGlassRefraction';
 import { EnterpriseCalculator } from './EnterpriseCalculator';
 import '@/styles/h2.css';
 import './styles.css';
@@ -89,15 +88,19 @@ const planTeasers: Record<PlanId, string> = {
 function BannerPlanCard({ plan }: { plan: Plan }): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const ctaProps = linkProps(plan.cta.to);
-  const cardRef = React.useRef<HTMLAnchorElement>(null);
-  useGlassRefraction(cardRef, { radius: 22 });
+  // The plan's gradient shows on hover or focus; it only animates while shown.
+  const [lit, setLit] = React.useState(false);
   return (
     <a
-      ref={cardRef}
       className="pricing-banner__card"
       href={ctaProps.href}
       onClick={ctaProps.onClick}
+      onPointerEnter={() => setLit(true)}
+      onPointerLeave={() => setLit(false)}
+      onFocus={() => setLit(true)}
+      onBlur={() => setLit(false)}
     >
+      <GrainField field={plan.field} className="pricing-banner__card-gradient" playing={lit} />
       <span className="pricing-banner__card-name">{plan.name}</span>
       <span className="pricing-banner__card-price">
         <strong>{plan.price}</strong> {plan.price === 'Custom' ? '' : plan.unit}

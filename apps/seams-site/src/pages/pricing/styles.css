@@ -514,80 +514,63 @@
 .pricing-banner__card {
   position: relative;
   isolation: isolate;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 20px 20px 18px;
-  overflow: hidden;
   border-radius: 22px;
-  /* clear glass: a faint tint, so the bent backdrop shows through. Chromium
-     replaces this backdrop filter with the refraction from useGlassRefraction;
-     other browsers keep a frosted fallback. */
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02) 60%);
-  -webkit-backdrop-filter: blur(10px) saturate(150%);
-  backdrop-filter: blur(10px) saturate(150%);
-  /* light gathered along the rim, and a shadow that lifts the card */
-  box-shadow:
-    inset 0 0 18px rgba(255, 255, 255, 0.16),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 14px 34px -14px rgba(10, 10, 10, 0.4);
+  background: var(--h2-ink);
   color: #ffffff;
-  text-shadow: 0 1px 2px rgba(10, 10, 10, 0.2);
-  transition: box-shadow 200ms ease;
+  /* keeps white text readable on the light parts of the hover gradient */
+  text-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
 }
 
-/* the specular highlight: light caught on the curved top-left corner */
-.pricing-banner__card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background:
-    radial-gradient(90% 60% at 8% 0%, rgba(255, 255, 255, 0.3), transparent 50%),
-    radial-gradient(60% 40% at 100% 100%, rgba(255, 255, 255, 0.1), transparent 60%);
-  pointer-events: none;
+/* a 2px outline and a tight shadow set the cards off the banner gradient */
+.pricing-banner__card {
+  outline: 2px solid rgba(255, 255, 255, 0.24);
+  outline-offset: 0;
+  box-shadow:
+    0 1px 2px rgba(10, 10, 10, 0.3),
+    0 4px 10px -4px rgba(10, 10, 10, 0.35);
 }
 
-/* the rim light: a thin edge, bright where light enters (top left) and leaves
-   (bottom right), dim on the sides between */
-.pricing-banner__card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  padding: 1.5px;
-  border-radius: inherit;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.95),
-    rgba(255, 255, 255, 0.2) 30%,
-    rgba(255, 255, 255, 0.08) 55%,
-    rgba(255, 255, 255, 0.7)
-  );
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
-  pointer-events: none;
+.pricing-banner__card:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* the site's link hover colour must not tint the card's text */
+.pricing-banner__card:hover {
+  color: #ffffff;
+}
+
+/* the plan's gradient, as on its card at the top, fades in on hover or focus */
+.pricing-banner__card-gradient {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.pricing-banner__card:focus-visible .pricing-banner__card-gradient {
+  opacity: 1;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .pricing-banner__card:hover {
-    box-shadow:
-      inset 0 0 22px rgba(255, 255, 255, 0.24),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
-      0 16px 38px -14px rgba(10, 10, 10, 0.45);
+  .pricing-banner__card:hover .pricing-banner__card-gradient {
+    opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pricing-banner__card {
+  .pricing-banner__card-gradient {
     transition: none;
   }
+}
+
+/* white button on the black card */
+.h2-page .pricing-banner__card .h2-btn--primary {
+  background: #ffffff;
+  color: var(--h2-ink);
 }
 
 .pricing-banner__card-name {

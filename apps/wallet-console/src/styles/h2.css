@@ -1613,10 +1613,10 @@ body:has(.h2-page) {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 18px 32px;
+  gap: 24px 48px;
   padding-top: 7px;
   /* draws the row in from the column edges toward the centre */
-  padding-inline: clamp(0px, 5vw, 5rem);
+  padding-inline: clamp(0px, 4vw, 4rem);
 }
 
 @media (max-width: 560px) {
@@ -1624,7 +1624,7 @@ body:has(.h2-page) {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-items: start;
-    gap: 18px 16px;
+    gap: 24px 20px;
     padding-inline: 8px;
   }
 }
@@ -1634,14 +1634,14 @@ body:has(.h2-page) {
   align-items: center;
   gap: 9px;
   color: var(--h2-ash);
-  font-size: clamp(15.5px, 1.6vw, 20px);
+  font-size: clamp(15.5px, 1.4vw, 18px);
   font-weight: 600;
   white-space: nowrap;
 }
 
 .h2-logo svg {
-  width: 1.2em;
-  height: 1.2em;
+  width: 1.125em;
+  height: 1.125em;
   flex: none;
 }
 

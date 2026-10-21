@@ -36,6 +36,9 @@
   --pricing-plan-copy: rgba(255, 255, 255, 0.72);
   --pricing-plan-feature: rgba(255, 255, 255, 0.86);
   --pricing-plan-rule: rgba(255, 255, 255, 0.24);
+  --pricing-plan-button: #ffffff;
+  --pricing-plan-button-text: var(--h2-ink);
+  --pricing-plan-button-pressed: #ebe8e4;
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -78,6 +81,9 @@
   --pricing-plan-copy: rgba(255, 255, 255, 0.9);
   --pricing-plan-feature: rgba(255, 255, 255, 0.9);
   --pricing-plan-rule: rgba(255, 255, 255, 0.4);
+  --pricing-plan-button: #000000;
+  --pricing-plan-button-text: #ffffff;
+  --pricing-plan-button-pressed: #262626;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -87,6 +93,9 @@
     --pricing-plan-copy: rgba(255, 255, 255, 0.9);
     --pricing-plan-feature: rgba(255, 255, 255, 0.9);
     --pricing-plan-rule: rgba(255, 255, 255, 0.4);
+    --pricing-plan-button: #000000;
+    --pricing-plan-button-text: #ffffff;
+    --pricing-plan-button-pressed: #262626;
   }
 }
 
@@ -164,19 +173,19 @@
   align-self: flex-start;
 }
 
-/* white button on the black card */
+/* a white button on the black card, and a black one on the plan gradient */
 .h2-page .pricing-plan .h2-btn--primary {
-  background: #ffffff;
-  color: var(--h2-ink);
+  background: var(--pricing-plan-button);
+  color: var(--pricing-plan-button-text);
 }
 
 .h2-page .pricing-plan .h2-btn--primary:active {
-  background: #ebe8e4;
+  background: var(--pricing-plan-button-pressed);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .h2-page .pricing-plan .h2-btn--primary:hover {
-    background: #ebe8e4;
+    background: var(--pricing-plan-button-pressed);
   }
 }
 

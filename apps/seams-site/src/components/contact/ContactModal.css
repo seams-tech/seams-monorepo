@@ -159,11 +159,6 @@ html:has(.contact-modal[open]) {
   margin-top: 4px;
 }
 
-.contact-form__actions span {
-  font-size: var(--h2-text-base);
-  color: var(--h2-smoke);
-}
-
 @media (max-width: 600px) {
   .h2-page.contact-modal {
     --contact-form-padding: 20px;

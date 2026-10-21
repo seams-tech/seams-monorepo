@@ -154,7 +154,6 @@ export function ContactModalHost(): React.JSX.Element {
               <button type="submit" className="h2-btn h2-btn--primary">
                 Email sales
               </button>
-              <span>Opens your email app</span>
             </div>
           </form>
         ) : null}

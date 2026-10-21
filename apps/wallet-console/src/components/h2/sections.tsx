@@ -623,7 +623,7 @@ export function H2Start(): React.JSX.Element {
       <div className="h2-startrow h2-rule h2-rule--midtick">
         <div className="h2-shell h2-startrow__grid">
           <div className="h2-startrow__text">
-            <h3>Accounts &amp; Wallets API</h3>
+            <h3>Accounts and Wallets API</h3>
             <p>One passkey creates the account and its wallet. Recovery is built in.</p>
             <div className="h2-startrow__notes">
               {ACCOUNT_NOTES.map((note) => (
@@ -631,31 +631,65 @@ export function H2Start(): React.JSX.Element {
               ))}
             </div>
           </div>
+          {/* the documented setup and registration calls of @seams/wallet
+              (seams-wallet apps/docs/src/examples/setup.tsx and
+              registration-input.ts) */}
           <div className="h2-code h2-code--lg" aria-label="Register a wallet with the SDK">
             <span className="tok-kw">import</span>
-            {' { SeamsClient } '}
-            <span className="tok-kw">from</span> <span className="tok-str">'@seams/wallet'</span>
+            {' {\n  seamsTestnetConfig,\n  useSeams,\n} '}
+            <span className="tok-kw">from</span>{' '}
+            <span className="tok-str">'@seams/wallet/react'</span>
+            {';\n'}
+            <span className="tok-kw">import</span>
+            {' { parseWebAuthnRpId } '}
+            <span className="tok-kw">from</span>{' '}
+            <span className="tok-str">'@seams/wallet/advanced'</span>
             {';\n\n'}
             <span className="tok-kw">const</span>
-            {' seams = '}
-            <span className="tok-kw">new</span>
-            {' SeamsClient({ '}
-            <span className="tok-prop">apiKey</span>
+            {' config = seamsTestnetConfig({\n  '}
+            <span className="tok-prop">walletOrigin</span>
             {': '}
-            <span className="tok-str">'YOUR_API_KEY'</span>
-            {' });\n\n'}
+            <span className="tok-str">'https://wallet.example.com'</span>
+            {',\n  '}
+            <span className="tok-prop">relayerUrl</span>
+            {': '}
+            <span className="tok-str">'https://relayer.example.com'</span>
+            {',\n  '}
+            <span className="tok-prop">publishableKey</span>
+            {': '}
+            <span className="tok-str">'YOUR_PUBLISHABLE_KEY'</span>
+            {',\n});\n\n'}
+            <span className="tok-cm">{'// inside <SeamsWebProvider config={config}>\n'}</span>
             <span className="tok-kw">const</span>
-            {' account = '}
+            {' { registerWallet } = useSeams();\n'}
+            <span className="tok-kw">const</span>
+            {' rpId = parseWebAuthnRpId('}
+            <span className="tok-str">'wallet.example.com'</span>
+            {');\n'}
+            <span className="tok-kw">if</span>
+            {' (!rpId.ok) '}
+            <span className="tok-kw">throw new</span>
+            {' Error(rpId.error.message);\n\n'}
+            <span className="tok-kw">const</span>
+            {' result = '}
             <span className="tok-kw">await</span>
-            {' seams.register({\n  '}
-            <span className="tok-prop">method</span>
+            {' registerWallet({\n  '}
+            <span className="tok-prop">authMethod</span>
+            {': { '}
+            <span className="tok-prop">kind</span>
             {': '}
             <span className="tok-str">'passkey'</span>
-            {',\n  '}
-            <span className="tok-prop">policy</span>
+            {', '}
+            <span className="tok-prop">rpId</span>
+            {': rpId.value },\n  '}
+            <span className="tok-prop">wallet</span>
+            {': { '}
+            <span className="tok-prop">kind</span>
             {': '}
-            <span className="tok-str">'starter-store'</span>
-            {',\n});'}
+            <span className="tok-str">'server_allocated'</span>
+            {' },\n  signerSelection, '}
+            <span className="tok-cm">{'// which chain signers to create'}</span>
+            {'\n});'}
           </div>
         </div>
       </div>
@@ -664,7 +698,7 @@ export function H2Start(): React.JSX.Element {
       <div className="h2-startrow h2-rule h2-rule--midtick">
         <div className="h2-shell h2-startrow__grid">
           <div className="h2-startrow__text">
-            <h3>Policy &amp; Delegation API</h3>
+            <h3>Policy and Delegation API</h3>
             <p>Give staff and agents scoped keys. Risky actions wait for the owner.</p>
             <div className="h2-startrow__notes">
               {POLICY_NOTES.map((note) => (

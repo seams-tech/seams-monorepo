@@ -159,9 +159,8 @@ export function PricingPage(): React.JSX.Element {
       <NavbarCompact appearance="light" />
       <div className="h2-col">
         <main aria-labelledby="pricing-title">
-          <header className="h2-hero-simple h2-hero-simple--sage h2-hero-simple--grain">
+          <header className="h2-hero-simple pricing-hero">
             <div className="h2-shell">
-              <GrainField field="teal-peach" flow={1.6} />
               <h1 id="pricing-title" className="h2-display h2-hero-simple__title">
                 Free to start. Pay per active user.
               </h1>
@@ -194,7 +193,6 @@ export function PricingPage(): React.JSX.Element {
           >
             <div className="h2-shell">
               <div className="h2-split-head">
-                <p className="h2-kicker">Plans</p>
                 <h2 id="pricing-plans-title" className="h2-display">
                   Pay for active users, with signing included
                 </h2>

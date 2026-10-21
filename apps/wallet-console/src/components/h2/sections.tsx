@@ -4,9 +4,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Fingerprint,
-  KeyRound,
   LifeBuoy,
   ShieldCheck,
+  Timer,
 } from 'lucide-react';
 import type { HostedAuthMenuMode } from '@seams/wallet/react';
 import { WalletDemoSlot } from './WalletDemoSlot';
@@ -499,14 +499,14 @@ const ACCOUNT_NOTES: readonly ApiNoteProps[] = [
 
 const POLICY_NOTES: readonly ApiNoteProps[] = [
   {
-    title: 'Scoped keys',
-    body: 'Limits and expiry per action',
-    icon: KeyRound,
+    title: 'Signing sessions',
+    body: 'An expiry and a use limit per unlock',
+    icon: Timer,
     field: 'azure-coral',
   },
   {
     title: 'Approvals',
-    body: 'The owner signs with a passkey',
+    body: 'The owner confirms in the wallet',
     icon: ShieldCheck,
     field: 'mauve-ember',
   },
@@ -694,48 +694,68 @@ export function H2Start(): React.JSX.Element {
         </div>
       </div>
 
-      {/* row 2: policy & delegation API */}
+      {/* row 2: sessions and approvals API */}
       <div className="h2-startrow h2-rule h2-rule--midtick">
         <div className="h2-shell h2-startrow__grid">
           <div className="h2-startrow__text">
-            <h3>Policy and Delegation API</h3>
-            <p>Give staff and agents scoped keys. Risky actions wait for the owner.</p>
+            <h3>Sessions and Approvals API</h3>
+            <p>
+              One unlock opens a signing session with limits. Transactions that matter wait for the
+              owner.
+            </p>
             <div className="h2-startrow__notes">
               {POLICY_NOTES.map((note) => (
                 <ApiNote key={note.title} {...note} />
               ))}
             </div>
           </div>
-          <div className="h2-code h2-code--lg" aria-label="Grant a scoped credential with the SDK">
+          {/* the public unlock option and the documented confirmation config
+              of @seams/wallet (seams-wallet core/types/sdkSentEvents.ts and
+              apps/docs/src/examples/transaction-review.tsx) */}
+          <div
+            className="h2-code h2-code--lg"
+            aria-label="Open a signing session and require approval"
+          >
+            <span className="tok-kw">import</span>
+            {' { transfer, useSeams, useWallet } '}
+            <span className="tok-kw">from</span>
+            {'\n  '}
+            <span className="tok-str">'@seams/wallet/react'</span>
+            {';\n\n'}
             <span className="tok-kw">const</span>
-            {' grant = '}
+            {' { unlock } = useSeams();\n'}
+            <span className="tok-kw">const</span>
+            {' { near } = useWallet();\n\n'}
+            <span className="tok-cm">{'// a session: 15 minutes or 5 signatures\n'}</span>
             <span className="tok-kw">await</span>
-            {' seams.delegation.grant({\n  '}
-            <span className="tok-prop">to</span>
-            {': '}
-            <span className="tok-str">'support-agent'</span>
-            {',\n  '}
-            <span className="tok-prop">scopes</span>
-            {': ['}
-            <span className="tok-str">'refunds:issue'</span>
-            {', '}
-            <span className="tok-str">'emails:send'</span>
-            {'],\n  '}
-            <span className="tok-prop">limit</span>
+            {' unlock(walletId, {\n  '}
+            <span className="tok-prop">signingSession</span>
             {': { '}
-            <span className="tok-prop">perAction</span>
-            {': '}
-            <span className="tok-str">'¥10,000'</span>
-            {', '}
-            <span className="tok-prop">expires</span>
-            {': '}
-            <span className="tok-str">'30d'</span>
-            {' },\n});\n\n'}
-            <span className="tok-cm">{'// risky actions route to the owner\n'}</span>
+            <span className="tok-prop">ttlMs</span>
+            {': 15 * 60_000, '}
+            <span className="tok-prop">remainingUses</span>
+            {': 5 },\n});\n\n'}
+            <span className="tok-cm">{'// the owner confirms this transfer\n'}</span>
             <span className="tok-kw">await</span>
-            {' seams.approvals.require('}
-            <span className="tok-str">'discounts:over-10'</span>
-            {');'}
+            {' near.signAndSendTransaction({\n  '}
+            <span className="tok-prop">receiverId</span>
+            {': near.accountId,\n  '}
+            <span className="tok-prop">actions</span>
+            {': [transfer('}
+            <span className="tok-str">'0'</span>
+            {')],\n  '}
+            <span className="tok-prop">options</span>
+            {': {\n    '}
+            <span className="tok-prop">confirmationConfig</span>
+            {': {\n      '}
+            <span className="tok-prop">uiMode</span>
+            {': '}
+            <span className="tok-str">'modal'</span>
+            {',\n      '}
+            <span className="tok-prop">behavior</span>
+            {': '}
+            <span className="tok-str">'requireClick'</span>
+            {',\n    },\n  },\n});'}
           </div>
         </div>
       </div>

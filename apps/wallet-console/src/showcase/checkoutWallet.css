@@ -41,3 +41,10 @@ body {
 .seams-confirmation-modal--hosted:focus {
   outline: none;
 }
+
+/* The decoded call data sits on the details panel's grey, one surface step
+   darker than the panel, rather than as a white card. */
+.seams-confirmation-surface .seams-transaction-review .seams-review-detail-row--block > pre,
+.seams-confirmation-surface .seams-transaction-review .seams-review-raw > div > pre {
+  background: var(--seams-colors-surface3);
+}

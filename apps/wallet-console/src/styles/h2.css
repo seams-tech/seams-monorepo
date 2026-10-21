@@ -3386,6 +3386,7 @@ body:has(.h2-page) {
   min-height: 44px;
   padding: 0;
   border: 0;
+  outline: none;
   background: transparent;
   color: var(--h2-ink);
   font: 400 var(--h2-text-body) / 1.5 var(--h2-font);
@@ -3408,10 +3409,9 @@ body:has(.h2-page) {
   color: var(--h2-ash);
 }
 
-.wallet-language__trigger:focus-visible {
-  outline: 2px solid var(--h2-ink);
-  outline-offset: 5px;
-  border-radius: 4px;
+.wallet-language__trigger--footer:focus-visible .wallet-language__name {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .wallet-language__trigger--navbar {
@@ -3424,11 +3424,7 @@ body:has(.h2-page) {
   white-space: nowrap;
 }
 
-.wallet-language__trigger--navbar:focus-visible {
-  border-radius: 9999px;
-  outline-offset: 2px;
-}
-
+.wallet-language__trigger--navbar:focus-visible,
 .wallet-language__trigger--navbar[data-state='open'] {
   background: var(--h2-taupe);
 }
@@ -3466,14 +3462,16 @@ body:has(.h2-page) {
 
 .wallet-language__menu {
   z-index: 1000;
-  min-width: 160px;
+  min-width: 240px;
+  max-width: calc(100vw - 32px);
   max-height: var(--radix-select-content-available-height);
   padding: 6px;
   overflow-y: auto;
   overscroll-behavior: contain;
   color-scheme: light;
   color: var(--h2-ink);
-  font: 400 var(--h2-text-body) / 1.5 var(--h2-font);
+  border-radius: 18px;
+  font: 400 var(--h2-text-title) / 1.5 var(--h2-font);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -3485,13 +3483,30 @@ body:has(.h2-page) {
 .wallet-language__option {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  min-height: 44px;
-  padding: 8px 12px;
-  border-radius: 7px;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 12px;
   cursor: pointer;
   outline: none;
+}
+
+.wallet-language__flag {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.wallet-language__description {
+  color: var(--h2-smoke);
+}
+
+.wallet-language__indicator {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
 }
 
 .wallet-language__option[data-highlighted] {
@@ -3689,11 +3704,11 @@ html:lang(ja) .h2-startrow__text p {
 .h2-faq-pop__card {
   position: relative;
   overflow: hidden;
+  border-radius: 14px;
 }
 
 .h2-faq-pop__card,
 .wallet-language__menu {
-  border-radius: 14px;
   border: 1px solid var(--h2-stone);
   background: var(--h2-bg);
   box-shadow:

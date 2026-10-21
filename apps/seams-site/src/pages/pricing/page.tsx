@@ -4,6 +4,7 @@ import { H2Faq, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
+import { useGlassRefraction } from '@/components/glass/useGlassRefraction';
 import { EnterpriseCalculator } from './EnterpriseCalculator';
 import '@/styles/h2.css';
 import './styles.css';
@@ -88,8 +89,15 @@ const planTeasers: Record<PlanId, string> = {
 function BannerPlanCard({ plan }: { plan: Plan }): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const ctaProps = linkProps(plan.cta.to);
+  const cardRef = React.useRef<HTMLAnchorElement>(null);
+  useGlassRefraction(cardRef, { radius: 22 });
   return (
-    <a className="pricing-banner__card" href={ctaProps.href} onClick={ctaProps.onClick}>
+    <a
+      ref={cardRef}
+      className="pricing-banner__card"
+      href={ctaProps.href}
+      onClick={ctaProps.onClick}
+    >
       <span className="pricing-banner__card-name">{plan.name}</span>
       <span className="pricing-banner__card-price">
         <strong>{plan.price}</strong> {plan.price === 'Custom' ? '' : plan.unit}

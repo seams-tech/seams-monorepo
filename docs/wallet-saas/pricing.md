@@ -7,20 +7,20 @@ this model yet.
 
 ## Price model
 
-Seams charges per monthly active user (MAU), at half of Dynamic's list price or
-less. Each MAU includes a signature allowance. Signatures above the allowance
-have a published price.
+Seams charges per monthly active user (MAU), at least 20% below Dynamic's list
+price at every size. Each MAU includes a signature allowance of 10 signatures a
+day. Signatures above the allowance have a published price.
 
-| Plan       | Price                         | Users included | Signature allowance |
-| ---------- | ----------------------------- | -------------: | ------------------- |
-| Free       | $0                            |    Up to 1,000 | 100,000 / month     |
-| Growth     | $99 / month                   |    Up to 5,000 | 100 per MAU, pooled |
-| Growth     | + $0.0025 per MAU above 5,000 |              — | 100 per MAU, pooled |
-| Enterprise | Committed volume              |     Negotiated | Negotiated          |
+| Plan       | Price                        | Users included | Signature allowance |
+| ---------- | ---------------------------- | -------------: | ------------------- |
+| Free       | $0                           |    Up to 1,000 | 300,000 / month     |
+| Growth     | $99 / month                  |    Up to 5,000 | 300 per MAU, pooled |
+| Growth     | + $0.004 per MAU above 5,000 |              — | 300 per MAU, pooled |
+| Enterprise | Committed volume             |     Negotiated | Negotiated          |
 
-- **Pooled allowance:** the app gets 100 signatures for each MAU, for all its
-  users together. With 10,000 MAU, the pool is 1,000,000 signatures. A few busy
-  users do not cause a charge if the average stays below 100.
+- **Pooled allowance:** the app gets 300 signatures for each MAU, for all its
+  users together. With 10,000 MAU, the pool is 3,000,000 signatures. A few busy
+  users do not cause a charge if the average stays below 300.
 - **Above the pool:** $0.05 per 1,000 signatures on Growth. Enterprise starts at
   $0.03 per 1,000 signatures.
 - **Gas and chain fees** pass through at cost.
@@ -30,13 +30,16 @@ have a published price.
 ## Why this shape
 
 - **Buyers compare MAU prices.** Dynamic and Privy publish MAU prices. A price in
-  the same unit shows the difference at once: $99 against $249, and $0.0025
+  the same unit shows the difference at once: $99 against $249, and $0.004
   against $0.005.
 - **Our cost follows signatures.** A user who makes 10 signatures a day costs
-  about 30 times more each month than the registration of that user. The allowance and the
-  published overage keep heavy apps profitable.
-- **The allowance covers normal use.** 100 signatures a month is about 3 a day.
-  At that level, the margin at $0.0025 per MAU is 60% or more.
+  about 30 times more each month than the registration of that user. The
+  allowance and the published overage keep heavy apps profitable.
+- **The allowance covers the planning workload.** 300 signatures a month is 10 a
+  day, so an app at that average pays no overage.
+- **Half of Dynamic's price is below our cost.** At 10 a day, one user costs us
+  about $0.003 a month. $0.004 per MAU is the lowest round price that stays 20%
+  below Dynamic and keeps a positive margin.
 - **We publish what Dynamic hides.** Dynamic says "rate limits apply" and gives no
   numbers. We publish the allowance and the overage price.
 
@@ -69,11 +72,12 @@ Method:
   SigningWorker. With requests and storage, one signature costs about
   **$0.00001**. This is an upper estimate.
 - CORS preflights are a cost per browser session, not per signature. The Gateway
-  answers preflights with `Access-Control-Max-Age: 600`. At registration start,
-  the SDK sends an early `OPTIONS` fetch to each signing route, and the browser
-  sends a preflight before each of these fetches. The sample has 4 `OPTIONS`
-  requests per user, about 60 ms of CPU in total. Later signatures in the next 10
-  minutes send no preflight.
+  answers preflights with `Access-Control-Max-Age: 600`. seams-wallet `85269cab`
+  raises this to 7200, the Chromium limit; it is not released yet. At
+  registration start, the SDK sends an early `OPTIONS` fetch to each signing
+  route, and the browser sends a preflight before each of these fetches. The
+  sample has 4 `OPTIONS` requests per user, about 60 ms of CPU in total. Later
+  signatures inside the cache time send no preflight.
 
 Cloudflare prices used (Workers Paid, October 2, 2026 price page):
 
@@ -93,19 +97,24 @@ figures.
 ## Cost and price at 10 signatures a day
 
 The planning assumption is 10 signatures per user per day on average. One user
-makes 300 signatures a month and costs us about $0.003. The pool covers 100 of
-those signatures, so 200 per user are overage. The table assumes that 10% of
-users are new each month.
+makes 300 signatures a month and costs us about $0.003. The pool covers all of
+them, so there is no overage. The table assumes that 10% of users are new each
+month.
 
-| Users     | Signatures / month | Our cost |      Seams | Margin | Seams per user |
-| --------- | -----------------: | -------: | ---------: | -----: | -------------: |
-| 1,000     |            300,000 |       $3 |       $109 |    97% |         $0.109 |
-| 10,000    |          3,000,000 |      $30 |    $211.50 |    86% |         $0.021 |
-| 100,000   |         30,000,000 |     $301 |  $1,336.50 |    77% |         $0.013 |
-| 1,000,000 |        300,000,000 |   $3,010 | $12,586.50 |    76% |         $0.013 |
+| Users     | Signatures / month | Our cost |  Seams | Margin | Seams per user |
+| --------- | -----------------: | -------: | -----: | -----: | -------------: |
+| 1,000     |            300,000 |       $3 |     $0 |      — |             $0 |
+| 10,000    |          3,000,000 |      $30 |   $119 |    75% |         $0.012 |
+| 100,000   |         30,000,000 |     $301 |   $479 |    37% |         $0.005 |
+| 1,000,000 |        300,000,000 |   $3,010 | $4,079 |    26% |         $0.004 |
 
-The overage price is 5 times our signature cost, so the margin stays near 80%
-for heavy apps. The Enterprise floor of $0.03 per 1,000 keeps it near 67%.
+- The margin falls with size, because $0.004 per MAU is close to our cost of
+  $0.003 per MAU. At 1,000,000 users, the margin is 26%.
+- If a warm signature costs $0.000007, the margin at 1,000,000 users is 48%.
+- The overage price is 5 times our signature cost, so apps above the pool add
+  margin near 80% on the extra signatures.
+- At large sizes, Enterprise contracts and dedicated infrastructure carry the
+  margin. See [Infrastructure at scale](#infrastructure-at-scale).
 
 ## Competitor prices
 
@@ -129,7 +138,7 @@ Dynamic's Growth plan has no signature fee, but its pricing page says "Rate
 limits apply". The limits are not published. We expect an app with heavy
 signing to reach those limits and move to Dynamic's Enterprise plan at a custom
 price. We have not confirmed this. Thus Dynamic's list price is a real price only
-for light use, which is about the same use that our pooled allowance covers.
+for light use.
 
 Every published Seams price is below the matching Dynamic price:
 
@@ -137,44 +146,34 @@ Every published Seams price is below the matching Dynamic price:
 | -------------------- | ------------------------ | -------------------------- |
 | Live app, few users  | $249 / month             | $0 up to 1,000 MAU         |
 | Up to 5,000 MAU      | $249 / month             | $99 / month                |
-| Each MAU above 5,000 | $0.005                   | $0.0025                    |
+| Each MAU above 5,000 | $0.005                   | $0.004                     |
 | Heavy signing        | Rate limits, then custom | $0.05 per 1,000 signatures |
 
 Seams compared with Dynamic's list price, per month:
 
-| Signatures per user per day | 1,000 users      | 10,000 users        | 100,000 users       | 1,000,000 users         |
-| --------------------------: | ---------------- | ------------------- | ------------------- | ----------------------- |
-|                         0.3 | **$0** vs $249   | **$111.50** vs $274 | **$336.50** vs $724 | **$2,586.50** vs $5,224 |
-|                           1 | **$0** vs $249   | **$111.50** vs $274 | **$336.50** vs $724 | **$2,586.50** vs $5,224 |
-|                           3 | **$0** vs $249   | **$111.50** vs $274 | **$336.50** vs $724 | **$2,586.50** vs $5,224 |
-|                          10 | **$109** vs $249 | **$211.50** vs $274 | $1,336.50 vs $724¹  | $12,586.50 vs $5,224¹   |
-|                          30 | **$139** vs $249 | $511.50 vs $274¹    | $4,336.50 vs $724¹  | $42,586.50 vs $5,224¹   |
+| Signatures per user per day | 1,000 users      | 10,000 users     | 100,000 users    | 1,000,000 users      |
+| --------------------------: | ---------------- | ---------------- | ---------------- | -------------------- |
+|                      0.3–10 | **$0** vs $249   | **$119** vs $274 | **$479** vs $724 | **$4,079** vs $5,224 |
+|                          30 | **$129** vs $249 | $419 vs $274¹    | $3,479 vs $724¹  | $34,079 vs $5,224¹   |
 
 ¹ Dynamic's list price applies here only if its rate limits allow this volume.
 We expect Dynamic to quote Enterprise prices for these apps.
 
-- Up to 3 signatures per user per day, Seams costs half of Dynamic or less at
-  every size.
-- At 10 a day, Seams is below Dynamic's list price up to about 10,000 users and
-  above it from about 100,000 users.
-- At 10 a day, one user costs us $0.003 a month, and Dynamic lists $0.005. At
-  Dynamic's price, our margin can be 40% at most. Half of Dynamic's price is below
-  our cost.
-- To charge half of Dynamic's price ($0.0025 per MAU) for 300 signatures with a
-  50% margin, one signature must cost $0.000004. After the request fees, that
-  leaves about 160 ms of CPU. Now a signature uses about 270 ms.
+- Up to 10 signatures per user per day, Seams is at least 20% below Dynamic at
+  every size: free against $249, then 57%, 34%, and 22% below.
+- Above 10 a day, the overage makes Seams more expensive than Dynamic's list
+  price. Dynamic's rate limits apply in that range.
 
 The same workload of 10 signatures a day, compared with Privy:
 
-| Users     |      Seams | Privy pay-as-you-go | Privy Enterprise |
-| --------- | ---------: | ------------------: | ---------------: |
-| 1,000     |       $109 |              $4,500 |             $300 |
-| 10,000    |    $211.50 |             $31,500 |           $3,000 |
-| 100,000   |  $1,336.50 |            $306,000 |          $30,000 |
-| 1,000,000 | $12,586.50 |          $3,051,000 |         $300,000 |
+| Users     |  Seams | Privy pay-as-you-go | Privy Enterprise |
+| --------- | -----: | ------------------: | ---------------: |
+| 1,000     |     $0 |              $4,500 |             $300 |
+| 10,000    |   $119 |             $31,500 |           $3,000 |
+| 100,000   |   $479 |            $306,000 |          $30,000 |
+| 1,000,000 | $4,079 |          $3,051,000 |         $300,000 |
 
-- Seams is below Privy Enterprise at every size: almost 3 times below at 1,000
-  users, and 14–24 times below from 10,000 users.
+- Seams is 25 times or more below Privy Enterprise at every paid size.
 - Do not name competitors on the public page. Their prices change.
 
 Sources:
@@ -190,8 +189,32 @@ Sources:
 - The tail logs do not show D1 or Durable Object row writes.
 - Durable Object duration from `wallTime` is a lower bound. An object stays
   billed while it cannot hibernate.
-- At 300 signatures per user, a 2 times error in the signature cost moves the
-  margin at 100,000 users from 77% to 55%.
+- The margin at scale is sensitive to this error. If a signature costs 2 times
+  the estimate, the price at $0.004 per MAU is below our cost from about 100,000
+  users at 10 signatures a day.
+
+## Infrastructure at scale
+
+Cloudflare is the right base for our stage. It has no fixed cost per role and
+no idle servers, so a small customer costs almost nothing.
+
+At a large size, a dedicated deployment can give better unit economics: the
+private celld runtime and PostgreSQL on AWS. Cloudflare request, Durable Object,
+and D1 fees do not apply there. The cost becomes servers and a database at a
+fixed monthly price.
+
+This path is not ready yet:
+
+- [celld](../../deployment/celld/README.md) is qualified on Google VMs. AWS,
+  distributed deployment, and release promotion are outside its current scope.
+- The Wallet role store has a PostgreSQL backend. The Console and Gateway stores
+  still use D1. See [Wallet PostgreSQL preparation](../wallet-postgresql-preparation.md).
+- We have no measured cost for a dedicated deployment. A minimum deployment has
+  separate servers for each role, with redundancy, and a managed database. Its
+  fixed monthly cost sets the size at which it is cheaper than Cloudflare.
+
+Until this path is measured, the Enterprise price must cover the Cloudflare
+cost.
 
 ## Before publication
 

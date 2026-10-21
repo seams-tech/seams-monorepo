@@ -251,10 +251,6 @@ export function PricingPage(): React.JSX.Element {
                   Every plan has the full SDK. Development is free. Gas and chain fees are passed
                   through at cost.
                 </p>
-                <p>
-                  Growth prices are fixed for 12 months from sign-up. After that, they may change
-                  with our own hosting costs.
-                </p>
               </div>
             </div>
           </section>

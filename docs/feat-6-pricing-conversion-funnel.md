@@ -75,7 +75,8 @@ Facts from the code on `dev`, October 21, 2026:
 - **Growth charges.** The plan and the price version (`wallet-growth-v1`) are
   stored, but nothing bills them. The feat-3 monthly close does not exist. The
   prepaid `wallet.monthly_active_resource` meter ($3 per resource) still applies.
-- **Price lock.** See [The 12-month price lock](#the-12-month-price-lock).
+- **No price lock.** Growth has no fixed-price period. feat-4 stores a 12-month
+  lock date (`priceLockedUntilMs`); that is an error, and its removal is planned.
 - **Analytics.** The company site and the Console have no analytics script. We do
   not track clicks on the company site.
 
@@ -117,9 +118,9 @@ the card. There is no "Growth-ready" state.
 ### Growth start operation
 
 Add one server operation that starts Growth on request. It runs the same statement
-as the feat-4 automatic move: it changes the plan to `growth`, pins
-`wallet-growth-v1`, and sets the lock date. It queues the move notice only if that
-statement commits.
+as the feat-4 automatic move: it changes the plan to `growth` and records the
+price version `wallet-growth-v1`. It queues the move notice only if that statement
+commits.
 
 Two entry points use it:
 
@@ -384,23 +385,6 @@ page. For Enterprise, it starts at the sent inquiry.
 - Keep event writes off the registration, unlock, and signing paths. Use the
   existing audit events and the outbox.
 
-## The 12-month price lock
-
-The lock is a promise that an organization's Growth prices do not change for 12
-months. After that, the prices may change with our own hosting costs. It is in
-three places:
-
-- The pricing page, under the plan cards: "Growth prices are fixed for 12 months
-  from sign-up. After that, they may change with our own hosting costs."
-- [Wallet pricing and costs](wallet-saas/pricing.md): "12-month price lock on
-  Growth".
-- The feat-4 code: the Growth move pins the price version `wallet-growth-v1` and
-  stores `priceLockedUntilMs`, 12 months after the move.
-
-With Growth on request, a Growth visitor starts Growth at sign-up, so "from
-sign-up" is true for this funnel. It is not true for a Free organization that moves
-to Growth later: its lock starts at the move. See open decision 1.
-
 ## Implementation phases
 
 1. **Plan intent in the Console.** Login page parameters, the stored intent, the
@@ -468,14 +452,14 @@ Recorded October 21, 2026:
 4. **Google and GitHub first.** Apple sign-in is not needed for these funnels.
 5. **No hero buttons.** They were removed in `f68933d3`. The plan cards are the
    only entry.
+6. **No price lock.** Growth has no 12-month fixed-price period. It was never
+   decided. The pricing page and the pricing document no longer state it. The
+   feat-4 lock date, its email text, and its API field must go.
 
 ## Open decisions
 
-1. **The 12-month price lock.** Keep it, and change the page text to "for 12 months
-   from the day you start Growth"? Or remove the promise from the page, the pricing
-   document, and the feat-4 lock date?
-2. **Growth before the feat-3 close.** Until the monthly close exists, a Growth
+1. **Growth before the feat-3 close.** Until the monthly close exists, a Growth
    account accrues $99 a month that nothing collects. Open the Growth funnel only
    after the close ships, or accept unbilled Growth months until then.
-3. **Default organization name.** The email domain and the display name are a
+2. **Default organization name.** The email domain and the display name are a
    proposal.

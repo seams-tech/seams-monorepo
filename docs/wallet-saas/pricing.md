@@ -32,9 +32,6 @@ day. Signatures above the allowance have a published price.
   charge. Only production environments count toward MAU, signatures, and the
   free plan limits. A Development environment runs on testnet only
   (`development_testnet_v1`), so a real app cannot run there.
-- **12-month price lock on Growth.** An organization keeps the Growth prices
-  from its sign-up date for 12 months. After that, prices may change; they follow
-  our own hosting costs. The public page says this.
 
 ## Free plan limits
 
@@ -300,5 +297,3 @@ day.
    rules in [the Free plan card plan](../feat-4-free-plan-card-and-growth-move.md).
 6. Meter production environments only. Exclude Development environments from
    MAU and signature counts.
-7. Pin the accepted Growth price version to each organization for 12 months.
-   Decide the notice period for a price change after the lock.

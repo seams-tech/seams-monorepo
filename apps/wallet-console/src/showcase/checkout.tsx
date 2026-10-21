@@ -184,7 +184,10 @@ function PurchaseSummary({
               {t('refreshQuote')}
             </button>
           ) : (
-            <strong>{seconds}s</strong>
+            <strong>
+              {seconds}
+              {t('secondsUnit')}
+            </strong>
           )}
         </div>
         <progress aria-label={t('quoteTime')} max={quoteLifetimeSeconds} value={seconds} />

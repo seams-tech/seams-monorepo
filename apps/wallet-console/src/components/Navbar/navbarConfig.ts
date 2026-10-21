@@ -132,7 +132,7 @@ const aboutDropdownPane: DropdownPane = {
   kicker: t('company'),
   rows: [
     {
-      title: t('company'),
+      title: t('companyLink'),
       description: t('companyDescription'),
       to: '/company/',
       icon: Building2,

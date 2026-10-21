@@ -1117,7 +1117,7 @@ function resizeFigure(stage, svg, transactionLabel) {
   svg.setAttribute('viewBox', compact ? `60 ${top} 420 ${height}` : '0 0 560 280');
   stage.style.aspectRatio = compact ? `420 / ${height}` : '2 / 1';
   svg.style.aspectRatio = compact ? `420 / ${height}` : '2 / 1';
-  transactionLabel.textContent = compact ? 'Signed' : window.walletFigureText('signedTransaction');
+  transactionLabel.textContent = compact ? window.walletFigureText('signedShort') : window.walletFigureText('signedTransaction');
   for (const text of svg.querySelectorAll('text')) {
     text.style.fontSize = compact ? '10px' : '';
   }

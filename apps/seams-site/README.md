@@ -60,8 +60,6 @@ pnpm -C apps/seams-site build
 
 Check deep links from marketing and Console with the configured `VITE_DOCS_ORIGIN`.
 
-## Dashboard inline modal scrolling
-
 ## Wallet marketing languages
 
 The Wallet marketing app in `apps/wallet-console` serves English at `/` and

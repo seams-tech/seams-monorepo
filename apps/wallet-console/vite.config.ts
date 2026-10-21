@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
@@ -8,6 +9,20 @@ import { localeFromUrl, type Locale } from './src/marketing/i18n/locale';
 
 const walletSiteUrl = new URL(process.env.VITE_WALLET_SITE_ORIGIN || 'https://wallet.seams.sh/');
 walletSiteUrl.pathname = `${walletSiteUrl.pathname.replace(/\/$/, '')}/`;
+
+function normalizeJapaneseRoute(
+  request: IncomingMessage,
+  response: ServerResponse,
+  next: () => void,
+): void {
+  const url = new URL(request.url || '/', walletSiteUrl);
+  if (!url.pathname.endsWith('/ja')) {
+    next();
+    return;
+  }
+  response.writeHead(301, { Location: `${url.pathname}/${url.search}` });
+  response.end();
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -48,6 +63,12 @@ function languageHtml(html: string, language: Locale): string {
 const walletLanguagePages: Plugin = {
   name: 'wallet-language-pages',
   enforce: 'post',
+  configureServer(server) {
+    server.middlewares.use(normalizeJapaneseRoute);
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use(normalizeJapaneseRoute);
+  },
   transformIndexHtml(html, context) {
     if (context.path.includes('/showcase/')) return html;
     const url = new URL(context.originalUrl || context.path, walletSiteUrl);

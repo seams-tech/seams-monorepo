@@ -14,6 +14,10 @@ function hasHorizontalOverflow() {
   return document.documentElement.scrollWidth > window.innerWidth;
 }
 
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
 async function selectLanguage(page, currentLabel, optionLabel) {
   const selector = page.getByRole('combobox', { name: currentLabel, exact: true });
   await selector.scrollIntoViewIfNeeded();
@@ -27,8 +31,12 @@ async function selectLanguage(page, currentLabel, optionLabel) {
 async function checkJapanesePage(page, viewport) {
   await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('パスキーで開くウォレット');
-  await expect(page.getByRole('status').filter({ hasText: 'ライブデモを一時的にご利用いただけません。' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'ドキュメント（英語）', exact: true })).toHaveAttribute('href', /\/docs\/concepts\/$/);
+  await expect(
+    page.getByRole('status').filter({ hasText: 'ライブデモを一時的にご利用いただけません。' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'ドキュメント（英語）', exact: true }),
+  ).toHaveAttribute('href', /\/docs\/concepts\/$/);
   const footer = page.getByRole('contentinfo');
   await footer.scrollIntoViewIfNeeded();
   await expect(footer.getByRole('combobox', { name: '言語', exact: true })).toHaveText('日本語');
@@ -46,7 +54,10 @@ async function checkJapanesePage(page, viewport) {
 
   const selector = footer.getByRole('combobox', { name: '言語', exact: true });
   await selector.press('Enter');
-  await expect(page.getByRole('option', { name: '日本語', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('option', { name: '日本語', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
   await page.screenshot({ path: `${artifacts}/${viewport}-ja-language-menu.png` });
   await page.keyboard.press('Escape');
   await expect(selector).toBeFocused();
@@ -56,15 +67,22 @@ async function checkJapanesePage(page, viewport) {
 async function checkPreviews(page) {
   const choices = page.getByRole('radiogroup', { name: 'コンポーネント', exact: true });
   await choices.scrollIntoViewIfNeeded();
-  await page.getByRole('radio', { name: '認証', exact: true }).check();
+  await choices.getByRole('radio', { name: '認証', exact: true }).locator('..').click();
   const authentication = page.frameLocator('iframe[data-preview="create"]');
   await expect(authentication.locator('html')).toHaveAttribute('lang', 'ja');
-  await expect(authentication.getByRole('heading', { name: 'ウォレットを作成', exact: true })).toBeVisible();
-  await page.getByRole('radio', { name: '独自のUI', exact: true }).check();
+  await expect(authentication.getByText('ウォレットを作成', { exact: true })).toBeVisible();
+  await choices.getByRole('radio', { name: '独自のUI', exact: true }).locator('..').click();
   const checkout = page.frameLocator('iframe[data-preview="prediction-market"]');
-  await expect(checkout.getByRole('heading', { name: 'AP Royal Oakはサザビーズの予想価格を上回る？', exact: true })).toBeVisible();
+  await expect(
+    checkout.getByRole('heading', {
+      name: 'AP Royal Oakはサザビーズの予想価格を上回る？',
+      exact: true,
+    }),
+  ).toBeVisible();
   await checkout.getByRole('button', { name: '購入 はい', exact: false }).click();
-  await expect(checkout.getByRole('heading', { name: '購入内容を確認', exact: true })).toBeVisible();
+  await expect(
+    checkout.getByRole('heading', { name: '購入内容を確認', exact: true }),
+  ).toBeVisible();
   await checkout.getByRole('button', { name: '市場に戻る', exact: true }).click();
   await expect(checkout.getByRole('status')).toHaveText('購入画面を閉じました。');
 
@@ -73,7 +91,10 @@ async function checkPreviews(page) {
   const signing = page.frameLocator('iframe[data-figure="signing"]');
   await expect(signing.locator('html')).toHaveAttribute('lang', 'ja');
   await expect(signing.locator('svg')).toContainText('ユーザーのデバイス');
-  await expect(signing.locator('#stage')).toHaveAttribute('aria-label', '独立した2つの鍵シェアによる取引の認可を表示');
+  await expect(signing.locator('#stage')).toHaveAttribute(
+    'aria-label',
+    '独立した2つの鍵シェアによる取引の認可を表示',
+  );
   await page.screenshot({ path: `${artifacts}/desktop-ja-security.png` });
 }
 
@@ -91,7 +112,9 @@ try {
   try {
     await page.goto(`${origin}/?campaign=language-test#wallet-security`);
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets that open with a passkey');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'Wallets that open with a passkey',
+    );
     await selectLanguage(page, 'Language', '日本語');
     await expect(page).toHaveURL(`${origin}/ja/?campaign=language-test#wallet-security`);
     await checkJapanesePage(page, 'desktop');
@@ -100,7 +123,9 @@ try {
     await checkPreviews(page);
     await selectLanguage(page, '言語', 'English');
     await expect(page).toHaveURL(`${origin}/?campaign=language-test#wallet-security`);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets that open with a passkey');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'Wallets that open with a passkey',
+    );
     await page.goBack();
     await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
     await page.goForward();
@@ -109,10 +134,14 @@ try {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${origin}/ja/`);
     await checkJapanesePage(page, 'mobile');
+    await page.evaluate(scrollToTop);
     await page.getByRole('button', { name: 'メニューを開く', exact: true }).click();
     await expect(page.getByRole('button', { name: 'プロダクト', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'プロダクト', exact: true }).click();
-    await expect(page.getByRole('link', { name: /^組み込みウォレット / })).toHaveAttribute('href', `${origin}/ja/`);
+    await expect(page.getByRole('link', { name: /^組み込みウォレット / })).toHaveAttribute(
+      'href',
+      `${origin}/ja/`,
+    );
     await page.getByRole('button', { name: 'メニューを閉じる', exact: true }).click();
     await page.screenshot({ path: `${artifacts}/mobile-ja-page.png`, fullPage: true });
 
@@ -131,12 +160,28 @@ try {
     await page.goto(`${origin}/ja?campaign=direct`);
     await expect(page).toHaveURL(`${origin}/ja/?campaign=direct`);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
-    await writeFile(`${artifacts}/result.json`, JSON.stringify({
-      passed: true, origin, entries, directJapanese: true, queryAndAnchor: true,
-      refreshAndHistory: true, translatedPreviews: true, unavailableDemo: true,
-      staticMetadata: true, sitemap: true,
-    }, null, 2));
-    console.log('Passed English/Japanese routes, keyboard switching, history, previews, FAQ, mobile layout, outage, and static metadata.');
+    await writeFile(
+      `${artifacts}/result.json`,
+      JSON.stringify(
+        {
+          passed: true,
+          origin,
+          entries,
+          directJapanese: true,
+          queryAndAnchor: true,
+          refreshAndHistory: true,
+          translatedPreviews: true,
+          unavailableDemo: true,
+          staticMetadata: true,
+          sitemap: true,
+        },
+        null,
+        2,
+      ),
+    );
+    console.log(
+      'Passed English/Japanese routes, keyboard switching, history, previews, FAQ, mobile layout, outage, and static metadata.',
+    );
   } finally {
     await context.tracing.stop({ path: `${artifacts}/trace.zip` });
   }

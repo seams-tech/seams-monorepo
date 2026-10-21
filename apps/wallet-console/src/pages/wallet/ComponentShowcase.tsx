@@ -1,4 +1,4 @@
-import { t } from '@/marketing/i18n/browser';
+import { locale, t } from '@/marketing/i18n/browser';
 import React from 'react';
 import { Play } from 'lucide-react';
 import { ComponentPreview } from './ComponentPreview';
@@ -245,9 +245,12 @@ export function ComponentShowcase(): React.JSX.Element {
         {/* a grey card that fades into a moving gradient, as the page's
             other banners do */}
         <FieldBanner field="teal-peach">
-          <h2 id="component-showcase-title" className="h2-display h2-eco__title h2-banner__title">
-            {t('componentsTitle')}
-          </h2>
+          <div>
+            <h2 id="component-showcase-title" className="h2-display h2-eco__title h2-banner__title">
+              {t('componentsTitle')}
+            </h2>
+            {locale === 'ja' ? <p className="h2-banner__sub">{t('sdkPreviewEnglish')}</p> : null}
+          </div>
         </FieldBanner>
       </section>
       <section

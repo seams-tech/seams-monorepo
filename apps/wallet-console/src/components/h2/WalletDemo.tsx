@@ -1,4 +1,5 @@
 import { locale, t } from '@/marketing/i18n/browser';
+import type { MessageKey } from '@/marketing/i18n/catalog';
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
@@ -21,6 +22,12 @@ function selectDemoPasskeyColumn(module: typeof import('@/components/DemoPasskey
 }
 const DemoPasskeyColumnLazy = React.lazy(loadDemoPasskeyColumn);
 const demoPageNames = [t('login'), t('transactions'), t('accountRecovery')];
+const demoThemeLabels: Record<DemoThemeId, MessageKey> = {
+  paper: 'themePaper',
+  carbon: 'themeCarbon',
+  pastel: 'themePastel',
+  'pastel-dark': 'themePastelDark',
+};
 type WalletDemoProps = { authDefaultModeWhenNoDetectedAccount?: HostedAuthMenuMode };
 
 /* Grab-and-drag horizontal scrolling for a single-line chip row. Dragging only
@@ -148,7 +155,7 @@ function WalletDemoContent({
                 onClick={() => setDemoTheme(theme.id)}
               >
                 <span className="h2-themeswitch__swatch" style={{ background: theme.swatch }} />
-                {theme.label}
+                {t(demoThemeLabels[theme.id])}
               </button>
             ))}
           </div>

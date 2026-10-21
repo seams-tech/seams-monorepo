@@ -834,6 +834,7 @@ export function H2Start(): React.JSX.Element {
 /* ---------- FAQ ---------- */
 
 type FaqItem = {
+  id: string;
   q: string;
   a: string;
   more?: { label: string; to: string };
@@ -841,20 +842,24 @@ type FaqItem = {
 
 /* one footer column: a grey heading over its questions */
 type FaqGroup = {
+  id: string;
   heading: string;
   items: readonly FaqItem[];
 };
 
 const walletFaqs: readonly FaqGroup[] = [
   {
+    id: 'security',
     heading: t('security'),
     items: [
       {
+        id: 'custody',
         q: t('custodialQuestion'),
         a: t('custodialAnswer'),
         more: { label: t('custodyModel'), to: '/docs/concepts/custody/' },
       },
       {
+        id: 'lost-device',
         q: t('lostDeviceQuestion'),
         a: t('lostDeviceAnswer'),
         more: { label: t('walletSessions'), to: '/docs/concepts/sessions/wallet-sessions' },
@@ -862,28 +867,34 @@ const walletFaqs: readonly FaqGroup[] = [
     ],
   },
   {
+    id: 'integration',
     heading: t('integration'),
     items: [
       {
+        id: 'api-keys',
         q: t('apiKeysQuestion'),
         a: t('apiKeysAnswer'),
         more: { label: t('signInMethods'), to: '/docs/concepts/auth-methods/' },
       },
       {
+        id: 'networks',
         q: t('networksQuestion'),
         a: t('networksAnswer'),
       },
     ],
   },
   {
+    id: 'hosting-pricing',
     heading: t('hostingPricing'),
     items: [
       {
+        id: 'hosting',
         q: t('hostingQuestion'),
         a: t('hostingAnswer'),
         more: { label: t('architecture'), to: '/docs/concepts/architecture' },
       },
       {
+        id: 'metering',
         q: t('meteringQuestion'),
         a: t('meteringAnswer'),
         more: { label: t('seePricing'), to: '/pricing/' },
@@ -1018,13 +1029,13 @@ function H2FooterFaq({ groups }: { groups: readonly FaqGroup[] }): React.JSX.Ele
 
       <div className="h2-footer__links">
         {groups.map((group) => (
-          <div className="h2-footer__col" key={group.heading}>
+          <div className="h2-footer__col" key={group.id}>
             <h3>{group.heading}</h3>
             {group.items.map((item) => {
               const index = entryIndex++;
               return (
                 <button
-                  key={item.q}
+                  key={item.id}
                   ref={(el) => {
                     triggerRefs.current[index] = el;
                   }}
@@ -1090,7 +1101,7 @@ function H2FooterFaq({ groups }: { groups: readonly FaqGroup[] }): React.JSX.Ele
               const moreProps = item.more ? linkProps(item.more.to) : null;
               return (
                 <div
-                  key={item.q}
+                  key={item.id}
                   ref={(el) => {
                     paneRefs.current[index] = el;
                   }}
@@ -1130,8 +1141,9 @@ type H2FooterLink = {
   external?: boolean;
 };
 
-const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
+const footerGroups: { id: string; heading: string; links: H2FooterLink[] }[] = [
   {
+    id: 'products',
     heading: t('products'),
     links: [
       { label: t('embeddedWallet'), to: '/wallet' },
@@ -1141,6 +1153,7 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
     ],
   },
   {
+    id: 'platform',
     heading: t('platform'),
     links: [
       { label: t('authLink'), to: '/docs/concepts/auth-methods/' },
@@ -1150,6 +1163,7 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
     ],
   },
   {
+    id: 'developers',
     heading: t('developers'),
     links: [
       { label: t('documentation'), to: '/docs/concepts/' },
@@ -1158,6 +1172,7 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
     ],
   },
   {
+    id: 'resources',
     heading: t('resources'),
     links: [
       { label: t('guides'), to: '/docs/guides/' },
@@ -1166,6 +1181,7 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
     ],
   },
   {
+    id: 'socials',
     heading: t('socials'),
     links: [
       { label: 'X', to: 'https://x.com/lowerarchy', external: true },
@@ -1173,6 +1189,7 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
     ],
   },
   {
+    id: 'company',
     heading: t('company'),
     links: [
       { label: t('about'), to: '/company/' },
@@ -1231,7 +1248,7 @@ export function H2Footer(): React.JSX.Element {
           <div className="h2-footer__main">
             <nav className="h2-footer__links" aria-label={t('footerNavigation')}>
               {footerGroups.map((group) => (
-                <div className="h2-footer__col" key={group.heading}>
+                <div className="h2-footer__col" key={group.id}>
                   <h3>{group.heading}</h3>
                   {group.links.map((link) => {
                     const props = linkProps(link.to);

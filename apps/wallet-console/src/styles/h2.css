@@ -3339,6 +3339,7 @@ body:has(.h2-page) {
    covers the column borders: no vertical dividers beside the footer */
 .h2-footer {
   margin-inline: -1px;
+  padding-bottom: 2rem;
   background: var(--h2-bg);
   /* Keep the divider above the footer background. */
   isolation: isolate;
@@ -3441,6 +3442,7 @@ html:lang(ja) .h2-startrow__text p {
 /* The links use the same three columns as the FAQ above. */
 .h2-footer__main {
   grid-column: 2 / -1;
+  margin-top: -1rem;
   min-width: 0;
 }
 

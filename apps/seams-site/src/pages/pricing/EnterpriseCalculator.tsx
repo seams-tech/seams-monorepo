@@ -1,6 +1,7 @@
 import React from 'react';
 import { GrainField } from '@seams-internal/grain-field';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
+import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 
 /* Published rates from docs/wallet-saas/pricing.md. Enterprise prices are
    negotiated, so the estimate applies only its published floors. */
@@ -17,8 +18,21 @@ const DAYS_PER_MONTH = 30;
 
 // A log-like scale from the Free plan's users: each slider step is one of these counts.
 const USER_STEPS = [
-  FREE_USERS, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000,
-  1_000_000, 2_500_000, 5_000_000, 10_000_000,
+  FREE_USERS,
+  500,
+  1_000,
+  2_500,
+  5_000,
+  10_000,
+  25_000,
+  50_000,
+  100_000,
+  250_000,
+  500_000,
+  1_000_000,
+  2_500_000,
+  5_000_000,
+  10_000_000,
 ] as const;
 const MIN_PER_DAY = 1;
 const MAX_PER_DAY = 50;
@@ -65,7 +79,9 @@ const compact = new Intl.NumberFormat('en-US', { notation: 'compact' });
 
 /* How much of the track the thumb has passed, for the filled part of the track. */
 function fill(value: number, min: number, max: number): React.CSSProperties {
-  return { '--pricing-range-fill': `${((value - min) / (max - min)) * 100}%` } as React.CSSProperties;
+  return {
+    '--pricing-range-fill': `${((value - min) / (max - min)) * 100}%`,
+  } as React.CSSProperties;
 }
 
 function Range(props: {
@@ -207,6 +223,7 @@ export function EnterpriseCalculator(): React.JSX.Element {
               onClick={contactProps.onClick}
             >
               Contact sales
+              <ArrowRightAnim size={12} />
             </a>
           </div>
         </div>

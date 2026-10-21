@@ -57,6 +57,9 @@ Reduced-motion mode removes the fade, and touch input does not produce hover sta
 Each entire plan card is one link to its action, with a pointer cursor, a visible
 keyboard focus outline, and a black action button. Clicking card padding or using
 Enter follows the same destination as tapping the card on a touch screen.
+All pricing action buttons use the shared Stripe-style arrow. Hovering a plan or
+banner card animates its button arrow. Touch input keeps the resting arrow, and
+reduced-motion mode removes the transition.
 Run `node tests/e2e/pricing-plan-highlights.e2e.mjs` to check selection, all three
 palettes, hover, keyboard focus, refresh, history, and touch. Screenshots and a trace
 go to `output/playwright/pricing-plan-highlights/` with `result.json`.

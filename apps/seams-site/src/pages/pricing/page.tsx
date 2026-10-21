@@ -2,6 +2,7 @@ import React from 'react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { H2Faq, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
+import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { EnterpriseCalculator } from './EnterpriseCalculator';
 import '@/styles/h2.css';
@@ -94,7 +95,10 @@ function BannerPlanCard({ plan }: { plan: Plan }): React.JSX.Element {
         <strong>{plan.price}</strong> {plan.price === 'Custom' ? '' : plan.unit}
       </span>
       <span className="pricing-banner__card-teaser">{planTeasers[plan.id]}</span>
-      <span className="h2-btn h2-btn--primary pricing-banner__card-cta">{plan.cta.label}</span>
+      <div className="h2-btn h2-btn--primary pricing-banner__card-cta">
+        {plan.cta.label}
+        <ArrowRightAnim size={12} />
+      </div>
     </a>
   );
 }
@@ -149,9 +153,10 @@ function PlanCard({ plan, selected }: { plan: Plan; selected: boolean }): React.
           <li key={feature}>{feature}</li>
         ))}
       </ul>
-      <span id={`pricing-plan-cta-${plan.id}`} className="h2-btn h2-btn--primary pricing-plan__cta">
+      <div id={`pricing-plan-cta-${plan.id}`} className="h2-btn h2-btn--primary pricing-plan__cta">
         {plan.cta.label}
-      </span>
+        <ArrowRightAnim size={12} />
+      </div>
     </a>
   );
 }
@@ -221,6 +226,7 @@ export function PricingPage(): React.JSX.Element {
                   onClick={startProps.onClick}
                 >
                   Start building
+                  <ArrowRightAnim size={12} />
                 </a>
                 <a
                   className="h2-btn h2-btn--outline h2-btn--lg"
@@ -228,6 +234,7 @@ export function PricingPage(): React.JSX.Element {
                   onClick={contactProps.onClick}
                 >
                   Contact sales
+                  <ArrowRightAnim size={12} />
                 </a>
               </div>
             </div>

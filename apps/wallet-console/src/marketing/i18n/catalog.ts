@@ -238,13 +238,13 @@ export const catalog = {
   blog: { en: 'Blog', ja: 'ブログ（英語）' },
   closingTitle: {
     en: 'Ship wallets this week. Keep your users for good.',
-    ja: '今週ウォレットをリリース。ユーザーはずっとあなたのもの。',
+    ja: '今週リリース。\n顧客との関係はそのまま。',
   },
   closingDescription: {
     en: 'Passkey wallets with device linking and recovery. Free for up to 300 monthly active users.',
-    ja: 'デバイスのリンクと復元に対応したパスキーウォレット。月間アクティブユーザー300人まで無料です。',
+    ja: 'パスキー・復元・デバイス連携。\n月間アクティブユーザー300人まで無料。',
   },
-  exploreDocs: { en: 'Explore docs', ja: 'ドキュメントを見る（英語）' },
+  exploreDocs: { en: 'Explore docs', ja: 'ドキュメント（英語）' },
   siteFooter: { en: 'Site footer', ja: 'サイトフッター' },
   footerNavigation: { en: 'Footer navigation', ja: 'フッターナビゲーション' },
   seamsHome: { en: 'Seams home', ja: 'Seamsホーム（英語）' },

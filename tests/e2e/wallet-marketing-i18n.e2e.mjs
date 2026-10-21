@@ -53,10 +53,10 @@ async function checkJapanesePage(page, viewport) {
   await expect(
     page.getByRole('status').filter({ hasText: 'ライブデモを一時的にご利用いただけません。' }),
   ).toBeVisible();
-  await expect(
-    page.getByRole('link', { name: 'ドキュメント（英語）', exact: true }),
-  ).toHaveAttribute('href', /\/docs\/concepts\/$/);
   const footer = page.getByRole('contentinfo');
+  await expect(
+    footer.getByRole('link', { name: 'ドキュメント（英語）', exact: true }),
+  ).toHaveAttribute('href', /\/docs\/concepts\/$/);
   await footer.scrollIntoViewIfNeeded();
   await expect(footer.getByRole('combobox', { name: '言語', exact: true })).toHaveText('日本語');
   const question = footer.getByRole('button', { name: 'デバイスを紛失した場合は？', exact: true });

@@ -3526,8 +3526,12 @@ html:lang(ja) .h2-display {
   line-height: 1.4;
 }
 
-html:lang(ja) .h2-footer__col a,
-html:lang(ja) .h2-footer__faq-q {
+html:lang(ja) #h2-cta-title,
+html:lang(ja) #h2-cta-title + .h2-banner__sub {
+  white-space: pre-line;
+}
+
+html:lang(ja) .h2-footer__col a {
   line-height: 1.7;
 }
 
@@ -3791,6 +3795,58 @@ html:lang(ja) .h2-startrow__text p {
 
 .h2-faq-pop__more:hover {
   color: var(--h2-smoke);
+}
+
+html:lang(ja) .h2-footer__faq-title {
+  font-size: var(--h2-text-body);
+  line-height: 1.6;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html:lang(ja) .h2-footer__faq .h2-footer__links {
+  gap: 28px 40px;
+}
+
+html:lang(ja) .h2-footer__faq h3 {
+  line-height: 1.6;
+  color: var(--h2-smoke);
+}
+
+html:lang(ja) .h2-footer__faq-q {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 14px;
+  align-items: start;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding-block: 10px;
+  line-height: 1.8;
+}
+
+html:lang(ja) .h2-footer__faq-q svg {
+  margin-top: 0.4em;
+}
+
+html:lang(ja) .h2-footer__faq-q > span {
+  text-wrap: balance;
+}
+
+html:lang(ja) .h2-faq-pop__answer {
+  line-height: 1.85;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 900px) {
+  html:lang(ja) .h2-footer__faq .h2-footer__links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  html:lang(ja) .h2-footer__faq .h2-footer__links {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

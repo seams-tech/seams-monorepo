@@ -52,14 +52,9 @@
   cursor: pointer;
 }
 
-/* a ring outside the card, with a gap, as on the banner cards below */
-.pricing-plan {
-  outline: 2px solid rgba(10, 10, 10, 0.1);
-  outline-offset: 3px;
-}
-
 .pricing-plan:focus-visible {
-  outline-color: var(--h2-ink);
+  outline: 2px solid var(--h2-ink);
+  outline-offset: 3px;
 }
 
 @media (min-width: 901px) {
@@ -560,17 +555,15 @@
   text-shadow: var(--pricing-banner-shadow);
 }
 
-/* a ring outside the card, with a gap, as on the plan cards above */
 .pricing-banner__card {
-  outline: 2px solid rgba(10, 10, 10, 0.1);
-  outline-offset: 3px;
   box-shadow:
     0 1px 2px rgba(10, 10, 10, 0.3),
     0 4px 10px -4px rgba(10, 10, 10, 0.35);
 }
 
 .pricing-banner__card:focus-visible {
-  outline-color: var(--h2-ink);
+  outline: 2px solid var(--h2-ink);
+  outline-offset: 3px;
 }
 
 /* the site's link hover colour must not tint the card's text */

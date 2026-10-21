@@ -42,7 +42,7 @@
   }
 }
 
-/* black cards, as on the pricing page: a ring with a gap, and a gradient on hover */
+/* black cards, as on the pricing page, with a gradient on hover */
 .company-card {
   position: relative;
   isolation: isolate;
@@ -57,12 +57,11 @@
   color: #ffffff;
   /* keeps white text readable on the light parts of the hover gradient */
   text-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
-  outline: 2px solid rgba(10, 10, 10, 0.1);
-  outline-offset: 3px;
 }
 
 .company-card:focus-visible {
-  outline-color: var(--h2-ink);
+  outline: 2px solid var(--h2-ink);
+  outline-offset: 3px;
 }
 
 /* the site's link hover colour must not tint the card's text */

@@ -494,7 +494,7 @@ const ACCOUNT_NOTES: readonly ApiNoteProps[] = [
     icon: Fingerprint,
     field: 'sky-sand',
   },
-  { title: 'Recovery', body: 'Email or a linked device', icon: LifeBuoy, field: 'glacier-ink' },
+  { title: 'Recovery', body: 'Email or a linked device', icon: LifeBuoy, field: 'periwinkle' },
 ];
 
 const POLICY_NOTES: readonly ApiNoteProps[] = [
@@ -686,7 +686,7 @@ export function H2Start(): React.JSX.Element {
             aria-label="Open a signing session and send a transfer"
           >
             <span className="tok-kw">import</span>
-            {' { near, transfer, useSeams, useWallet } '}
+            {' { transfer, useSeams, useWallet } '}
             <span className="tok-kw">from</span>{' '}
             <span className="tok-str">'@seams/wallet/react'</span>
             {';\n'}
@@ -711,9 +711,9 @@ export function H2Start(): React.JSX.Element {
             <span className="tok-str">"bob.near"</span>
             {',\n  '}
             <span className="tok-prop">actions</span>
-            {': [transfer(near('}
-            <span className="tok-str">'1'</span>
-            {'))],\n});'}
+            {': [transfer('}
+            <span className="tok-str">'1 NEAR'</span>
+            {')],\n});'}
           </div>
         </div>
       </div>

@@ -27,6 +27,14 @@
   box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.22);
 }
 
+/* The homepage frames this page at 440px on wide screens and narrower only on
+   phones, where the card fills the frame as the other demos do. */
+@media (max-width: 439px) {
+  .checkout-market {
+    width: 100%;
+  }
+}
+
 .checkout-lot,
 .checkout-eyebrow {
   color: var(--checkout-muted);

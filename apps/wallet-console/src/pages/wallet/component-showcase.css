@@ -513,8 +513,13 @@
     gap: 6px;
     font-size: 11px;
   }
+  /* cards fill the screen less a 7px gap each side, as the hero demo does;
+     a demo frame pads its card by 8px, so the frame is 16px wider */
   .component-showcase__position {
-    width: min(360px, calc(100vw - 58px));
+    width: calc(100vw - 2 * 7px);
+  }
+  .component-showcase__position:has(> .showcase-preview__embed) {
+    width: calc(100vw - 2 * 7px + 2 * 8px);
   }
   /* the longer top fade keeps the faded cards clear of the controls pill */
   .component-showcase__fade {

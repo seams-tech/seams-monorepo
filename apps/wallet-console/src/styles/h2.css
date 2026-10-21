@@ -2157,16 +2157,29 @@ body:has(.h2-page) {
     margin-top: 22px;
   }
 
+  /* The card fills the cell: the viewport less the cell's side padding. A
+     fixed width, not a percentage, because the SDK surface sizes itself to
+     the viewport and a percentage would widen the cell around it. */
   .h2-hero__demo {
     --h2-demo-pad-x: 7px;
+    --h2-demo-card-width: calc(100vw - 2 * var(--h2-demo-pad-x));
     padding: 24px var(--h2-demo-pad-x) 44px;
   }
 
-  /* The SDK auth card sizes itself to the viewport (min(100dvw, 420px)), so
-     inside this padded cell it overflows the right edge on phones: cap it to
-     the viewport minus the cell padding instead. */
+  /* The SDK auth surface and card size themselves to the viewport
+     (min(100dvw, 420px), at least 320px), so inside this padded cell they
+     overflow the right edge on phones: cap both to the card width. */
+  .h2-hero__demo .seams-auth-menu-surface,
   .h2-hero__demo .seams-signup-menu-root {
-    max-width: calc(100vw - 16px);
+    min-width: 0;
+    max-width: var(--h2-demo-card-width);
+  }
+
+  /* full size on phones: at 0.9 the card left 33px of gradient on each side
+     of a 375px screen */
+  .h2-hero__demo .h2-sdk-zoom {
+    transform: none;
+    margin-block: 0;
   }
 }
 

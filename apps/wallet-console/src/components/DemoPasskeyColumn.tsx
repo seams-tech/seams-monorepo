@@ -187,11 +187,15 @@ export function DemoPasskeyColumn({
       <div className={`passkey-demo${isDemoUnlocked ? ' passkey-demo--with-profile' : ''}`}>
         {isDemoUnlocked ? <NavbarProfileOverlay /> : null}
         {/* Fixed-width so switching pages never resizes/re-centers the card;
-            the external pager drives `index` (fully controlled). */}
+            the external pager drives `index` (fully controlled). A host can
+            set --h2-demo-card-width to give the card another fixed width. */}
         <Carousel
           pages={pages}
           index={currentPage}
-          style={{ width: 'min(480px, calc(100vw - 2rem))', margin: '0 auto' }}
+          style={{
+            width: 'var(--h2-demo-card-width, min(480px, calc(100vw - 2rem)))',
+            margin: '0 auto',
+          }}
         />
       </div>
     </ProfileMenuControlProvider>

@@ -6,6 +6,14 @@
   width: 100%;
 }
 
+/* The SDK card sizes itself to the viewport (min(100dvw, 420px), at least
+   320px); in this padded stage that ran it past the frame's right edge on
+   phones. */
+.showcase-stage .seams-signup-menu-root {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .authentication-result {
   display: grid;
   justify-items: center;

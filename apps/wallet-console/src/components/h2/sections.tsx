@@ -685,6 +685,11 @@ export function H2Start(): React.JSX.Element {
             className="h2-code h2-code--lg"
             aria-label="Open a signing session and send a transfer"
           >
+            <span className="tok-kw">import</span>
+            {' { transfer, useSeams, useWallet } '}
+            <span className="tok-kw">from</span>{' '}
+            <span className="tok-str">'@seams/wallet/react'</span>
+            {';\n'}
             <span className="tok-kw">const</span>
             {' { unlock } = useSeams();\n'}
             <span className="tok-kw">const</span>

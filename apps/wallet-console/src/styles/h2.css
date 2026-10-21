@@ -1993,13 +1993,9 @@ body:has(.h2-page) {
   min-height: var(--h2-wallet-demo-shell-min-height);
 }
 
-/* The wallet hero runs 3rem shorter than the shared hero. The demo cell's top
-   padding clears the floating navbar and its card reserve holds the unlocked
-   card, so the first rem comes out of the cell's bottom padding and the other
-   two are spare room that centred the card; the minimum height drops by the
-   whole amount so the copy column does not hold it. */
+/* Keep extra room around the Wallet demo without enlarging the card. */
 .h2-page--wallet .h2-hero__split {
-  --h2-hero-min-height: 591px;
+  --h2-hero-min-height: calc(591px + 4rem);
 }
 
 @media (min-width: 981px) {

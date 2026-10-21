@@ -182,9 +182,6 @@ export function CompanyPage(): React.JSX.Element {
                 <h2 id="company-products-title" className="h2-display">
                   Two products on one policy engine
                 </h2>
-                <p className="h2-split-head__copy">
-                  Both products use the same keys, credentials, and policy checks.
-                </p>
               </div>
               <div className="company-cards">
                 {products.map((product) => (

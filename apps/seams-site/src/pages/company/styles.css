@@ -42,12 +42,12 @@
   }
 }
 
-/* the product section sits close to its rules, like the banners */
+/* room above the title; the cards sit close to the bottom rule */
 .h2-section.company-products {
-  padding: 0.5rem 0;
+  padding: 56px 0 0.5rem;
 }
 
-/* black cards, as on the pricing page, with a gradient on hover */
+/* beige cards with dark text; a gradient with white text on hover */
 .company-card {
   position: relative;
   isolation: isolate;
@@ -58,10 +58,11 @@
   min-height: 300px;
   padding: 28px 28px 24px;
   border-radius: var(--h2-radius-card);
-  background: var(--h2-ink);
-  color: #ffffff;
-  /* keeps white text readable on the light parts of the hover gradient */
-  text-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
+  background: var(--h2-taupe);
+  color: var(--h2-ink);
+  transition:
+    color 200ms ease,
+    text-shadow 200ms ease;
 }
 
 .company-card:focus-visible {
@@ -71,7 +72,7 @@
 
 /* the site's link hover colour must not tint the card's text */
 .company-card:hover {
-  color: #ffffff;
+  color: var(--h2-ink);
 }
 
 .company-card__gradient {
@@ -79,17 +80,30 @@
   transition: opacity 200ms ease;
 }
 
+/* while the gradient shows, white text with a shadow stays readable on its
+   light and dark parts */
+.company-card:focus-visible {
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
+}
+
 .company-card:focus-visible .company-card__gradient {
   opacity: 1;
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .company-card:hover {
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
+  }
+
   .company-card:hover .company-card__gradient {
     opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .company-card,
   .company-card__gradient {
     transition: none;
   }
@@ -99,14 +113,13 @@
   margin: 0;
   font-size: 21.5px;
   font-weight: 500;
-  color: #ffffff;
 }
 
 .company-card__copy {
   margin: 0;
   font-size: 13.5px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.86);
+  opacity: 0.86;
 }
 
 .company-card__cta {
@@ -116,7 +129,6 @@
   margin-top: auto;
   font-size: var(--h2-text-base);
   font-weight: 600;
-  color: #ffffff;
 }
 
 @media (max-width: 900px) {

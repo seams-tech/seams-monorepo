@@ -5,8 +5,8 @@ export type Side = 'Yes' | 'No';
 export const sides: readonly Side[] = ['Yes', 'No'];
 
 export const market = {
-  lot: 'Lot 542 · Otsuka Lotec No.7.5',
-  question: 'Will it sell above its estimate?',
+  lot: 'Lot 542 · Audemars Piguet Royal Oak',
+  question: "Will the AP Royal Oak close above its Sotheby's estimate?",
   pay: '0.1',
   fee: '0.001',
   outcomes: {

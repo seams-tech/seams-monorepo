@@ -2825,7 +2825,7 @@ body:has(.h2-page) {
   border-radius: 10px;
   overflow: hidden;
   background-color: #f7f5f1;
-  color: #000000;
+  color: var(--h2-smoke);
 }
 
 .h2-fieldtile::after {

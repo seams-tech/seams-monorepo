@@ -143,9 +143,8 @@ export function CompanyPage(): React.JSX.Element {
       <NavbarCompact appearance="light" />
       <div className="h2-col">
         <main aria-labelledby="company-title">
-          <header className="h2-hero-simple h2-hero-simple--sage h2-hero-simple--grain">
+          <header className="h2-hero-simple company-hero">
             <div className="h2-shell">
-              <GrainField field="sky-sand" flow={1.6} />
               <h1 id="company-title" className="h2-display h2-hero-simple__title">
                 We build the account layer for commerce.
               </h1>
@@ -211,6 +210,28 @@ export function CompanyPage(): React.JSX.Element {
                   </li>
                 ))}
               </ol>
+            </div>
+          </section>
+
+          <section className="h2-cta h2-cta--banner h2-rule" aria-labelledby="company-banner-title">
+            <div className="h2-shell h2-cta__banner company-banner">
+              <GrainField field="sky-sand" flow={1.6} />
+              <div>
+                <h2 id="company-banner-title" className="h2-display h2-cta__title">
+                  Talk to the team
+                </h2>
+                <p className="h2-cta__sub">Tell us what you are building. We reply by email.</p>
+              </div>
+              <div className="h2-cta__actions">
+                <SiteLink
+                  to={CONTACT_LINK_TARGET}
+                  external={false}
+                  className="h2-btn h2-btn--primary"
+                >
+                  Contact us
+                  <ArrowRightAnim size={12} />
+                </SiteLink>
+              </div>
             </div>
           </section>
 

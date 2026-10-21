@@ -1,3 +1,32 @@
+/* ---------- hero: plain and short, like the pricing page ---------- */
+
+.h2-hero-simple.company-hero {
+  padding: 144px 0 32px;
+}
+
+/* line the text up with the section content below, not the column edge */
+.h2-hero-simple.company-hero > .h2-shell {
+  padding-left: 36px;
+}
+
+@media (max-width: 900px) {
+  .h2-hero-simple.company-hero {
+    padding: 120px 0 28px;
+  }
+}
+
+/* ---------- a small gradient banner above the company details ---------- */
+
+.h2-cta__banner.company-banner {
+  padding: 40px 48px;
+}
+
+@media (max-width: 760px) {
+  .h2-cta__banner.company-banner {
+    padding: 32px 24px;
+  }
+}
+
 /* ---------- product cards: taupe panels, like the frontpage duo ---------- */
 
 .company-cards {

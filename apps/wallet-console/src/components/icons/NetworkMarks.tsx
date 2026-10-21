@@ -2,13 +2,17 @@ import React from 'react';
 
 /* Real brand marks for the supported networks. Rendered monochrome via
    currentColor so the row inherits the quiet logo-strip ink.
-   Source: Simple Icons (simpleicons.org, 24x24 viewBox, CC0). */
+   Sources: Simple Icons (simpleicons.org, 24x24 viewBox, CC0); Hyperliquid
+   blob from the official brand kit (hyperliquid.gitbook.io/hyperliquid-docs/
+   brand-kit, Hyperliquid_Blob SVG, 200x200 viewBox). */
 
 type NetworkMark = {
   /** Display wordmark next to the SVG mark. */
   name: string;
   /** Brand mark path; omitted = text-only wordmark. */
   path?: string;
+  /** Defaults to the Simple Icons 24x24 box. */
+  viewBox?: string;
 };
 
 export const NETWORK_MARKS: NetworkMark[] = [
@@ -28,13 +32,29 @@ export const NETWORK_MARKS: NetworkMark[] = [
     name: 'NEAR',
     path: 'M21.443 0c-.89 0-1.714.46-2.18 1.218l-5.017 7.448a.533.533 0 0 0 .792.7l4.938-4.282a.2.2 0 0 1 .334.151v13.41a.2.2 0 0 1-.354.128L5.03.905A2.555 2.555 0 0 0 3.078 0h-.521A2.557 2.557 0 0 0 0 2.557v18.886a2.557 2.557 0 0 0 4.736 1.338l5.017-7.448a.533.533 0 0 0-.792-.7l-4.938 4.283a.2.2 0 0 1-.333-.152V5.352a.2.2 0 0 1 .354-.128l14.924 17.87c.486.574 1.2.905 1.952.906h.521A2.558 2.558 0 0 0 24 21.445V2.557A2.558 2.558 0 0 0 21.443 0Z',
   },
+  {
+    name: 'Hyperliquid',
+    /* Cropped from the kit's 200x200 box to the glyph bounds so the blob
+       sits flush like the Simple Icons marks. */
+    viewBox: '24.5 44 151 112',
+    path: 'M175.11589,99.27891c0,49.46366-30.3687,65.33789-46.47302,51.30413-13.11357-11.5031-17.02471-35.88989-36.81018-38.42055-25.07698-2.99085-27.37764,30.36839-43.94216,30.36839-19.3254,0-23.00642-27.83773-23.00642-42.33179,0-14.72405,4.14115-34.73961,20.47565-34.73961,19.09528,0,20.24566,28.75802,44.17226,27.14754,23.69661-1.61047,24.1567-31.51877,39.80103-44.17224,13.57335-11.27313,45.78283.69019,45.78283,50.84413Z',
+  },
+  {
+    name: 'Polygon',
+    path: 'm17.82 16.342 5.692-3.287A.98.98 0 0 0 24 12.21V5.635a.98.98 0 0 0-.488-.846l-5.693-3.286a.98.98 0 0 0-.977 0L11.15 4.789a.98.98 0 0 0-.489.846v11.747L6.67 19.686l-3.992-2.304v-4.61l3.992-2.304 2.633 1.52V8.896L7.158 7.658a.98.98 0 0 0-.977 0L.488 10.945a.98.98 0 0 0-.488.846v6.573a.98.98 0 0 0 .488.847l5.693 3.286a.981.981 0 0 0 .977 0l5.692-3.286a.98.98 0 0 0 .489-.846V6.618l.072-.041 3.92-2.263 3.99 2.305v4.609l-3.99 2.304-2.63-1.517v3.092l2.14 1.236a.981.981 0 0 0 .978 0v-.001Z',
+  },
 ];
 
 export function NetworkMarkLockup({ mark }: { mark: NetworkMark }): React.JSX.Element {
   return (
     <>
       {mark.path ? (
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+        <svg
+          viewBox={mark.viewBox ?? '0 0 24 24'}
+          fill="currentColor"
+          aria-hidden="true"
+          focusable="false"
+        >
           <path d={mark.path} />
         </svg>
       ) : null}

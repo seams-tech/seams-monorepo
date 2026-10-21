@@ -168,3 +168,137 @@
 .pricing-example td:last-child {
   text-align: right;
 }
+
+/* ---------- enterprise calculator ---------- */
+
+.pricing-calc {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 22px;
+}
+
+@media (min-width: 1161px) {
+  .pricing-calc {
+    margin: 0 -22px;
+  }
+}
+
+.pricing-calc__inputs {
+  display: grid;
+  align-content: start;
+  gap: 26px;
+  padding: 28px;
+}
+
+.pricing-calc__field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 10px 12px;
+}
+
+.pricing-calc__label {
+  font-family: var(--h2-label);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--h2-ash);
+}
+
+.pricing-calc__value {
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--h2-ink);
+}
+
+.pricing-calc__field input[type='range'] {
+  grid-column: 1 / -1;
+  width: 100%;
+  accent-color: var(--h2-ink);
+}
+
+.pricing-calc__note {
+  margin: 0;
+  font-size: var(--h2-text-base);
+  line-height: 1.6;
+  color: var(--h2-smoke);
+}
+
+.pricing-calc__result {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px;
+  border-radius: var(--h2-radius-card);
+  background: var(--h2-taupe);
+}
+
+.pricing-calc__lines {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.pricing-calc__lines > div,
+.pricing-calc__total {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--h2-stone);
+  font-variant-numeric: tabular-nums;
+}
+
+.pricing-calc__lines dt {
+  font-size: 13.5px;
+  color: var(--h2-graphite);
+}
+
+.pricing-calc__lines dd {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--h2-ink);
+}
+
+.pricing-calc__total {
+  align-items: baseline;
+  font-size: 13.5px;
+  color: var(--h2-graphite);
+}
+
+.pricing-calc__total strong {
+  font-size: 32px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--h2-ink);
+}
+
+.pricing-calc__total--enterprise strong {
+  font-size: 22px;
+}
+
+.pricing-calc__fine {
+  margin: 0;
+  font-size: var(--h2-text-base);
+  line-height: 1.6;
+  color: var(--h2-smoke);
+}
+
+.pricing-calc__result .h2-btn {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+@media (max-width: 900px) {
+  .pricing-calc {
+    grid-template-columns: 1fr;
+  }
+
+  .pricing-calc__inputs {
+    padding: 0;
+  }
+}

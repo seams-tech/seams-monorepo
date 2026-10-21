@@ -3,6 +3,7 @@ import { GrainField } from '@seams-internal/grain-field';
 import { H2Duo, H2Faq, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
+import { EnterpriseCalculator } from './EnterpriseCalculator';
 import '@/styles/h2.css';
 import './styles.css';
 
@@ -202,6 +203,8 @@ export function PricingPage(): React.JSX.Element {
               </p>
             </div>
           </section>
+
+          <EnterpriseCalculator />
 
           <H2Faq audience="pricing" />
         </main>

@@ -652,13 +652,7 @@ export function H2Start(): React.JSX.Element {
             <span className="tok-str">'passkey'</span>
             {', '}
             <span className="tok-prop">rpId</span>
-            {': rpId.value },\n  '}
-            <span className="tok-prop">wallet</span>
-            {': { '}
-            <span className="tok-prop">kind</span>
-            {': '}
-            <span className="tok-str">'server_allocated'</span>
-            {' },\n  signerSelection,\n});'}
+            {': rpId.value },\n  signerSelection,\n});'}
           </div>
         </div>
       </div>
@@ -691,33 +685,25 @@ export function H2Start(): React.JSX.Element {
             <span className="tok-str">'@seams/wallet/react'</span>
             {';\n'}
             <span className="tok-kw">const</span>
-            {' { unlock, wallet } = useSeams();\n\n'}
-            <span className="tok-kw">async function</span>
-            {' openSession() {\n  '}
+            {' { unlock, seams } = useSeams();\n\n'}
             <span className="tok-kw">await</span>
-            {' unlock(walletId, {\n    '}
-            <span className="tok-cm">{'// 15 minutes or 5 signatures\n'}</span>
-            {'    '}
+            {' unlock(walletId, {\n  '}
             <span className="tok-prop">signingSession</span>
             {': { '}
             <span className="tok-prop">ttlMs</span>
             {': 15 * 60_000, '}
             <span className="tok-prop">remainingUses</span>
-            {': 5 },\n  });\n}\n\n'}
-            <span className="tok-kw">async function</span>
-            {' sendTransfer() {\n  '}
-            <span className="tok-kw">if</span>
-            {' (!wallet?.near) return;\n  '}
+            {': 5 },\n});\n\n'}
             <span className="tok-kw">await</span>
-            {' wallet.near.signAndSendTransaction({\n    '}
+            {' seams.near.signAndSendTransaction({\n  '}
             <span className="tok-prop">receiverId</span>
             {': '}
             <span className="tok-str">"bob.near"</span>
-            {',\n    '}
+            {',\n  '}
             <span className="tok-prop">actions</span>
             {': [transfer('}
             <span className="tok-str">'1 NEAR'</span>
-            {')],\n  });\n}'}
+            {')],\n});'}
           </div>
         </div>
       </div>

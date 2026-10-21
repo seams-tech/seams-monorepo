@@ -5,8 +5,8 @@ Date: October 21, 2026.
 
 ## Outcome
 
-1. A developer organization uses the Free plan without a card for its first 60
-   days. From day 60, production needs a card on file to continue.
+1. A developer organization uses the Free plan without a card for its first 30
+   days. From day 30, production needs a card on file to continue.
 2. Before an organization goes over the Free limits, we warn it that it will
    move to Growth. With a card on file, the move is automatic. Without a card, the
    hard stop applies.
@@ -30,12 +30,12 @@ is $99 a month with 5,000 MAU, then $0.004 per MAU.
 
 ## Rules
 
-### Card after 60 days
+### Card after 30 days
 
 - Day 0 is the date the organization is created. For organizations that exist
-  when this ships, day 0 is the release date, so each one gets the full 60 days.
+  when this ships, day 0 is the release date, so each one gets the full 30 days.
 - A card on file is not charged while usage stays inside the Free limits.
-- From day 60 without a usable card, production is restricted:
+- From day 30 without a usable card, production is restricted:
   - New sign-ups and new signatures stop in production environments.
   - Recovery and key export stay open, with rate limits.
   - Development environments keep working. They run on testnet only.
@@ -68,11 +68,10 @@ email and as a Console banner. The banner stays until the condition ends.
 
 | Day or event              | Message                                                       |
 | ------------------------- | ------------------------------------------------------------- |
-| Day 30, no card           | "Add a card by <date> to keep production running."            |
-| Day 46, no card           | Same, 14 days before.                                         |
-| Day 53, no card           | Same, 7 days before.                                          |
-| Day 59, no card           | Same, 1 day before.                                           |
-| Day 60, no card           | "Production is paused until you add a card."                  |
+| Day 16, no card           | "Add a card by <date> to keep production running."            |
+| Day 23, no card           | Same, 7 days before.                                          |
+| Day 29, no card           | Same, 1 day before.                                           |
+| Day 30, no card           | "Production is paused until you add a card."                  |
 | 80% of a Free limit       | As in the table above.                                        |
 | Move to Growth            | "Your organization moved to Growth: $99 a month from <date>." |
 | Hard stop at a Free limit | "Production sign-ups or signing are paused. Add a card."      |
@@ -114,7 +113,7 @@ email and as a Console banner. The banner stays until the condition ends.
 ### 4. Notices
 
 - Add Console email templates for each notice in the table above.
-- Add a daily scheduled pass that finds accounts at day 30, 46, 53, 59, and 60
+- Add a daily scheduled pass that finds accounts at day 16, 23, 29, and 30
   without a usable card, and accounts at 80% or 100% of a Free limit.
 - Record each sent notice with a unique key (account, notice kind, month or
   day). A retry must not send a second email.
@@ -132,17 +131,17 @@ email and as a Console banner. The banner stays until the condition ends.
 
 ### 6. Acceptance
 
-- Unit and relayer tests through the shared billing factories: the day-60
+- Unit and relayer tests through the shared billing factories: the day-30
   transition, the 80% and 100% thresholds, the move with and without a card,
   duplicate events, and a card that expires.
 - A staging run with Stripe test mode: create an organization, move its clock,
-  pass day 60 without a card, add a test card, pass a Free limit, and check each
+  pass day 30 without a card, add a test card, pass a Free limit, and check each
   email, banner, plan change, and production refusal.
 - Check that recovery and key export work in every restricted state.
 
 ## Completion criteria
 
-- An organization without a card can use production for 60 days, and then
+- An organization without a card can use production for 30 days, and then
   production pauses until a card is verified.
 - Every notice in the table is sent once, at the right time, by email and
   banner.
@@ -159,6 +158,6 @@ email and as a Console banner. The banner stays until the condition ends.
    activation. The second is fairer to teams that develop for a long time.
 2. **Growth billing start:** pro rata from the day of the move (this plan) or
    from the next month. Privy starts billing the month after the move.
-3. **Notice days:** 30, 46, 53, 59, and 60 are proposals.
+3. **Notice days:** 16, 23, 29, and 30 are proposals.
 4. **In-flight sessions at a stop:** whether a signing session that started
    before the stop can finish.

@@ -49,7 +49,7 @@ keep that cost bounded:
    sign-ups stop. At 30,000 signatures in a month, signing stops. With a card on
    file, the organization moves to Growth automatically, after a warning at 80%
    of a limit.
-4. **A card after 60 days.** From day 60, production needs a card on file to
+4. **A card after 30 days.** From day 30, production needs a card on file to
    continue. The card is not charged while usage stays inside the Free limits.
 5. **An internal alert on the total free-plan cost.** Start with an alert at
    $500 a month of Cloudflare cost for all free organizations together.

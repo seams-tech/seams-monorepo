@@ -18,7 +18,7 @@ of Platform and Wallet entry points and the reasons for that design.
 - [Pricing and costs](wallet-saas/pricing.md): the proposed MAU price with a
   pooled signature allowance, and the measured Cloudflare cost behind it.
 - [Free plan card and Growth move](feat-4-free-plan-card-and-growth-move.md):
-  the plan for the 60-day card requirement and the warnings before a Growth move.
+  the plan for the 30-day card requirement and the warnings before a Growth move.
 - [Wallet database schema](wallet-saas/console-docs/wallet-db-schema.md).
 - [CLI release procedure](wallet-cli-release.md).
 - [Local/provider runtime qualification](../deployment/celld/README.md): retain

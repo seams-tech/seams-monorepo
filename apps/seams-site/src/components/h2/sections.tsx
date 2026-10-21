@@ -1625,7 +1625,7 @@ const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
     },
     {
       q: 'Do I need a card for the free plan?',
-      a: 'Not at first. From 60 days after you create your organization, production needs a card on file. We do not charge it while you stay inside the free limits. Development environments never need a card.',
+      a: 'Not at first. From 30 days after you create your organization, production needs a card on file. We do not charge it while you stay inside the free limits. Development environments never need a card.',
     },
     {
       q: 'Can I use more than one free plan?',

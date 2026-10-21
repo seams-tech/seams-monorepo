@@ -652,7 +652,9 @@ export function H2Start(): React.JSX.Element {
             <span className="tok-str">'passkey'</span>
             {',\n    '}
             <span className="tok-prop">rpId</span>
-            {': rpId.value\n  },\n  signerSelection,\n});'}
+            {': '}
+            <span className="tok-str">'wallet.example.com'</span>
+            {'\n  },\n  signerSelection,\n});'}
           </div>
         </div>
       </div>

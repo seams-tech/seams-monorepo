@@ -42,6 +42,11 @@
   }
 }
 
+/* the product section sits close to its rules, like the banners */
+.h2-section.company-products {
+  padding: 0.5rem 0;
+}
+
 /* black cards, as on the pricing page, with a gradient on hover */
 .company-card {
   position: relative;
@@ -50,7 +55,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 220px;
+  min-height: 300px;
   padding: 28px 28px 24px;
   border-radius: var(--h2-radius-card);
   background: var(--h2-ink);

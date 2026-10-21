@@ -172,7 +172,7 @@ export function CompanyPage(): React.JSX.Element {
           </header>
 
           <section
-            className="h2-section h2-section--compact h2-rule"
+            className="h2-section h2-section--compact h2-rule company-products"
             aria-labelledby="company-products-title"
           >
             <div className="h2-shell">

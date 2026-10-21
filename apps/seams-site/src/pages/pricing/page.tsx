@@ -121,8 +121,8 @@ export function PricingPage(): React.JSX.Element {
                 Free to start. Pay per active user.
               </h1>
               <p className="h2-hero-simple__sub">
-                The first 300 users are free. On Growth, every user includes 300 signatures a month,
-                so most apps never pay for signing.
+                The first 300 users are free, and development is always free. As you grow, you pay
+                per active user, with signing included.
               </p>
               <div className="h2-hero-simple__ctas">
                 <a
@@ -143,37 +143,16 @@ export function PricingPage(): React.JSX.Element {
             </div>
           </header>
 
-          <section className="h2-section h2-rule" aria-labelledby="pricing-plans-title">
-            <div className="h2-shell">
-              <div className="h2-split-head">
-                <p className="h2-kicker">Plans</p>
-                <h2 id="pricing-plans-title" className="h2-display">
-                  One price per active user
-                </h2>
-                <p className="h2-split-head__copy">
-                  Every plan has the full SDK: passkeys, split-key wallets, policy checks, and the
-                  audit log. Gas and chain fees pass through at cost.
-                </p>
-              </div>
-              <div className="pricing-plans">
-                {plans.map((plan) => (
-                  <PlanCard key={plan.id} plan={plan} />
-                ))}
-              </div>
-              <p className="pricing-note">Prices may change. They follow our own hosting costs.</p>
-            </div>
-          </section>
-
           <section className="h2-section h2-rule" aria-labelledby="pricing-example-title">
             <div className="h2-shell">
               <div className="h2-split-head">
-                <p className="h2-kicker">Example</p>
+                <p className="h2-kicker">At scale</p>
                 <h2 id="pricing-example-title" className="h2-display">
-                  What a month costs
+                  What a month costs as you grow
                 </h2>
                 <p className="h2-split-head__copy">
-                  An app where each user signs 10 times a day. All signatures stay inside the pool,
-                  so you pay for active users only.
+                  An app where each user signs 10 times a day. Every user includes 300 signatures a
+                  month, so you pay for active users only.
                 </p>
               </div>
               <table className="pricing-example">
@@ -192,6 +171,31 @@ export function PricingPage(): React.JSX.Element {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </section>
+
+          <section className="h2-section h2-rule" aria-labelledby="pricing-plans-title">
+            <div className="h2-shell">
+              <div className="h2-split-head">
+                <p className="h2-kicker">Plans</p>
+                <h2 id="pricing-plans-title" className="h2-display">
+                  One price per active user
+                </h2>
+                <p className="h2-split-head__copy">
+                  Every plan has the full SDK: passkeys, split-key wallets, policy checks, and the
+                  audit log. Development environments are free on every plan. Gas and chain fees
+                  pass through at cost.
+                </p>
+              </div>
+              <div className="pricing-plans">
+                {plans.map((plan) => (
+                  <PlanCard key={plan.id} plan={plan} />
+                ))}
+              </div>
+              <p className="pricing-note">
+                Growth prices are fixed for 12 months from sign-up. After that, they may change with
+                our own hosting costs.
+              </p>
             </div>
           </section>
 

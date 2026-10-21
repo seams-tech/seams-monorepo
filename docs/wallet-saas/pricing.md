@@ -26,8 +26,13 @@ day. Signatures above the allowance have a published price.
 - **Gas and chain fees** pass through at cost.
 - **Registration** has a fair-use rate limit. A new user costs about $0.0001, so
   bot sign-ups are cheap but not free.
-- **The public page** says that prices may change and that they follow our own
-  hosting costs.
+- **Development is free.** Development environments have no limits and no
+  charge. Only production environments count toward MAU, signatures, and the
+  free plan limits. A Development environment runs on testnet only
+  (`development_testnet_v1`), so a real app cannot run there.
+- **12-month price lock on Growth.** An organization keeps the Growth prices
+  from its sign-up date for 12 months. After that, prices may change; they follow
+  our own hosting costs. The public page says this.
 
 ## Free plan limits
 
@@ -35,7 +40,8 @@ The free plan costs us money for each organization that uses it. These limits
 keep that cost bounded:
 
 1. **One free plan per organization.** The free plan does not apply per project
-   or per environment. The Console already bills per organization.
+   or per environment. The Console already bills per organization. Only
+   production environments count against it.
 2. **One free organization per browser origin.** An app registers its browser
    origins on its publishable key. An origin can belong to only one free
    organization, so one app cannot split its users over several free plans.
@@ -268,3 +274,7 @@ cost.
    pricing page in `apps/seams-site` already shows this model.
 5. Build the free plan limits in the Console: the origin check across free
    organizations, the hard stop, the card requirement, and the cost alert.
+6. Meter production environments only. Exclude Development environments from
+   MAU and signature counts.
+7. Pin the accepted Growth price version to each organization for 12 months.
+   Decide the notice period for a price change after the lock.

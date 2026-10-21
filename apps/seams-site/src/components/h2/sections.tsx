@@ -1542,6 +1542,10 @@ const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
       a: 'Signatures are pooled across your app: 300 for each active user each month. Busy users are covered while the average stays inside the pool. Signatures above the pool cost $0.05 per 1,000.',
     },
     {
+      q: 'Do development environments count?',
+      a: 'No. Development environments run on testnets, with no limits and no charge. Only production users and signatures count.',
+    },
+    {
       q: 'Do you charge for gas?',
       a: 'Gas and chain fees pass through at cost. We add no margin to them.',
     },

@@ -159,6 +159,7 @@ export function CompanyPage(): React.JSX.Element {
                   className="h2-btn h2-btn--primary h2-btn--lg"
                 >
                   Contact us
+                  <ArrowRightAnim size={12} />
                 </SiteLink>
                 <SiteLink
                   to="/docs/concepts/"
@@ -166,6 +167,7 @@ export function CompanyPage(): React.JSX.Element {
                   className="h2-btn h2-btn--outline h2-btn--lg"
                 >
                   Read the docs
+                  <ArrowRightAnim size={12} />
                 </SiteLink>
               </div>
             </div>

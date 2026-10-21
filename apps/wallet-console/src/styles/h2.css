@@ -2824,8 +2824,8 @@ body:has(.h2-page) {
   height: 40px;
   border-radius: 10px;
   overflow: hidden;
-  background-color: #f7f5f1;
-  color: var(--h2-smoke);
+  background-color: #fbfaf7;
+  color: var(--h2-ash);
 }
 
 .h2-fieldtile::after {
@@ -2840,7 +2840,7 @@ body:has(.h2-page) {
 .h2-fieldtile .grain-field {
   filter: grayscale(1) contrast(0.55);
   mix-blend-mode: multiply;
-  opacity: 0.14;
+  opacity: 0.08;
 }
 
 /* the name and its one-liner share a line; on a narrow screen the

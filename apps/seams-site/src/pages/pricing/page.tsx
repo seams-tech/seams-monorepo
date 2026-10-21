@@ -54,7 +54,7 @@ const plans: readonly Plan[] = [
   },
   {
     id: 'enterprise',
-    field: 'mauve-ember',
+    field: 'slate-amber',
     name: 'Enterprise',
     price: 'Custom',
     unit: 'committed volume',

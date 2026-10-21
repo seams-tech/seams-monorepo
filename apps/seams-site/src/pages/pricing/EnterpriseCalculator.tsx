@@ -173,7 +173,7 @@ export function EnterpriseCalculator(): React.JSX.Element {
             </p>
           </div>
           <div className="pricing-calc__result" aria-live="polite">
-            <GrainField field="slate-amber" flow={1.6} />
+            <GrainField field="coral-tide" flow={1.6} />
             <dl className="pricing-calc__lines">
               <div>
                 <dt>Growth base, 5,000 users included</dt>
@@ -203,7 +203,7 @@ export function EnterpriseCalculator(): React.JSX.Element {
               above the pool. Volume pricing on committed usage is quoted by our team.
             </p>
             <a
-              className="h2-btn h2-btn--outline"
+              className="h2-btn h2-btn--primary"
               href={contactProps.href}
               onClick={contactProps.onClick}
             >

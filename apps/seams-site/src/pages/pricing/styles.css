@@ -473,11 +473,6 @@
   color: rgba(255, 255, 255, 0.82);
 }
 
-/* on the grain the outline button needs its own white ground */
-.pricing-calc__result .h2-btn--outline {
-  background: var(--h2-bg);
-}
-
 .pricing-calc__result .h2-btn {
   align-self: flex-start;
   margin-top: auto;

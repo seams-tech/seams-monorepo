@@ -1,5 +1,5 @@
 import React from 'react';
-import { GrainField } from '@seams-internal/grain-field';
+import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { H2Footer } from '@/components/h2/sections';
@@ -12,10 +12,10 @@ type Product = {
   copy: string;
   to: string;
   cta: string;
+  field: GrainFieldName;
 };
 
 type Principle = {
-  label: string;
   title: string;
   copy: string;
 };
@@ -33,34 +33,34 @@ const products: readonly Product[] = [
     copy: 'Non-custodial wallets that open with a passkey. Keys are split between the user’s device and your infrastructure, so neither side can sign alone.',
     to: '/wallet',
     cta: 'Explore Embedded Wallet',
+    field: 'sky-sand',
   },
   {
     title: 'Ecommerce Agents',
     copy: 'Scoped credentials for AI agents and staff, with limits, approvals, and an audit trail on every action.',
     to: '/ecommerce',
     cta: 'Explore Ecommerce Agents',
+    field: 'azure-coral',
   },
   {
     title: 'Policy and audit',
     copy: 'Approvals, budgets, and revocation run before anything is signed. Each decision is logged with who acted and why.',
     to: '/docs/concepts/policy/mandates',
     cta: 'Read about policy',
+    field: 'slate-amber',
   },
 ];
 
 const principles: readonly Principle[] = [
   {
-    label: '01',
     title: 'Users keep their keys',
     copy: 'No single party can sign alone. Exporting a key needs fresh approval from its owner.',
   },
   {
-    label: '02',
     title: 'Policy runs first',
     copy: 'Limits, approvals, and session checks run before any credential can act.',
   },
   {
-    label: '03',
     title: 'One small SDK',
     copy: 'Sign-in, wallets, and delegated access come from one SDK, so teams do not rebuild key infrastructure.',
   },
@@ -110,6 +110,32 @@ function SiteLink({
   );
 }
 
+function ProductCard({ product }: { product: Product }): React.JSX.Element {
+  const { linkProps } = useSiteRouter();
+  const props = linkProps(product.to);
+  // The gradient shows on hover or focus; it only animates while shown.
+  const [lit, setLit] = React.useState(false);
+  return (
+    <a
+      className="company-card"
+      href={props.href}
+      onClick={props.onClick}
+      onPointerEnter={() => setLit(true)}
+      onPointerLeave={() => setLit(false)}
+      onFocus={() => setLit(true)}
+      onBlur={() => setLit(false)}
+    >
+      <GrainField field={product.field} className="company-card__gradient" playing={lit} />
+      <h3 className="company-card__title">{product.title}</h3>
+      <p className="company-card__copy">{product.copy}</p>
+      <span className="company-card__cta">
+        {product.cta}
+        <ArrowRightAnim size={12} />
+      </span>
+    </a>
+  );
+}
+
 export function CompanyPage(): React.JSX.Element {
   return (
     <div className="h2-page">
@@ -151,7 +177,6 @@ export function CompanyPage(): React.JSX.Element {
           >
             <div className="h2-shell">
               <div className="h2-split-head">
-                <p className="h2-kicker">What we build</p>
                 <h2 id="company-products-title" className="h2-display">
                   Two products on one policy engine
                 </h2>
@@ -161,19 +186,7 @@ export function CompanyPage(): React.JSX.Element {
               </div>
               <div className="company-cards">
                 {products.map((product) => (
-                  <SiteLink
-                    key={product.title}
-                    to={product.to}
-                    external={false}
-                    className="company-card"
-                  >
-                    <h3 className="company-card__title">{product.title}</h3>
-                    <p className="company-card__copy">{product.copy}</p>
-                    <span className="company-card__cta">
-                      {product.cta}
-                      <ArrowRightAnim size={12} />
-                    </span>
-                  </SiteLink>
+                  <ProductCard key={product.title} product={product} />
                 ))}
               </div>
             </div>
@@ -185,19 +198,15 @@ export function CompanyPage(): React.JSX.Element {
           >
             <div className="h2-shell company-split">
               <div>
-                <p className="h2-kicker company-split__kicker">How we work</p>
                 <h2 id="company-principles-title" className="h2-display company-split__title">
                   Three rules behind every feature
                 </h2>
               </div>
               <ol className="company-principles">
                 {principles.map((principle) => (
-                  <li key={principle.label}>
-                    <span className="company-principles__label">{principle.label}</span>
-                    <div>
-                      <h3>{principle.title}</h3>
-                      <p>{principle.copy}</p>
-                    </div>
+                  <li key={principle.title}>
+                    <h3>{principle.title}</h3>
+                    <p>{principle.copy}</p>
                   </li>
                 ))}
               </ol>
@@ -210,7 +219,6 @@ export function CompanyPage(): React.JSX.Element {
           >
             <div className="h2-shell company-split">
               <div>
-                <p className="h2-kicker company-split__kicker">Company</p>
                 <h2 id="company-details-title" className="h2-display company-split__title">
                   Seams Technologies KK
                 </h2>

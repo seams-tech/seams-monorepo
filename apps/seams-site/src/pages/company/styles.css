@@ -3,7 +3,7 @@
 .company-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 22px;
 }
 
 /* cards break out of the shell inset while the column borders are visible */
@@ -13,20 +13,52 @@
   }
 }
 
+/* black cards, as on the pricing page: a ring with a gap, and a gradient on hover */
 .company-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-height: 220px;
   padding: 28px 28px 24px;
   border-radius: var(--h2-radius-card);
-  background: var(--h2-taupe);
-  transition: background 150ms ease;
+  background: var(--h2-ink);
+  color: #ffffff;
+  /* keeps white text readable on the light parts of the hover gradient */
+  text-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
+  outline: 2px solid rgba(10, 10, 10, 0.1);
+  outline-offset: 3px;
+}
+
+.company-card:focus-visible {
+  outline-color: var(--h2-ink);
+}
+
+/* the site's link hover colour must not tint the card's text */
+.company-card:hover {
+  color: #ffffff;
+}
+
+.company-card__gradient {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.company-card:focus-visible .company-card__gradient {
+  opacity: 1;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .company-card:hover {
-    background: var(--h2-stone);
+  .company-card:hover .company-card__gradient {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .company-card__gradient {
+    transition: none;
   }
 }
 
@@ -34,23 +66,24 @@
   margin: 0;
   font-size: 21.5px;
   font-weight: 500;
-  color: var(--h2-ink);
+  color: #ffffff;
 }
 
 .company-card__copy {
   margin: 0;
   font-size: 13.5px;
   line-height: 1.6;
-  color: var(--h2-smoke);
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .company-card__cta {
   display: inline-flex;
   align-items: center;
+  gap: 2px;
   margin-top: auto;
   font-size: var(--h2-text-base);
   font-weight: 600;
-  color: var(--h2-graphite);
+  color: #ffffff;
 }
 
 @media (max-width: 900px) {
@@ -70,10 +103,6 @@
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   gap: 28px 58px;
   align-items: start;
-}
-
-.company-split__kicker {
-  margin-bottom: 14px;
 }
 
 .company-split__title {
@@ -103,22 +132,12 @@
 }
 
 .company-principles li {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  gap: 12px;
   padding: 16px 2px;
   border-bottom: 1px dashed var(--h2-stone);
 }
 
 .company-principles li:first-child {
   border-top: 1px dashed var(--h2-stone);
-}
-
-.company-principles__label {
-  font-family: var(--h2-mono);
-  font-size: var(--h2-text-sm);
-  line-height: 1.9;
-  color: var(--h2-ash);
 }
 
 .company-principles h3 {

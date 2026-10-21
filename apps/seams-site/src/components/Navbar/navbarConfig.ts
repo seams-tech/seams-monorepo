@@ -114,10 +114,13 @@ const pricingDropdownPane: DropdownPane = {
       field: 'mauve-ember',
     },
   ],
-  footerLinks: [
-    { label: 'Compare plans', to: '/pricing/' },
-    { label: 'Estimate your price', to: '/pricing/#calculator' },
-  ],
+  highlight: {
+    title: 'Estimate your price',
+    description: 'Set your users and see the monthly total',
+    to: '/pricing/#calculator',
+    field: 'coral-tide',
+  },
+  footerLinks: [{ label: 'Compare plans', to: '/pricing/' }],
 };
 
 const aboutDropdownPane: DropdownPane = {

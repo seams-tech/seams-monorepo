@@ -13,7 +13,7 @@ day. Signatures above the allowance have a published price.
 
 | Plan       | Price                        | Users included | Signature allowance |
 | ---------- | ---------------------------- | -------------: | ------------------- |
-| Free       | $0                           |      Up to 600 | 60,000 / month      |
+| Free       | $0                           |      Up to 250 | 25,000 / month      |
 | Growth     | $99 / month                  |    Up to 5,000 | 300 per MAU, pooled |
 | Growth     | + $0.004 per MAU above 5,000 |              — | 300 per MAU, pooled |
 | Enterprise | Committed volume             |     Negotiated | Negotiated          |
@@ -39,8 +39,8 @@ keep that cost bounded:
 2. **One free organization per browser origin.** An app registers its browser
    origins on its publishable key. An origin can belong to only one free
    organization, so one app cannot split its users over several free plans.
-3. **A hard stop at the free limits until a card is on file.** At 600 MAU, new
-   sign-ups stop. At 60,000 signatures in a month, signing stops. With a card on
+3. **A hard stop at the free limits until a card is on file.** At 250 MAU, new
+   sign-ups stop. At 25,000 signatures in a month, signing stops. With a card on
    file, the organization moves to Growth.
 4. **An internal alert on the total free-plan cost.** Start with an alert at
    $500 a month of Cloudflare cost for all free organizations together.
@@ -49,20 +49,20 @@ Cost of one free organization each month:
 
 | Use                                    | Signatures / month | Our cost |
 | -------------------------------------- | -----------------: | -------: |
-| Full allowance: 600 users at 3 a day   |             60,000 |   ~$0.61 |
+| Full allowance: 250 users at 3 a day   |             25,000 |   ~$0.25 |
 | Typical small app: 50 users at 3 a day |              4,500 |   ~$0.05 |
 
 Cost of all free organizations each month:
 
 | Free organizations | All at the full allowance | 90% typical, 10% at the full allowance |
 | -----------------: | ------------------------: | -------------------------------------: |
-|                100 |                       $61 |                                   ~$11 |
-|              1,000 |                      $606 |                                  ~$106 |
-|             10,000 |                    $6,060 |                                ~$1,060 |
+|                100 |                       $25 |                                    ~$7 |
+|              1,000 |                      $253 |                                   ~$70 |
+|             10,000 |                    $2,525 |                                  ~$703 |
 
-The free allowance is 20% above Privy's free tier (499 MAU and 50,000
-signatures). This keeps the free plan ahead of Privy's at about one fifth of the
-cost of a 1,000-user, 300,000-signature allowance.
+The free allowance is half of Privy's free tier (499 MAU and 50,000
+signatures). It costs about one twelfth of the earlier allowance of 1,000 users
+and 300,000 signatures.
 
 During a stop, recovery and key export stay open, so no user loses access to
 funds. Both have rate limits. If we find abuse, we tighten those limits.
@@ -184,7 +184,7 @@ Every published Seams price is below the matching Dynamic price:
 
 | Item                 | Dynamic                  | Seams                      |
 | -------------------- | ------------------------ | -------------------------- |
-| Live app, few users  | $249 / month             | $0 up to 600 MAU           |
+| Live app, few users  | $249 / month             | $0 up to 250 MAU           |
 | Up to 5,000 MAU      | $249 / month             | $99 / month                |
 | Each MAU above 5,000 | $0.005                   | $0.004                     |
 | Heavy signing        | Rate limits, then custom | $0.05 per 1,000 signatures |

@@ -23,8 +23,8 @@ const plans: readonly Plan[] = [
     unit: 'per month',
     summary: 'For launches and small apps, in production.',
     features: [
-      'Up to 600 monthly active users',
-      '60,000 signatures a month',
+      'Up to 250 monthly active users',
+      '25,000 signatures a month',
       'Passkeys, Email OTP, and split-key wallets',
       'One free plan per organization',
     ],
@@ -121,7 +121,7 @@ export function PricingPage(): React.JSX.Element {
                 Free to start. Pay per active user.
               </h1>
               <p className="h2-hero-simple__sub">
-                The first 600 users are free. On Growth, every user includes 300 signatures a month,
+                The first 250 users are free. On Growth, every user includes 300 signatures a month,
                 so most apps never pay for signing.
               </p>
               <div className="h2-hero-simple__ctas">

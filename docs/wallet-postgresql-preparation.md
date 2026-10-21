@@ -36,5 +36,9 @@ The public migration note explains the PostgreSQL isolation and retry requiremen
 Keep Deriver A and B credentials, role stores, and secret access separate throughout that work.
 
 No private runtime behavior or dependency version changes in this preparation.
-No AWS resources or production data change.
+No production data change.
+On 2026-10-21 the unchanged role-store E2E also passed against a private Amazon RDS for PostgreSQL 18.6 instance.
+Its results equal the local run. The task-owned RDS instance and runner were deleted afterwards.
+See [the RDS evidence](../../seams-wallet/docs/evidence/postgres-role-store-rds-20261021.json).
+The Console and Gateway ports above remain the blockers for a move off D1.
 The Wallet repository stores verification evidence beside the migration note.

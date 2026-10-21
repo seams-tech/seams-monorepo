@@ -16,6 +16,7 @@ import { WalletPlacementConsoleBinding } from '../../walletPlacement/consoleBind
 import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/resourceVerification';
 import { ConsoleRegistrationHomeAdmission } from '../../walletPlacement/registrationAdmission';
 import { resumeGatewayRegistrationPublications } from '../../walletPlacement/registrationPublications';
+import { resumeGatewaySignatureCompletions } from '../../walletPlacement/signatureCompletions';
 import { resolveGatewayDeployment } from '../../walletPlacement/gatewaySession';
 import { regionForRegistrationIngress } from '../../walletPlacement/home';
 import type { CfExecutionContext, CfScheduledEvent } from '@seams/wallet-server/cloud-host';
@@ -285,28 +286,27 @@ async function scheduled(
     ...bindTenantDeploymentToRuntimeEnvironmentV1(env, binding),
     SIGNER_DB: database,
   };
-  const [prewarm, publications] = await Promise.allSettled([
+  const authority = new ConsoleRegistrationHomeAdmission({
+    service: env.WALLET_CONSOLE,
+    writer,
+    scope: binding.tenant,
+    environmentKey: binding.mode.environment === 'development' ? 'dev' : 'prod',
+    localResource: {
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    },
+    catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
+    // Reservation alone reads the ingress region; a resumed completion reserves nothing.
+    ingressRegion: 'US',
+  });
+  const [prewarm, publications, signatures] = await Promise.allSettled([
     runRouterAbPrewarmScheduledV1(event, boundEnv),
-    resumeGatewayRegistrationPublications({
-      database,
-      binding,
-      authority: new ConsoleRegistrationHomeAdmission({
-        service: env.WALLET_CONSOLE,
-        writer,
-        scope: binding.tenant,
-        environmentKey: binding.mode.environment === 'development' ? 'dev' : 'prod',
-        localResource: {
-          accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
-          databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
-        },
-        catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
-        // Reservation alone reads the ingress region; a resumed completion reserves nothing.
-        ingressRegion: 'US',
-      }),
-    }),
+    resumeGatewayRegistrationPublications({ database, binding, authority }),
+    resumeGatewaySignatureCompletions({ database, binding, authority }),
   ]);
   if (prewarm.status === 'rejected') throw prewarm.reason;
   if (publications.status === 'rejected') throw publications.reason;
+  if (signatures.status === 'rejected') throw signatures.reason;
 }
 
 async function fetch(

@@ -1,3 +1,4 @@
+import { createWalletProductionSignatureStatement } from '../billing/usage';
 import { DeploymentFencedDatabase } from '../tenantDeployment/fencedDatabase';
 import { authorizePresignSource, authorizePresignTransfer, parsePresignSourceRequest, parsePresignTransferRequest, recordPresignSnapshot } from './presignRelocationCommand';
 import { authorizeEcdsaTransfer, parseEcdsaTransferRequest, recordEcdsaActivation, recordEcdsaSnapshot } from './ecdsaRelocationReceipt';
@@ -80,6 +81,27 @@ function selectedRegion(raw: unknown): WalletRegion {
   return raw;
 }
 
+/** At most 100 completed signatures, each named by its signing operation. */
+function productionSignatures(
+  raw: unknown,
+): { readonly signatureId: string; readonly completedAtMs: number }[] {
+  if (!Array.isArray(raw) || raw.length > 100) {
+    throw new WalletPlacementError('invalid_input', 'Production signatures are invalid');
+  }
+  return raw.map((entry) => {
+    const value = record(entry);
+    const completedAtMs = value.completedAtMs;
+    if (
+      typeof completedAtMs !== 'number' ||
+      !Number.isSafeInteger(completedAtMs) ||
+      completedAtMs <= 0
+    ) {
+      throw new WalletPlacementError('invalid_input', 'Signature completion time is invalid');
+    }
+    return { signatureId: requiredString(value.signatureId, 'signatureId'), completedAtMs };
+  });
+}
+
 function requiredString(raw: unknown, name: string): string {
   if (typeof raw !== 'string') {
     throw new WalletPlacementError('invalid_input', `${name} is required`);
@@ -151,13 +173,30 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/registration-home` &&
-    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve`
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/production-signatures`
   ) {
     return json({ ok: false, code: 'not_found' }, 404);
   }
   if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
   try {
     const body = record(await request.json().catch(() => null));
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/production-signatures`) {
+      const signatures = productionSignatures(body.signatures);
+      if (signatures.length > 0) {
+        await options.database.batch(
+          signatures.map((signature) =>
+            createWalletProductionSignatureStatement({
+              database: options.database,
+              deploymentId: options.deploymentLane,
+              tenant: options.scope,
+              ...signature,
+            }),
+          ),
+        );
+      }
+      return json({ ok: true, recorded: signatures.length });
+    }
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status`) {
       const locator = WalletRelocationLocator.parse(body);
       if (!inScope(locator.wallet, options.scope)) {

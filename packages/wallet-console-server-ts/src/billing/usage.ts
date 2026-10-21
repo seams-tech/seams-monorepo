@@ -164,6 +164,62 @@ export function createWalletProductionActivityStatement(input: {
     );
 }
 
+/**
+ * One fact for a signature that a production Gateway reported as completed. The fact
+ * key is the signing operation, so a repeated delivery writes nothing. A deployment
+ * whose environment is not prod writes nothing.
+ */
+export function createWalletProductionSignatureStatement(input: {
+  readonly database: D1DatabaseLike;
+  readonly deploymentId: string;
+  readonly tenant: {
+    readonly namespace: string;
+    readonly organizationId: string;
+    readonly projectId: string;
+    readonly environmentId: string;
+  };
+  readonly signatureId: string;
+  readonly completedAtMs: number;
+}) {
+  const tenant = input.tenant;
+  const eventId = JSON.stringify([
+    'wallet_production_signature',
+    input.deploymentId,
+    tenant.organizationId,
+    tenant.environmentId,
+    input.signatureId,
+  ]);
+  return input.database
+    .prepare(
+      `INSERT INTO wallet_monthly_usage_outbox
+        (namespace, deployment_id, event_id, native_org_id, source_record_id, instance_id,
+          payload_json, delivery_status)
+       SELECT ?1, b.deployment_id, ?6, ?2, ?7, b.instance_id,
+         json_object('version', 1, 'kind', 'plan_usage', 'eventId', ?6,
+           'instanceId', b.instance_id, 'occurredAt', ?8,
+           'measure', json_object('kind', 'production_signature', 'environmentId', ?4,
+             'signatureId', ?9)),
+         'pending'
+       FROM wallet_service_bindings b
+       JOIN environments e ON e.namespace = b.native_namespace AND e.org_id = b.native_org_id
+         AND e.project_id = b.native_project_id AND e.id = ?4
+       WHERE b.native_namespace = ?1 AND b.native_org_id = ?2 AND b.native_project_id = ?3
+         AND b.deployment_id = ?5 AND e.env_key = 'prod'
+       ON CONFLICT DO NOTHING`,
+    )
+    .bind(
+      tenant.namespace,
+      tenant.organizationId,
+      tenant.projectId,
+      tenant.environmentId,
+      input.deploymentId,
+      eventId,
+      `production_signature:${input.signatureId}`,
+      new Date(input.completedAtMs).toISOString(),
+      input.signatureId,
+    );
+}
+
 type WalletOutboxEvent =
   | { readonly kind: 'usage'; readonly event: PlatformUsageEventV1 }
   | { readonly kind: 'plan_usage'; readonly event: PlatformPlanUsageEventV1 };

@@ -259,6 +259,16 @@ export class WalletHomeServiceClient
     return { kind: 'regional' as const, region: home.region };
   }
 
+  /** Reports completed production signatures; the Console counts each one once. */
+  async publishSignatures(
+    signatures: readonly { readonly signatureId: string; readonly completedAtMs: number }[],
+  ): Promise<void> {
+    const response = await this.post('production-signatures', { signatures });
+    if (response.status !== 200 || record(response.body).ok !== true) {
+      throw new Error(`Production signature delivery failed: HTTP ${response.status}`);
+    }
+  }
+
   private async post(path: string, body: unknown): Promise<{ status: number; body: unknown }> {
     const response = await this.service.fetch(
       new Request(`${WALLET_HOME_SERVICE_ORIGIN}${WALLET_HOME_SERVICE_BASE_PATH}/${path}`, {

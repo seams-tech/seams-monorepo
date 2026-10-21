@@ -82,6 +82,12 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
     return this.client().publishLifecycle(input);
   }
 
+  async publishSignatures(
+    signatures: Parameters<WalletHomeServiceClient['publishSignatures']>[0],
+  ): Promise<void> {
+    await this.client().publishSignatures(signatures);
+  }
+
   async publishRecovery(input: WalletRecoveryRoutingPublication) {
     return this.client().publishRecovery(input);
   }

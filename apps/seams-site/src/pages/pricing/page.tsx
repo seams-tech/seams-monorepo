@@ -118,24 +118,30 @@ function BannerPlanCard({ plan }: { plan: Plan }): React.JSX.Element {
 /* Closing call to action: the SDK pitch with one card per plan. */
 function PlanBanner(): React.JSX.Element {
   return (
-    <section className="h2-cta h2-cta--banner h2-rule" aria-labelledby="pricing-banner-title">
-      <div className="h2-shell h2-cta__banner pricing-banner">
-        <GrainField field="teal-peach" flow={1.6} />
-        <div>
-          <h2 id="pricing-banner-title" className="h2-display h2-cta__title">
-            Build with the Seams SDK
-          </h2>
-          <p className="h2-cta__sub">
-            Passkey sign-in, split-key wallets, and account recovery. Pick a plan to start.
-          </p>
+    <>
+      <section className="h2-cta h2-cta--banner h2-rule" aria-labelledby="pricing-banner-title">
+        <div className="h2-shell h2-cta__banner">
+          <GrainField field="teal-peach" flow={1.6} />
+          <div>
+            <h2 id="pricing-banner-title" className="h2-display h2-cta__title">
+              Build with the Seams SDK
+            </h2>
+            <p className="h2-cta__sub">
+              Passkey sign-in, split-key wallets, and account recovery. Pick a plan to start.
+            </p>
+          </div>
         </div>
-        <div className="pricing-banner__cards">
-          {plans.map((plan) => (
-            <BannerPlanCard key={plan.id} plan={plan} />
-          ))}
+      </section>
+      <section className="h2-section h2-section--compact h2-rule" aria-label="Start with a plan">
+        <div className="h2-shell">
+          <div className="pricing-banner__cards">
+            {plans.map((plan) => (
+              <BannerPlanCard key={plan.id} plan={plan} />
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 

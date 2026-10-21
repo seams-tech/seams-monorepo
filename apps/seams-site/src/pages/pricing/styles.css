@@ -529,16 +529,17 @@
 
 /* ---------- closing banner: the SDK pitch with one card per plan ---------- */
 
-.h2-cta__banner.pricing-banner {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 28px;
-}
-
 .pricing-banner__cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 22px;
+}
+
+/* line up with the plan cards at the top of the page */
+@media (min-width: 1161px) {
+  .pricing-banner__cards {
+    margin: 0 -22px;
+  }
 }
 
 .pricing-banner__card {
@@ -559,9 +560,9 @@
   text-shadow: var(--pricing-banner-shadow);
 }
 
-/* a ring outside the card, with a gap that shows the banner gradient */
+/* a ring outside the card, with a gap, as on the plan cards above */
 .pricing-banner__card {
-  outline: 2px solid rgba(255, 255, 255, 0.24);
+  outline: 2px solid rgba(10, 10, 10, 0.1);
   outline-offset: 3px;
   box-shadow:
     0 1px 2px rgba(10, 10, 10, 0.3),
@@ -569,7 +570,7 @@
 }
 
 .pricing-banner__card:focus-visible {
-  outline-color: #ffffff;
+  outline-color: var(--h2-ink);
 }
 
 /* the site's link hover colour must not tint the card's text */

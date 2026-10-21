@@ -1301,11 +1301,6 @@ function deriveX25519PublicKey(privateKeyHex) {
 
 function deploySigningWorker(lane) {
   const resource = lane.resources.signingWorker;
-  putWorkerSecret(resource, 'ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET');
-  putWorkerSecret(resource, 'ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET');
-  putWorkerSecret(resource, 'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET');
-  putWorkerSecret(resource, 'SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY');
-  putWorkerSecret(resource, 'SIGNING_WORKER_PRIVATE_D1_KEK');
   const configPath = renderPrivateD1WorkerConfig(lane, resource, 'signing-worker');
   migratePrivateD1(resource, configPath, 'signing-worker');
   const args = workerDeployArguments(resource, configPath);
@@ -1319,24 +1314,13 @@ function deploySigningWorker(lane) {
     '--var',
     `SIGNING_WORKER_PRIVATE_D1_ENVIRONMENT:${lane.id}`,
   );
-  runRouterCommand(args);
+  deployWorkerWithSecrets(lane, 'signing-worker', args);
 }
 
 function deployDeriver(lane, role) {
   const resource = role === 'a' ? lane.resources.deriverA : lane.resources.deriverB;
   const prefix = role === 'a' ? 'DERIVER_A' : 'DERIVER_B';
   const managedBackup = tenantRootManagedBackupConfig(lane, role);
-  putWorkerSecret(resource, 'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET');
-  putWorkerSecret(resource, `${prefix}_ENVELOPE_HPKE_PRIVATE_KEY`);
-  putWorkerSecret(resource, `${prefix}_ROLE_PRIVATE_D1_KEK`);
-  putWorkerSecret(resource, `${prefix}_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY`);
-  putWorkerSecret(
-    resource,
-    managedBackup.kind === 'hpke'
-      ? managedBackup.privateSecretName
-      : managedBackup.credentialsSecretName,
-  );
-  putWorkerSecret(resource, `${prefix}_TENANT_ROOT_CREATION_SIGNING_KEY`);
   const component = `deriver-${role}`;
   const configPath = renderPrivateD1WorkerConfig(lane, resource, component);
   migratePrivateD1(resource, configPath, component);
@@ -1388,7 +1372,7 @@ function deployDeriver(lane, role) {
       `${prefix}_TENANT_ROOT_RECOVERY_KMS_KEY_RING:${requireEnvironmentValue(`${prefix}_TENANT_ROOT_RECOVERY_KMS_KEY_RING`)}`,
     );
   }
-  runRouterCommand(args);
+  deployWorkerWithSecrets(lane, component, args);
 }
 
 function deployTenantRootControlPlane(lane) {
@@ -1397,8 +1381,6 @@ function deployTenantRootControlPlane(lane) {
   // Object binding resolves immediately; it deploys BEFORE the Router so the
   // Router's service binding to it resolves on the Router's next deploy.
   const resource = lane.resources.tenantRootControlPlane;
-  putWorkerSecret(resource, 'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET');
-  putWorkerSecret(resource, 'TENANT_ROOT_CONTROL_PLANE_ISSUER_SIGNING_KEY');
   const args = workerDeployArguments(resource);
   args.push(
     '--var',
@@ -1424,14 +1406,11 @@ function deployTenantRootControlPlane(lane) {
       args.push('--var', `${name}:${requireEnvironmentValue(name)}`);
     }
   }
-  runRouterCommand(args);
+  deployWorkerWithSecrets(lane, 'tenant-root-control-plane', args);
 }
 
 function deployMpcRouter(lane) {
   const resource = lane.resources.router;
-  putWorkerSecret(resource, 'ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET');
-  putWorkerSecret(resource, 'ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET');
-  putWorkerSecret(resource, 'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET');
   const args = workerDeployArguments(resource);
   args.push(
     '--var',
@@ -1459,7 +1438,7 @@ function deployMpcRouter(lane) {
       `ROUTER_PROJECT_POLICY_BOOTSTRAP_JSON:${requireEnvironmentValue('ROUTER_AB_PROJECT_POLICY_BOOTSTRAP_JSON')}`,
     );
   }
-  runRouterCommand(args);
+  deployWorkerWithSecrets(lane, 'router', args);
 }
 
 function consoleConfigPath(laneId) {
@@ -1763,16 +1742,19 @@ function walletServerMigration(name) {
   return migration;
 }
 
-function putWorkerSecret(resource, name) {
-  const args = ['exec', 'wrangler', 'secret', 'put', name, '--config', routerConfigPath(resource)];
-  if (resource.deploymentEnvironment.kind === 'named') {
-    args.push('--env', resource.deploymentEnvironment.name);
+function deployWorkerWithSecrets(lane, component, args) {
+  const secrets = {};
+  for (const name of componentSecretNames(lane, component)) {
+    secrets[name] = requireEnvironmentValue(name);
   }
-  runCommandWithInput('pnpm', args, requireEnvironmentValue(name), { cwd: ROUTER_ROOT });
-}
-
-function runRouterCommand(args) {
-  runCommand('pnpm', args, { cwd: ROUTER_ROOT });
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'seams-worker-secrets-'));
+  const secretsPath = path.join(directory, 'secrets.json');
+  try {
+    fs.writeFileSync(secretsPath, `${JSON.stringify(secrets)}\n`, { mode: 0o600 });
+    runCommand('pnpm', [...args, '--secrets-file', secretsPath], { cwd: ROUTER_ROOT });
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
 }
 
 async function smokeBackend(lane, component) {
@@ -1886,19 +1868,6 @@ function runCommand(command, args, options = {}) {
     env: options.env || process.env,
     encoding: 'utf8',
     stdio: 'inherit',
-  });
-  if (child.error) throw child.error;
-  if (child.status !== 0)
-    throw new Error(`${command} ${args.join(' ')} failed with status ${child.status}`);
-}
-
-function runCommandWithInput(command, args, input, options = {}) {
-  const child = spawnSync(command, args, {
-    cwd: options.cwd || REPOSITORY_ROOT,
-    env: options.env || process.env,
-    encoding: 'utf8',
-    input: `${input}\n`,
-    stdio: ['pipe', 'inherit', 'inherit'],
   });
   if (child.error) throw child.error;
   if (child.status !== 0)

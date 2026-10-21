@@ -48,6 +48,14 @@ screenshots, and a trace go to `.artifacts/transaction-details-jank/`.
 
 ## Public site navigation
 
+Pricing plan links select the card named by the URL fragment. Each card has a
+distinct grain gradient. Hover and keyboard focus reveal a card's gradient while
+the selected plan remains highlighted. The Growth card is highlighted by default.
+Reduced-motion mode removes the fade, and touch input does not produce hover states.
+Run `node tests/e2e/pricing-plan-highlights.e2e.mjs` to check selection, all three
+palettes, hover, keyboard focus, refresh, history, and touch. Screenshots and a trace
+go to `output/playwright/pricing-plan-highlights/` with `result.json`.
+
 The wallet marketing app owns the wallet page. Pricing, company, and contact pages
 belong to the company site. Wallet links use document navigation and the configured
 company origin. Deployed wallet hosts redirect existing pricing and company URLs

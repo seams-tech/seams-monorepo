@@ -1,5 +1,5 @@
 import React from 'react';
-import { GrainField } from '@seams-internal/grain-field';
+import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { H2Faq, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
@@ -7,8 +7,11 @@ import { EnterpriseCalculator } from './EnterpriseCalculator';
 import '@/styles/h2.css';
 import './styles.css';
 
+type PlanId = 'free' | 'growth' | 'enterprise';
+
 type Plan = {
-  id: string;
+  id: PlanId;
+  field: GrainFieldName;
   name: string;
   price: string;
   unit: string;
@@ -20,6 +23,7 @@ type Plan = {
 const plans: readonly Plan[] = [
   {
     id: 'free',
+    field: 'sky-sand',
     name: 'Free',
     price: '$0',
     unit: 'per month',
@@ -35,6 +39,7 @@ const plans: readonly Plan[] = [
   },
   {
     id: 'growth',
+    field: 'azure-coral',
     name: 'Growth',
     price: '$99',
     unit: 'per month',
@@ -49,6 +54,7 @@ const plans: readonly Plan[] = [
   },
   {
     id: 'enterprise',
+    field: 'mauve-ember',
     name: 'Enterprise',
     price: 'Custom',
     unit: 'committed volume',
@@ -71,17 +77,17 @@ const examples: readonly { users: string; price: string }[] = [
   { users: '1,000,000', price: '$4,079' },
 ];
 
-function PlanCard({ plan }: { plan: Plan }): React.JSX.Element {
+function PlanCard({ plan, selected }: { plan: Plan; selected: boolean }): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const ctaProps = linkProps(plan.cta.to);
 
   return (
     <article
       id={plan.id}
-      className={plan.cta.primary ? 'pricing-plan pricing-plan--featured' : 'pricing-plan'}
+      className={selected ? 'pricing-plan pricing-plan--selected' : 'pricing-plan'}
       aria-labelledby={`pricing-plan-${plan.id}`}
     >
-      {plan.cta.primary ? <GrainField field="teal-peach" /> : null}
+      <GrainField field={plan.field} className="pricing-plan__gradient" />
       <h3 id={`pricing-plan-${plan.id}`} className="pricing-plan__name">
         {plan.name}
       </h3>
@@ -115,20 +121,41 @@ function scrollToPricingAnchor(): void {
   if (id) document.getElementById(id)?.scrollIntoView();
 }
 
-function stopPricingAnchorScroll(): void {
-  window.removeEventListener('site:navigate', scrollToPricingAnchor);
-  window.removeEventListener('popstate', scrollToPricingAnchor);
+function readSelectedPlanId(): PlanId {
+  switch (window.location.hash) {
+    case '#free':
+      return 'free';
+    case '#enterprise':
+      return 'enterprise';
+    default:
+      return 'growth';
+  }
+}
+
+function unsubscribeFromPricingNavigation(listener: () => void): void {
+  window.removeEventListener('site:navigate', listener);
+  window.removeEventListener('popstate', listener);
+  window.removeEventListener('hashchange', listener);
+}
+
+function subscribeToPricingNavigation(listener: () => void): () => void {
+  window.addEventListener('site:navigate', listener);
+  window.addEventListener('popstate', listener);
+  window.addEventListener('hashchange', listener);
+  return unsubscribeFromPricingNavigation.bind(null, listener);
 }
 
 function startPricingAnchorScroll(): () => void {
   scrollToPricingAnchor();
-  window.addEventListener('site:navigate', scrollToPricingAnchor);
-  window.addEventListener('popstate', scrollToPricingAnchor);
-  return stopPricingAnchorScroll;
+  return subscribeToPricingNavigation(scrollToPricingAnchor);
 }
 
 export function PricingPage(): React.JSX.Element {
   React.useEffect(startPricingAnchorScroll, []);
+  const selectedPlanId = React.useSyncExternalStore(
+    subscribeToPricingNavigation,
+    readSelectedPlanId,
+  );
   const { linkProps } = useSiteRouter();
   const startProps = linkProps('/docs/concepts/');
   const contactProps = linkProps('/contact/');
@@ -219,7 +246,7 @@ export function PricingPage(): React.JSX.Element {
               </div>
               <div className="pricing-plans">
                 {plans.map((plan) => (
-                  <PlanCard key={plan.id} plan={plan} />
+                  <PlanCard key={plan.id} plan={plan} selected={plan.id === selectedPlanId} />
                 ))}
               </div>
               <p className="pricing-note">

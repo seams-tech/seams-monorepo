@@ -1,7 +1,7 @@
 /* ---------- hero: plain and short, like the pricing page ---------- */
 
 .h2-hero-simple.company-hero {
-  padding: calc(144px + 1rem) 0 calc(32px + 1rem);
+  padding: calc(144px + 2rem) 0 calc(32px + 2rem);
 }
 
 /* line the text up with the section content below, not the column edge */
@@ -20,7 +20,7 @@
 
 @media (max-width: 900px) {
   .h2-hero-simple.company-hero {
-    padding: calc(120px + 1rem) 0 calc(28px + 1rem);
+    padding: calc(120px + 2rem) 0 calc(28px + 2rem);
   }
 }
 

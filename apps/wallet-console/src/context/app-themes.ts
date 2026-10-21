@@ -16,13 +16,14 @@ const CONTAINED_SHADOW_DARK =
 // ============================================================================
 
 // "Paper" — the ElevenLabs style: eggshell paper, ink buttons, warm
-// taupe/stone neutrals, and soft blue accents for focused details.
+// taupe/stone neutrals, and the teal of the teal-peach gradient for accents
+// and focus.
 export const PAPER_LIGHT_COLORS: Record<string, string> = {
-  primary: '#2f9a76',
-  primaryHover: '#157f5f',
+  primary: '#00769f',
+  primaryHover: '#005f80',
   secondary: '#44403b',
   secondaryHover: '#000000',
-  accent: '#2f9a76',
+  accent: '#00769f',
 
   textPrimary: '#000000',
   textSecondary: '#777169',
@@ -51,23 +52,25 @@ export const PAPER_LIGHT_COLORS: Record<string, string> = {
 
   hover: '#f5f3f1',
   active: '#ebe8e4',
-  focus: '#000000',
+  focus: '#0082af',
+  // teal-peach, deepened so every stop keeps 3:1 against the white field
+  focusGradient: 'linear-gradient(90deg, #0082af 0%, #7a82ab 55%, #b9798a 100%)',
 
   success: '#157f5f',
   warning: '#b45309',
   error: '#ff4704',
-  info: '#2f9a76',
+  info: '#00769f',
 
   borderPrimary: '#ebe8e4',
   borderSecondary: '#e5e5e5',
   borderHover: '#d6d1cb',
 
-  highlightPrimary: '#2f9a76',
-  highlightRow: 'rgba(47, 154, 118, 0.12)',
-  highlightHalo: '#c3e5d7',
+  highlightPrimary: '#00769f',
+  highlightRow: 'rgba(0, 130, 175, 0.12)',
+  highlightHalo: '#bfe0ec',
   // one accent in the tx tree: the receiver/contract address. Method names
   // and amounts read in ink (ElevenLabs accent discipline).
-  highlightReceiver: '#157f5f',
+  highlightReceiver: '#005f80',
   highlightMethodName: '#000000',
   highlightAmount: '#000000',
 };

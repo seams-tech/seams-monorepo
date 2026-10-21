@@ -35,14 +35,15 @@ html:has(.contact-modal[open]) {
 
 .contact-modal__panel {
   position: relative;
-  padding: 32px var(--contact-modal-padding) var(--contact-modal-padding);
+  /* more room at the top than the sides, so the heading clears the round corner */
+  padding: 46px var(--contact-modal-padding) var(--contact-modal-padding);
 }
 
 .contact-modal__close {
   position: absolute;
-  /* inside the rounded corner, not on its curve */
-  top: 22px;
-  right: 22px;
+  /* inside the rounded corner, in line with the heading */
+  top: 45px;
+  right: 30px;
   display: grid;
   place-items: center;
   width: 36px;
@@ -166,7 +167,12 @@ html:has(.contact-modal[open]) {
   }
 
   .contact-modal__panel {
-    padding-top: 24px;
+    padding-top: 34px;
+  }
+
+  .contact-modal__close {
+    top: 28px;
+    right: 18px;
   }
 
   .contact-form__row {

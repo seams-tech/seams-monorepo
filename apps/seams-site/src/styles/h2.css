@@ -364,6 +364,15 @@ body:has(.h2-page) {
   padding: 64px 0 14px;
 }
 
+/* variant for short pages that stack many sections */
+.h2-section--compact {
+  padding: 56px 0;
+}
+
+.h2-section--compact .h2-split-head {
+  margin-bottom: 28px;
+}
+
 /* variant for sections whose last row carries its own bottom spacing */
 .h2-section--flush-bottom {
   padding-bottom: 0;
@@ -515,6 +524,22 @@ body:has(.h2-page) {
 
   .h2-hero-simple--sage > .h2-shell {
     padding: 76px 28px 54px;
+  }
+}
+
+/* Grain variant: the sage panel's layout on a moving GrainField, which the
+   page renders as the shell's first child. A shorter panel than the home hero. */
+.h2-hero-simple--sage.h2-hero-simple--grain > .h2-shell {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--h2-ink);
+  padding: 6rem 56px 40px;
+}
+
+@media (max-width: 900px) {
+  .h2-hero-simple--sage.h2-hero-simple--grain > .h2-shell {
+    padding: 76px 28px 40px;
   }
 }
 

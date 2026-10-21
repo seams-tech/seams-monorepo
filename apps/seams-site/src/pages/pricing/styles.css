@@ -1,29 +1,3 @@
-/* ---------- hero: the sage panel's layout on a Wallet grain field ---------- */
-
-.h2-hero-simple--sage.pricing-hero > .h2-shell {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  background: var(--h2-ink);
-  padding: 6rem 56px 40px;
-}
-
-@media (max-width: 900px) {
-  .h2-hero-simple--sage.pricing-hero > .h2-shell {
-    padding: 76px 28px 40px;
-  }
-}
-
-/* ---------- compact sections ---------- */
-
-.h2-section.pricing-section {
-  padding: 56px 0;
-}
-
-.h2-section.pricing-section .h2-split-head {
-  margin-bottom: 28px;
-}
-
 /* ---------- plan cards: taupe panels, like the frontpage duo ---------- */
 
 .pricing-plans {

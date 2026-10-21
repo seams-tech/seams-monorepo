@@ -138,7 +138,7 @@ export function PricingPage(): React.JSX.Element {
       <NavbarCompact appearance="light" />
       <div className="h2-col">
         <main aria-labelledby="pricing-title">
-          <header className="h2-hero-simple h2-hero-simple--sage pricing-hero">
+          <header className="h2-hero-simple h2-hero-simple--sage h2-hero-simple--grain">
             <div className="h2-shell">
               <GrainField field="teal-peach" flow={1.6} />
               <h1 id="pricing-title" className="h2-display h2-hero-simple__title">
@@ -168,7 +168,7 @@ export function PricingPage(): React.JSX.Element {
           </header>
 
           <section
-            className="h2-section h2-rule pricing-section"
+            className="h2-section h2-section--compact h2-rule"
             aria-labelledby="pricing-example-title"
           >
             <div className="h2-shell pricing-example-layout">
@@ -202,7 +202,7 @@ export function PricingPage(): React.JSX.Element {
           </section>
 
           <section
-            className="h2-section h2-rule pricing-section"
+            className="h2-section h2-section--compact h2-rule"
             aria-labelledby="pricing-plans-title"
           >
             <div className="h2-shell">

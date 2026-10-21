@@ -1,4 +1,5 @@
 import React from 'react';
+import { GrainField } from '@seams-internal/grain-field';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { H2Footer } from '@/components/h2/sections';
@@ -6,232 +7,230 @@ import { useSiteRouter } from '@/app/router/useSiteRouter';
 import '@/styles/h2.css';
 import './styles.css';
 
-type CompanyFocus = {
+type Product = {
   title: string;
   copy: string;
+  to: string;
+  cta: string;
 };
 
-type CompanyPrinciple = {
+type Principle = {
   label: string;
   title: string;
   copy: string;
 };
 
-type CompanyResource = {
+type CompanyLink = {
   title: string;
   copy: string;
-  href: string;
+  to: string;
   external: boolean;
 };
 
-const focusAreas: CompanyFocus[] = [
+const products: readonly Product[] = [
   {
-    title: 'Policy-bound wallets',
-    copy: 'Passkey-secured embedded wallets with recovery, session controls, and user-owned signing boundaries.',
+    title: 'Embedded Wallet',
+    copy: 'Non-custodial wallets that open with a passkey. Keys are split between the user’s device and your infrastructure, so neither side can sign alone.',
+    to: '/wallet',
+    cta: 'Explore Embedded Wallet',
   },
   {
-    title: 'Threshold signing',
-    copy: 'Router A/B, split key material, and hardened signing sessions built for production custody models.',
+    title: 'Ecommerce Agents',
+    copy: 'Scoped credentials for AI agents and staff, with limits, approvals, and an audit trail on every action.',
+    to: '/ecommerce',
+    cta: 'Explore Ecommerce Agents',
   },
   {
-    title: 'Agent credentials',
-    copy: 'Mandates, permissions, and delegated access for teams and AI agents acting on commerce accounts.',
+    title: 'Policy and audit',
+    copy: 'Approvals, budgets, and revocation run before anything is signed. Each decision is logged with who acted and why.',
+    to: '/docs/concepts/policy/mandates',
+    cta: 'Read about policy',
   },
 ];
 
-const principles: CompanyPrinciple[] = [
+const principles: readonly Principle[] = [
   {
     label: '01',
-    title: 'Custody must be explicit',
-    copy: 'Users, apps, devices, relayers, and agents each get a precise role in the signing path.',
+    title: 'Users keep their keys',
+    copy: 'No single party can sign alone. Exporting a key needs fresh approval from its owner.',
   },
   {
     label: '02',
-    title: 'Policy runs before execution',
-    copy: 'Limits, approvals, origin checks, and session state are evaluated before any credential can act.',
+    title: 'Policy runs first',
+    copy: 'Limits, approvals, and session checks run before any credential can act.',
   },
   {
     label: '03',
-    title: 'Developer surfaces stay small',
-    copy: 'The SDK exposes high-leverage primitives without making teams rebuild key infrastructure.',
+    title: 'One small SDK',
+    copy: 'Sign-in, wallets, and delegated access come from one SDK, so teams do not rebuild key infrastructure.',
   },
 ];
 
-const resources: CompanyResource[] = [
+const links: readonly CompanyLink[] = [
+  { title: 'Contact', copy: 'Talk to the team', to: '/contact/', external: false },
   {
-    title: 'Architecture',
-    copy: 'Read the custody and runtime model.',
-    href: '/docs/concepts/architecture',
-    external: false,
-  },
-  {
-    title: 'Overview',
-    copy: 'Start with the Seams concepts.',
-    href: '/docs/concepts/',
+    title: 'Documentation',
+    copy: 'Concepts, guides, and the SDK reference',
+    to: '/docs/concepts/',
     external: false,
   },
   {
     title: 'GitHub',
-    copy: 'Browse the open-source repository.',
-    href: 'https://github.com/web3-authn/seams',
+    copy: 'Our open-source repositories',
+    to: 'https://github.com/seams-tech',
     external: true,
   },
+  { title: 'X', copy: 'News and releases', to: 'https://x.com/lowerarchy', external: true },
 ];
 
-type InternalAnchorProps = {
+function SiteLink({
+  to,
+  external,
+  className,
+  children,
+}: {
   to: string;
+  external: boolean;
   className: string;
   children: React.ReactNode;
-};
-
-function InternalAnchor(props: InternalAnchorProps): React.JSX.Element {
+}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
-  const anchorProps = linkProps(props.to);
-
-  return (
-    <a className={props.className} href={anchorProps.href} onClick={anchorProps.onClick}>
-      {props.children}
-    </a>
-  );
-}
-
-function renderFocusArea(area: CompanyFocus): React.JSX.Element {
-  return (
-    <article className="company-focus-card" key={area.title}>
-      <h2>{area.title}</h2>
-      <p>{area.copy}</p>
-    </article>
-  );
-}
-
-function renderPrinciple(principle: CompanyPrinciple): React.JSX.Element {
-  return (
-    <article className="company-principle" key={principle.label}>
-      <span>{principle.label}</span>
-      <div>
-        <h3>{principle.title}</h3>
-        <p>{principle.copy}</p>
-      </div>
-    </article>
-  );
-}
-
-function renderResource(resource: CompanyResource): React.JSX.Element {
-  if (resource.external) {
+  if (external) {
     return (
-      <a
-        className="company-resource"
-        href={resource.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        key={resource.title}
-      >
-        <span>
-          <strong>{resource.title}</strong>
-          <small>{resource.copy}</small>
-        </span>
-        <ArrowRightAnim size={13} />
+      <a className={className} href={to} target="_blank" rel="noopener noreferrer">
+        {children}
       </a>
     );
   }
-
+  const props = linkProps(to);
   return (
-    <InternalAnchor className="company-resource" to={resource.href} key={resource.title}>
-      <span>
-        <strong>{resource.title}</strong>
-        <small>{resource.copy}</small>
-      </span>
-      <ArrowRightAnim size={13} />
-    </InternalAnchor>
+    <a className={className} href={props.href} onClick={props.onClick}>
+      {children}
+    </a>
   );
 }
 
 export function CompanyPage(): React.JSX.Element {
   return (
-    <div className="h2-page company-page">
-      <NavbarCompact />
+    <div className="h2-page">
+      <NavbarCompact appearance="light" />
       <div className="h2-col">
-        <main className="company-main" aria-labelledby="company-page-title">
-          <header className="company-hero h2-rule">
-            <div className="h2-shell company-hero__inner">
-              <p className="h2-kicker">Seams · Tokyo</p>
-              <h1 id="company-page-title" className="h2-display company-hero__title">
-                Seams
+        <main aria-labelledby="company-title">
+          <header className="h2-hero-simple h2-hero-simple--sage h2-hero-simple--grain">
+            <div className="h2-shell">
+              <GrainField field="sky-sand" flow={1.6} />
+              <h1 id="company-title" className="h2-display h2-hero-simple__title">
+                We build the account layer for commerce.
               </h1>
-              <p className="company-hero__copy">
-                Developer-first account infrastructure for people, teams, and AI agents. We build
-                secure wallet, credential, and policy systems with explicit custody boundaries.
+              <p className="h2-hero-simple__sub">
+                Seams makes passkey wallets for users and scoped credentials for AI agents. Policy
+                checks every action before it runs.
               </p>
-              <div className="company-hero__ctas">
-                <InternalAnchor className="h2-btn h2-btn--primary h2-btn--lg" to="/docs/concepts/">
-                  Start building
-                </InternalAnchor>
-                <InternalAnchor className="h2-btn h2-btn--outline h2-btn--lg" to="/contact/">
-                  Contact sales
-                </InternalAnchor>
+              <div className="h2-hero-simple__ctas">
+                <SiteLink
+                  to="/contact/"
+                  external={false}
+                  className="h2-btn h2-btn--primary h2-btn--lg"
+                >
+                  Contact us
+                </SiteLink>
+                <SiteLink
+                  to="/docs/concepts/"
+                  external={false}
+                  className="h2-btn h2-btn--outline h2-btn--lg"
+                >
+                  Read the docs
+                </SiteLink>
               </div>
             </div>
           </header>
 
-          <section className="company-statement">
+          <section
+            className="h2-section h2-section--compact h2-rule"
+            aria-labelledby="company-products-title"
+          >
             <div className="h2-shell">
-              <p>
-                Seams is for teams that need account actions to be accountable: every sign-in,
-                wallet operation, delegated task, and agent instruction should have a policy
-                boundary before it can move value or change state.
-              </p>
-            </div>
-          </section>
-
-          <section className="company-focus h2-rule" aria-labelledby="company-focus-title">
-            <div className="h2-shell">
-              <div className="h2-split-head company-section-head">
-                <p className="h2-kicker">Focus areas</p>
-                <h2 id="company-focus-title" className="h2-display">
-                  Infrastructure for controlled account access
+              <div className="h2-split-head">
+                <p className="h2-kicker">What we build</p>
+                <h2 id="company-products-title" className="h2-display">
+                  Two products on one policy engine
                 </h2>
                 <p className="h2-split-head__copy">
-                  The product sits below app UX and above chain execution, where custody, policy,
-                  and credentials meet.
+                  Both products use the same keys, credentials, and policy checks.
                 </p>
               </div>
-              <div className="company-focus__grid">{focusAreas.map(renderFocusArea)}</div>
+              <div className="company-cards">
+                {products.map((product) => (
+                  <SiteLink
+                    key={product.title}
+                    to={product.to}
+                    external={false}
+                    className="company-card"
+                  >
+                    <h3 className="company-card__title">{product.title}</h3>
+                    <p className="company-card__copy">{product.copy}</p>
+                    <span className="company-card__cta">
+                      {product.cta}
+                      <ArrowRightAnim size={12} />
+                    </span>
+                  </SiteLink>
+                ))}
+              </div>
             </div>
           </section>
 
-          <section className="company-principles" aria-labelledby="company-principles-title">
-            <div className="h2-shell company-principles__grid">
+          <section
+            className="h2-section h2-section--compact h2-rule"
+            aria-labelledby="company-principles-title"
+          >
+            <div className="h2-shell company-split">
               <div>
-                <p className="h2-kicker">Operating principles</p>
-                <h2 id="company-principles-title" className="h2-display">
-                  Build the control plane before the shortcut
+                <p className="h2-kicker company-split__kicker">How we work</p>
+                <h2 id="company-principles-title" className="h2-display company-split__title">
+                  Three rules behind every feature
                 </h2>
               </div>
-              <div className="company-principles__list">{principles.map(renderPrinciple)}</div>
+              <ol className="company-principles">
+                {principles.map((principle) => (
+                  <li key={principle.label}>
+                    <span className="company-principles__label">{principle.label}</span>
+                    <div>
+                      <h3>{principle.title}</h3>
+                      <p>{principle.copy}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </div>
           </section>
 
-          <section className="company-resources h2-rule" aria-labelledby="company-resources-title">
-            <div className="h2-shell company-resources__grid">
+          <section
+            className="h2-section h2-section--compact h2-rule"
+            aria-labelledby="company-details-title"
+          >
+            <div className="h2-shell company-split">
               <div>
-                <p className="h2-kicker">Open source</p>
-                <h2 id="company-resources-title" className="h2-display">
-                  Inspect the model, then build against it
+                <p className="h2-kicker company-split__kicker">Company</p>
+                <h2 id="company-details-title" className="h2-display company-split__title">
+                  Seams Technologies KK
                 </h2>
+                <p className="company-split__copy">
+                  Tokyo, Japan. Copyright © {new Date().getFullYear()}. All rights reserved.
+                </p>
               </div>
-              <div className="company-resources__list">{resources.map(renderResource)}</div>
-            </div>
-          </section>
-
-          <section className="company-legal h2-rule" aria-labelledby="company-legal-title">
-            <div className="h2-shell company-legal__inner">
-              <p className="h2-kicker" id="company-legal-title">
-                Legal entity
-              </p>
-              <p className="company-legal__copy">
-                Seams Technologies KK — Tokyo, Japan. Copyright © {new Date().getFullYear()}. All
-                rights reserved.
-              </p>
+              <ul className="company-links">
+                {links.map((link) => (
+                  <li key={link.title}>
+                    <SiteLink to={link.to} external={link.external} className="company-link">
+                      <span>
+                        <strong>{link.title}</strong>
+                        <small>{link.copy}</small>
+                      </span>
+                      <ArrowRightAnim size={13} />
+                    </SiteLink>
+                  </li>
+                ))}
+              </ul>
             </div>
           </section>
         </main>

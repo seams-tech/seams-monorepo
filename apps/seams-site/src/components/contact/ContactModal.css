@@ -1,13 +1,15 @@
 /* ---------- the modal: a white panel over a dimmed page ---------- */
 
 /* the dialog carries .h2-page for the palette; it is not a full page.
-   Corners are concentric: each outer radius is the inner radius plus the
-   padding between them. */
+   The form's corners are concentric with the fields: its radius is the field
+   radius plus the form padding. The form fills the modal to its edges, and the
+   modal's larger radius rounds the form's bottom corners. */
 .h2-page.contact-modal {
   --contact-field-radius: 12px;
   --contact-form-padding: 28px;
-  --contact-modal-padding: 28px;
   --contact-form-radius: calc(var(--contact-field-radius) + var(--contact-form-padding));
+  --contact-modal-radius: 48px;
+  --contact-text-inset: 2rem;
   width: min(600px, calc(100vw - 32px));
   max-width: none;
   min-height: 0;
@@ -15,7 +17,7 @@
   margin: auto;
   padding: 0;
   border: 0;
-  border-radius: calc(var(--contact-form-radius) + var(--contact-modal-padding));
+  border-radius: var(--contact-modal-radius);
   background: var(--h2-bg);
   overflow: auto;
   overscroll-behavior: contain;
@@ -35,14 +37,14 @@ html:has(.contact-modal[open]) {
 
 .contact-modal__panel {
   position: relative;
-  /* more room at the top than the sides, so the heading clears the round corner */
-  padding: 46px var(--contact-modal-padding) var(--contact-modal-padding);
+  /* room at the top so the heading clears the round corner */
+  padding: 3rem 0 0;
 }
 
 .contact-modal__close {
   position: absolute;
   /* inside the rounded corner, in line with the heading */
-  top: 45px;
+  top: 47px;
   right: 30px;
   display: grid;
   place-items: center;
@@ -69,12 +71,14 @@ html:has(.contact-modal[open]) {
 
 .contact-modal__title {
   margin: 0;
-  padding-right: 40px;
+  /* the right inset leaves room for the close button */
+  padding: 0 68px 0 var(--contact-text-inset);
   font-size: clamp(26px, 3vw, 32px);
 }
 
 .contact-modal__copy {
   margin: 10px 0 22px;
+  padding: 0 var(--contact-text-inset);
   font-size: 14px;
   line-height: 1.55;
   color: var(--h2-smoke);
@@ -163,15 +167,11 @@ html:has(.contact-modal[open]) {
 @media (max-width: 600px) {
   .h2-page.contact-modal {
     --contact-form-padding: 20px;
-    --contact-modal-padding: 16px;
-  }
-
-  .contact-modal__panel {
-    padding-top: 34px;
+    --contact-modal-radius: 36px;
   }
 
   .contact-modal__close {
-    top: 28px;
+    top: 44px;
     right: 18px;
   }
 

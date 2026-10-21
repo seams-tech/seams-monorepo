@@ -1,6 +1,4 @@
 .navbar-static {
-  --navbar-top-space: 26px;
-  --navbar-inline-space: max(1rem, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
   --navbar-bg: var(--site-canvas, var(--vp-c-bg));
   --navbar-surface: var(--site-surface, var(--vp-c-bg));
   --navbar-surface2: var(--site-surface-muted, var(--vp-c-bg-alt));
@@ -26,33 +24,59 @@
   --navbar-mobile-subitem-text: var(--navbar-text);
   --navbar-mobile-subitem-copy: var(--site-text-secondary);
   position: fixed;
-  top: calc(var(--navbar-top-space) + env(safe-area-inset-top, 0px));
+  top: 26px;
   left: 0;
   right: 0;
   z-index: 1000;
   pointer-events: auto;
   display: grid;
   justify-content: center;
-  padding: 0 var(--navbar-inline-space);
+  padding: 0 1rem;
+}
+
+/* Slides up out of view on a scroll down and back on a scroll up. The
+   offset clears the bar's top inset and its shadow. The transform is set
+   only while hidden: a transform on this fixed element would otherwise
+   become the containing block for its fixed descendants. Keyboard focus
+   inside the bar brings it back. */
+.navbar-static {
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.navbar-static.is-hidden {
+  transform: translateY(calc(-100% - 48px));
+}
+
+.navbar-static.is-hidden:focus-within {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar-static {
+    transition: none;
+  }
 }
 
 .navbar-static__shell {
   position: relative;
   width: max-content;
-  min-width: min(720px, calc(100vw - 2 * var(--navbar-inline-space)));
-  max-width: calc(100vw - 2 * var(--navbar-inline-space));
+  min-width: min(600px, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
   min-height: 52px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   column-gap: 28px;
-  border-radius: 1rem;
-  padding: 6px 8px 6px 20px;
+  /* full pill like the page buttons; 20px inner pills + 6px padding keep the
+     curves concentric */
+  border-radius: 9999px;
+  padding: 6px 6px 6px 20px;
   border: 1px solid var(--navbar-border);
   background: var(--navbar-background);
+  /* soft and subtle: a faint contact line plus a wide, low-alpha haze */
   box-shadow:
-    0 14px 32px -20px rgba(4, 3, 14, 0.42),
-    0 3px 10px -6px rgba(4, 3, 14, 0.24);
+    0 1px 2px rgba(4, 3, 14, 0.04),
+    0 8px 24px -14px rgba(4, 3, 14, 0.12);
   transition:
     background 300ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -61,15 +85,15 @@
 .navbar-static__shell.is-scrolled {
   background: var(--navbar-background);
   box-shadow:
-    0 18px 42px -22px rgba(4, 3, 14, 0.5),
-    0 4px 12px -7px rgba(4, 3, 14, 0.3);
+    0 1px 2px rgba(4, 3, 14, 0.05),
+    0 10px 28px -14px rgba(4, 3, 14, 0.16);
 }
 
 html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   background: var(--navbar-background);
   box-shadow:
-    0 18px 42px -22px rgba(15, 23, 42, 0.28),
-    0 4px 12px -7px rgba(15, 23, 42, 0.16);
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 10px 28px -14px rgba(15, 23, 42, 0.1);
 }
 
 .navbar-static__left {
@@ -115,14 +139,14 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   transition: background-color 150ms ease;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .navbar-static__brand:hover {
-    background: transparent;
-  }
+.navbar-static__brand:hover {
+  background: transparent;
 }
 
 .navbar-static__brand-wordmark {
   display: block;
+  height: 20px;
+  width: auto;
 }
 
 .navbar-static__links {
@@ -152,14 +176,8 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   transition: background-color 150ms ease;
 }
 
-.navbar-static__link:active {
-  background: rgba(31, 41, 55, 0.08);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .navbar-static__link:hover {
-    background: rgba(31, 41, 55, 0.08);
-  }
+.navbar-static__link:hover {
+  background: rgba(31, 41, 55, 0.05);
 }
 
 .navbar-static__link--button {
@@ -171,7 +189,7 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
 }
 
 .navbar-static__link--button.is-active {
-  background: rgba(31, 41, 55, 0.08);
+  background: rgba(31, 41, 55, 0.05);
 }
 
 .navbar-static__group {
@@ -221,6 +239,15 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;
+}
+
+/* A wide pane near the bar's right edge moves the inline `left`; glide it
+   with the grid-shell's size morph, or the content jumps sideways first. */
+.navbar-static__access-popup.is-morphing {
+  transition:
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    left 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .navbar-static__access-card {
@@ -333,15 +360,9 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   transition: background 120ms ease;
 }
 
-.navbar-static__menu-row:focus-visible,
-.navbar-static__menu-row:active {
+.navbar-static__menu-row:hover,
+.navbar-static__menu-row:focus-visible {
   background: var(--navbar-access-trigger-active);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .navbar-static__menu-row:hover {
-    background: var(--navbar-access-trigger-active);
-  }
 }
 
 .navbar-static__menu-row-icon {
@@ -353,15 +374,40 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   color: var(--navbar-access-muted);
 }
 
-.navbar-static__menu-row:focus-visible .navbar-static__menu-row-icon,
-.navbar-static__menu-row:active .navbar-static__menu-row-icon {
+.navbar-static__menu-row:hover .navbar-static__menu-row-icon,
+.navbar-static__menu-row:focus-visible .navbar-static__menu-row-icon {
   color: var(--navbar-text);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .navbar-static__menu-row:hover .navbar-static__menu-row-icon {
-    color: var(--navbar-text);
-  }
+/* Rows whose icon sits on a small gradient tile (the plans menu). The tile
+   holds a still GrainField frame; the icon stays white over it. */
+.navbar-static__menu-row--tile {
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.navbar-static__menu-row-icon--tile {
+  position: relative;
+  isolation: isolate;
+  width: 32px;
+  height: 32px;
+  margin-top: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.navbar-static__menu-row-icon--tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+  pointer-events: none;
+}
+
+.navbar-static__menu-row-icon--tile svg {
+  color: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
 }
 
 .navbar-static__menu-row-text {
@@ -404,47 +450,38 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   border-left: 1px solid var(--navbar-access-divider);
 }
 
-/* Gradient promo card (small box — the only imagery in the menus) */
+/* Gradient promo card (small box — the only imagery in the menus). The
+   GrainField canvas sits behind the text inside the isolated card. */
 .navbar-static__menu-highlight {
+  position: relative;
+  isolation: isolate;
   display: grid;
   align-content: end;
   gap: 3px;
   width: 190px;
   padding: 14px;
   border-radius: 10px;
-  background-size: cover;
-  background-position: center;
   color: #ffffff;
   text-decoration: none;
-  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
   transition: filter 140ms ease;
 }
 
-.navbar-static__menu-highlight--aqua {
-  background-image: url('/gradients/web/aqua-evergreen.jpg');
+/* the hairline edge, drawn over the canvas */
+.navbar-static__menu-highlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+  pointer-events: none;
 }
 
-.navbar-static__menu-highlight--bluegreen {
-  background-image: url('/gradients/web/blue-green.jpg');
-}
-
-.navbar-static__menu-highlight--ember {
-  background-image: url('/gradients/web/cobalt-gold-ember.jpg');
-}
-
-.navbar-static__menu-highlight:focus-visible,
-.navbar-static__menu-highlight:active {
+.navbar-static__menu-highlight:hover,
+.navbar-static__menu-highlight:focus-visible {
   filter: brightness(1.06);
+  /* the global `a:hover` brand color outranks the card's own white, and the
+     title inherits it; hold white so the card keeps its one text color */
   color: #ffffff;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .navbar-static__menu-highlight:hover {
-    filter: brightness(1.06);
-    /* the global `a:hover` brand color outranks the card's own white, and the
-       title inherits it; hold white so the card keeps its one text color */
-    color: #ffffff;
-  }
 }
 
 .navbar-static__menu-highlight-title {
@@ -488,24 +525,17 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   border-left: 1px solid var(--navbar-access-divider);
 }
 
-.navbar-static__menu-footer-link:focus-visible,
-.navbar-static__menu-footer-link:active {
+.navbar-static__menu-footer-link:hover,
+.navbar-static__menu-footer-link:focus-visible {
   color: var(--navbar-text);
   background: var(--navbar-access-trigger-active);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .navbar-static__menu-footer-link:hover {
-    color: var(--navbar-text);
-    background: var(--navbar-access-trigger-active);
-  }
 }
 
 html[data-seams-theme='light'] .navbar-static {
   --navbar-shadow-color: rgba(15, 23, 42, 0.34);
   /* same faint wash as the nav triggers (.navbar-static__link:hover), so a
      dropdown row doesn't read heavier than the trigger that opened it */
-  --navbar-access-trigger-active: rgba(31, 41, 55, 0.08);
+  --navbar-access-trigger-active: rgba(31, 41, 55, 0.05);
   --navbar-access-divider: var(--navbar-border);
   --navbar-access-muted: var(--site-text-secondary);
 }
@@ -523,7 +553,7 @@ html[data-seams-theme='light'] .navbar-static {
   justify-content: center;
   gap: 0.35rem;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 9999px;
   padding: 0 0.9rem;
   border: 1px solid transparent;
   font-size: 13px;
@@ -536,37 +566,14 @@ html[data-seams-theme='light'] .navbar-static {
     border-color 180ms ease;
 }
 
-.navbar-static__pill--ghost {
-  border-color: var(--navbar-border);
-  color: var(--navbar-text);
-  background: var(--navbar-surface2);
-}
-
-.navbar-static__pill--ghost:active {
-  background: var(--navbar-surface3);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .navbar-static__pill--ghost:hover {
-    background: var(--navbar-surface3);
-  }
-}
-
 .navbar-static__pill--solid {
   color: var(--navbar-text-button);
   background: var(--navbar-primary);
 }
 
-.navbar-static__pill--solid:active {
+.navbar-static__pill--solid:hover {
   color: var(--navbar-text-button);
   background: var(--navbar-primary-hover);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .navbar-static__pill--solid:hover {
-    color: var(--navbar-text-button);
-    background: var(--navbar-primary-hover);
-  }
 }
 
 .navbar-static__context-icon {
@@ -592,9 +599,9 @@ html[data-seams-theme='light'] .navbar-static {
 .navbar-static__mobile-toggle {
   display: none;
   appearance: none;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
   border: 1px solid var(--navbar-border);
   background: var(--navbar-surface2);
   color: var(--navbar-text);
@@ -604,16 +611,9 @@ html[data-seams-theme='light'] .navbar-static {
     border-color 180ms ease;
 }
 
-.navbar-static__mobile-toggle:active {
+.navbar-static__mobile-toggle:hover {
   border-color: var(--navbar-border-hover);
   background: var(--navbar-surface3);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .navbar-static__mobile-toggle:hover {
-    border-color: var(--navbar-border-hover);
-    background: var(--navbar-surface3);
-  }
 }
 
 .navbar-static__mobile-menu {
@@ -710,7 +710,7 @@ html[data-seams-theme='light'] .navbar-static {
 @media (max-width: 980px) {
   .navbar-static__shell {
     grid-template-columns: minmax(0, 1fr) max-content;
-    width: min(1420px, calc(100vw - 2 * var(--navbar-inline-space)));
+    width: min(1420px, calc(100vw - 2rem));
     min-width: 0;
   }
 
@@ -726,22 +726,14 @@ html[data-seams-theme='light'] .navbar-static {
     display: none;
   }
 
-  .navbar-static__pill--ghost {
-    display: none;
-  }
-
   .navbar-static__mobile-toggle {
     display: inline-grid;
     place-content: center;
   }
 
   .navbar-static__mobile-menu {
-    width: min(1420px, calc(100vw - 2 * var(--navbar-inline-space)));
-    /* Subtract the actual header height, menu gap, and device safe areas. */
-    max-height: calc(
-      100dvh - 100% - var(--navbar-top-space) - env(safe-area-inset-top, 0px) - 0.65rem -
-        max(0.5rem, env(safe-area-inset-bottom, 0px))
-    );
+    width: min(1420px, calc(100vw - 2rem));
+    max-height: calc(100dvh - 5.5rem);
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
@@ -801,14 +793,8 @@ html[data-seams-theme='light'] .navbar-static {
     cursor: pointer;
   }
 
-  .navbar-static__mobile-link:active {
+  .navbar-static__mobile-link:hover {
     background: var(--navbar-mobile-link-hover-surface);
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .navbar-static__mobile-link:hover {
-      background: var(--navbar-mobile-link-hover-surface);
-    }
   }
 
   .navbar-static__mobile-submenu {
@@ -851,14 +837,8 @@ html[data-seams-theme='light'] .navbar-static {
     background: var(--navbar-mobile-subitem-surface);
   }
 
-  .navbar-static__mobile-subitem:active {
+  .navbar-static__mobile-subitem:hover {
     background: var(--navbar-mobile-subitem-surface-hover);
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .navbar-static__mobile-subitem:hover {
-      background: var(--navbar-mobile-subitem-surface-hover);
-    }
   }
 
   .navbar-static__mobile-subitem > small {
@@ -880,18 +860,16 @@ html[data-seams-theme='light'] .navbar-static {
 
 @media (max-width: 620px) {
   .navbar-static {
-    --navbar-top-space: 0.5rem;
-    --navbar-inline-space: max(
-      0.5rem,
-      env(safe-area-inset-left, 0px),
-      env(safe-area-inset-right, 0px)
-    );
+    top: 0.5rem;
+    padding: 0 0.5rem;
   }
 
   .navbar-static__shell {
-    width: calc(100vw - 2 * var(--navbar-inline-space));
+    width: calc(100vw - 1rem);
     min-height: 58px;
-    padding: 0.45rem 0.5rem;
+    /* 9px around the 40px toggle keeps it concentric with the 29px pill;
+       the wordmark needs more room from the round left end */
+    padding: 0.45rem 9px 0.45rem 1.1rem;
   }
 
   .navbar-static__pill--solid {
@@ -899,7 +877,7 @@ html[data-seams-theme='light'] .navbar-static {
   }
 
   .navbar-static__mobile-menu {
-    width: calc(100vw - 2 * var(--navbar-inline-space));
+    width: calc(100vw - 1rem);
   }
 
   .navbar-static__brand {

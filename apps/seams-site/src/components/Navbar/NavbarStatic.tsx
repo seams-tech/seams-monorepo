@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { ArrowRightAnim } from '../ArrowRightAnim';
+import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import SeamsWordmark from '../icons/SeamsWordmark';
 import { isModifiedClick, useSiteRouter } from '@/app/router/useSiteRouter';
 import { blinkMenuItem } from './menuItemBlink';
@@ -30,16 +31,16 @@ type MenuRow = {
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; 'aria-hidden'?: boolean }>;
   /** Small right-aligned annotation, e.g. a plan's price basis. */
   meta?: string;
+  /** Sets the icon in white on a small gradient tile. */
+  field?: GrainFieldName;
 };
-
-/** Which gradient asset backs the pane's highlight card (see Navbar.css). */
-type MenuHighlightTone = 'aqua' | 'bluegreen' | 'ember';
 
 type MenuHighlight = {
   title: string;
   description: string;
   to: string;
-  tone: MenuHighlightTone;
+  /** The moving gradient behind the card. */
+  field: GrainFieldName;
 };
 
 type MenuFooterLink = {
@@ -95,7 +96,7 @@ const documentationDropdownPane: DropdownPane = {
     title: 'Live demo',
     description: 'Create a passkey wallet on the Embedded Wallet page',
     to: '/wallet',
-    tone: 'aqua',
+    field: 'aqua-evergreen',
   },
   footerLinks: [{ label: 'Plan pricing', to: '/pricing/' }],
 };
@@ -128,7 +129,7 @@ const productsDropdownPane: DropdownPane = {
     title: 'Architecture',
     description: 'How passkeys, policy, and signing fit together',
     to: '/docs/concepts/architecture',
-    tone: 'bluegreen',
+    field: 'slate-amber',
   },
   footerLinks: [
     { label: 'Read the docs', to: '/docs/' },
@@ -147,6 +148,7 @@ const pricingDropdownPane: DropdownPane = {
       to: '/pricing/#free',
       icon: Sprout,
       meta: '$0',
+      field: 'sky-sand',
     },
     {
       title: 'Growth',
@@ -154,6 +156,7 @@ const pricingDropdownPane: DropdownPane = {
       to: '/pricing/#growth',
       icon: TrendingUp,
       meta: '$99 / mo',
+      field: 'azure-coral',
     },
     {
       title: 'Enterprise',
@@ -161,12 +164,12 @@ const pricingDropdownPane: DropdownPane = {
       to: '/pricing/#enterprise',
       icon: Rocket,
       meta: 'Custom',
+      field: 'mauve-ember',
     },
   ],
   footerLinks: [
     { label: 'Compare plans', to: '/pricing/' },
     { label: 'Estimate your price', to: '/pricing/#calculator' },
-    { label: 'Contact sales', to: '/contact/' },
   ],
 };
 
@@ -180,25 +183,28 @@ const aboutDropdownPane: DropdownPane = {
       description: 'Who we are and what we are building',
       to: '/company/',
       icon: Building2,
+      field: 'sky-sand',
     },
     {
       title: 'Blog',
       description: 'Writing from the Seams team',
       to: '/company/#blog',
       icon: PenLine,
+      field: 'teal-peach',
     },
     {
       title: 'Support',
       description: 'Get help from the team',
       to: '/contact/',
       icon: LifeBuoy,
+      field: 'coral-tide',
     },
   ],
   highlight: {
     title: 'Plan a rollout',
     description: 'Talk through marketplaces and merchant fleets',
     to: '/contact/',
-    tone: 'ember',
+    field: 'mauve-ember',
   },
   footerLinks: [{ label: 'Contact sales', to: '/contact/' }],
 };
@@ -271,6 +277,11 @@ export function NavbarStatic({
   const OPEN_DELAY_MS = 0;
   const CLOSE_DELAY_MS = 120;
   const SCROLL_THRESHOLD_PX = 8;
+  /* Near the top the bar always shows; past it, the bar hides on a scroll
+     down and returns on a scroll up. A small dead band ignores jitter from
+     trackpad momentum. */
+  const HIDE_AFTER_PX = 80;
+  const SCROLL_DIRECTION_DEADBAND_PX = 6;
 
   const { go, linkProps } = useSiteRouter();
   const rootRef = React.useRef<HTMLElement | null>(null);
@@ -293,13 +304,14 @@ export function NavbarStatic({
   const closeTimerRef = React.useRef<number | null>(null);
   const [openDropdown, setOpenDropdown] = React.useState<DropdownId | null>(null);
   const [paneSize, setPaneSize] = React.useState<{ w: number; h: number } | null>(null);
-  // Horizontal anchor: the popup centers on the trigger that opened it,
-  // clamped so the panel never overhangs the bar.
+  // Horizontal anchor: the popup's left edge lines up with the trigger that
+  // opened it, clamped so the panel never overhangs the bar.
   const [popupLeft, setPopupLeft] = React.useState<number | null>(null);
   // The card morphs between pane sizes only while already open; opening from
   // closed snaps to size so the panel doesn't grow out of the previous shape.
   const [paneMorphEnabled, setPaneMorphEnabled] = React.useState<boolean>(false);
   const [hasScrolled, setHasScrolled] = React.useState<boolean>(false);
+  const [isScrollHidden, setIsScrollHidden] = React.useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState<boolean>(false);
   const [isMobileProductsOpen, setIsMobileProductsOpen] = React.useState<boolean>(false);
   const [isMobileDocumentationOpen, setIsMobileDocumentationOpen] = React.useState<boolean>(false);
@@ -309,8 +321,8 @@ export function NavbarStatic({
   // Measure the active pane (panes are absolutely positioned at max-content,
   // so offset sizes are their natural dimensions even while hidden) and morph
   // the card chrome to it — the ElevenLabs-style resize between menus. The
-  // popup's left edge stays pinned to the first nav trigger for every pane,
-  // so switching menus only resizes the panel; it never slides around.
+  // popup's left edge follows the open menu's trigger, so each menu opens
+  // under its own label; switching menus glides the panel across.
   React.useLayoutEffect(() => {
     const previousOpen = prevOpenDropdownRef.current;
     prevOpenDropdownRef.current = openDropdown;
@@ -324,17 +336,16 @@ export function NavbarStatic({
     const paneW = pane.offsetWidth;
     const paneH = pane.offsetHeight;
     const shell = dropdownPopupRef.current?.offsetParent as HTMLElement | null;
-    const firstTrigger = shell?.querySelector<HTMLElement>(
-      '.navbar-static__links .navbar-static__link--button',
-    );
-    if (shell && firstTrigger) {
+    const trigger = dropdownButtonRefs.current[openDropdown];
+    if (shell && trigger) {
       const shellRect = shell.getBoundingClientRect();
       // an ancestor's css zoom scales rect coordinates but not offset/style
       // px; normalize rect-derived values back to layout px
       const zoom = shell.offsetWidth ? shellRect.width / shell.offsetWidth : 1;
-      const anchor = (firstTrigger.getBoundingClientRect().left - shellRect.left) / zoom;
+      const anchor = (trigger.getBoundingClientRect().left - shellRect.left) / zoom;
       // Only yield the anchor if a wide panel would overhang the bar's right edge.
-      setPopupLeft(Math.max(8, Math.min(anchor, shellRect.width / zoom - paneW - 8)));
+      // Whole pixels keep the pane text on the pixel grid when it settles.
+      setPopupLeft(Math.round(Math.max(8, Math.min(anchor, shellRect.width / zoom - paneW - 8))));
     }
     setPaneMorphEnabled(previousOpen !== null && previousOpen !== openDropdown);
     setPaneSize({ w: paneW, h: paneH });
@@ -410,8 +421,19 @@ export function NavbarStatic({
   }, [clearDropdownTimers]);
 
   React.useEffect(() => {
+    let lastY = window.scrollY;
     const onScroll = () => {
-      setHasScrolled(window.scrollY > SCROLL_THRESHOLD_PX);
+      const y = window.scrollY;
+      setHasScrolled(y > SCROLL_THRESHOLD_PX);
+      if (y <= HIDE_AFTER_PX) {
+        setIsScrollHidden(false);
+        lastY = y;
+        return;
+      }
+      const delta = y - lastY;
+      if (Math.abs(delta) < SCROLL_DIRECTION_DEADBAND_PX) return;
+      setIsScrollHidden(delta > 0);
+      lastY = y;
     };
 
     onScroll();
@@ -419,7 +441,10 @@ export function NavbarStatic({
     return () => {
       window.removeEventListener('scroll', onScroll);
     };
-  }, [SCROLL_THRESHOLD_PX]);
+  }, [SCROLL_THRESHOLD_PX, HIDE_AFTER_PX, SCROLL_DIRECTION_DEADBAND_PX]);
+
+  // an open dropdown or mobile menu keeps the bar on screen
+  const isHidden = isScrollHidden && openDropdown === null && !isMobileMenuOpen;
 
   const getNavLinkProps = React.useCallback(
     (to: string) => {
@@ -562,8 +587,8 @@ export function NavbarStatic({
   }, [closeMenus, isMobileMenuOpen, openDropdown]);
 
   const homeProps = getNavLinkProps('/');
-  const aboutRootProps = getNavLinkProps('/company/');
   const contactSalesProps = getNavLinkProps('/contact/');
+  const aboutRootProps = getNavLinkProps('/company/');
   const getStartedProps = getNavLinkProps('/dashboard');
 
   const openDashboardEntry = React.useCallback(() => {
@@ -662,13 +687,25 @@ export function NavbarStatic({
                 return (
                   <a
                     key={row.title}
-                    className="navbar-static__menu-row"
+                    className={
+                      row.field
+                        ? 'navbar-static__menu-row navbar-static__menu-row--tile'
+                        : 'navbar-static__menu-row'
+                    }
                     role="menuitem"
                     href={rowProps.href}
                     onClick={rowProps.onClick}
                     tabIndex={isActive ? undefined : -1}
                   >
-                    <span className="navbar-static__menu-row-icon" aria-hidden>
+                    <span
+                      className={
+                        row.field
+                          ? 'navbar-static__menu-row-icon navbar-static__menu-row-icon--tile'
+                          : 'navbar-static__menu-row-icon'
+                      }
+                      aria-hidden
+                    >
+                      {row.field ? <GrainField field={row.field} playing={isActive} /> : null}
                       <Icon size={16} strokeWidth={1.7} />
                     </span>
                     <span className="navbar-static__menu-row-text">
@@ -685,12 +722,13 @@ export function NavbarStatic({
             {pane.highlight && highlightProps ? (
               <div className="navbar-static__menu-side">
                 <a
-                  className={`navbar-static__menu-highlight navbar-static__menu-highlight--${pane.highlight.tone}`}
+                  className="navbar-static__menu-highlight"
                   role="menuitem"
                   href={highlightProps.href}
                   onClick={highlightProps.onClick}
                   tabIndex={isActive ? undefined : -1}
                 >
+                  <GrainField field={pane.highlight.field} playing={isActive} />
                   <span className="navbar-static__menu-highlight-title">
                     {pane.highlight.title}
                   </span>
@@ -701,24 +739,26 @@ export function NavbarStatic({
               </div>
             ) : null}
           </div>
-          <div className="navbar-static__menu-footer">
-            {pane.footerLinks.map((link) => {
-              const linkNavProps = getMenuItemProps(link.to);
-              return (
-                <a
-                  key={link.label}
-                  className="navbar-static__menu-footer-link"
-                  role="menuitem"
-                  href={linkNavProps.href}
-                  onClick={linkNavProps.onClick}
-                  tabIndex={isActive ? undefined : -1}
-                >
-                  <span>{link.label}</span>
-                  <ArrowRightAnim size={12} />
-                </a>
-              );
-            })}
-          </div>
+          {pane.footerLinks.length > 0 ? (
+            <div className="navbar-static__menu-footer">
+              {pane.footerLinks.map((link) => {
+                const linkNavProps = getMenuItemProps(link.to);
+                return (
+                  <a
+                    key={link.label}
+                    className="navbar-static__menu-footer-link"
+                    role="menuitem"
+                    href={linkNavProps.href}
+                    onClick={linkNavProps.onClick}
+                    tabIndex={isActive ? undefined : -1}
+                  >
+                    <span>{link.label}</span>
+                    <ArrowRightAnim size={12} />
+                  </a>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -729,7 +769,7 @@ export function NavbarStatic({
       ref={rootRef}
       className={`navbar-static${appearance === 'light' ? ' navbar-static--light' : ''}${
         layout === 'compact' ? ' navbar-static--compact' : ''
-      }`}
+      }${isHidden ? ' is-hidden' : ''}`}
       aria-label="Primary"
     >
       <div className={`navbar-static__shell${hasScrolled ? ' is-scrolled' : ''}`}>
@@ -760,14 +800,6 @@ export function NavbarStatic({
               onClick={onDashboardClick}
             >
               <span>Dashboard</span>
-              <ArrowRightAnim size={14} />
-            </a>
-            <a
-              className="navbar-static__pill navbar-static__pill--ghost"
-              href={contactSalesProps.href}
-              onClick={contactSalesProps.onClick}
-            >
-              <span>Contact Sales</span>
               <ArrowRightAnim size={14} />
             </a>
             <button
@@ -995,14 +1027,6 @@ export function NavbarStatic({
             onClick={onDashboardClick}
           >
             <span>Dashboard</span>
-            <ArrowRightAnim size={14} />
-          </a>
-          <a
-            className="navbar-static__pill navbar-static__pill--ghost"
-            href={contactSalesProps.href}
-            onClick={contactSalesProps.onClick}
-          >
-            <span>Contact Sales</span>
             <ArrowRightAnim size={14} />
           </a>
         </div>

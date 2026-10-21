@@ -275,7 +275,7 @@ export const catalog = {
   transactions: { en: 'Transactions', ja: '取引' },
   accountRecovery: { en: 'Account recovery', ja: 'アカウントの復元' },
   componentsTitle: {
-    en: 'Use built-in wallet components, or use your own.',
+    en: 'Use built-in wallet components,\nor use your own.',
     ja: '標準のウォレットUIも、独自のUIも。',
   },
   sdkPreviewEnglish: {

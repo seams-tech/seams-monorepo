@@ -154,6 +154,7 @@
   margin: 0;
   max-width: none;
   font-size: clamp(27px, 2.9vw, 38px);
+  white-space: pre-line;
 }
 
 /* As tall as the page's other ruled bands (--h2-band-h in h2.css) */

@@ -404,5 +404,24 @@
     "The 16 selected browser contracts did not run on AWS. Their Google controller was never committed.",
     "No S3 IAM denial check, backup restore, Console, or public certificate and ingress on AWS.",
     "Both nodes share one availability zone. Cross-zone peers, release promotion and upgrade qualification remain open."
-  ]
+  ],
+  "resourceCleanup": {
+    "completedAt": "2026-10-21",
+    "deleted": [
+      "2 EC2 instances and their encrypted gp3 volumes",
+      "3 S3 buckets with synthetic objects",
+      "security group",
+      "key pair",
+      "IAM role, inline bucket policy and instance profile"
+    ],
+    "remainingInRegion": {
+      "instances": 0,
+      "volumes": 0,
+      "buckets": 0,
+      "securityGroups": 0,
+      "keyPairs": 0,
+      "roles": 0,
+      "elasticIps": 0
+    }
+  }
 }

@@ -106,10 +106,10 @@ function BannerPlanCard({ plan }: { plan: Plan }): React.JSX.Element {
         <strong>{plan.price}</strong> {plan.price === 'Custom' ? '' : plan.unit}
       </span>
       <span className="pricing-banner__card-teaser">{planTeasers[plan.id]}</span>
-      <div className="h2-btn h2-btn--primary pricing-banner__card-cta">
+      <span className="pricing-banner__card-cta">
         {plan.cta.label}
         <ArrowRightAnim size={12} />
-      </div>
+      </span>
     </a>
   );
 }

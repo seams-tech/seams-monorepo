@@ -567,12 +567,6 @@
   }
 }
 
-/* white button on the black card */
-.h2-page .pricing-banner__card .h2-btn--primary {
-  background: #ffffff;
-  color: var(--h2-ink);
-}
-
 .pricing-banner__card-name {
   font-size: 17px;
   font-weight: 500;
@@ -595,9 +589,16 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
+/* a text link with the stripe arrow, which animates on card hover */
 .pricing-banner__card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   align-self: flex-start;
   margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
 }
 
 @media (max-width: 900px) {

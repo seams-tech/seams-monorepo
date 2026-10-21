@@ -1,6 +1,6 @@
 import React from 'react';
 import { GrainField } from '@seams-internal/grain-field';
-import { H2Cta, H2Faq, H2Footer } from '@/components/h2/sections';
+import { H2Duo, H2Faq, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import '@/styles/h2.css';
@@ -205,7 +205,7 @@ export function PricingPage(): React.JSX.Element {
 
           <H2Faq audience="pricing" />
         </main>
-        <H2Cta />
+        <H2Duo />
         <H2Footer />
       </div>
     </div>

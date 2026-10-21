@@ -3340,22 +3340,20 @@ body:has(.h2-page) {
 .h2-footer {
   margin-inline: -1px;
   background: var(--h2-bg);
-}
-
-.h2-footer__inner,
-.h2-footer__grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  column-gap: 32px;
+  /* Keep the divider above the footer background. */
+  isolation: isolate;
 }
 
 .h2-footer__inner {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 72px 32px;
+  align-items: start;
   padding: 72px 36px 64px;
 }
 
 .h2-footer__inner > .h2-footer__faq {
   grid-column: 2 / -1;
-  margin-bottom: 72px;
 }
 
 .h2-demo__language {
@@ -3391,13 +3389,6 @@ html:lang(ja) .h2-footer__col a {
 html:lang(ja) .h2-hero__sub,
 html:lang(ja) .h2-startrow__text p {
   line-height: 1.85;
-}
-
-/* The brand and the three link columns share one aligned grid. */
-.h2-footer__grid {
-  grid-column: 1 / -1;
-  row-gap: 48px;
-  align-items: start;
 }
 
 /* the logo sits one inset in from the column border, in line with the banner
@@ -3447,11 +3438,9 @@ html:lang(ja) .h2-startrow__text p {
   color: var(--h2-smoke);
 }
 
-/* the FAQ row sits over the link rows, under the same micro-label */
+/* The links use the same three columns as the FAQ above. */
 .h2-footer__main {
   grid-column: 2 / -1;
-  display: grid;
-  gap: 56px;
   min-width: 0;
 }
 
@@ -3705,16 +3694,12 @@ html:lang(ja) .h2-faq-pop__answer {
 
   .h2-footer__inner {
     grid-template-columns: 1fr;
+    row-gap: 36px;
     padding: 48px 24px 44px;
   }
 
   .h2-footer__inner > .h2-footer__faq {
     grid-column: 1 / -1;
-  }
-
-  .h2-footer__grid {
-    grid-template-columns: 1fr;
-    gap: 36px;
   }
 
   .h2-footer__brand {
@@ -3727,7 +3712,6 @@ html:lang(ja) .h2-faq-pop__answer {
 
   .h2-footer__main {
     grid-column: auto;
-    gap: 40px;
   }
 }
 

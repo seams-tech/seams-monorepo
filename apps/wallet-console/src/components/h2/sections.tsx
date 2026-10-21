@@ -1236,40 +1236,35 @@ export function H2Footer(): React.JSX.Element {
   return (
     <footer className="h2-footer h2-rule" aria-label={t('siteFooter')}>
       <div className="h2-footer__inner">
-        <H2FooterFaq groups={walletFaqs} />
-        <div className="h2-footer__grid">
-          <div className="h2-footer__brand">
-            <a href={homeProps.href} onClick={homeProps.onClick} aria-label={t('seamsHome')}>
-              <SeamsWordmark height={20} />
-            </a>
-            <LanguageSelector placement="footer" />
-          </div>
-
-          <div className="h2-footer__main">
-            <nav className="h2-footer__links" aria-label={t('footerNavigation')}>
-              {footerGroups.map((group) => (
-                <div className="h2-footer__col" key={group.id}>
-                  <h3>{group.heading}</h3>
-                  {group.links.map((link) => {
-                    const props = linkProps(link.to);
-                    return (
-                      <a
-                        key={link.to}
-                        href={props.href}
-                        onClick={props.onClick}
-                        {...(link.external
-                          ? { target: '_blank', rel: 'noopener noreferrer' }
-                          : null)}
-                      >
-                        {link.label}
-                      </a>
-                    );
-                  })}
-                </div>
-              ))}
-            </nav>
-          </div>
+        <div className="h2-footer__brand">
+          <a href={homeProps.href} onClick={homeProps.onClick} aria-label={t('seamsHome')}>
+            <SeamsWordmark height={20} />
+          </a>
+          <LanguageSelector placement="footer" />
         </div>
+
+        <H2FooterFaq groups={walletFaqs} />
+
+        <nav className="h2-footer__main h2-footer__links" aria-label={t('footerNavigation')}>
+          {footerGroups.map((group) => (
+            <div className="h2-footer__col" key={group.id}>
+              <h3>{group.heading}</h3>
+              {group.links.map((link) => {
+                const props = linkProps(link.to);
+                return (
+                  <a
+                    key={link.to}
+                    href={props.href}
+                    onClick={props.onClick}
+                    {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : null)}
+                  >
+                    {link.label}
+                  </a>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
       </div>
     </footer>
   );

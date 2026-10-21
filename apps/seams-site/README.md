@@ -74,8 +74,9 @@ message requires English and Japanese text. Both languages use the same React
 components. The Vite build emits language-specific HTML metadata and a sitemap.
 Showcase frames receive the language through `?lang=ja`.
 
-Documentation provides tentative Japanese support at `/docs/ja/` for installation
-and the getting-started guides. Other documentation links open English pages.
+Documentation provides tentative Japanese support at `/docs/ja/` for installation,
+getting-started guides, all guides, and section overview pages. Untranslated
+topics open English pages.
 Japanese marketing pages link to the Japanese docs entry. Console remains in
 English. SDK-owned surfaces are maintained in `seams-wallet`; consume an exact
 release here.

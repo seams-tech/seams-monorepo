@@ -33,6 +33,9 @@ export function maybeDocsHref(target: string): string | null {
   if (!target.startsWith(DOCS_PREFIX)) return null;
   const docsOrigin = getDocsOrigin();
   const suffix = target === DOCS_PREFIX ? '/' : target.slice(DOCS_PREFIX.length);
+  if (locale === 'ja' && normalizePathname(target) === DOCS_PREFIX) {
+    return `${docsOrigin}/ja/${suffix.replace(/^\//, '')}`;
+  }
   return `${docsOrigin}${suffix.startsWith('/') ? suffix : `/${suffix}`}`;
 }
 

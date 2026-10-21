@@ -34,17 +34,20 @@ function toSiteAbsolutePath(pathOrHash: string): string {
   return `${base}${normalized}`;
 }
 
-export function maybeDocsHref(target: string): string | null {
+export function maybeDocsHref(target: string, locale: Locale): string | null {
   if (!target.startsWith(DOCS_PREFIX)) return null;
   const docsOrigin = getDocsOrigin();
   const suffix = target === DOCS_PREFIX ? '/' : target.slice(DOCS_PREFIX.length);
+  if (locale === 'ja' && normalizePathname(target) === DOCS_PREFIX) {
+    return `${docsOrigin}/ja/${suffix.replace(/^\//, '')}`;
+  }
   return `${docsOrigin}${suffix.startsWith('/') ? suffix : `/${suffix}`}`;
 }
 
 export function resolveHref(target: string, locale: Locale): string {
   if (isHttpUrl(target)) return target;
 
-  const docsHref = maybeDocsHref(target);
+  const docsHref = maybeDocsHref(target, locale);
   if (docsHref) return docsHref;
 
   const url = new URL(target, window.location.origin);

@@ -1,3 +1,4 @@
+import { syncRegionalProductionAdmission } from '../../tenantDeployment/productionAdmission';
 import { assertNever } from '@seams-internal/console-shared/accountPlatform/boundary';
 import {
   readRegionalWalletConfiguration,
@@ -1203,6 +1204,14 @@ async function scheduled(
   const regional = readRegionalWalletConfiguration(env);
   if (regional.kind === 'configured') {
     ctx.waitUntil(resumeWalletRelocations(relocationResumptionOptions(env, regional)));
+    ctx.waitUntil(
+      syncRegionalProductionAdmission({
+        database: env.CONSOLE_DB,
+        deploymentLane: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
+        runtimes: regional.runtimes,
+        nowMs: Date.now(),
+      }),
+    );
   }
   const handler = consoleScheduledHandler(env);
   await handler(event, env, ctx);

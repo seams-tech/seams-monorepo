@@ -1,4 +1,5 @@
 import { handleRegionalDeploymentAdmission } from '../../tenantDeployment/regionalAdmissionTransport';
+import { handleRegionalProductionAdmission } from '../../tenantDeployment/productionAdmission';
 import { handleRuntimeRelocationPreparation } from '../../walletPlacement/runtimePreparation';
 import { handleRuntimeIdentityHomeRequest } from '../../serviceBinding/runtimeIdentityHome';
 import { WalletHomeCatalog } from '../../walletPlacement/home';
@@ -46,6 +47,17 @@ async function fetch(
     env.CF_VERSION_METADATA?.id,
   );
   if (deploymentAdmission) return deploymentAdmission;
+  const productionAdmission = await handleRegionalProductionAdmission(request, {
+    database: env.SIGNER_DB,
+    resource: TenantDeploymentD1ResourceIdentityV1.parse({
+      namespace: env.SEAMS_TENANT_STORAGE_NAMESPACE,
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    }),
+    versionId: env.CF_VERSION_METADATA?.id,
+    deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
+  });
+  if (productionAdmission) return productionAdmission;
   const challenge = await tenantD1ResourceChallengeResponseV1(
     request,
     env.SIGNER_DB,

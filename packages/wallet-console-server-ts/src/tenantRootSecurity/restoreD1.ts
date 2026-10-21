@@ -319,7 +319,7 @@ async function validateSignedRestoreRefreshGrant(
   ) {
     throw new Error('tenant-root restore refresh grant time window is invalid');
   }
-  const grantBytes = base64UrlDecode(grantB64u);
+  const grantBytes = new Uint8Array(base64UrlDecode(grantB64u));
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', grantBytes));
   if (base64UrlEncode(digest) !== grantDigestB64u) {
     throw new Error('tenant-root restore refresh grant digest does not match its bytes');

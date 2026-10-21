@@ -6,7 +6,7 @@
     "vite": "vite --host 127.0.0.1 --port 4005",
     "dev": "vite --config vite.console.config.ts --mode wallet",
     "build": "pnpm run build:platform && pnpm run build:wallet && pnpm run build:marketing",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsrs --noEmit",
     "preview": "vite preview --host 127.0.0.1 --port 4005",
     "dev:platform": "vite --config vite.console.config.ts --mode platform",
     "dev:marketing": "vite --host 127.0.0.1 --port 4008",
@@ -38,7 +38,6 @@
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^6.0.1",
-    "typescript": "~5.8.3",
     "vite": "^8.0.0"
   }
 }

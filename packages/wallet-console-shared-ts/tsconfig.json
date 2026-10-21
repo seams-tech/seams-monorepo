@@ -8,8 +8,7 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "baseUrl": "."
+    "noEmit": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]

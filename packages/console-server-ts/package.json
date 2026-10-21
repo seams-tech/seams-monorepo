@@ -22,9 +22,9 @@
     }
   },
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && rolldown -c rolldown.config.ts",
-    "build:types": "tsc -p tsconfig.build.json",
-    "type-check": "tsc --noEmit"
+    "build": "rm -rf dist && tsrs -p tsconfig.build.json && rolldown -c rolldown.config.ts",
+    "build:types": "tsrs -p tsconfig.build.json",
+    "type-check": "tsrs --noEmit"
   },
   "dependencies": {
     "@seams-internal/console-shared": "workspace:*",
@@ -33,7 +33,6 @@
   },
   "devDependencies": {
     "rolldown": "^1.0.0-beta.27",
-    "typescript": "^5.8.3",
     "wrangler": "4.111.0"
   }
 }

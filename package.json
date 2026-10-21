@@ -60,6 +60,8 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "globals": "^16.0.0",
     "prettier": "^3.0.0",
+    "tsrs": "0.18.0-ts7.1.0-dev.20260929",
+    "typescript": "5.8.3",
     "typescript-eslint": "^8.0.0",
     "viem": "^2.38.6",
     "wrangler": "4.111.0"

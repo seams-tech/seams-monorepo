@@ -12,16 +12,15 @@
     "./accountPlatform/boundary": "./src/accountPlatform/boundary.ts"
   },
   "scripts": {
-    "type-check": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && rolldown -c rolldown.config.ts",
+    "type-check": "tsrs --noEmit",
+    "build": "rm -rf dist && tsrs -p tsconfig.build.json && rolldown -c rolldown.config.ts",
     "prepack": "pnpm run build"
   },
   "files": [
     "dist"
   ],
   "devDependencies": {
-    "rolldown": "^1.0.0-beta.27",
-    "typescript": "^5.8.3"
+    "rolldown": "^1.0.0-beta.27"
   },
   "publishConfig": {
     "main": "./dist/esm/index.js",

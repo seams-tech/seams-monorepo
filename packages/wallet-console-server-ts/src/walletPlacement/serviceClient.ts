@@ -447,7 +447,9 @@ export class WalletHomeServiceClient
     return body.subjects.map(requiredString);
   }
 
-  async linkSubjectToUserId(input: Parameters<IdentityStore['linkSubjectToUserId']>[0]) {
+  async linkSubjectToUserId(
+    input: Parameters<IdentityStore['linkSubjectToUserId']>[0],
+  ): ReturnType<IdentityStore['linkSubjectToUserId']> {
     const body = await this.identityCommand({
       operation: 'link',
       userId: input.userId,
@@ -457,7 +459,9 @@ export class WalletHomeServiceClient
     return identityMutationResult(body);
   }
 
-  async unlinkSubjectFromUserId(input: Parameters<IdentityStore['unlinkSubjectFromUserId']>[0]) {
+  async unlinkSubjectFromUserId(
+    input: Parameters<IdentityStore['unlinkSubjectFromUserId']>[0],
+  ): ReturnType<IdentityStore['unlinkSubjectFromUserId']> {
     return identityMutationResult(
       await this.identityCommand({
         operation: 'unlink',
@@ -469,7 +473,7 @@ export class WalletHomeServiceClient
 
   async deleteSubjectLinkForDevCleanup(
     input: Parameters<IdentityStore['deleteSubjectLinkForDevCleanup']>[0],
-  ) {
+  ): ReturnType<IdentityStore['deleteSubjectLinkForDevCleanup']> {
     return identityMutationResult(
       await this.identityCommand({
         operation: 'delete',

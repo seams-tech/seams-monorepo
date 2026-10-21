@@ -53,7 +53,12 @@ async function publicRequest(record: CliEnrollment) {
     role: record.role,
     publicKeyB64u: record.publicKeyB64u,
     fingerprintB64u: base64UrlEncode(
-      new Uint8Array(await crypto.subtle.digest('SHA-256', base64UrlDecode(record.publicKeyB64u))),
+      new Uint8Array(
+        await crypto.subtle.digest(
+          'SHA-256',
+          new Uint8Array(base64UrlDecode(record.publicKeyB64u)),
+        ),
+      ),
     ),
     confirmationCode: record.id.slice(0, 8).toUpperCase(),
     expiresAtMs: record.expiresAtMs,

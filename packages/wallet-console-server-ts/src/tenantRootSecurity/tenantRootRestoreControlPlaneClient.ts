@@ -529,13 +529,17 @@ async function validateActivationGrant(
     throw new Error('restore refresh grant time window is invalid');
   }
   const manifestDigestB64u = base64UrlEncode(
-    new Uint8Array(await crypto.subtle.digest('SHA-256', base64UrlDecode(manifestB64u))),
+    new Uint8Array(
+      await crypto.subtle.digest('SHA-256', new Uint8Array(base64UrlDecode(manifestB64u))),
+    ),
   );
   if (value.manifestDigestB64u !== manifestDigestB64u) {
     throw new TenantRootRestoreActivationUnavailableError('scope_mismatch');
   }
   const actualGrantDigestB64u = base64UrlEncode(
-    new Uint8Array(await crypto.subtle.digest('SHA-256', base64UrlDecode(grantB64u))),
+    new Uint8Array(
+      await crypto.subtle.digest('SHA-256', new Uint8Array(base64UrlDecode(grantB64u))),
+    ),
   );
   if (grantDigestB64u !== actualGrantDigestB64u) {
     throw new Error('restore refresh grant digest is invalid');
@@ -672,7 +676,7 @@ class TenantRootRestoreControlPlaneClientV1 implements Pick<
     readonly importEnvelopeB64u: string;
   }): Promise<{ readonly receiptDigestB64u: string }> {
     const manifestB64u = canonicalManifest(input.manifestB64u);
-    const envelopeBytes = base64UrlDecode(input.importEnvelopeB64u);
+    const envelopeBytes = new Uint8Array(base64UrlDecode(input.importEnvelopeB64u));
     if (
       envelopeBytes.length === 0 ||
       envelopeBytes.length > 16 * 1024 ||

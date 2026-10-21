@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
+declare module '@seams/wallet/react/styles';
+
 // Project-specific env typings for Vite
 // Note: Keep keys in sync with the root .env.local and CI/Pages envs.
 interface ImportMetaEnv {

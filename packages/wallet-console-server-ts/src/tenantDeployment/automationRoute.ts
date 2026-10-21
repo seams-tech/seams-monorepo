@@ -65,7 +65,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function decodeB64u(value: string): Uint8Array {
+function decodeB64u(value: string): Uint8Array<ArrayBuffer> {
   const padded =
     value.replace(/-/gu, '+').replace(/_/gu, '/') + '='.repeat((4 - (value.length % 4)) % 4);
   const binary = atob(padded);

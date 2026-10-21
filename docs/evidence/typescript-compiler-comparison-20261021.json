@@ -1,0 +1,696 @@
+{
+  "decision": "Use pinned tsrs for project checks and declaration builds. Retain the JavaScript TypeScript API for ESLint and declaration AST comparison.",
+  "compilerVersion": "0.18.0-ts7.1.0-dev.20260929",
+  "stableComparison": {
+    "recordedAt": "2026-10-21T03:11:58.925Z",
+    "baseCommit": "652691871bdda5f0577a0a39454fc7a971a6eebc",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "cpu": "Apple M4 Pro",
+    "logicalCpus": 14,
+    "node": "v24.18.0",
+    "method": "Serial runs with default compiler workers, one warmup and three measured samples per project. OS file caches remain warm. RSS is the largest process, not summed concurrent workers.",
+    "compilers": [
+      {
+        "name": "reference",
+        "version": "Version 7.0.2"
+      },
+      {
+        "name": "candidate",
+        "version": "Version 7.1.0-dev.20260930.4 (tsrs 0.18.0-ts7.1.0-dev.20260929, microsoft/TypeScript@b85298b6a81f)"
+      }
+    ],
+    "summary": {
+      "reference": {
+        "totalMedianSeconds": 1.54,
+        "largestPeakResidentBytes": 520470528
+      },
+      "candidate": {
+        "totalMedianSeconds": 0.6000000000000001,
+        "largestPeakResidentBytes": 217497600
+      }
+    },
+    "verified": true,
+    "resultSha256": "49079e36ef709ab50ea1a512d3ac9f4e287194b9fcacdb25308e5ebbc2c531ee",
+    "checks": [
+      {
+        "project": "packages/console-shared-ts/tsconfig.json",
+        "repositorySourceCount": 16,
+        "sourceSetSha256": "1127e428ef20f3ba81c3a871475c7c58a40f4857ce9a29bd99aa519723ba02ed",
+        "referenceElapsedSeconds": [
+          0.05,
+          0.05,
+          0.05
+        ],
+        "candidateElapsedSeconds": [
+          0.03,
+          0.03,
+          0.03
+        ],
+        "referencePeakResidentBytes": [
+          56770560,
+          57114624,
+          58458112
+        ],
+        "candidatePeakResidentBytes": [
+          36454400,
+          36585472,
+          36765696
+        ]
+      },
+      {
+        "project": "packages/grain-field-ts/tsconfig.json",
+        "repositorySourceCount": 5,
+        "sourceSetSha256": "2a4a314a195af9bd8a26b50eddc198eb3cb3c047fb27a1d7ffb438f774845379",
+        "referenceElapsedSeconds": [
+          0.05,
+          0.05,
+          0.05
+        ],
+        "candidateElapsedSeconds": [
+          0.04,
+          0.04,
+          0.03
+        ],
+        "referencePeakResidentBytes": [
+          67043328,
+          67092480,
+          67715072
+        ],
+        "candidatePeakResidentBytes": [
+          40517632,
+          40714240,
+          40763392
+        ]
+      },
+      {
+        "project": "packages/wallet-console-shared-ts/tsconfig.json",
+        "repositorySourceCount": 10,
+        "sourceSetSha256": "116896716a7d31f1168fb5f84cced5db31700a6ead7e753b57049498e2a70690",
+        "referenceElapsedSeconds": [
+          0.06,
+          0.05,
+          0.05
+        ],
+        "candidateElapsedSeconds": [
+          0.04,
+          0.03,
+          0.04
+        ],
+        "referencePeakResidentBytes": [
+          55476224,
+          55066624,
+          55001088
+        ],
+        "candidatePeakResidentBytes": [
+          36061184,
+          36044800,
+          36028416
+        ]
+      },
+      {
+        "project": "packages/console-server-ts/tsconfig.json",
+        "repositorySourceCount": 150,
+        "sourceSetSha256": "a62351ba536d595838f97544e69babeb3d4f060ed101979f6ef573768ba366ae",
+        "referenceElapsedSeconds": [
+          0.12,
+          0.12,
+          0.12
+        ],
+        "candidateElapsedSeconds": [
+          0.05,
+          0.05,
+          0.05
+        ],
+        "referencePeakResidentBytes": [
+          208338944,
+          203309056,
+          202096640
+        ],
+        "candidatePeakResidentBytes": [
+          74022912,
+          73908224,
+          73793536
+        ]
+      },
+      {
+        "project": "packages/wallet-console-server-ts/tsconfig.json",
+        "repositorySourceCount": 435,
+        "sourceSetSha256": "193bde08f516bae5ccc709e206f5c792b7515fd0d3f1a0549f633fbb617b8bb9",
+        "referenceElapsedSeconds": [
+          0.25,
+          0.25,
+          0.25
+        ],
+        "candidateElapsedSeconds": [
+          0.07,
+          0.07,
+          0.07
+        ],
+        "referencePeakResidentBytes": [
+          472940544,
+          467582976,
+          510279680
+        ],
+        "candidatePeakResidentBytes": [
+          177733632,
+          176095232,
+          177586176
+        ]
+      },
+      {
+        "project": "apps/seams-site/tsconfig.json",
+        "repositorySourceCount": 92,
+        "sourceSetSha256": "19c01fead657bf59e431957bb2604b2bcfd56af1f183f96ec702d8c1dae7cb02",
+        "referenceElapsedSeconds": [
+          0.18,
+          0.18,
+          0.18
+        ],
+        "candidateElapsedSeconds": [
+          0.06,
+          0.06,
+          0.06
+        ],
+        "referencePeakResidentBytes": [
+          353140736,
+          346800128,
+          354140160
+        ],
+        "candidatePeakResidentBytes": [
+          127844352,
+          127877120,
+          128761856
+        ]
+      },
+      {
+        "project": "apps/wallet-console/tsconfig.json",
+        "repositorySourceCount": 246,
+        "sourceSetSha256": "0bbf243df14afbdaec8336fa51edf4b7d8ef5a63f11e0ac9321bd296c7acbfeb",
+        "referenceElapsedSeconds": [
+          0.28,
+          0.3,
+          0.29
+        ],
+        "candidateElapsedSeconds": [
+          0.08,
+          0.08,
+          0.08
+        ],
+        "referencePeakResidentBytes": [
+          451805184,
+          440385536,
+          433192960
+        ],
+        "candidatePeakResidentBytes": [
+          173506560,
+          173195264,
+          174260224
+        ]
+      },
+      {
+        "project": "tests/tsconfig.typecheck.json",
+        "repositorySourceCount": 350,
+        "sourceSetSha256": "33d25453c76b833d5d06e802452d786c1507df0de33a5c7927aa9b280b9a1c4e",
+        "referenceElapsedSeconds": [
+          0.19,
+          0.18,
+          0.2
+        ],
+        "candidateElapsedSeconds": [
+          0.06,
+          0.06,
+          0.06
+        ],
+        "referencePeakResidentBytes": [
+          299401216,
+          304644096,
+          304840704
+        ],
+        "candidatePeakResidentBytes": [
+          130383872,
+          130940928,
+          131383296
+        ]
+      },
+      {
+        "project": "tests/tsconfig.console.json",
+        "repositorySourceCount": 459,
+        "sourceSetSha256": "af8d00939bed5599f8ab97fba227fc61dfb3bd2d73be1f08817a836fc9810a48",
+        "referenceElapsedSeconds": [
+          0.28,
+          0.27,
+          0.26
+        ],
+        "candidateElapsedSeconds": [
+          0.12,
+          0.12,
+          0.09
+        ],
+        "referencePeakResidentBytes": [
+          520470528,
+          519340032,
+          513835008
+        ],
+        "candidatePeakResidentBytes": [
+          217497600,
+          214941696,
+          215597056
+        ]
+      },
+      {
+        "project": "tests/intended-app/tsconfig.json",
+        "repositorySourceCount": 4,
+        "sourceSetSha256": "95b94c9a7e073974c1f4621f9aeb2d6431e6a8f1134efdd4cb4d4e1afa12a9f1",
+        "referenceElapsedSeconds": [
+          0.1,
+          0.09,
+          0.09
+        ],
+        "candidateElapsedSeconds": [
+          0.06,
+          0.05,
+          0.05
+        ],
+        "referencePeakResidentBytes": [
+          201736192,
+          205701120,
+          206438400
+        ],
+        "candidatePeakResidentBytes": [
+          86966272,
+          87195648,
+          85966848
+        ]
+      }
+    ],
+    "declarations": [
+      {
+        "project": "packages/console-shared-ts/tsconfig.build.json",
+        "fileCount": 16,
+        "referenceManifestSha256": "0c2844e2435c70baf20c5bf9b7d6405d50446dbd58efcf458ad1b842902ddc17",
+        "candidateManifestSha256": "0c2844e2435c70baf20c5bf9b7d6405d50446dbd58efcf458ad1b842902ddc17",
+        "structurallyEquivalent": true,
+        "byteDifferences": []
+      },
+      {
+        "project": "packages/console-server-ts/tsconfig.build.json",
+        "fileCount": 300,
+        "referenceManifestSha256": "077f6c16c6e53f187196485747c6ffa3610e9b718b0c29f01a4ff43df0902b21",
+        "candidateManifestSha256": "077f6c16c6e53f187196485747c6ffa3610e9b718b0c29f01a4ff43df0902b21",
+        "structurallyEquivalent": true,
+        "byteDifferences": []
+      },
+      {
+        "project": "packages/wallet-console-server-ts/tsconfig.build.json",
+        "fileCount": 870,
+        "referenceManifestSha256": "a6a31601575d6ee24359ed6fcb71fbb850e8d31c323b14970877fff348d920de",
+        "candidateManifestSha256": "5cb36f60f645971a2c94e9c4b63e4e78474bd34dcbc8ac484b8b0395dde4674f",
+        "structurallyEquivalent": true,
+        "byteDifferences": [
+          "wallet-console-server-ts/src/router/cloudflare/d1ConsoleStagingWorker.d.ts.map",
+          "wallet-console-server-ts/src/router/cloudflare/d1GatewayWorker.d.ts.map",
+          "wallet-console-server-ts/src/router/cloudflare/d1LocalDevWorker.d.ts.map",
+          "wallet-console-server-ts/src/router/cloudflare/d1WalletRuntimeWorker.d.ts.map",
+          "wallet-console-server-ts/src/walletPlacement/deriverRelocationReceipt.d.ts",
+          "wallet-console-server-ts/src/walletPlacement/deriverRelocationReceipt.d.ts.map",
+          "wallet-console-server-ts/src/walletPlacement/ecdsaRelocationReceipt.d.ts",
+          "wallet-console-server-ts/src/walletPlacement/ecdsaRelocationReceipt.d.ts.map",
+          "wallet-console-server-ts/src/walletPlacement/ed25519RelocationReceipt.d.ts",
+          "wallet-console-server-ts/src/walletPlacement/ed25519RelocationReceipt.d.ts.map",
+          "wallet-console-server-ts/src/walletPlacement/routerRelocationReceipt.d.ts",
+          "wallet-console-server-ts/src/walletPlacement/routerRelocationReceipt.d.ts.map"
+        ]
+      }
+    ]
+  },
+  "matchedUpstreamComparison": {
+    "recordedAt": "2026-10-21T03:12:46.002Z",
+    "baseCommit": "652691871bdda5f0577a0a39454fc7a971a6eebc",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "cpu": "Apple M4 Pro",
+    "logicalCpus": 14,
+    "node": "v24.18.0",
+    "method": "Serial runs with default compiler workers, one warmup and three measured samples per project. OS file caches remain warm. RSS is the largest process, not summed concurrent workers.",
+    "compilers": [
+      {
+        "name": "reference",
+        "version": "Version 7.1.0-dev.20260930.4"
+      },
+      {
+        "name": "candidate",
+        "version": "Version 7.1.0-dev.20260930.4 (tsrs 0.18.0-ts7.1.0-dev.20260929, microsoft/TypeScript@b85298b6a81f)"
+      }
+    ],
+    "summary": {
+      "reference": {
+        "totalMedianSeconds": 1.37,
+        "largestPeakResidentBytes": 492355584
+      },
+      "candidate": {
+        "totalMedianSeconds": 0.6000000000000001,
+        "largestPeakResidentBytes": 216383488
+      }
+    },
+    "verified": true,
+    "resultSha256": "d64f1927b63fe5b560067235f6935dbcf8d2afd9961ebd6a6753770720fb8031",
+    "checks": [
+      {
+        "project": "packages/console-shared-ts/tsconfig.json",
+        "repositorySourceCount": 16,
+        "sourceSetSha256": "1127e428ef20f3ba81c3a871475c7c58a40f4857ce9a29bd99aa519723ba02ed",
+        "referenceElapsedSeconds": [
+          0.05,
+          0.05,
+          0.05
+        ],
+        "candidateElapsedSeconds": [
+          0.04,
+          0.04,
+          0.03
+        ],
+        "referencePeakResidentBytes": [
+          56197120,
+          54837248,
+          54935552
+        ],
+        "candidatePeakResidentBytes": [
+          36749312,
+          37191680,
+          36552704
+        ]
+      },
+      {
+        "project": "packages/grain-field-ts/tsconfig.json",
+        "repositorySourceCount": 5,
+        "sourceSetSha256": "2a4a314a195af9bd8a26b50eddc198eb3cb3c047fb27a1d7ffb438f774845379",
+        "referenceElapsedSeconds": [
+          0.05,
+          0.05,
+          0.05
+        ],
+        "candidateElapsedSeconds": [
+          0.04,
+          0.03,
+          0.04
+        ],
+        "referencePeakResidentBytes": [
+          64323584,
+          63979520,
+          64536576
+        ],
+        "candidatePeakResidentBytes": [
+          41025536,
+          40747008,
+          40976384
+        ]
+      },
+      {
+        "project": "packages/wallet-console-shared-ts/tsconfig.json",
+        "repositorySourceCount": 10,
+        "sourceSetSha256": "116896716a7d31f1168fb5f84cced5db31700a6ead7e753b57049498e2a70690",
+        "referenceElapsedSeconds": [
+          0.05,
+          0.06,
+          0.05
+        ],
+        "candidateElapsedSeconds": [
+          0.04,
+          0.04,
+          0.04
+        ],
+        "referencePeakResidentBytes": [
+          53641216,
+          54149120,
+          53477376
+        ],
+        "candidatePeakResidentBytes": [
+          36241408,
+          36143104,
+          36192256
+        ]
+      },
+      {
+        "project": "packages/console-server-ts/tsconfig.json",
+        "repositorySourceCount": 150,
+        "sourceSetSha256": "a62351ba536d595838f97544e69babeb3d4f060ed101979f6ef573768ba366ae",
+        "referenceElapsedSeconds": [
+          0.1,
+          0.1,
+          0.1
+        ],
+        "candidateElapsedSeconds": [
+          0.05,
+          0.05,
+          0.05
+        ],
+        "referencePeakResidentBytes": [
+          184778752,
+          184582144,
+          183402496
+        ],
+        "candidatePeakResidentBytes": [
+          73695232,
+          73400320,
+          74088448
+        ]
+      },
+      {
+        "project": "packages/wallet-console-server-ts/tsconfig.json",
+        "repositorySourceCount": 435,
+        "sourceSetSha256": "193bde08f516bae5ccc709e206f5c792b7515fd0d3f1a0549f633fbb617b8bb9",
+        "referenceElapsedSeconds": [
+          0.23,
+          0.21,
+          0.22
+        ],
+        "candidateElapsedSeconds": [
+          0.08,
+          0.09,
+          0.08
+        ],
+        "referencePeakResidentBytes": [
+          445071360,
+          444612608,
+          441057280
+        ],
+        "candidatePeakResidentBytes": [
+          177684480,
+          177012736,
+          174899200
+        ]
+      },
+      {
+        "project": "apps/seams-site/tsconfig.json",
+        "repositorySourceCount": 92,
+        "sourceSetSha256": "19c01fead657bf59e431957bb2604b2bcfd56af1f183f96ec702d8c1dae7cb02",
+        "referenceElapsedSeconds": [
+          0.16,
+          0.16,
+          0.16
+        ],
+        "candidateElapsedSeconds": [
+          0.07,
+          0.06,
+          0.07
+        ],
+        "referencePeakResidentBytes": [
+          301727744,
+          301613056,
+          304562176
+        ],
+        "candidatePeakResidentBytes": [
+          127975424,
+          126992384,
+          127762432
+        ]
+      },
+      {
+        "project": "apps/wallet-console/tsconfig.json",
+        "repositorySourceCount": 246,
+        "sourceSetSha256": "0bbf243df14afbdaec8336fa51edf4b7d8ef5a63f11e0ac9321bd296c7acbfeb",
+        "referenceElapsedSeconds": [
+          0.25,
+          0.25,
+          0.26
+        ],
+        "candidateElapsedSeconds": [
+          0.08,
+          0.08,
+          0.08
+        ],
+        "referencePeakResidentBytes": [
+          396279808,
+          415301632,
+          414842880
+        ],
+        "candidatePeakResidentBytes": [
+          174522368,
+          173637632,
+          174374912
+        ]
+      },
+      {
+        "project": "tests/tsconfig.typecheck.json",
+        "repositorySourceCount": 350,
+        "sourceSetSha256": "33d25453c76b833d5d06e802452d786c1507df0de33a5c7927aa9b280b9a1c4e",
+        "referenceElapsedSeconds": [
+          0.16,
+          0.16,
+          0.16
+        ],
+        "candidateElapsedSeconds": [
+          0.06,
+          0.07,
+          0.06
+        ],
+        "referencePeakResidentBytes": [
+          289751040,
+          285261824,
+          288899072
+        ],
+        "candidatePeakResidentBytes": [
+          131448832,
+          131121152,
+          131661824
+        ]
+      },
+      {
+        "project": "tests/tsconfig.console.json",
+        "repositorySourceCount": 459,
+        "sourceSetSha256": "af8d00939bed5599f8ab97fba227fc61dfb3bd2d73be1f08817a836fc9810a48",
+        "referenceElapsedSeconds": [
+          0.23,
+          0.26,
+          0.24
+        ],
+        "candidateElapsedSeconds": [
+          0.08,
+          0.08,
+          0.08
+        ],
+        "referencePeakResidentBytes": [
+          492355584,
+          489652224,
+          486227968
+        ],
+        "candidatePeakResidentBytes": [
+          216383488,
+          214384640,
+          214630400
+        ]
+      },
+      {
+        "project": "tests/intended-app/tsconfig.json",
+        "repositorySourceCount": 4,
+        "sourceSetSha256": "95b94c9a7e073974c1f4621f9aeb2d6431e6a8f1134efdd4cb4d4e1afa12a9f1",
+        "referenceElapsedSeconds": [
+          0.09,
+          0.09,
+          0.1
+        ],
+        "candidateElapsedSeconds": [
+          0.06,
+          0.06,
+          0.06
+        ],
+        "referencePeakResidentBytes": [
+          187924480,
+          186875904,
+          190906368
+        ],
+        "candidatePeakResidentBytes": [
+          86179840,
+          86032384,
+          86016000
+        ]
+      }
+    ],
+    "declarations": [
+      {
+        "project": "packages/console-shared-ts/tsconfig.build.json",
+        "fileCount": 16,
+        "referenceManifestSha256": "0c2844e2435c70baf20c5bf9b7d6405d50446dbd58efcf458ad1b842902ddc17",
+        "candidateManifestSha256": "0c2844e2435c70baf20c5bf9b7d6405d50446dbd58efcf458ad1b842902ddc17",
+        "structurallyEquivalent": true,
+        "byteDifferences": []
+      },
+      {
+        "project": "packages/console-server-ts/tsconfig.build.json",
+        "fileCount": 300,
+        "referenceManifestSha256": "077f6c16c6e53f187196485747c6ffa3610e9b718b0c29f01a4ff43df0902b21",
+        "candidateManifestSha256": "077f6c16c6e53f187196485747c6ffa3610e9b718b0c29f01a4ff43df0902b21",
+        "structurallyEquivalent": true,
+        "byteDifferences": []
+      },
+      {
+        "project": "packages/wallet-console-server-ts/tsconfig.build.json",
+        "fileCount": 870,
+        "referenceManifestSha256": "2d4c874118f15e6b0d2917de9e3075f7050d9b1406fc8d9dab52ee0cb8ac7c31",
+        "candidateManifestSha256": "5cb36f60f645971a2c94e9c4b63e4e78474bd34dcbc8ac484b8b0395dde4674f",
+        "structurallyEquivalent": true,
+        "byteDifferences": [
+          "wallet-console-server-ts/src/walletPlacement/deriverRelocationReceipt.d.ts",
+          "wallet-console-server-ts/src/walletPlacement/deriverRelocationReceipt.d.ts.map",
+          "wallet-console-server-ts/src/walletPlacement/ecdsaRelocationReceipt.d.ts",
+          "wallet-console-server-ts/src/walletPlacement/ecdsaRelocationReceipt.d.ts.map",
+          "wallet-console-server-ts/src/walletPlacement/ed25519RelocationReceipt.d.ts",
+          "wallet-console-server-ts/src/walletPlacement/ed25519RelocationReceipt.d.ts.map",
+          "wallet-console-server-ts/src/walletPlacement/routerRelocationReceipt.d.ts",
+          "wallet-console-server-ts/src/walletPlacement/routerRelocationReceipt.d.ts.map"
+        ]
+      }
+    ]
+  },
+  "pipeline": {
+    "command": "pnpm type-check",
+    "typescript583": {
+      "elapsedSeconds": 13.16,
+      "peakResidentBytes": 784695296,
+      "samples": 1
+    },
+    "tsrs": {
+      "elapsedSeconds": 2.77,
+      "peakResidentBytes": 187056128,
+      "samples": 1
+    },
+    "limitation": "These pipeline observations each use one sample. The native compiler comparisons use warmups and three samples per project."
+  },
+  "validation": {
+    "repositoryCheck": "pnpm check passed; 53 existing script tests passed, with zero lint errors and existing lint warnings.",
+    "productionBuild": "pnpm build passed.",
+    "frozenInstall": "pnpm install --frozen-lockfile --ignore-scripts passed.",
+    "consoleTestTypes": "pnpm -C tests type-check:console passed.",
+    "intendedAppTypes": "pnpm -C tests/intended-app type-check passed.",
+    "consoleAuthentication": {
+      "command": "node tests/e2e/console-publishable-auth.scenario.mjs",
+      "result": "Passed delayed and reordered telemetry, concurrent revocation, origin checks, and environment checks.",
+      "artifact": ".artifacts/console-publishable-auth/evidence.json",
+      "sha256": "dde04ed11b13c2ee8d29bd40005662ef24314ed1a182597ff15e8a37dba1ab38"
+    },
+    "stripeSignature": "Existing Stripe webhook verification scenario passed, including untouched raw-body verification."
+  },
+  "preExistingFailures": [
+    {
+      "command": "pnpm -C tests type-check:intended",
+      "classification": "obsolete_test_or_fixture",
+      "result": "Same 15 diagnostics under TypeScript 5.8 and tsrs. Retired Wallet source aliases and module paths remain in this private suite."
+    },
+    {
+      "scenario": "relayer/tenant-deployment-binding.e2e.test.ts",
+      "classification": "obsolete_test_or_fixture",
+      "result": "Expected HTTP 503 but received HTTP 502. Reproduced on an unchanged HEAD source snapshot. The fixture omits required regional service bindings."
+    },
+    {
+      "scenario": "relayer/console-service-auth.e2e.test.ts",
+      "classification": "obsolete_test_or_fixture",
+      "result": "Regional Wallet configuration requires every Gateway and runtime binding. Reproduced on an unchanged HEAD source snapshot."
+    }
+  ],
+  "limitations": [
+    "Measurements apply to this local macOS arm64 host with default compiler workers. Linux performance was not measured.",
+    "Declaration comparison preserves overload and signature order while accepting record-property order changes. Source-map metadata is compared; encoded position mappings may differ.",
+    "tsrs remains experimental. Editor language-server configuration is unchanged."
+  ]
+}

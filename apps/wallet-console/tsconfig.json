@@ -15,12 +15,11 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "useDefineForClassFields": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@core/*": ["src/core/*"],
-      "@wallet-product/*": ["src/products/wallet/*"],
-      "@app/*": ["src/app/*"],
+      "@/*": ["./src/*"],
+      "@core/*": ["./src/core/*"],
+      "@wallet-product/*": ["./src/products/wallet/*"],
+      "@app/*": ["./src/app/*"],
       "@wallet-ui/shared-ts/*": ["../../node_modules/@seams/wallet/dist/types/shared-ts/*"],
       "@wallet-ui/*": ["../../node_modules/@seams/wallet/dist/types/wallet/src/*"]
     }

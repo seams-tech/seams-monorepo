@@ -65,6 +65,37 @@ The managed Console suite owns local ports 4001, 4002, 4100, and 4101. Its launc
 refuses to run while another local Wallet stack owns those ports; stop the other stack
 before running the suite.
 
+## TypeScript compiler
+
+Application checks, type fixtures, and declaration builds use the exact `tsrs` version
+in the root `package.json`. The root `typescript` dependency supplies the JavaScript
+API required by ESLint and the declaration comparison below. Project checks use `tsrs`.
+Vite and Rolldown still produce application JavaScript.
+
+The compiler comparison checks ten project configurations, including existing fixtures
+that reject invalid domain states. It compares checked source files and generated
+declarations. Record property order may differ. Overload and signature order must match.
+Declaration maps must have the same metadata, including source paths. Their encoded
+position mappings may differ when generated property positions change.
+
+Run this comparison from the repository root:
+
+```sh
+npm install --prefix .artifacts/typescript-reference --ignore-scripts --no-audit --no-fund typescript@7.0.2
+node tests/e2e/typescript-compiler-comparison.e2e.mjs \
+  --reference .artifacts/typescript-reference/node_modules/typescript/bin/tsc \
+  --candidate node_modules/.bin/tsrs
+```
+
+For the upstream version matched to this tsrs release, install
+`typescript@7.1.0-dev.20260930.4` in the reference directory and repeat the command.
+The comparison runs serially with default compiler workers. It excludes one warmup
+and records three samples per project. Run it without concurrent builds or tests.
+Linux requires GNU `/usr/bin/time`; macOS uses its bundled `/usr/bin/time`.
+Logs, declarations, source manifests, elapsed times, and peak resident memory go to
+`.artifacts/typescript-compiler-comparison/result/`. A failed comparison exits nonzero
+and retains `result.json` for diagnosis. A successful comparison prints `Verified`.
+
 ## Three Console journeys
 
 `pnpm -C tests test:console` type-checks and runs exactly three independent browser

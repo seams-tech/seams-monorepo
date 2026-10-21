@@ -18,15 +18,12 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "baseUrl": ".",
     "types": ["node"],
-    "useDefineForClassFields": false,
     "paths": {
       "@seams-internal/console-shared": ["../console-shared-ts/src/index.ts"],
       "@seams-internal/console-shared/*": ["../console-shared-ts/src/*"],
-      "@seams-internal/console-server": ["src/index.ts"],
-      "@seams-internal/console-server/*": ["src/*"],
-      "*": ["./node_modules/*", "../node_modules/*", "../../node_modules/*"]
+      "@seams-internal/console-server": ["./src/index.ts"],
+      "@seams-internal/console-server/*": ["./src/*"]
     }
   },
   "include": ["src/**/*", "../console-shared-ts/src/**/*"],

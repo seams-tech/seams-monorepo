@@ -93,7 +93,10 @@ function bodyBytes(rawBody: string | Uint8Array): Uint8Array {
   return typeof rawBody === 'string' ? new TextEncoder().encode(rawBody) : rawBody;
 }
 
-function signedPayloadBytes(timestampSeconds: number, rawBody: Uint8Array): Uint8Array {
+function signedPayloadBytes(
+  timestampSeconds: number,
+  rawBody: Uint8Array,
+): Uint8Array<ArrayBuffer> {
   const prefix = new TextEncoder().encode(`${timestampSeconds}.`);
   const payload = new Uint8Array(prefix.length + rawBody.length);
   payload.set(prefix);

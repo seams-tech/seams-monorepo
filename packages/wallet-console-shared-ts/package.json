@@ -15,7 +15,7 @@
     "./tenant-root": "./src/tenant-root/index.ts"
   },
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsrs --noEmit"
   },
   "dependencies": {
     "@seams/wallet-server": "0.15.6"

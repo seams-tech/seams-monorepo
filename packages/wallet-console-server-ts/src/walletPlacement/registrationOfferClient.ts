@@ -45,14 +45,18 @@ export class RegistrationOfferClient implements GoogleEmailOtpRegistrationAttemp
     throw invalidResponse();
   }
 
-  async create(input: Input<'create'>) {
+  async create(
+    input: Input<'create'>,
+  ): ReturnType<GoogleEmailOtpRegistrationAttemptStore['create']> {
     return pending(await this.service.registrationOffer({ operation: 'create', input }));
   }
-  async findStarted(input: Input<'findStarted'>) {
+  async findStarted(
+    input: Input<'findStarted'>,
+  ): ReturnType<GoogleEmailOtpRegistrationAttemptStore['findStarted']> {
     const response = await this.service.registrationOffer({ operation: 'findStarted', input });
     return response.value === null ? null : pending(response);
   }
-  async read(input: string) {
+  async read(input: string): ReturnType<GoogleEmailOtpRegistrationAttemptStore['read']> {
     const response = await this.service.registrationOffer({ operation: 'read', input });
     return response.value === null ? null : record(response);
   }

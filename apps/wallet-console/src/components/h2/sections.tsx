@@ -646,13 +646,13 @@ export function H2Start(): React.JSX.Element {
             <span className="tok-kw">await</span>
             {' registerWallet({\n  '}
             <span className="tok-prop">authMethod</span>
-            {': { '}
+            {': {\n    '}
             <span className="tok-prop">kind</span>
             {': '}
             <span className="tok-str">'passkey'</span>
-            {', '}
+            {',\n    '}
             <span className="tok-prop">rpId</span>
-            {': rpId.value },\n  signerSelection,\n});'}
+            {': rpId.value\n  },\n  signerSelection,\n});'}
           </div>
         </div>
       </div>
@@ -683,7 +683,7 @@ export function H2Start(): React.JSX.Element {
             {' { transfer, useSeams } '}
             <span className="tok-kw">from</span>{' '}
             <span className="tok-str">'@seams/wallet/react'</span>
-            {';\n'}
+            {';\n\n'}
             <span className="tok-kw">const</span>
             {' { unlock, seams } = useSeams();\n\n'}
             <span className="tok-kw">await</span>

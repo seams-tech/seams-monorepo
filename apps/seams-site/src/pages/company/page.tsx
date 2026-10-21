@@ -215,7 +215,7 @@ export function CompanyPage(): React.JSX.Element {
 
           <section className="h2-cta h2-cta--banner h2-rule" aria-labelledby="company-banner-title">
             <div className="h2-shell h2-cta__banner company-banner">
-              <GrainField field="sky-sand" flow={1.6} />
+              <GrainField field="teal-peach" flow={1.6} />
               <div>
                 <h2 id="company-banner-title" className="h2-display h2-cta__title">
                   Talk to the team

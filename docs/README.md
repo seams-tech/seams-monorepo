@@ -19,6 +19,8 @@ of Platform and Wallet entry points and the reasons for that design.
   pooled signature allowance, and the measured Cloudflare cost behind it.
 - [Free plan card and Growth move](feat-4-free-plan-card-and-growth-move.md):
   the plan for the 30-day card requirement and the warnings before a Growth move.
+- [Contact form endpoint](feat-5-contact-form-endpoint.md): the plan to store
+  contact inquiries and email them to sales through the Console outbox.
 - [Wallet database schema](wallet-saas/console-docs/wallet-db-schema.md).
 - [CLI release procedure](wallet-cli-release.md).
 - [Local/provider runtime qualification](../deployment/celld/README.md): retain

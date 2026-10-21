@@ -24,18 +24,21 @@ const documentationDropdownPane: DropdownPane = {
       description: 'Non-custodial wallets with policy-bound keys and sessions',
       to: '/wallet',
       icon: Wallet,
+      field: 'aqua-evergreen',
     },
     {
       title: 'Ecommerce Agents',
       description: 'AI agents with scoped credentials, acting inside policy',
       to: '/ecommerce',
       icon: Bot,
+      field: 'azure-coral',
     },
     {
       title: 'Biometric Authentication',
       description: 'Passkey authentication. VoiceID is planned.',
       to: '/docs/concepts/auth-methods/passkeys',
       icon: Fingerprint,
+      field: 'teal-peach',
     },
   ],
   highlight: {
@@ -57,18 +60,21 @@ const productsDropdownPane: DropdownPane = {
       description: 'Install the SDK, create a wallet, and sign with policy',
       to: '/docs/',
       icon: Rocket,
+      field: 'sky-sand',
     },
     {
       title: 'Tools and Guides',
       description: 'Auth, sessions, wallet UI, policy, and the SDK reference',
       to: '/docs/guides/',
       icon: Wrench,
+      field: 'slate-amber',
     },
     {
       title: 'Use cases',
       description: 'Mandates, delegated agents, and agent-driven commerce',
       to: '/docs/use-cases/',
       icon: ListChecks,
+      field: 'mauve-ember',
     },
   ],
   highlight: {

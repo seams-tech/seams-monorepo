@@ -13,7 +13,7 @@ day. Signatures above the allowance have a published price.
 
 | Plan       | Price                        | Users included | Signature allowance |
 | ---------- | ---------------------------- | -------------: | ------------------- |
-| Free       | $0                           |    Up to 1,000 | 300,000 / month     |
+| Free       | $0                           |      Up to 600 | 60,000 / month      |
 | Growth     | $99 / month                  |    Up to 5,000 | 300 per MAU, pooled |
 | Growth     | + $0.004 per MAU above 5,000 |              — | 300 per MAU, pooled |
 | Enterprise | Committed volume             |     Negotiated | Negotiated          |
@@ -39,30 +39,33 @@ keep that cost bounded:
 2. **One free organization per browser origin.** An app registers its browser
    origins on its publishable key. An origin can belong to only one free
    organization, so one app cannot split its users over several free plans.
-3. **A hard stop at the free limits until a card is on file.** At 1,000 MAU, new
-   sign-ups stop. At 300,000 signatures in a month, signing stops. With a card on
+3. **A hard stop at the free limits until a card is on file.** At 600 MAU, new
+   sign-ups stop. At 60,000 signatures in a month, signing stops. With a card on
    file, the organization moves to Growth.
 4. **An internal alert on the total free-plan cost.** Start with an alert at
    $500 a month of Cloudflare cost for all free organizations together.
 
 Cost of one free organization each month:
 
-| Use                                     | Signatures / month | Our cost |
-| --------------------------------------- | -----------------: | -------: |
-| Full allowance: 1,000 users at 10 a day |            300,000 |   ~$3.00 |
-| Typical small app: 50 users at 3 a day  |              4,500 |   ~$0.05 |
+| Use                                    | Signatures / month | Our cost |
+| -------------------------------------- | -----------------: | -------: |
+| Full allowance: 600 users at 3 a day   |             60,000 |   ~$0.61 |
+| Typical small app: 50 users at 3 a day |              4,500 |   ~$0.05 |
 
 Cost of all free organizations each month:
 
 | Free organizations | All at the full allowance | 90% typical, 10% at the full allowance |
 | -----------------: | ------------------------: | -------------------------------------: |
-|                100 |                      $300 |                                   ~$35 |
-|              1,000 |                    $3,000 |                                  ~$345 |
-|             10,000 |                   $30,000 |                                ~$3,450 |
+|                100 |                       $61 |                                   ~$11 |
+|              1,000 |                      $606 |                                  ~$106 |
+|             10,000 |                    $6,060 |                                ~$1,060 |
 
-Open decision: a signing stop also blocks existing users of that app. Decide if
-recovery and key export stay open during a stop, so that no user loses access to
-funds.
+The free allowance is 20% above Privy's free tier (499 MAU and 50,000
+signatures). This keeps the free plan ahead of Privy's at about one fifth of the
+cost of a 1,000-user, 300,000-signature allowance.
+
+During a stop, recovery and key export stay open, so no user loses access to
+funds. Both have rate limits. If we find abuse, we tighten those limits.
 
 ## Why this shape
 
@@ -140,7 +143,7 @@ month.
 
 | Users     | Signatures / month | Our cost |  Seams | Margin | Seams per user |
 | --------- | -----------------: | -------: | -----: | -----: | -------------: |
-| 1,000     |            300,000 |       $3 |     $0 |      — |             $0 |
+| 1,000     |            300,000 |       $3 |    $99 |    97% |         $0.099 |
 | 10,000    |          3,000,000 |      $30 |   $119 |    75% |         $0.012 |
 | 100,000   |         30,000,000 |     $301 |   $479 |    37% |         $0.005 |
 | 1,000,000 |        300,000,000 |   $3,010 | $4,079 |    26% |         $0.004 |
@@ -181,7 +184,7 @@ Every published Seams price is below the matching Dynamic price:
 
 | Item                 | Dynamic                  | Seams                      |
 | -------------------- | ------------------------ | -------------------------- |
-| Live app, few users  | $249 / month             | $0 up to 1,000 MAU         |
+| Live app, few users  | $249 / month             | $0 up to 600 MAU           |
 | Up to 5,000 MAU      | $249 / month             | $99 / month                |
 | Each MAU above 5,000 | $0.005                   | $0.004                     |
 | Heavy signing        | Rate limits, then custom | $0.05 per 1,000 signatures |
@@ -190,14 +193,14 @@ Seams compared with Dynamic's list price, per month:
 
 | Signatures per user per day | 1,000 users      | 10,000 users     | 100,000 users    | 1,000,000 users      |
 | --------------------------: | ---------------- | ---------------- | ---------------- | -------------------- |
-|                      0.3–10 | **$0** vs $249   | **$119** vs $274 | **$479** vs $724 | **$4,079** vs $5,224 |
+|                      0.3–10 | **$99** vs $249  | **$119** vs $274 | **$479** vs $724 | **$4,079** vs $5,224 |
 |                          30 | **$129** vs $249 | $419 vs $274¹    | $3,479 vs $724¹  | $34,079 vs $5,224¹   |
 
 ¹ Dynamic's list price applies here only if its rate limits allow this volume.
 We expect Dynamic to quote Enterprise prices for these apps.
 
 - Up to 10 signatures per user per day, Seams is at least 20% below Dynamic at
-  every size: free against $249, then 57%, 34%, and 22% below.
+  every size: 60%, 57%, 34%, and 22% below.
 - Above 10 a day, the overage makes Seams more expensive than Dynamic's list
   price. Dynamic's rate limits apply in that range.
 
@@ -205,12 +208,13 @@ The same workload of 10 signatures a day, compared with Privy:
 
 | Users     |  Seams | Privy pay-as-you-go | Privy Enterprise |
 | --------- | -----: | ------------------: | ---------------: |
-| 1,000     |     $0 |              $4,500 |             $300 |
+| 1,000     |    $99 |              $4,500 |             $300 |
 | 10,000    |   $119 |             $31,500 |           $3,000 |
 | 100,000   |   $479 |            $306,000 |          $30,000 |
 | 1,000,000 | $4,079 |          $3,051,000 |         $300,000 |
 
-- Seams is 25 times or more below Privy Enterprise at every paid size.
+- Seams is 3 times below Privy Enterprise at 1,000 users, and 25 times or more
+  below from 10,000 users.
 - Do not name competitors on the public page. Their prices change.
 
 Sources:

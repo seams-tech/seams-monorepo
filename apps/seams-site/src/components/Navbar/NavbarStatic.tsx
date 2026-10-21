@@ -143,7 +143,7 @@ const pricingDropdownPane: DropdownPane = {
   rows: [
     {
       title: 'Free',
-      description: 'Up to 1,000 monthly active users',
+      description: 'Up to 600 monthly active users',
       to: '/pricing/#free',
       icon: Sprout,
       meta: '$0',

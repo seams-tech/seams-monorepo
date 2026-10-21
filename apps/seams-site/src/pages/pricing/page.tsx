@@ -23,8 +23,8 @@ const plans: readonly Plan[] = [
     unit: 'per month',
     summary: 'For launches and small apps, in production.',
     features: [
-      'Up to 1,000 monthly active users',
-      '300,000 signatures a month',
+      'Up to 600 monthly active users',
+      '60,000 signatures a month',
       'Passkeys, Email OTP, and split-key wallets',
       'One free plan per organization',
     ],
@@ -61,7 +61,7 @@ const plans: readonly Plan[] = [
 
 // At 10 signatures per user per day, every app stays inside its pool.
 const examples: readonly { users: string; price: string }[] = [
-  { users: '1,000', price: '$0' },
+  { users: '1,000', price: '$99' },
   { users: '10,000', price: '$119' },
   { users: '100,000', price: '$479' },
   { users: '1,000,000', price: '$4,079' },
@@ -121,8 +121,8 @@ export function PricingPage(): React.JSX.Element {
                 Free to start. Pay per active user.
               </h1>
               <p className="h2-hero-simple__sub">
-                The first 1,000 users are free. Every user includes 300 signatures a month, so most
-                apps never pay for signing.
+                The first 600 users are free. On Growth, every user includes 300 signatures a month,
+                so most apps never pay for signing.
               </p>
               <div className="h2-hero-simple__ctas">
                 <a

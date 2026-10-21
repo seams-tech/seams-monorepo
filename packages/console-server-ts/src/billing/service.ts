@@ -169,6 +169,23 @@ export function buildStripeCheckoutReturnUrls(consoleBaseUrl?: string): {
   successUrl: string;
   cancelUrl: string;
 } {
+  return buildBillingAccountReturnUrls(consoleBaseUrl, 'checkout');
+}
+
+export function buildCardSetupReturnUrls(consoleBaseUrl?: string): {
+  successUrl: string;
+  cancelUrl: string;
+} {
+  return buildBillingAccountReturnUrls(consoleBaseUrl, 'card_setup');
+}
+
+function buildBillingAccountReturnUrls(
+  consoleBaseUrl: string | undefined,
+  parameter: 'checkout' | 'card_setup',
+): {
+  successUrl: string;
+  cancelUrl: string;
+} {
   const normalized = String(consoleBaseUrl || DEFAULT_CONSOLE_BASE_URL).trim();
   let parsed: URL;
   try {
@@ -182,8 +199,8 @@ export function buildStripeCheckoutReturnUrls(consoleBaseUrl?: string): {
   const accountUrl = consoleApplicationUrl(parsed, '/dashboard/billing/account');
   const separator = accountUrl.search ? '&' : '?';
   return {
-    successUrl: `${accountUrl}${separator}checkout=success&checkout_session_id={CHECKOUT_SESSION_ID}`,
-    cancelUrl: `${accountUrl}${separator}checkout=cancel`,
+    successUrl: `${accountUrl}${separator}${parameter}=success&checkout_session_id={CHECKOUT_SESSION_ID}`,
+    cancelUrl: `${accountUrl}${separator}${parameter}=cancel`,
   };
 }
 

@@ -389,3 +389,93 @@ export class ReserveFundsRequestV1 {
     );
   }
 }
+
+/** Free plan counts. Only production environments produce these facts. */
+export type PlatformPlanUsageMeasureV1 =
+  | {
+      readonly kind: 'production_active_user';
+      readonly environmentId: string;
+      readonly userKey: string;
+      readonly signatureId?: never;
+    }
+  | {
+      readonly kind: 'production_signature';
+      readonly environmentId: string;
+      readonly signatureId: string;
+      readonly userKey?: never;
+    };
+
+/** A plan usage fact carries no price; shared billing counts it once per key and month. */
+export class PlatformPlanUsageEventV1 {
+  readonly version = 1;
+  readonly kind = 'plan_usage';
+
+  private constructor(
+    readonly eventId: string,
+    readonly instanceId: string,
+    readonly occurredAt: string,
+    readonly measure: PlatformPlanUsageMeasureV1,
+  ) {
+    this.seal();
+  }
+
+  private seal(): void {
+    Object.freeze(this);
+  }
+
+  static parse(input: unknown): PlatformResult<PlatformPlanUsageEventV1, PlatformContractError> {
+    return contractResult(PlatformPlanUsageEventV1.read, input);
+  }
+
+  private static read(input: unknown): PlatformPlanUsageEventV1 {
+    const record = object(input, 'planUsage');
+    exactKeys(record, ['version', 'kind', 'eventId', 'instanceId', 'occurredAt', 'measure']);
+    versionOne(record.version);
+    if (record.kind !== 'plan_usage') return invalidContract('kind');
+    const measure = object(record.measure, 'measure');
+    const environmentId = textValue(measure.environmentId, 'environmentId');
+    let value: PlatformPlanUsageMeasureV1;
+    switch (measure.kind) {
+      case 'production_active_user':
+        exactKeys(measure, ['kind', 'environmentId', 'userKey']);
+        value = Object.freeze({
+          kind: measure.kind,
+          environmentId,
+          userKey: textValue(measure.userKey, 'userKey'),
+        });
+        break;
+      case 'production_signature':
+        exactKeys(measure, ['kind', 'environmentId', 'signatureId']);
+        value = Object.freeze({
+          kind: measure.kind,
+          environmentId,
+          signatureId: textValue(measure.signatureId, 'signatureId'),
+        });
+        break;
+      default:
+        return invalidContract('measure.kind');
+    }
+    return new PlatformPlanUsageEventV1(
+      textValue(record.eventId, 'eventId'),
+      textValue(record.instanceId, 'instanceId'),
+      utcTimestamp(record.occurredAt, 'occurredAt'),
+      value,
+    );
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      version: this.version,
+      kind: this.kind,
+      eventId: this.eventId,
+      instanceId: this.instanceId,
+      occurredAt: this.occurredAt,
+      measure: this.measure,
+    };
+  }
+}
+
+export type PlanUsageRecordingResultV1 = PlatformResult<
+  { readonly kind: 'counted' | 'already_counted' | 'not_production' },
+  { readonly code: 'scope_forbidden' }
+>;

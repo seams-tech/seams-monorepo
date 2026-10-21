@@ -88,7 +88,8 @@ export const CONSOLE_EMAIL_D1_SCHEMA_SQL = Object.freeze([
           'MEMBERSHIP_ACCESS_CHANGED',
           'PREPAID_TOP_UP_RECEIPT',
           'BILLING_REFUND_RESULT',
-          'LOW_BALANCE_WARNING'
+          'LOW_BALANCE_WARNING',
+          'FREE_PLAN_NOTICE'
         )
       ),
       CHECK (template_version = 1),
@@ -810,6 +811,7 @@ async function renderClaimedConsoleEmail(
     case 'PREPAID_TOP_UP_RECEIPT':
     case 'BILLING_REFUND_RESULT':
     case 'LOW_BALANCE_WARNING':
+    case 'FREE_PLAN_NOTICE':
       return renderConsoleEmailV1(claimed.template);
     default:
       return assertNever(claimed.template);
@@ -1323,6 +1325,7 @@ function parseTemplateFamily(value: unknown): ConsoleEmailTemplateFamily {
     case 'PREPAID_TOP_UP_RECEIPT':
     case 'BILLING_REFUND_RESULT':
     case 'LOW_BALANCE_WARNING':
+    case 'FREE_PLAN_NOTICE':
       return value;
     default:
       throw new Error('Invalid console email template family');

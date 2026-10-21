@@ -1,6 +1,7 @@
 import { secureRandomBase36 } from '../boundary';
 import { ensureBillingFundsD1Schema } from '../billingPrepaidReservations/schema';
 import { ensureBillingUsageD1Schema } from './usageSchema';
+import { ensureFreePlanD1Schema } from './freePlanSchema';
 import { WALLET_MONTHLY_ACTIVE_RESOURCE_PRICE_V1 } from './pricing';
 import { listD1BillingUsageCharges } from './attribution';
 import {
@@ -102,6 +103,8 @@ export interface ConsoleBillingD1Runtime {
   namespace: string;
   now: () => Date;
   emailConsoleBaseUrl?: string;
+  consoleBaseUrl?: string;
+  providers: BillingProviderAdapters;
 }
 
 export type ConsoleBillingD1Service = ConsoleBillingService & {
@@ -3787,6 +3790,7 @@ export async function createD1ConsoleBillingService(
   if (options.ensureSchema !== false) {
     await ensureBillingFundsD1Schema(options.database);
     await ensureBillingUsageD1Schema(options.database);
+    await ensureFreePlanD1Schema(options.database);
   }
   const emailConsoleBaseUrl = normalizeEmailConsoleBaseUrl(options.emailConsoleBaseUrl);
   const consoleBaseUrl = normalizeEmailConsoleBaseUrl(
@@ -3799,13 +3803,15 @@ export async function createD1ConsoleBillingService(
     ...(emailConsoleBaseUrl ? { emailConsoleBaseUrl } : {}),
     ...(consoleBaseUrl ? { consoleBaseUrl } : {}),
   };
+  const providers = resolveBillingProviderAdapters(options.providers);
   const runtime: ConsoleBillingD1Runtime = {
     database: state.database,
     namespace: state.namespace,
     now: state.now,
+    providers,
     ...(state.emailConsoleBaseUrl ? { emailConsoleBaseUrl: state.emailConsoleBaseUrl } : {}),
+    ...(state.consoleBaseUrl ? { consoleBaseUrl: state.consoleBaseUrl } : {}),
   };
-  const providers = resolveBillingProviderAdapters(options.providers);
 
   const service: ConsoleBillingD1Service = {
     async getOverview(ctx: ConsoleBillingContext): Promise<BillingOverview> {

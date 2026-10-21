@@ -55,7 +55,72 @@ export interface StripeRefundProviderOutput {
   failureCode: string | null;
 }
 
+export interface StripeCustomerProviderInput {
+  orgId: string;
+  billingAccountId: string;
+}
+
+export interface StripeCardSetupSessionProviderInput {
+  setupId: string;
+  orgId: string;
+  billingAccountId: string;
+  customerRef: string;
+  successUrl: string;
+  cancelUrl: string;
+  now: Date;
+}
+
+export interface StripeCardSetupSessionProviderOutput {
+  id: string;
+  url: string;
+  expiresAt: string;
+}
+
+export interface StripeCardSetupSessionLookupProviderInput {
+  checkoutSessionId: string;
+}
+
+export interface StripeVerifiedCardV1 {
+  id: string;
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+}
+
+/** A setup session is verified only when Stripe reports a succeeded SetupIntent with a card. */
+export type StripeCardSetupSessionLookupProviderOutput =
+  | {
+      kind: 'verified';
+      id: string;
+      orgId: string | null;
+      customerRef: string;
+      card: StripeVerifiedCardV1;
+    }
+  | {
+      kind: 'incomplete';
+      id: string;
+      orgId: string | null;
+      customerRef: string | null;
+      card?: never;
+    };
+
+export interface StripeDefaultPaymentMethodProviderInput {
+  customerRef: string;
+  paymentMethodRef: string;
+}
+
 export interface StripeBillingProviderAdapter {
+  createCustomer(input: StripeCustomerProviderInput): Promise<string> | string;
+  createCardSetupSession(
+    input: StripeCardSetupSessionProviderInput,
+  ): Promise<StripeCardSetupSessionProviderOutput> | StripeCardSetupSessionProviderOutput;
+  getCardSetupSession(
+    input: StripeCardSetupSessionLookupProviderInput,
+  ):
+    | Promise<StripeCardSetupSessionLookupProviderOutput>
+    | StripeCardSetupSessionLookupProviderOutput;
+  setDefaultPaymentMethod(input: StripeDefaultPaymentMethodProviderInput): Promise<void> | void;
   createCheckoutSession(
     input: StripeCheckoutSessionProviderInput,
   ): Promise<StripeCheckoutSessionProviderOutput> | StripeCheckoutSessionProviderOutput;
@@ -90,12 +155,61 @@ function buildMockCheckoutSuccessUrl(successUrl: string, checkoutSessionId: stri
   return url.toString();
 }
 
+export interface SimulatedBillingProviderOptions {
+  /** The card that each simulated setup session verifies. */
+  readonly setupCard?: Omit<StripeVerifiedCardV1, 'id'>;
+}
+
 /** Explicit payment simulation for local development and acceptance fixtures. */
-export function createSimulatedBillingProviderAdapters(): BillingProviderAdapters {
+export function createSimulatedBillingProviderAdapters(
+  options: SimulatedBillingProviderOptions = {},
+): BillingProviderAdapters {
   const sessions = new Map<string, StripeCheckoutSessionLookupProviderOutput>();
   const refunds = new Map<string, StripeRefundProviderOutput>();
+  const setupSessions = new Map<string, StripeCardSetupSessionLookupProviderOutput>();
+  const customers = new Map<string, string>();
+  const setupCard = options.setupCard ?? {
+    brand: 'visa',
+    last4: '4242',
+    expMonth: 12,
+    expYear: 2099,
+  };
   return {
     stripe: {
+      createCustomer(input: StripeCustomerProviderInput): string {
+        const existing = customers.get(input.billingAccountId);
+        if (existing) return existing;
+        const customerRef = makeCustomerRef(input.billingAccountId);
+        customers.set(input.billingAccountId, customerRef);
+        return customerRef;
+      },
+      createCardSetupSession(
+        input: StripeCardSetupSessionProviderInput,
+      ): StripeCardSetupSessionProviderOutput {
+        const id = makeProviderId('cs_setup', input.now);
+        setupSessions.set(id, {
+          kind: 'verified',
+          id,
+          orgId: input.orgId,
+          customerRef: input.customerRef,
+          card: { id: `pm_${input.setupId}`, ...setupCard },
+        });
+        return {
+          id,
+          url: buildMockCheckoutSuccessUrl(input.successUrl, id),
+          expiresAt: new Date(input.now.getTime() + 30 * 60 * 1000).toISOString(),
+        };
+      },
+      getCardSetupSession(
+        input: StripeCardSetupSessionLookupProviderInput,
+      ): StripeCardSetupSessionLookupProviderOutput {
+        const session = setupSessions.get(String(input.checkoutSessionId || '').trim());
+        if (!session) {
+          throw new Error(`Stripe setup session ${input.checkoutSessionId || '(missing)'} was not found`);
+        }
+        return session;
+      },
+      setDefaultPaymentMethod(): void {},
       createCheckoutSession(
         input: StripeCheckoutSessionProviderInput,
       ): StripeCheckoutSessionProviderOutput {
@@ -169,6 +283,22 @@ export class UnavailableStripeBillingProvider implements StripeBillingProviderAd
 
   requireAvailable(): never {
     throw new ConsoleBillingError('payment_provider_unavailable', 503, this.message);
+  }
+
+  createCustomer(): never {
+    return this.requireAvailable();
+  }
+
+  createCardSetupSession(): never {
+    return this.requireAvailable();
+  }
+
+  getCardSetupSession(): never {
+    return this.requireAvailable();
+  }
+
+  setDefaultPaymentMethod(): never {
+    return this.requireAvailable();
   }
 
   createCheckoutSession(): never {

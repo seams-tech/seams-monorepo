@@ -164,6 +164,7 @@ test.describe('console billing service prepaid model', () => {
     const service = createInMemoryConsoleBillingService({
       providers: {
         stripe: {
+          ...createSimulatedBillingProviderAdapters().stripe,
           createCheckoutSession: (input) => {
             expect(input.successUrl).toBe(
               'https://console.example.com/dashboard/billing/account?checkout=success&checkout_session_id={CHECKOUT_SESSION_ID}',
@@ -483,6 +484,7 @@ test.describe('console billing service prepaid model', () => {
     const service = createInMemoryConsoleBillingService({
       providers: {
         stripe: {
+          ...createSimulatedBillingProviderAdapters().stripe,
           createCheckoutSession: (input) => ({
             id: `cs_${input.purchaseId}`,
             url: 'https://checkout.example/refund-pending',

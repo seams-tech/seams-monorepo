@@ -1,10 +1,19 @@
 import { consoleApplicationUrl } from '../boundary/normalization';
+import {
+  FREE_PLAN_CARD_GRACE_DAYS,
+  FREE_PLAN_CARD_REMINDER_DAYS,
+  FREE_PLAN_LIMITS_V1,
+  type FreePlanCardReminderDayV1,
+  type FreePlanLimitV1,
+  type FreePlanNoticeV1,
+} from '../billing/freePlan';
 import type {
   AccountWelcomeEmailV1,
   BillingRefundResultEmailV1,
   ConsoleEmailInvitationRole,
   ConsoleEmailNonInvitationTemplateV1,
   ConsoleEmailTemplateV1,
+  FreePlanNoticeEmailV1,
   LowBalanceWarningEmailV1,
   MembershipAccessChangedEmailV1,
   OrganizationInvitationEmailV1,
@@ -94,6 +103,12 @@ export interface LowBalanceWarningEmailV1Input {
   readonly balanceMinor: number;
   readonly thresholdMinor: number;
   readonly consoleBaseUrl: string;
+}
+
+export interface FreePlanNoticeEmailV1Input {
+  readonly organizationName: string;
+  readonly consoleBaseUrl: string;
+  readonly notice: FreePlanNoticeV1;
 }
 
 export function buildAccountWelcomeEmailV1(
@@ -225,6 +240,18 @@ export function buildLowBalanceWarningEmailV1(
   };
 }
 
+export function buildFreePlanNoticeEmailV1(
+  input: FreePlanNoticeEmailV1Input,
+): FreePlanNoticeEmailV1 {
+  return {
+    family: 'FREE_PLAN_NOTICE',
+    version: 1,
+    organizationName: requiredText(input.organizationName, 'organizationName'),
+    consoleBaseUrl: httpBaseUrl(input.consoleBaseUrl, 'consoleBaseUrl'),
+    notice: freePlanNotice(input.notice),
+  };
+}
+
 export function parseConsoleEmailTemplate(raw: unknown): ConsoleEmailTemplateV1 {
   const record = unknownRecord(raw, 'template');
   if (record.version !== 1) {
@@ -245,6 +272,12 @@ export function parseConsoleEmailTemplate(raw: unknown): ConsoleEmailTemplateV1 
       return parseBillingRefundResult(record);
     case 'LOW_BALANCE_WARNING':
       return parseLowBalanceWarning(record);
+    case 'FREE_PLAN_NOTICE':
+      return buildFreePlanNoticeEmailV1({
+        organizationName: requiredRawString(record.organizationName, 'organizationName'),
+        consoleBaseUrl: requiredRawString(record.consoleBaseUrl, 'consoleBaseUrl'),
+        notice: parseFreePlanNotice(unknownRecord(record.notice, 'notice')),
+      });
     default:
       throw new Error('Unsupported console email template family');
   }
@@ -299,6 +332,8 @@ export function renderConsoleEmailV1(
       return renderBillingRefundResult(template);
     case 'LOW_BALANCE_WARNING':
       return renderLowBalanceWarning(template);
+    case 'FREE_PLAN_NOTICE':
+      return renderFreePlanNotice(template);
     default:
       return assertNever(template);
   }
@@ -565,6 +600,181 @@ function renderLowBalanceWarning(template: LowBalanceWarningEmailV1): RenderedCo
       actionLabel: 'Top up balance',
       actionUrl: billingUrl(template.consoleBaseUrl),
     }),
+  };
+}
+
+function freePlanNotice(notice: FreePlanNoticeV1): FreePlanNoticeV1 {
+  switch (notice.kind) {
+    case 'card_reminder':
+      return {
+        kind: notice.kind,
+        day: reminderDay(notice.day),
+        deadlineAt: isoTimestamp(notice.deadlineAt, 'deadlineAt'),
+      };
+    case 'card_required':
+      return { kind: notice.kind, deadlineAt: isoTimestamp(notice.deadlineAt, 'deadlineAt') };
+    case 'free_limit_warning':
+      return {
+        kind: notice.kind,
+        monthUtc: monthUtcText(notice.monthUtc),
+        limit: freePlanLimit(notice.limit),
+        cardOnFile: notice.cardOnFile === true,
+      };
+    case 'free_limit_stop':
+      return {
+        kind: notice.kind,
+        monthUtc: monthUtcText(notice.monthUtc),
+        limit: freePlanLimit(notice.limit),
+      };
+    case 'growth_move':
+      return {
+        kind: notice.kind,
+        startedAt: isoTimestamp(notice.startedAt, 'startedAt'),
+        monthlyBaseMinor: positiveMinorAmount(notice.monthlyBaseMinor, 'monthlyBaseMinor'),
+        priceVersion: requiredText(notice.priceVersion, 'priceVersion'),
+      };
+    default:
+      return assertNever(notice);
+  }
+}
+
+function parseFreePlanNotice(record: UnknownRecord): FreePlanNoticeV1 {
+  switch (record.kind) {
+    case 'card_reminder':
+      return freePlanNotice({
+        kind: record.kind,
+        day: reminderDay(requiredRawNumber(record.day, 'day')),
+        deadlineAt: requiredRawString(record.deadlineAt, 'deadlineAt'),
+      });
+    case 'card_required':
+      return freePlanNotice({
+        kind: record.kind,
+        deadlineAt: requiredRawString(record.deadlineAt, 'deadlineAt'),
+      });
+    case 'free_limit_warning':
+      if (typeof record.cardOnFile !== 'boolean') throw new Error('cardOnFile must be a boolean');
+      return freePlanNotice({
+        kind: record.kind,
+        monthUtc: requiredRawString(record.monthUtc, 'monthUtc'),
+        limit: freePlanLimit(record.limit),
+        cardOnFile: record.cardOnFile,
+      });
+    case 'free_limit_stop':
+      return freePlanNotice({
+        kind: record.kind,
+        monthUtc: requiredRawString(record.monthUtc, 'monthUtc'),
+        limit: freePlanLimit(record.limit),
+      });
+    case 'growth_move':
+      return freePlanNotice({
+        kind: record.kind,
+        startedAt: requiredRawString(record.startedAt, 'startedAt'),
+        monthlyBaseMinor: requiredRawNumber(record.monthlyBaseMinor, 'monthlyBaseMinor'),
+        priceVersion: requiredRawString(record.priceVersion, 'priceVersion'),
+      });
+    default:
+      throw new Error('Invalid free plan notice kind');
+  }
+}
+
+function reminderDay(value: number): FreePlanCardReminderDayV1 {
+  const day = FREE_PLAN_CARD_REMINDER_DAYS.find((candidate) => candidate === value);
+  if (day === undefined) throw new Error('Invalid free plan reminder day');
+  return day;
+}
+
+function freePlanLimit(value: unknown): FreePlanLimitV1 {
+  switch (value) {
+    case 'active_users':
+    case 'signatures':
+      return value;
+    default:
+      throw new Error('Invalid free plan limit');
+  }
+}
+
+function monthUtcText(value: string): string {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) throw new Error('monthUtc must be YYYY-MM');
+  return value;
+}
+
+function utcDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+function freePlanLimitSentence(limit: FreePlanLimitV1): string {
+  return limit === 'active_users'
+    ? `${FREE_PLAN_LIMITS_V1.productionActiveUsers.toLocaleString('en-US')} production monthly active users`
+    : `${FREE_PLAN_LIMITS_V1.productionSignatures.toLocaleString('en-US')} production signatures`;
+}
+
+function renderFreePlanNotice(template: FreePlanNoticeEmailV1): RenderedConsoleEmail {
+  const notice = template.notice;
+  const organization = template.organizationName;
+  const keepOpen =
+    'Recovery and key export stay open. Development environments keep working.';
+  let subject: string;
+  let paragraphs: string[];
+  let actionLabel = 'Add a card';
+  switch (notice.kind) {
+    case 'card_reminder': {
+      const daysLeft = FREE_PLAN_CARD_GRACE_DAYS - notice.day;
+      subject = `Add a card by ${utcDate(notice.deadlineAt)} to keep production running`;
+      paragraphs = [
+        `${organization} uses the Seams Free plan without a card. In ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'}, production needs a card on file to continue.`,
+        'We do not charge the card while your usage stays inside the Free limits.',
+      ];
+      break;
+    }
+    case 'card_required':
+      subject = 'Production is paused until you add a card';
+      paragraphs = [
+        `Production sign-ups and signing for ${organization} are paused, because no usable card is on file.`,
+        keepOpen,
+        'Production resumes as soon as you add a card.',
+      ];
+      break;
+    case 'free_limit_warning':
+      subject = notice.cardOnFile
+        ? 'You will move to Growth at the Free limit'
+        : 'Add a card before the Free limit';
+      paragraphs = [
+        `${organization} used 80% of a Free limit in ${notice.monthUtc}: ${freePlanLimitSentence(notice.limit)}.`,
+        notice.cardOnFile
+          ? 'At the limit, your organization moves to Growth at $99 a month. Production does not stop.'
+          : 'At the limit, production sign-ups and signing stop until you add a card. With a card, your organization moves to Growth at $99 a month.',
+      ];
+      if (notice.cardOnFile) actionLabel = 'View billing';
+      break;
+    case 'free_limit_stop':
+      subject = 'Production sign-ups or signing are paused. Add a card.';
+      paragraphs = [
+        `${organization} reached a Free limit in ${notice.monthUtc}: ${freePlanLimitSentence(notice.limit)}.`,
+        keepOpen,
+        'Add a card to move to Growth at $99 a month. Production resumes at once.',
+      ];
+      break;
+    case 'growth_move':
+      subject = `Your organization moved to Growth: ${usd(notice.monthlyBaseMinor)} a month from ${utcDate(notice.startedAt)}`;
+      paragraphs = [
+        `${organization} reached a Free limit and moved to the Growth plan on ${utcDate(notice.startedAt)}.`,
+        'Growth includes 5,000 monthly active users, then $0.004 per user. Your Growth prices stay locked for 12 months.',
+      ];
+      actionLabel = 'View billing';
+      break;
+    default:
+      return assertNever(notice);
+  }
+  const url = billingUrl(template.consoleBaseUrl);
+  return {
+    subject,
+    text: `${paragraphs.join('\n\n')}\n\n${actionLabel}: ${url}`,
+    html: htmlMessage({ heading: subject, paragraphs, actionLabel, actionUrl: url }),
   };
 }
 

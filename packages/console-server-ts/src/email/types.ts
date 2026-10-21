@@ -1,3 +1,5 @@
+import type { FreePlanNoticeV1 } from '../billing/freePlan';
+
 export type ConsoleEmailTemplateVersion = 1;
 
 export type ConsoleEmailTemplateFamily =
@@ -7,7 +9,8 @@ export type ConsoleEmailTemplateFamily =
   | 'MEMBERSHIP_ACCESS_CHANGED'
   | 'PREPAID_TOP_UP_RECEIPT'
   | 'BILLING_REFUND_RESULT'
-  | 'LOW_BALANCE_WARNING';
+  | 'LOW_BALANCE_WARNING'
+  | 'FREE_PLAN_NOTICE';
 
 export type ConsoleEmailInvitationRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 
@@ -121,6 +124,14 @@ export interface LowBalanceWarningEmailV1 {
   readonly consoleBaseUrl: string;
 }
 
+export interface FreePlanNoticeEmailV1 {
+  readonly family: 'FREE_PLAN_NOTICE';
+  readonly version: 1;
+  readonly organizationName: string;
+  readonly consoleBaseUrl: string;
+  readonly notice: FreePlanNoticeV1;
+}
+
 export type ConsoleEmailTemplateV1 =
   | AccountWelcomeEmailV1
   | OrganizationInvitationEmailV1
@@ -128,7 +139,8 @@ export type ConsoleEmailTemplateV1 =
   | MembershipAccessChangedEmailV1
   | PrepaidTopUpReceiptEmailV1
   | BillingRefundResultEmailV1
-  | LowBalanceWarningEmailV1;
+  | LowBalanceWarningEmailV1
+  | FreePlanNoticeEmailV1;
 
 export type ConsoleEmailNonInvitationTemplateV1 = Exclude<
   ConsoleEmailTemplateV1,

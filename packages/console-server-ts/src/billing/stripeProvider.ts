@@ -1,6 +1,13 @@
 import type {
   BillingProviderAdapters,
   StripeBillingProviderAdapter,
+  StripeCardSetupSessionLookupProviderInput,
+  StripeCardSetupSessionLookupProviderOutput,
+  StripeCardSetupSessionProviderInput,
+  StripeCardSetupSessionProviderOutput,
+  StripeCustomerProviderInput,
+  StripeDefaultPaymentMethodProviderInput,
+  StripeVerifiedCardV1,
   StripeCheckoutSessionLookupProviderInput,
   StripeCheckoutSessionLookupProviderOutput,
   StripeCheckoutSessionProviderInput,
@@ -149,6 +156,29 @@ function parseStripeCreditPackId(value: unknown): BillingCreditPackId {
   }
 }
 
+function parseStripeCard(paymentMethod: UnknownRecord): StripeVerifiedCardV1 | null {
+  const id = normalizeString(paymentMethod.id);
+  const card = toUnknownRecord(paymentMethod.card);
+  const brand = normalizeString(card.brand).toLowerCase();
+  const last4 = normalizeString(card.last4);
+  const expMonth = Number(card.exp_month);
+  const expYear = Number(card.exp_year);
+  if (
+    !id ||
+    normalizeString(paymentMethod.type) !== 'card' ||
+    !brand ||
+    !/^[0-9]{4}$/.test(last4) ||
+    !Number.isSafeInteger(expMonth) ||
+    expMonth < 1 ||
+    expMonth > 12 ||
+    !Number.isSafeInteger(expYear) ||
+    expYear < 2000
+  ) {
+    return null;
+  }
+  return { id, brand, last4, expMonth, expYear };
+}
+
 class StripeBillingProvider implements StripeBillingProviderAdapter {
   private readonly secretKey: string;
   private readonly apiBaseUrl: string;
@@ -260,6 +290,97 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
     if (!providerRefundId) throw new Error('Stripe refund id is required');
     return parseStripeRefund(
       await this.getJson(`/v1/refunds/${encodeURIComponent(providerRefundId)}`),
+    );
+  }
+
+  async createCustomer(input: StripeCustomerProviderInput): Promise<string> {
+    const form = new URLSearchParams();
+    setFormField(form, 'name', `Console ${input.orgId}`);
+    setFormField(form, 'metadata[org_id]', input.orgId);
+    setFormField(form, 'metadata[billing_account_id]', input.billingAccountId);
+    setFormField(form, 'description', `Seams console billing customer for ${input.orgId}`);
+    // One key per billing account: a lost reply cannot create a second Customer.
+    const payload = await this.postForm(
+      '/v1/customers',
+      form,
+      `customer:${input.billingAccountId}`,
+    );
+    const customerId = normalizeString(payload.id);
+    if (!customerId) throw new Error('Stripe customer create returned missing id');
+    return customerId;
+  }
+
+  async createCardSetupSession(
+    input: StripeCardSetupSessionProviderInput,
+  ): Promise<StripeCardSetupSessionProviderOutput> {
+    const form = new URLSearchParams();
+    setFormField(form, 'mode', 'setup');
+    setFormField(form, 'currency', 'usd');
+    setFormField(form, 'customer', input.customerRef);
+    setFormField(form, 'payment_method_types[0]', 'card');
+    setFormField(form, 'success_url', input.successUrl);
+    setFormField(form, 'cancel_url', input.cancelUrl);
+    setFormField(form, 'client_reference_id', input.orgId);
+    setFormField(form, 'metadata[org_id]', input.orgId);
+    setFormField(form, 'metadata[billing_account_id]', input.billingAccountId);
+    setFormField(form, 'metadata[card_setup_id]', input.setupId);
+    setFormField(
+      form,
+      'custom_text[submit][message]',
+      'We charge this card for Growth and usage after each month. We do not charge it while you stay inside the Free limits.',
+    );
+    const payload = await this.postForm('/v1/checkout/sessions', form, input.setupId);
+    const id = normalizeString(payload.id);
+    const url = normalizeString(payload.url);
+    if (!id || !url) throw new Error('Stripe setup session returned missing id/url');
+    return {
+      id,
+      url,
+      expiresAt: resolveExpiresAt({
+        now: input.now,
+        stripeUnixSeconds: payload.expires_at,
+        fallbackMinutes: 30,
+      }),
+    };
+  }
+
+  async getCardSetupSession(
+    input: StripeCardSetupSessionLookupProviderInput,
+  ): Promise<StripeCardSetupSessionLookupProviderOutput> {
+    const checkoutSessionId = normalizeString(input.checkoutSessionId);
+    if (!checkoutSessionId) throw new Error('Stripe setup session id is required');
+    const payload = await this.getJson(
+      `/v1/checkout/sessions/${encodeURIComponent(checkoutSessionId)}?expand[]=setup_intent.payment_method`,
+    );
+    const id = normalizeString(payload.id);
+    if (!id) throw new Error('Stripe setup session lookup returned missing id');
+    if (normalizeString(payload.mode) !== 'setup') {
+      throw new Error('Stripe checkout session is not a card setup session');
+    }
+    const metadata = toUnknownRecord(payload.metadata);
+    const orgId =
+      normalizeString(payload.client_reference_id) || normalizeString(metadata.org_id) || null;
+    const customerRef = normalizeString(payload.customer) || null;
+    const setupIntent = toUnknownRecord(payload.setup_intent);
+    const card = parseStripeCard(toUnknownRecord(setupIntent.payment_method));
+    if (
+      normalizeString(payload.status) !== 'complete' ||
+      normalizeString(setupIntent.status) !== 'succeeded' ||
+      !customerRef ||
+      !card
+    ) {
+      return { kind: 'incomplete', id, orgId, customerRef };
+    }
+    return { kind: 'verified', id, orgId, customerRef, card };
+  }
+
+  async setDefaultPaymentMethod(input: StripeDefaultPaymentMethodProviderInput): Promise<void> {
+    const form = new URLSearchParams();
+    setFormField(form, 'invoice_settings[default_payment_method]', input.paymentMethodRef);
+    await this.postForm(
+      `/v1/customers/${encodeURIComponent(input.customerRef)}`,
+      form,
+      `default:${input.customerRef}:${input.paymentMethodRef}`,
     );
   }
 

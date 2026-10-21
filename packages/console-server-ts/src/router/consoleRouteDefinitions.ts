@@ -177,6 +177,7 @@ const BILLING_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_billing_invoices_activity_get', 'GET', '/console/billing/invoices/:id/activity'],
   ['console_billing_invoices_line_items_get', 'GET', '/console/billing/invoices/:id/line-items'],
   ['console_billing_refunds_list', 'GET', '/console/billing/refunds'],
+  ['console_billing_plan_get', 'GET', '/console/billing/plan'],
 ];
 
 const BILLING_MANAGE_ROUTES: readonly ConsoleRouteTuple[] = [
@@ -190,6 +191,8 @@ const BILLING_MANAGE_ROUTES: readonly ConsoleRouteTuple[] = [
     'POST',
     '/console/billing/stripe/checkout-session/reconcile',
   ],
+  ['console_billing_card_setup_create', 'POST', '/console/billing/card-setup'],
+  ['console_billing_card_setup_reconcile', 'POST', '/console/billing/card-setup/reconcile'],
 ];
 
 const PLATFORM_SUPPORT_ROUTES: readonly ConsoleRouteTuple[] = [

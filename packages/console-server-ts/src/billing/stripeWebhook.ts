@@ -338,6 +338,56 @@ function parseDispute(
   };
 }
 
+/** Card setup events. The handler verifies each one again through a Stripe lookup. */
+export type StripeCardSetupWebhookEventV1 =
+  | {
+      readonly kind: 'setup_completed';
+      readonly eventId: string;
+      readonly checkoutSessionId: string;
+      readonly orgId: string | null;
+      readonly paymentMethodRef?: never;
+    }
+  | {
+      readonly kind: 'payment_method_detached';
+      readonly eventId: string;
+      readonly paymentMethodRef: string;
+      readonly checkoutSessionId?: never;
+      readonly orgId?: never;
+    };
+
+export type StripeWebhookEventV1 =
+  | { readonly kind: 'billing'; readonly request: StripeWebhookEventRequest }
+  | { readonly kind: 'card_setup'; readonly event: StripeCardSetupWebhookEventV1 }
+  | { readonly kind: 'ignored' };
+
+export function parseStripeCardSetupWebhookEvent(
+  payload: unknown,
+): StripeCardSetupWebhookEventV1 | null {
+  const envelope = toRecord(payload);
+  const eventId = readString(envelope, 'id');
+  const eventType = readString(envelope, 'type');
+  const object = toRecord(toRecord(envelope.data).object);
+  if (!eventId || !eventType) throw invalidPayload('Stripe event id and type are required');
+  if (eventType === 'checkout.session.completed' && readString(object, 'mode') === 'setup') {
+    const checkoutSessionId = readString(object, 'id');
+    if (!checkoutSessionId) throw invalidPayload('Completed Stripe setup requires an id');
+    return {
+      kind: 'setup_completed',
+      eventId,
+      checkoutSessionId,
+      orgId:
+        nullableString(readString(object, 'client_reference_id')) ||
+        nullableString(readString(readMetadata(object), 'org_id')),
+    };
+  }
+  if (eventType === 'payment_method.detached') {
+    const paymentMethodRef = readString(object, 'id');
+    if (!paymentMethodRef) throw invalidPayload('Detached payment method requires an id');
+    return { kind: 'payment_method_detached', eventId, paymentMethodRef };
+  }
+  return null;
+}
+
 export function parseStripeWebhookEventEnvelope(
   payload: unknown,
 ): StripeWebhookEventRequest | null {
@@ -348,8 +398,11 @@ export function parseStripeWebhookEventEnvelope(
   if (!eventId || !eventType) throw invalidPayload('Stripe event id and type are required');
   switch (eventType) {
     case 'checkout.session.completed':
+      // Card setup sessions carry no payment; the card setup handler owns them.
+      if (readString(object, 'mode') === 'setup') return null;
       return parseCheckoutCompleted(eventId, object);
     case 'checkout.session.expired':
+      if (readString(object, 'mode') === 'setup') return null;
       return parseCheckoutExpired(eventId, object);
     case 'refund.created':
     case 'refund.updated':
@@ -377,4 +430,15 @@ export async function verifyAndParseStripeWebhookRequest(
 ): Promise<StripeWebhookEventRequest | null> {
   await verifyStripeWebhookSignature(input);
   return parseStripeWebhookEventEnvelope(parseRawJson(bodyBytes(input.rawBody)));
+}
+
+export async function verifyAndParseStripeWebhookEvent(
+  input: StripeWebhookVerificationInput,
+): Promise<StripeWebhookEventV1> {
+  await verifyStripeWebhookSignature(input);
+  const payload = parseRawJson(bodyBytes(input.rawBody));
+  const cardSetup = parseStripeCardSetupWebhookEvent(payload);
+  if (cardSetup) return { kind: 'card_setup', event: cardSetup };
+  const request = parseStripeWebhookEventEnvelope(payload);
+  return request ? { kind: 'billing', request } : { kind: 'ignored' };
 }

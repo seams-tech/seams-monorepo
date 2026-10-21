@@ -13,7 +13,8 @@ import {
   parseGenerateMonthlyInvoiceRequest,
   parseStripeCheckoutSessionRequest,
 } from '../../billing/requests';
-import { verifyAndParseStripeWebhookRequest } from '../../billing/stripeWebhook';
+import { verifyAndParseStripeWebhookEvent } from '../../billing/stripeWebhook';
+import { freePlanServiceForBilling } from '../../billing/freePlanD1';
 import { isConsoleBillingError } from '../../billing/errors';
 import { buildConsoleBillingCreditPurchaseSettledAuditEvent } from '../../billing/stripePostProcessing';
 import { buildConsoleBillingInvoiceGeneratedAuditEvent } from '../../billing/auditMetadata';
@@ -106,7 +107,10 @@ function isSharedBillingPath(pathname: string): boolean {
     pathname === '/console/billing/adjustments/admin-debit' ||
     pathname === '/console/billing/stripe/webhook' ||
     pathname === '/console/billing/stripe/checkout-session' ||
-    pathname === '/console/billing/stripe/checkout-session/reconcile'
+    pathname === '/console/billing/stripe/checkout-session/reconcile' ||
+    pathname === '/console/billing/plan' ||
+    pathname === '/console/billing/card-setup' ||
+    pathname === '/console/billing/card-setup/reconcile'
   );
 }
 async function observeBalanceChange(
@@ -218,14 +222,23 @@ export async function handleConsoleBillingRoutes(
     const billingOrResponse = requireBillingService(ctx);
     if (billingOrResponse instanceof Response) return billingOrResponse;
     try {
-      const request = await verifyAndParseStripeWebhookRequest({
+      const parsed = await verifyAndParseStripeWebhookEvent({
         rawBody,
         signatureHeader: ctx.request.headers.get('Stripe-Signature') || '',
         secret: signingSecret,
       });
-      if (!request) {
+      if (parsed.kind === 'ignored') {
         return json({ ok: true, accepted: false, ignored: true }, { status: 200 });
       }
+      if (parsed.kind === 'card_setup') {
+        const freePlan = await freePlanServiceForBilling(billingOrResponse);
+        if (!freePlan) {
+          return json({ ok: true, accepted: false, ignored: true }, { status: 200 });
+        }
+        const handled = await freePlan.handleWebhookEvent(parsed.event);
+        return json({ ok: true, ...handled }, { status: 200 });
+      }
+      const request = parsed.request;
       const result = await billingOrResponse.processStripeWebhookEvent(request);
       const postProcessing = await dispatchBillingStripePostProcessingEvent(
         {
@@ -746,6 +759,44 @@ export async function handleConsoleBillingRoutes(
       }
       const lineItems = await billing.listInvoiceLineItems(billingCtx, invoiceId);
       return json({ ok: true, lineItems }, { status: 200 });
+    }
+    if (
+      ctx.pathname === '/console/billing/plan' ||
+      ctx.pathname === '/console/billing/card-setup' ||
+      ctx.pathname === '/console/billing/card-setup/reconcile'
+    ) {
+      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
+      if (routePolicy) return routePolicy;
+      const freePlan = await freePlanServiceForBilling(billing);
+      if (!freePlan) return json({ ok: false, code: 'billing_plan_unavailable' }, { status: 503 });
+      if (ctx.method === 'GET' && ctx.pathname === '/console/billing/plan') {
+        return json({ ok: true, plan: await freePlan.getPlan(billingCtx) }, { status: 200 });
+      }
+      if (ctx.method === 'POST' && ctx.pathname === '/console/billing/card-setup') {
+        const cardSetup = await freePlan.startCardSetup(billingCtx);
+        return json({ ok: true, cardSetup }, { status: 201 });
+      }
+      if (ctx.method === 'POST' && ctx.pathname === '/console/billing/card-setup/reconcile') {
+        const request = parseStripeCheckoutSessionReconcileRequest(await readJson(ctx.request));
+        billingFailureEvent = {
+          operation: 'PAYMENT_RECONCILE',
+          providerRef: request.checkoutSessionId,
+        };
+        const result = await freePlan.reconcileCardSetup(billingCtx, request.checkoutSessionId);
+        if (result.verified) {
+          await emitConsoleAuditEvent(ctx, auth.claims, {
+            category: 'BILLING',
+            action: 'billing.payment_method.verified',
+            summary: 'Verified a card for the billing account',
+            metadata: {
+              checkoutSessionId: request.checkoutSessionId,
+              plan: result.plan.plan,
+              productionState: result.plan.productionState,
+            },
+          });
+        }
+        return json({ ok: true, ...result }, { status: 200 });
+      }
     }
     if (ctx.method === 'POST' && ctx.pathname === '/console/billing/stripe/checkout-session') {
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);

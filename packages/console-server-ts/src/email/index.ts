@@ -20,6 +20,7 @@ export type {
   ConsoleEmailTemplateFamily,
   ConsoleEmailTemplateV1,
   ConsoleEmailTemplateVersion,
+  FreePlanNoticeEmailV1,
   LowBalanceWarningEmailV1,
   MembershipAccessChangedEmailV1,
   OrganizationInvitationEmailV1,
@@ -31,6 +32,7 @@ export type {
 export type {
   AccountWelcomeEmailV1Input,
   BillingRefundResultEmailV1Input,
+  FreePlanNoticeEmailV1Input,
   LowBalanceWarningEmailV1Input,
   MembershipAccessChangedEmailV1Input,
   OrganizationInvitationEmailV1Input,
@@ -40,6 +42,7 @@ export type {
 export {
   buildAccountWelcomeEmailV1,
   buildBillingRefundResultEmailV1,
+  buildFreePlanNoticeEmailV1,
   buildLowBalanceWarningEmailV1,
   buildMembershipAccessChangedEmailV1,
   buildOrganizationInvitationEmailV1,

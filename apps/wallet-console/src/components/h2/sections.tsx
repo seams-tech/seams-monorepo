@@ -494,7 +494,7 @@ const ACCOUNT_NOTES: readonly ApiNoteProps[] = [
     icon: Fingerprint,
     field: 'sky-sand',
   },
-  { title: 'Recovery', body: 'Email or a linked device', icon: LifeBuoy, field: 'sky-sand' },
+  { title: 'Recovery', body: 'Email or a linked device', icon: LifeBuoy, field: 'aqua-evergreen' },
 ];
 
 const POLICY_NOTES: readonly ApiNoteProps[] = [

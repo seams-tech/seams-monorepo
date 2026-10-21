@@ -686,14 +686,14 @@ export function H2Start(): React.JSX.Element {
             aria-label="Open a signing session and send a transfer"
           >
             <span className="tok-kw">import</span>
-            {' { transfer, useSeams, useWallet } '}
+            {' { near, transfer, useSeams, useWallet } '}
             <span className="tok-kw">from</span>{' '}
             <span className="tok-str">'@seams/wallet/react'</span>
             {';\n'}
             <span className="tok-kw">const</span>
             {' { unlock } = useSeams();\n'}
             <span className="tok-kw">const</span>
-            {' { near } = useWallet();\n\n'}
+            {' wallet = useWallet();\n\n'}
             <span className="tok-kw">await</span>
             {' unlock(walletId, {\n  '}
             <span className="tok-cm">{'// a session: 15 minutes or 5 signatures\n'}</span>
@@ -705,17 +705,15 @@ export function H2Start(): React.JSX.Element {
             <span className="tok-prop">remainingUses</span>
             {': 5 },\n});\n'}
             <span className="tok-kw">await</span>
-            {' near.signAndSendTransaction({\n  '}
+            {' wallet.near.signAndSendTransaction({\n  '}
             <span className="tok-prop">receiverId</span>
             {': '}
             <span className="tok-str">"bob.near"</span>
             {',\n  '}
             <span className="tok-prop">actions</span>
-            {': [transfer('}
-            <span className="tok-str">'1000000000000000000000000'</span>
-            {')], '}
-            <span className="tok-cm">{'// 1 NEAR'}</span>
-            {'\n});'}
+            {': [transfer(near('}
+            <span className="tok-str">'1'</span>
+            {'))],\n});'}
           </div>
         </div>
       </div>

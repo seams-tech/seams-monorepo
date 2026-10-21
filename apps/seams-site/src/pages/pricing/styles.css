@@ -20,7 +20,7 @@
 .pricing-plans {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 22px;
 }
 
 /* cards break out of the shell inset while the column borders are visible */
@@ -49,9 +49,14 @@
   cursor: pointer;
 }
 
+/* a ring outside the card, with a gap, as on the banner cards below */
+.pricing-plan {
+  outline: 2px solid rgba(10, 10, 10, 0.1);
+  outline-offset: 3px;
+}
+
 .pricing-plan:focus-visible {
-  outline: 2px solid var(--h2-ink);
-  outline-offset: 4px;
+  outline-color: var(--h2-ink);
 }
 
 @media (min-width: 901px) {
@@ -508,10 +513,13 @@
 .pricing-banner__cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 22px;
 }
 
 .pricing-banner__card {
+  --pricing-banner-ink: var(--h2-ink);
+  --pricing-banner-copy: var(--h2-smoke);
+  --pricing-banner-shadow: none;
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -520,35 +528,41 @@
   gap: 6px;
   padding: 20px 20px 18px;
   border-radius: 22px;
-  background: var(--h2-ink);
-  color: #ffffff;
-  /* keeps white text readable on the light parts of the hover gradient */
-  text-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
+  background: var(--h2-taupe);
+  color: var(--pricing-banner-ink);
+  text-shadow: var(--pricing-banner-shadow);
 }
 
-/* a 2px outline and a tight shadow set the cards off the banner gradient */
+/* a ring outside the card, with a gap that shows the banner gradient */
 .pricing-banner__card {
   outline: 2px solid rgba(255, 255, 255, 0.24);
-  outline-offset: 0;
+  outline-offset: 3px;
   box-shadow:
     0 1px 2px rgba(10, 10, 10, 0.3),
     0 4px 10px -4px rgba(10, 10, 10, 0.35);
 }
 
 .pricing-banner__card:focus-visible {
-  outline: 2px solid #ffffff;
-  outline-offset: 2px;
+  outline-color: #ffffff;
 }
 
 /* the site's link hover colour must not tint the card's text */
 .pricing-banner__card:hover {
-  color: #ffffff;
+  color: var(--pricing-banner-ink);
 }
 
-/* the plan's gradient, as on its card at the top, fades in on hover or focus */
+/* the plan's gradient, as on its card at the top, fades in on hover or focus,
+   and the text turns white on it */
 .pricing-banner__card-gradient {
   opacity: 0;
   transition: opacity 200ms ease;
+}
+
+.pricing-banner__card:focus-visible {
+  --pricing-banner-ink: #ffffff;
+  --pricing-banner-copy: rgba(255, 255, 255, 0.9);
+  /* keeps white text readable on the light parts of the gradient */
+  --pricing-banner-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
 }
 
 .pricing-banner__card:focus-visible .pricing-banner__card-gradient {
@@ -556,6 +570,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .pricing-banner__card:hover {
+    --pricing-banner-ink: #ffffff;
+    --pricing-banner-copy: rgba(255, 255, 255, 0.9);
+    --pricing-banner-shadow: 0 1px 3px rgba(10, 10, 10, 0.28);
+  }
+
   .pricing-banner__card:hover .pricing-banner__card-gradient {
     opacity: 1;
   }
@@ -574,19 +594,19 @@
 
 .pricing-banner__card-price {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--pricing-banner-copy);
 }
 
 .pricing-banner__card-price strong {
   font-size: 28px;
   font-weight: 300;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: var(--pricing-banner-ink);
 }
 
 .pricing-banner__card-teaser {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--pricing-banner-copy);
 }
 
 /* a text link with the stripe arrow, which animates on card hover */
@@ -598,7 +618,7 @@
   margin-top: 10px;
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--pricing-banner-ink);
 }
 
 @media (max-width: 900px) {

@@ -1,3 +1,12 @@
+/* ---------- hero: the sage panel's layout on a Wallet grain field ---------- */
+
+.h2-hero-simple--sage.pricing-hero > .h2-shell {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--h2-ink);
+}
+
 /* ---------- plan cards: taupe panels, like the frontpage duo ---------- */
 
 .pricing-plans {
@@ -24,7 +33,10 @@
 }
 
 .pricing-plan--featured {
-  background: var(--h2-gradient-sage);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--h2-ink);
 }
 
 .pricing-plan__name {

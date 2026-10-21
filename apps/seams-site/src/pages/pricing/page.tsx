@@ -1,4 +1,5 @@
 import React from 'react';
+import { GrainField } from '@seams-internal/grain-field';
 import { H2Cta, H2Faq, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
@@ -78,6 +79,7 @@ function PlanCard({ plan }: { plan: Plan }): React.JSX.Element {
       className={plan.cta.primary ? 'pricing-plan pricing-plan--featured' : 'pricing-plan'}
       aria-labelledby={`pricing-plan-${plan.id}`}
     >
+      {plan.cta.primary ? <GrainField field="teal-peach" /> : null}
       <h3 id={`pricing-plan-${plan.id}`} className="pricing-plan__name">
         {plan.name}
       </h3>
@@ -116,8 +118,9 @@ export function PricingPage(): React.JSX.Element {
       <NavbarCompact appearance="light" />
       <div className="h2-col">
         <main aria-labelledby="pricing-title">
-          <header className="h2-hero-simple h2-hero-simple--sage">
+          <header className="h2-hero-simple h2-hero-simple--sage pricing-hero">
             <div className="h2-shell">
+              <GrainField field="teal-peach" flow={1.6} />
               <h1 id="pricing-title" className="h2-display h2-hero-simple__title">
                 Free to start. Pay per active user.
               </h1>

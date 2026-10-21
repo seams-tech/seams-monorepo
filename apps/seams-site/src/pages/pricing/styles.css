@@ -1,7 +1,7 @@
 /* ---------- hero: plain and short, so the plan cards carry the colour ---------- */
 
 .h2-hero-simple.pricing-hero {
-  padding: 112px 0 32px;
+  padding: 144px 0 32px;
 }
 
 /* line the text up with the section content below, not the column edge */
@@ -11,7 +11,7 @@
 
 @media (max-width: 900px) {
   .h2-hero-simple.pricing-hero {
-    padding: 96px 0 28px;
+    padding: 120px 0 28px;
   }
 }
 

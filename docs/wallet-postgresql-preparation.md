@@ -42,3 +42,13 @@ Its results equal the local run. The task-owned RDS instance and runner were del
 See [the RDS evidence](../../seams-wallet/docs/evidence/postgres-role-store-rds-20261021.json).
 The Console and Gateway ports above remain the blockers for a move off D1.
 The Wallet repository stores verification evidence beside the migration note.
+
+## Keeping Workers on Cloudflare with Hyperdrive
+
+The private Workers can stay on Cloudflare and use PostgreSQL through Hyperdrive.
+The [public portability note](../../seams-wallet/docs/storage-portability.md) describes the role-store path and its open items.
+For the TypeScript Console stores, Hyperdrive documents `node-postgres` and `postgres.js` with the `nodejs_compat` flag.
+Each ported store needs a Hyperdrive configuration created with `--caching-disabled`.
+Hyperdrive caches read queries by default and does not invalidate them after writes. A cached read would break these transaction rules.
+Hyperdrive pools in transaction mode. Session-level `SET`, SQL-level `PREPARE`, advisory locks, and `LISTEN` are not available.
+Run each store's transaction evidence through the Hyperdrive connection, not only against a direct database.

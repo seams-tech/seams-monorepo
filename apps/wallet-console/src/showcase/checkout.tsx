@@ -24,6 +24,7 @@ type Quote = {
 };
 
 const quoteLifetimeSeconds = 90;
+const quoteUrgentSeconds = 15;
 
 function Checkout(): React.JSX.Element {
   const [side, setSide] = React.useState<Side>('Yes');
@@ -32,6 +33,9 @@ function Checkout(): React.JSX.Element {
   const finish = React.useCallback((message: string) => {
     setQuote(null);
     setOutcome(message);
+  }, []);
+  const refresh = React.useCallback((quoteSide: Side) => {
+    setQuote({ side: quoteSide, expiresAtMs: Date.now() + quoteLifetimeSeconds * 1000 });
   }, []);
   return (
     <section className="checkout-market" aria-labelledby="checkout-market-title">
@@ -57,7 +61,7 @@ function Checkout(): React.JSX.Element {
         disabled={quote !== null}
         onClick={() => {
           setOutcome('');
-          setQuote({ side, expiresAtMs: Date.now() + quoteLifetimeSeconds * 1000 });
+          refresh(side);
         }}
       >
         <span>Buy {side}</span>
@@ -68,7 +72,7 @@ function Checkout(): React.JSX.Element {
           {outcome}
         </p>
       ) : null}
-      {quote ? <CheckoutReview quote={quote} onFinish={finish} /> : null}
+      {quote ? <CheckoutReview quote={quote} onFinish={finish} onRefresh={refresh} /> : null}
     </section>
   );
 }
@@ -76,9 +80,11 @@ function Checkout(): React.JSX.Element {
 function CheckoutReview({
   quote,
   onFinish,
+  onRefresh,
 }: {
   quote: Quote;
   onFinish: (message: string) => void;
+  onRefresh: (side: Side) => void;
 }): React.JSX.Element | null {
   const [session, setSession] = React.useState<CheckoutSession | null>(null);
   React.useEffect(() => {
@@ -90,11 +96,13 @@ function CheckoutReview({
   return createPortal(
     <section className="seams-transaction-review-content checkout-review" ref={session.observe}>
       <div className="checkout-review-heading">
-        <span className="checkout-eyebrow">Review order</span>
+        <span className="checkout-eyebrow">{market.sale}</span>
       </div>
       <h2>Review purchase</h2>
       <PurchaseSummary
+        key={quote.expiresAtMs}
         quote={quote}
+        onRefresh={onRefresh}
         controls={{
           continueToWallet: session.continueToWallet,
           cancel: session.cancel,
@@ -108,9 +116,11 @@ function CheckoutReview({
 
 function PurchaseSummary({
   quote,
+  onRefresh,
   controls,
 }: {
   quote: Quote;
+  onRefresh: (side: Side) => void;
   controls: TransactionReviewControls;
 }): React.JSX.Element {
   const seconds = useSecondsUntil(quote.expiresAtMs);
@@ -118,11 +128,11 @@ function PurchaseSummary({
   return (
     <>
       <div className="checkout-summary-card">
-        <div className="checkout-summary-row">
+        <div className="checkout-summary-claim">
           <span className="checkout-side">
-            Buy {quote.side} <span aria-hidden="true">↗</span>
+            {quote.side} · {outcome.odds}
           </span>
-          <span className="checkout-market-name">{market.lot}</span>
+          <span>{outcome.claim}</span>
         </div>
         <div className="checkout-summary-row checkout-summary-values">
           <div>
@@ -131,26 +141,42 @@ function PurchaseSummary({
             <span className="checkout-summary-label">units</span>
           </div>
           <div>
-            <span className="checkout-summary-label">You receive</span>
+            <span className="checkout-summary-label">Payout if {quote.side}</span>
             <strong className="checkout-amount">{outcome.positions}</strong>
-            <span className="checkout-summary-label">{quote.side} positions</span>
+            <span className="checkout-summary-label">units</span>
           </div>
         </div>
       </div>
       <dl className="checkout-details">
-        <dt>Minimum positions</dt>
-        <dd>{outcome.minimumPositions}</dd>
-        <dt>
-          Trading fee <span className="checkout-included">Included</span>
-        </dt>
-        <dd>{market.fee} units</dd>
+        <dt>Price</dt>
+        <dd>{outcome.price} units per position</dd>
+        <dt>Minimum payout</dt>
+        <dd>{outcome.minimumPositions} units</dd>
+        <dt>Trading fee</dt>
+        <dd>
+          {market.fee} units <span className="checkout-included">(included)</span>
+        </dd>
         <dt>Network fee</dt>
-        <dd>None</dd>
+        <dd>Free</dd>
       </dl>
-      <div className="checkout-expiry">
+      <p className="checkout-note">
+        Each position pays 1 unit if {quote.side} wins. If the price moves, you get at least the
+        minimum payout.
+      </p>
+      <div className="checkout-expiry" data-urgent={seconds <= quoteUrgentSeconds || undefined}>
         <div>
           <span>{seconds === 0 ? 'Quote expired' : 'Quote expires in'}</span>
-          <strong>{seconds}s</strong>
+          {seconds === 0 ? (
+            <button
+              className="checkout-refresh"
+              type="button"
+              onClick={() => onRefresh(quote.side)}
+            >
+              Refresh quote
+            </button>
+          ) : (
+            <strong>{seconds}s</strong>
+          )}
         </div>
         <progress aria-label="Quote time remaining" max={quoteLifetimeSeconds} value={seconds} />
       </div>

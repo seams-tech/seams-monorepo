@@ -587,9 +587,19 @@
   opacity: 1;
 }
 
+.pricing-banner__card:focus-visible .pricing-banner__card-cta {
+  background: #000000;
+  color: #ffffff;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .pricing-banner__card:hover .pricing-banner__card-gradient {
     opacity: 1;
+  }
+
+  .pricing-banner__card:hover .pricing-banner__card-cta {
+    background: #000000;
+    color: #ffffff;
   }
 }
 
@@ -621,8 +631,7 @@
   color: var(--pricing-banner-copy);
 }
 
-/* a white pill with the stripe arrow, so the card's action reads as a button
-   on the black card and on the hover gradient; the arrow animates on card hover */
+/* a white pill that turns black on the plan gradient; the arrow animates on card hover */
 .pricing-banner__card-cta {
   display: inline-flex;
   align-items: center;

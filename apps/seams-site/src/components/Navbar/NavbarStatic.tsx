@@ -157,7 +157,7 @@ const pricingDropdownPane: DropdownPane = {
     },
     {
       title: 'Enterprise',
-      description: 'Volume pricing on committed usage',
+      description: 'From $0.003 per user on committed volume',
       to: '/pricing/#enterprise',
       icon: Rocket,
       meta: 'Custom',
@@ -165,6 +165,7 @@ const pricingDropdownPane: DropdownPane = {
   ],
   footerLinks: [
     { label: 'Compare plans', to: '/pricing/' },
+    { label: 'Estimate your price', to: '/pricing/#calculator' },
     { label: 'Contact sales', to: '/contact/' },
   ],
 };

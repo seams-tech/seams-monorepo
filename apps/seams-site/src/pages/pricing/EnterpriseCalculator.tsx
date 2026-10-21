@@ -70,7 +70,11 @@ export function EnterpriseCalculator(): React.JSX.Element {
   const enterprise = estimate(users, perDay, ENTERPRISE_PER_USER, ENTERPRISE_PER_1000_SIGNATURES);
 
   return (
-    <section className="h2-section h2-rule" aria-labelledby="pricing-calculator-title">
+    <section
+      id="calculator"
+      className="h2-section h2-rule pricing-calc-section"
+      aria-labelledby="pricing-calculator-title"
+    >
       <div className="h2-shell">
         <div className="h2-split-head">
           <p className="h2-kicker">Enterprise</p>

@@ -1,7 +1,13 @@
 /* ---------- the modal: a white panel over a dimmed page ---------- */
 
-/* the dialog carries .h2-page for the palette; it is not a full page */
+/* the dialog carries .h2-page for the palette; it is not a full page.
+   Corners are concentric: each outer radius is the inner radius plus the
+   padding between them. */
 .h2-page.contact-modal {
+  --contact-field-radius: 12px;
+  --contact-form-padding: 28px;
+  --contact-modal-padding: 28px;
+  --contact-form-radius: calc(var(--contact-field-radius) + var(--contact-form-padding));
   width: min(600px, calc(100vw - 32px));
   max-width: none;
   min-height: 0;
@@ -9,7 +15,7 @@
   margin: auto;
   padding: 0;
   border: 0;
-  border-radius: var(--h2-radius-card);
+  border-radius: calc(var(--contact-form-radius) + var(--contact-modal-padding));
   background: var(--h2-bg);
   overflow: auto;
   overscroll-behavior: contain;
@@ -29,13 +35,14 @@ html:has(.contact-modal[open]) {
 
 .contact-modal__panel {
   position: relative;
-  padding: 32px 28px 28px;
+  padding: 32px var(--contact-modal-padding) var(--contact-modal-padding);
 }
 
 .contact-modal__close {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  /* inside the rounded corner, not on its curve */
+  top: 22px;
+  right: 22px;
   display: grid;
   place-items: center;
   width: 36px;
@@ -83,8 +90,8 @@ html:has(.contact-modal[open]) {
 .contact-form {
   display: grid;
   gap: 16px;
-  padding: 28px;
-  border-radius: var(--h2-radius-card);
+  padding: var(--contact-form-padding);
+  border-radius: var(--contact-form-radius);
   background: var(--h2-taupe);
 }
 
@@ -114,7 +121,7 @@ html:has(.contact-modal[open]) {
   box-sizing: border-box;
   padding: 11px 14px;
   border: 1px solid var(--h2-stone);
-  border-radius: 12px;
+  border-radius: var(--contact-field-radius);
   background: var(--h2-bg);
   font: inherit;
   font-size: 14px;
@@ -153,12 +160,13 @@ html:has(.contact-modal[open]) {
 }
 
 @media (max-width: 600px) {
-  .contact-modal__panel {
-    padding: 24px 16px 16px;
+  .h2-page.contact-modal {
+    --contact-form-padding: 20px;
+    --contact-modal-padding: 16px;
   }
 
-  .contact-form {
-    padding: 20px;
+  .contact-modal__panel {
+    padding-top: 24px;
   }
 
   .contact-form__row {

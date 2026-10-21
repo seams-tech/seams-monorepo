@@ -3304,9 +3304,8 @@ body:has(.h2-page) {
 
 /* ---------- equal ruled bands ---------- */
 
-/* Five ruled bands share one height: the network logos, the showcase
-   heading, the get-started and wallet console banners, and the closing
-   banner.
+/* The showcase heading, get-started, wallet console, and closing banners
+   share one height. The network logos use two-thirds of that height.
    It fits a banner row (two insets, 52px paddings) around the taller of
    a two-line heading and a one-line heading over the 36px subtitle. At
    760px and below each band keeps its own height. */
@@ -3330,7 +3329,7 @@ body:has(.h2-page) {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: var(--h2-band-h);
+    min-height: calc(var(--h2-band-h) * 2 / 3);
     padding-block: 0;
   }
 }

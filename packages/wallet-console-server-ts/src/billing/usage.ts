@@ -1,10 +1,13 @@
 import {
+  PlatformPlanUsageEventV1,
   PlatformUsageEventV1,
+  type PlanUsageRecordingResultV1,
   type UsageRecordingResultV1,
 } from '@seams-internal/console-shared/accountPlatform';
 import { textValue } from '@seams-internal/console-shared/accountPlatform/boundary';
 import type { ServiceProducerAuthorityV1 } from '@seams-internal/console-server/accountPlatform/types';
 import type { D1BillingUsageService } from '@seams-internal/console-server/billing/usage';
+import type { D1FreePlanService } from '@seams-internal/console-server/billing/freePlanD1';
 import {
   formatD1ExecStatement,
   queryD1All,
@@ -16,6 +19,7 @@ export interface WalletMonthlyUsageOptions {
   readonly namespace: string;
   readonly deploymentId: string;
   readonly usage: Pick<D1BillingUsageService, 'record'>;
+  readonly planUsage: Pick<D1FreePlanService, 'recordProductionUsage'>;
 }
 
 export const WALLET_MONTHLY_USAGE_D1_SCHEMA_SQL = Object.freeze([
@@ -95,6 +99,87 @@ export function createWalletMonthlyUsageStatement(input: {
     );
 }
 
+function monthUtc(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 7);
+}
+
+/**
+ * Append to the batch that records a wallet's activity (registration completion or a
+ * session publication). It writes one fact per wallet and UTC month, and only for an
+ * established wallet in a production environment; other environments write nothing.
+ */
+export function createWalletProductionActivityStatement(input: {
+  readonly database: D1DatabaseLike;
+  readonly deploymentId: string;
+  readonly wallet: {
+    readonly namespace: string;
+    readonly organizationId: string;
+    readonly projectId: string;
+    readonly environmentId: string;
+    readonly walletId: string;
+  };
+  readonly nowMs: number;
+}) {
+  const wallet = input.wallet;
+  const month = monthUtc(input.nowMs);
+  const eventId = JSON.stringify([
+    'wallet_production_active_user',
+    input.deploymentId,
+    wallet.organizationId,
+    wallet.environmentId,
+    wallet.walletId,
+    month,
+  ]);
+  return input.database
+    .prepare(
+      `INSERT INTO wallet_monthly_usage_outbox
+        (namespace, deployment_id, event_id, native_org_id, source_record_id, instance_id,
+          payload_json, delivery_status)
+       SELECT ?1, b.deployment_id, ?7, ?2, ?8, b.instance_id,
+         json_object('version', 1, 'kind', 'plan_usage', 'eventId', ?7,
+           'instanceId', b.instance_id, 'occurredAt', ?9,
+           'measure', json_object('kind', 'production_active_user', 'environmentId', ?4,
+             'userKey', ?5)),
+         'pending'
+       FROM wallet_homes h
+       JOIN environments e ON e.namespace = h.namespace AND e.org_id = h.organization_id
+         AND e.project_id = h.project_id AND e.id = h.environment_id
+       JOIN wallet_service_bindings b ON b.native_namespace = h.namespace
+         AND b.native_org_id = h.organization_id AND b.native_project_id = h.project_id
+       WHERE h.namespace = ?1 AND h.organization_id = ?2 AND h.project_id = ?3
+         AND h.environment_id = ?4 AND h.wallet_id = ?5 AND h.state = 'established'
+         AND e.env_key = 'prod' AND b.deployment_id = ?6
+       ON CONFLICT DO NOTHING`,
+    )
+    .bind(
+      wallet.namespace,
+      wallet.organizationId,
+      wallet.projectId,
+      wallet.environmentId,
+      wallet.walletId,
+      input.deploymentId,
+      eventId,
+      `production_active_user:${month}:${wallet.environmentId}:${wallet.walletId}`,
+      new Date(input.nowMs).toISOString(),
+    );
+}
+
+type WalletOutboxEvent =
+  | { readonly kind: 'usage'; readonly event: PlatformUsageEventV1 }
+  | { readonly kind: 'plan_usage'; readonly event: PlatformPlanUsageEventV1 };
+
+function parseOutboxPayload(payload: string): WalletOutboxEvent {
+  const raw: unknown = JSON.parse(payload);
+  if (raw && typeof raw === 'object' && 'kind' in raw && raw.kind === 'plan_usage') {
+    const event = PlatformPlanUsageEventV1.parse(raw);
+    if (event.kind === 'rejected') throw new Error('Invalid persisted Wallet plan usage event');
+    return { kind: 'plan_usage', event: event.value };
+  }
+  const event = PlatformUsageEventV1.parse(raw);
+  if (event.kind === 'rejected') throw new Error('Invalid persisted Wallet usage event');
+  return { kind: 'usage', event: event.value };
+}
+
 /** The service selects billable facts. Shared billing applies the registered price. */
 export class WalletMonthlyUsageAdapter {
   readonly authority: ServiceProducerAuthorityV1;
@@ -124,18 +209,22 @@ export class WalletMonthlyUsageAdapter {
     let delivered = 0;
     let pending = 0;
     for (const row of rows) {
-      const payload = textValue(row.payload_json, 'payload_json');
-      const event = PlatformUsageEventV1.parse(JSON.parse(payload));
-      if (event.kind === 'rejected') throw new Error('Invalid persisted Wallet usage event');
-      const outcome = await this.deliver(event.value);
+      const event = parseOutboxPayload(textValue(row.payload_json, 'payload_json'));
+      const outcome = await this.deliver(event);
       if (outcome.kind === 'accepted') delivered += 1;
       else pending += 1;
     }
     return { delivered, pending };
   }
 
-  private async deliver(event: PlatformUsageEventV1): Promise<UsageRecordingResultV1> {
-    const outcome = await this.options.usage.record(this.authority, event);
+  private async deliver(
+    outbox: WalletOutboxEvent,
+  ): Promise<UsageRecordingResultV1 | PlanUsageRecordingResultV1> {
+    const event = outbox.event;
+    const outcome =
+      outbox.kind === 'plan_usage'
+        ? await this.options.planUsage.recordProductionUsage(this.authority, outbox.event)
+        : await this.options.usage.record(this.authority, outbox.event);
     if (outcome.kind === 'accepted') {
       await this.options.database
         .prepare(

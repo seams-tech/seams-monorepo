@@ -1,3 +1,4 @@
+import { createWalletProductionActivityStatement } from '../billing/usage';
 import {
   d1ChangedRows,
   queryD1One,
@@ -273,6 +274,7 @@ export class D1WalletHomeDirectory {
       readonly home: WalletHome;
       readonly ceremonyId: string;
       readonly nowMs: number;
+      readonly deploymentLane: string;
     } & (
       | {
           readonly outcome: 'established';
@@ -379,6 +381,12 @@ export class D1WalletHomeDirectory {
             input.home.accountId,
             input.home.databaseId,
           ),
+        createWalletProductionActivityStatement({
+          database: this.database,
+          deploymentId: registrationIdentity(input.deploymentLane),
+          wallet: input.wallet,
+          nowMs,
+        }),
       ]);
       row = results[1]?.results?.[0] ?? null;
     } else {

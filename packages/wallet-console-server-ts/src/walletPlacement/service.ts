@@ -465,7 +465,12 @@ export async function handleWalletHomeServiceRequest(
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session`) {
       const exchange = SessionLocator.exchange(body.exchangeDigest);
       const credential = SessionLocator.credential(body.digest);
-      await sessions.publishExchangedCredential({ exchange, credential, writer: options.writer });
+      await sessions.publishExchangedCredential({
+        exchange,
+        credential,
+        writer: options.writer,
+        deploymentLane: options.deploymentLane,
+      });
       return json({ ok: true });
     }
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/registration-home`) {
@@ -512,6 +517,7 @@ export async function handleWalletHomeServiceRequest(
         wallet,
         expiresAtMs: body.expiresAtMs,
         writer: options.writer,
+        deploymentLane: options.deploymentLane,
       });
       return json({ ok: true });
     }
@@ -645,6 +651,7 @@ export async function handleWalletRegistrationMutation(
         ceremonyId,
         outcome,
         nowMs: Date.now(),
+        deploymentLane: options.deploymentLane,
         session: {
           locator: SessionLocator.credential(session.digest),
           expiresAtMs: session.expiresAtMs,
@@ -658,6 +665,7 @@ export async function handleWalletRegistrationMutation(
       ceremonyId,
       outcome,
       nowMs: Date.now(),
+      deploymentLane: options.deploymentLane,
     });
     return json({ ok: true, assignment });
   } catch (error) {

@@ -1,3 +1,7 @@
+import {
+  freePlanServiceForBilling,
+  type D1FreePlanService,
+} from '../../billing/freePlanD1';
 import { createD1ConsoleAccountService } from '../../account/d1';
 import { ConsoleAccountError } from '../../account/errors';
 import type { AccountOrganizationDeletionPort, ConsoleAccountService } from '../../account/service';
@@ -65,6 +69,7 @@ export interface CloudflareD1AccountServiceBundle {
   readonly billing: ConsoleBillingService;
   readonly funds: ConsoleBillingPrepaidReservationService;
   readonly billingUsage: D1BillingUsageService;
+  readonly freePlan: D1FreePlanService;
   readonly webhooks: null;
 }
 
@@ -185,6 +190,8 @@ export async function createCloudflareD1AccountServiceBundle(
     now: options.now,
   });
   if (options.ensureSchema !== false) await billingUsage.ensureSchema();
+  const freePlan = await freePlanServiceForBilling(billing);
+  if (!freePlan) throw new Error('Free plan requires the D1 billing service');
   const welcomeEmail = options.onboardingEmail
     ? createD1ConsoleOnboardingWelcomeEmail({
         database: options.database,
@@ -226,6 +233,7 @@ export async function createCloudflareD1AccountServiceBundle(
     billing,
     funds,
     billingUsage,
+    freePlan,
     webhooks: null,
   };
 }

@@ -1,4 +1,5 @@
-import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import type { D1DatabaseLike, D1ResultLike } from '@seams/wallet-server/cloud-host';
+import { createWalletProductionActivityStatement } from '../billing/usage';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import { D1WalletHomeDirectory, walletHomeAssignmentFromRow } from './d1';
 import { WalletOwnershipKey, WalletPlacementError, type WalletHomeAssignment } from './home';
@@ -106,12 +107,13 @@ export class D1WalletSessionLocators {
     readonly wallet: WalletOwnershipKey;
     readonly expiresAtMs: number;
     readonly writer: TenantRuntimeWriterV1;
+    readonly deploymentLane: string;
   }): Promise<void> {
     if (!Number.isSafeInteger(input.expiresAtMs) || input.expiresAtMs <= 0) {
       throw new WalletPlacementError('invalid_input', 'Session locator expiry is invalid');
     }
     const { locator, wallet, writer } = input;
-    const result = await this.database
+    const publication = this.database
       .prepare(
         `INSERT INTO wallet_session_locators
       (namespace, organization_id, project_id, environment_id, kind, digest, wallet_id, expires_at_ms)
@@ -135,9 +137,18 @@ export class D1WalletSessionLocators {
         input.expiresAtMs,
         writer.resource.accountId,
         writer.resource.databaseId,
-      )
-      .first();
-    if (result) return;
+      );
+    // A session publication marks the wallet active for the month in the same batch.
+    const [published] = await this.database.batch<D1ResultLike<Record<string, unknown>>>([
+      publication,
+      createWalletProductionActivityStatement({
+        database: this.database,
+        deploymentId: input.deploymentLane,
+        wallet,
+        nowMs: Date.now(),
+      }),
+    ]);
+    if (published?.results?.[0]) return;
     const assignment = await this.directory.find(wallet);
     if (
       !assignment ||
@@ -178,6 +189,7 @@ export class D1WalletSessionLocators {
     readonly exchange: SessionLocator<'exchange'>;
     readonly credential: SessionLocator<'credential'>;
     readonly writer: TenantRuntimeWriterV1;
+    readonly deploymentLane: string;
   }): Promise<void> {
     const source = await this.read(input.exchange);
     if (!source) throw new WalletPlacementError('home_conflict', 'Exchange home is unavailable');
@@ -186,6 +198,7 @@ export class D1WalletSessionLocators {
       wallet: source.assignment.wallet,
       expiresAtMs: source.expiresAtMs,
       writer: input.writer,
+      deploymentLane: input.deploymentLane,
     });
   }
 }

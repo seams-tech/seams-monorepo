@@ -45,6 +45,7 @@ import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/co
 import type { D1BillingUsageService } from '@seams-internal/console-server/billing/usage';
 import { WalletExecutionFunds } from '../../sponsorship/funds';
 import { WalletMonthlyUsageAdapter } from '../../billing/usage';
+import type { D1FreePlanService } from '@seams-internal/console-server/billing/freePlanD1';
 import { createD1ConsoleKeyExportService } from '@seams-internal/wallet-console-server/keyExports/d1';
 import type { ConsoleKeyExportService } from '@seams-internal/wallet-console-server/keyExports/service';
 import {
@@ -276,6 +277,7 @@ export interface CloudflareD1ConsoleServiceBundle {
   readonly billing: ConsoleBillingService;
   readonly funds: ConsoleBillingPrepaidReservationService;
   readonly billingUsage: D1BillingUsageService;
+  readonly freePlan: D1FreePlanService;
   readonly executionFunds: WalletExecutionFunds;
   readonly walletMonthlyUsage: WalletMonthlyUsageAdapter;
   readonly spendCaps: ConsoleSponsorshipSpendCapService;
@@ -424,6 +426,7 @@ interface CloudflareD1ConsoleCommonServices {
   readonly billing: ConsoleBillingService;
   readonly funds: ConsoleBillingPrepaidReservationService;
   readonly billingUsage: D1BillingUsageService;
+  readonly freePlan: D1FreePlanService;
   readonly executionFunds: WalletExecutionFunds;
   readonly walletMonthlyUsage: WalletMonthlyUsageAdapter;
   readonly sponsoredCalls: ConsoleSponsoredCallService;
@@ -1012,6 +1015,7 @@ async function createCloudflareD1ConsoleCommonServices(
     namespace: normalized.namespace,
     deploymentId: normalized.deploymentId,
     usage: core.billingUsage,
+    planUsage: core.freePlan,
   });
   if (normalized.ensureSchema) await walletMonthlyUsage.ensureSchema();
   const walletProvisioning = new WalletServiceProvisioningAdapter({
@@ -1295,6 +1299,14 @@ async function resumeSatyrProvisioning(
     await runAccountServiceProvisioning({ platform: bundle.accountPlatform, adapter, limit: 20 });
 }
 
+/** Usage counts land first, so the plan pass sees this tick's production activity. */
+async function resumeFreePlan(bundle: CloudflareD1ConsoleOnlyServiceBundle): Promise<void> {
+  await bundle.walletMonthlyUsage.resumePending(20);
+  const pass = await bundle.freePlan.runScheduledPass({ limit: 50 });
+  for (const failure of pass.failures)
+    console.error('Free plan evaluation failed', failure.orgId, failure.message);
+}
+
 /** Scheduled work has independent service failures and never initializes schemas. */
 export async function resumeCloudflareD1AccountServices(
   bindings: CloudflareD1ConsoleOnlyStorageBindings,
@@ -1312,7 +1324,7 @@ export async function resumeCloudflareD1AccountServices(
       adapter: bundle.walletProvisioning,
       limit: 20,
     }),
-    bundle.walletMonthlyUsage.resumePending(20),
+    resumeFreePlan(bundle),
     resumeSatyrProvisioning(environment, bundle),
   ]);
   for (const result of results) {

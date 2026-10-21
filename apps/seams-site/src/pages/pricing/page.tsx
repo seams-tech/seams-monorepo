@@ -1,6 +1,6 @@
 import React from 'react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
-import { H2Cta, H2Faq, H2Footer } from '@/components/h2/sections';
+import { H2Faq, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { EnterpriseCalculator } from './EnterpriseCalculator';
@@ -76,6 +76,52 @@ const examples: readonly { users: string; price: string }[] = [
   { users: '100,000', price: '$479' },
   { users: '1,000,000', price: '$4,079' },
 ];
+
+/* Short summaries for the closing banner's plan cards. */
+const planTeasers: Record<PlanId, string> = {
+  free: 'Up to 300 active users',
+  growth: '5,000 users included',
+  enterprise: 'Committed volume',
+};
+
+function BannerPlanCard({ plan }: { plan: Plan }): React.JSX.Element {
+  const { linkProps } = useSiteRouter();
+  const ctaProps = linkProps(plan.cta.to);
+  return (
+    <a className="pricing-banner__card" href={ctaProps.href} onClick={ctaProps.onClick}>
+      <span className="pricing-banner__card-name">{plan.name}</span>
+      <span className="pricing-banner__card-price">
+        <strong>{plan.price}</strong> {plan.price === 'Custom' ? '' : plan.unit}
+      </span>
+      <span className="pricing-banner__card-teaser">{planTeasers[plan.id]}</span>
+      <span className="h2-btn h2-btn--primary pricing-banner__card-cta">{plan.cta.label}</span>
+    </a>
+  );
+}
+
+/* Closing call to action: the SDK pitch with one card per plan. */
+function PlanBanner(): React.JSX.Element {
+  return (
+    <section className="h2-cta h2-cta--banner h2-rule" aria-labelledby="pricing-banner-title">
+      <div className="h2-shell h2-cta__banner pricing-banner">
+        <GrainField field="teal-peach" flow={1.6} />
+        <div>
+          <h2 id="pricing-banner-title" className="h2-display h2-cta__title">
+            Build with the Seams SDK
+          </h2>
+          <p className="h2-cta__sub">
+            Passkey sign-in, split-key wallets, and account recovery. Pick a plan to start.
+          </p>
+        </div>
+        <div className="pricing-banner__cards">
+          {plans.map((plan) => (
+            <BannerPlanCard key={plan.id} plan={plan} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function PlanCard({ plan, selected }: { plan: Plan; selected: boolean }): React.JSX.Element {
   const { linkProps } = useSiteRouter();
@@ -252,9 +298,9 @@ export function PricingPage(): React.JSX.Element {
             </div>
           </section>
 
-          <H2Cta appearance="banner" />
-
           <EnterpriseCalculator />
+
+          <PlanBanner />
 
           <H2Faq audience="pricing" />
         </main>

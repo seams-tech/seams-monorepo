@@ -1720,13 +1720,8 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
 
 /* ---------- closing call to action ---------- */
 
-/* The band is a cream band fading into the sky-sand grain; the banner is a
-   rounded teal-peach panel like the hero. */
-export function H2Cta({
-  appearance = 'band',
-}: {
-  readonly appearance?: 'band' | 'banner';
-}): React.JSX.Element {
+/* A cream band fading into the sky-sand grain. */
+export function H2Cta(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const docsProps = linkProps('/docs/');
   const startProps = linkProps('/dashboard');
@@ -1751,16 +1746,6 @@ export function H2Cta({
     </>
   );
 
-  if (appearance === 'banner') {
-    return (
-      <section className="h2-cta h2-cta--banner h2-rule" aria-labelledby="h2-cta-title">
-        <div className="h2-shell h2-cta__banner">
-          <GrainField field="teal-peach" flow={1.6} />
-          {content}
-        </div>
-      </section>
-    );
-  }
   return (
     <section className="h2-cta h2-rule" aria-labelledby="h2-cta-title">
       <div className="h2-cta__grain" aria-hidden="true">

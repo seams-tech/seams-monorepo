@@ -504,3 +504,69 @@
     padding: 0;
   }
 }
+
+/* ---------- closing banner: the SDK pitch with one card per plan ---------- */
+
+.h2-cta__banner.pricing-banner {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 28px;
+}
+
+.pricing-banner__cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pricing-banner__card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 20px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  transition: background 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pricing-banner__card:hover {
+    background: rgba(255, 255, 255, 0.26);
+  }
+}
+
+.pricing-banner__card-name {
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.pricing-banner__card-price {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.pricing-banner__card-price strong {
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.pricing-banner__card-teaser {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.pricing-banner__card-cta {
+  align-self: flex-start;
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .pricing-banner__cards {
+    grid-template-columns: 1fr;
+  }
+}

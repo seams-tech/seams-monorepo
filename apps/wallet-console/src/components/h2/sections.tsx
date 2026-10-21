@@ -4,8 +4,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Fingerprint,
+  KeyRound,
   LifeBuoy,
+  MonitorSmartphone,
+  Server,
   ShieldCheck,
+  SlidersHorizontal,
   Timer,
 } from 'lucide-react';
 import type { HostedAuthMenuMode } from '@seams/wallet/react';
@@ -226,6 +230,9 @@ type WalletCapability = {
   label: string;
   title: string;
   copy: string;
+  /* the row's tile; the copy fits one line beside it, so rows match */
+  icon: TileIcon;
+  field: GrainFieldName;
   /* How long the figure plays from the start of its turn: its play, then a
      beat to read it. Turns start FEATURE_STAGGER_MS apart, so a longer play
      runs on beside the next figure. */
@@ -237,14 +244,18 @@ const walletCapabilities: readonly WalletCapability[] = [
     figure: 'keychain',
     label: 'Keys you control',
     title: 'Non-custodial',
-    copy: 'Neither the user’s device nor your infrastructure can sign alone.',
+    copy: 'Keys are split, so no one party can sign alone.',
+    icon: KeyRound,
+    field: 'teal-peach',
     playMs: 3600,
   },
   {
     figure: 'interlock',
     label: 'Scoped permissions',
     title: 'Permissions',
-    copy: 'Set what apps and agents can do. Checks run before signing.',
+    copy: 'Checks limit what apps and agents can sign.',
+    icon: SlidersHorizontal,
+    field: 'azure-coral',
     playMs: 5600,
   },
   {
@@ -252,13 +263,17 @@ const walletCapabilities: readonly WalletCapability[] = [
     label: 'Linked devices',
     title: 'Multiple devices',
     copy: 'Link another device for access and recovery.',
+    icon: MonitorSmartphone,
+    field: 'aqua-evergreen',
     playMs: 3600,
   },
   {
     figure: 'infrastructure',
     label: 'Self-hostable',
     title: 'Self-hosted',
-    copy: 'Run signing on your own serverless infrastructure.',
+    copy: 'Run signing on your own infrastructure.',
+    icon: Server,
+    field: 'slate-amber',
     playMs: 3800,
   },
 ];
@@ -279,12 +294,20 @@ function SecurityItem({
   const picked = React.useCallback(() => onPick(index), [onPick, index]);
   return (
     <div className={`h2-security__item${active ? ' is-active' : ''}`}>
-      <h3>
-        <button type="button" className="h2-security__pick" aria-pressed={active} onClick={picked}>
-          {capability.title}
-        </button>
-      </h3>
-      <p>{capability.copy}</p>
+      <FieldTile field={capability.field} icon={capability.icon} />
+      <div>
+        <h3>
+          <button
+            type="button"
+            className="h2-security__pick"
+            aria-pressed={active}
+            onClick={picked}
+          >
+            {capability.title}
+          </button>
+        </h3>
+        <p>{capability.copy}</p>
+      </div>
     </div>
   );
 }
@@ -384,15 +407,17 @@ export function H2Security(): React.JSX.Element {
             <h2 id="h2-security-title" className="h2-display h2-security__title">
               Custody and control, built in
             </h2>
-            {walletCapabilities.map((capability, index) => (
-              <SecurityItem
-                key={capability.figure}
-                capability={capability}
-                index={index}
-                active={index === litFeature}
-                onPick={pickFeature}
-              />
-            ))}
+            <div className="h2-security__items">
+              {walletCapabilities.map((capability, index) => (
+                <SecurityItem
+                  key={capability.figure}
+                  capability={capability}
+                  index={index}
+                  active={index === litFeature}
+                  onPick={pickFeature}
+                />
+              ))}
+            </div>
           </div>
           <div className="h2-security__visuals">
             <div className="h2-security__stage">
@@ -483,7 +508,7 @@ type ConsoleScreenId = (typeof CONSOLE_SCREENS)[number]['id'];
 type ApiNoteProps = {
   title: string;
   body: string;
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  icon: TileIcon;
   field: GrainFieldName;
 };
 
@@ -512,15 +537,29 @@ const POLICY_NOTES: readonly ApiNoteProps[] = [
   },
 ];
 
-/* A note with its icon in white on a gradient tile that flows while it is
-   on screen. */
-function ApiNote({ title, body, icon: Icon, field }: ApiNoteProps): React.JSX.Element {
+type TileIcon = React.ComponentType<{ size?: number; strokeWidth?: number }>;
+
+/* An icon in white on a small gradient tile that flows while it is on
+   screen. */
+function FieldTile({
+  field,
+  icon: Icon,
+}: {
+  field: GrainFieldName;
+  icon: TileIcon;
+}): React.JSX.Element {
+  return (
+    <div className="h2-fieldtile" aria-hidden>
+      <GrainField field={field} />
+      <Icon size={18} strokeWidth={1.7} />
+    </div>
+  );
+}
+
+function ApiNote({ title, body, icon, field }: ApiNoteProps): React.JSX.Element {
   return (
     <div className="h2-apinote">
-      <div className="h2-apinote__tile" aria-hidden>
-        <GrainField field={field} />
-        <Icon size={18} strokeWidth={1.7} />
-      </div>
+      <FieldTile field={field} icon={icon} />
       <div className="h2-apinote__text">
         <strong>{title}</strong>
         <span>{body}</span>

@@ -2542,24 +2542,33 @@ body:has(.h2-page) {
   color: var(--h2-smoke);
 }
 
-/* Each bullet is a light taupe card. While a figure plays, its bullet's card
-   steps up to full taupe behind full-ink type, with the other titles stepped
-   back to ash. Every bullet keeps the row's type and padding, so cycling
-   never moves the text, and the card aligns with the heading while the text
-   indents. */
+/* Each bullet is a light taupe card with a gradient tile before its text.
+   While a figure plays, its bullet's card steps up to full taupe behind
+   full-ink type, with the other titles stepped back to ash. Every bullet
+   keeps the row's type and padding, so cycling never moves the text, and the
+   card aligns with the heading while the tile and text indent. The rows
+   share one height: the copy fits one line, and a row that still wraps on a
+   narrow column stretches the others to match. */
+.h2-security__items {
+  display: grid;
+  grid-auto-rows: 1fr;
+  row-gap: 10px;
+  /* the text keeps its 432px measure beside the tile; the corners match the
+     code cards */
+  max-width: 524px;
+}
+
 .h2-security__item {
-  /* the text keeps its 432px measure inside the card's padding; the corners
-     match the code cards */
-  max-width: 468px;
-  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 16px;
+  max-width: none;
+  margin-bottom: 0;
   padding: 16px 18px;
   border-radius: 20px;
   background: color-mix(in srgb, var(--h2-taupe) 40%, transparent);
   transition: background-color 150ms ease;
-}
-
-.h2-security__item:last-child {
-  margin-bottom: 0;
 }
 
 .h2-security__item.is-active {
@@ -2806,7 +2815,7 @@ body:has(.h2-page) {
   column-gap: 16px;
 }
 
-.h2-apinote__tile {
+.h2-fieldtile {
   position: relative;
   isolation: isolate;
   display: grid;
@@ -2818,7 +2827,7 @@ body:has(.h2-page) {
   color: #ffffff;
 }
 
-.h2-apinote__tile::after {
+.h2-fieldtile::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -2827,7 +2836,7 @@ body:has(.h2-page) {
   pointer-events: none;
 }
 
-.h2-apinote__tile svg {
+.h2-fieldtile svg {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
 }
 

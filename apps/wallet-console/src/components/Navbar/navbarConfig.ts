@@ -24,7 +24,7 @@ const documentationDropdownPane: DropdownPane = {
       description: 'Non-custodial wallets with policy-bound keys and sessions',
       to: '/wallet',
       icon: Wallet,
-      field: 'aqua-evergreen',
+      field: 'teal-peach',
     },
     {
       title: 'Ecommerce Agents',
@@ -38,14 +38,14 @@ const documentationDropdownPane: DropdownPane = {
       description: 'Passkey authentication. VoiceID is planned.',
       to: '/docs/concepts/auth-methods/passkeys',
       icon: Fingerprint,
-      field: 'teal-peach',
+      field: 'aqua-evergreen',
     },
   ],
   highlight: {
     title: 'Live demo',
     description: 'Create a passkey wallet on the Embedded Wallet page',
     to: '/wallet',
-    field: 'aqua-evergreen',
+    field: 'teal-peach',
   },
   footerLinks: [{ label: 'Plan pricing', to: '/pricing/' }],
 };

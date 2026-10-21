@@ -520,24 +520,20 @@
   padding: 20px 20px 18px;
   overflow: hidden;
   border-radius: 22px;
-  /* glass: a frosted backdrop with a faint top-left sheen */
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
-  backdrop-filter: blur(12px) saturate(160%);
-  /* rim light on top, a softer one below, a faint colour fringe on the sides,
-     and a drop shadow that lifts the card off the gradient */
+  /* clear glass: a faint tint, so the bent backdrop shows through. Chromium
+     replaces this backdrop filter with the refraction from useGlassRefraction;
+     other browsers keep a frosted fallback. */
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02) 60%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  backdrop-filter: blur(10px) saturate(150%);
+  /* light gathered along the rim, and a shadow that lifts the card */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.65),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
-    inset 2px 0 3px -2px rgba(255, 110, 110, 0.4),
-    inset -2px 0 3px -2px rgba(110, 160, 255, 0.4),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
-    0 12px 32px -12px rgba(10, 10, 10, 0.35);
+    inset 0 0 18px rgba(255, 255, 255, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 14px 34px -14px rgba(10, 10, 10, 0.4);
   color: #ffffff;
-  text-shadow: 0 1px 2px rgba(10, 10, 10, 0.18);
-  transition:
-    transform 200ms ease,
-    box-shadow 200ms ease;
+  text-shadow: 0 1px 2px rgba(10, 10, 10, 0.2);
+  transition: box-shadow 200ms ease;
 }
 
 /* the specular highlight: light caught on the curved top-left corner */
@@ -548,31 +544,49 @@
   z-index: -1;
   border-radius: inherit;
   background:
-    radial-gradient(120% 70% at 12% 0%, rgba(255, 255, 255, 0.38), transparent 55%),
-    radial-gradient(80% 40% at 100% 100%, rgba(255, 255, 255, 0.12), transparent 60%);
+    radial-gradient(90% 60% at 8% 0%, rgba(255, 255, 255, 0.3), transparent 50%),
+    radial-gradient(60% 40% at 100% 100%, rgba(255, 255, 255, 0.1), transparent 60%);
+  pointer-events: none;
+}
+
+/* the rim light: a thin edge, bright where light enters (top left) and leaves
+   (bottom right), dim on the sides between */
+.pricing-banner__card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0.2) 30%,
+    rgba(255, 255, 255, 0.08) 55%,
+    rgba(255, 255, 255, 0.7)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
   pointer-events: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .pricing-banner__card:hover {
-    transform: translateY(-2px);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.8),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.22),
-      inset 2px 0 3px -2px rgba(255, 110, 110, 0.45),
-      inset -2px 0 3px -2px rgba(110, 160, 255, 0.45),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.3),
-      0 18px 40px -14px rgba(10, 10, 10, 0.4);
+      inset 0 0 22px rgba(255, 255, 255, 0.24),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+      0 16px 38px -14px rgba(10, 10, 10, 0.45);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pricing-banner__card {
     transition: none;
-  }
-
-  .pricing-banner__card:hover {
-    transform: none;
   }
 }
 

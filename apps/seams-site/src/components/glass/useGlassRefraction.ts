@@ -2,9 +2,11 @@ import React from 'react';
 
 /* Edge refraction for glass cards, after Aave's "Building Glass for the Web":
    a displacement map built from the card's rounded-rectangle shape drives an
-   SVG feDisplacementMap. Pixels near the rim are pushed along the edge normal,
-   so the backdrop bends like light through curved glass, and the flat centre
-   is left alone.
+   SVG feDisplacementMap. Pixels in the curved rim are pulled from further inside
+   the card, so the backdrop stretches and bends like light through a rounded
+   glass edge, and the flat centre stays sharp. The pull points inwards because a
+   backdrop filter sees only the pixels behind the card itself. The red, green, and blue channels bend by slightly
+   different amounts, which gives the colour fringe of real glass.
 
    Only Chromium runs an SVG filter inside `backdrop-filter`, so the hook does
    nothing elsewhere; the CSS glass (blur, rim light, highlight) still shows. */
@@ -14,9 +16,11 @@ export type GlassRefractionOptions = {
   radius: number;
   /** Width of the curved rim that bends light, in CSS pixels. */
   bezel?: number;
-  /** Strength of the bend, in CSS pixels of displacement at the very edge. */
+  /** Strength of the bend: the pull at the very edge is half of it, in CSS pixels. */
   scale?: number;
-  /** Frosting applied to the backdrop before it bends. */
+  /** Extra bend for green and blue, as a fraction of `scale`: the colour fringe. */
+  dispersion?: number;
+  /** Frosting applied to the backdrop before it bends, in CSS pixels. */
   blur?: number;
 };
 
@@ -29,9 +33,9 @@ function runsBackdropSvgFilters(): boolean {
   return !!nav.userAgentData?.brands?.some((entry) => entry.brand === 'Chromium');
 }
 
-/* Red and green hold the x and y push, centred on 128; outside the rim the map
-   is neutral. The rounded rectangle has four-fold symmetry, but the cards are
-   small, so the whole map is computed directly. */
+/* Red and green hold the x and y pull, centred on 128; outside the rim the map
+   is neutral. The pull points inwards, is strongest at the edge, and eases to
+   zero at the inner end of the rim, like the slope of a rounded glass edge. */
 function displacementMap(width: number, height: number, radius: number, bezel: number): string {
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -50,13 +54,12 @@ function displacementMap(width: number, height: number, radius: number, bezel: n
       const qy = Math.abs(py) - (halfH - r);
       // Signed distance to the rounded edge: negative inside.
       const outside = Math.hypot(Math.max(qx, 0), Math.max(qy, 0));
-      const distance = outside + Math.min(Math.max(qx, qy), 0) - r;
-      const depth = -distance;
+      const depth = -(outside + Math.min(Math.max(qx, qy), 0) - r);
       let dx = 0;
       let dy = 0;
       if (depth > 0 && depth < bezel) {
-        // A curved surface: the bend grows fast towards the rim.
-        const strength = (1 - depth / bezel) ** 2;
+        const t = depth / bezel;
+        const strength = (1 - t) * (1 - t) * (1 + 2 * t);
         let nx: number;
         let ny: number;
         if (qx > 0 && qy > 0) {
@@ -69,8 +72,8 @@ function displacementMap(width: number, height: number, radius: number, bezel: n
           nx = 0;
           ny = Math.sign(py);
         }
-        dx = nx * strength;
-        dy = ny * strength;
+        dx = -nx * strength;
+        dy = -ny * strength;
       }
       const offset = (y * width + x) * 4;
       image.data[offset] = Math.round(128 + dx * 127);
@@ -83,9 +86,21 @@ function displacementMap(width: number, height: number, radius: number, bezel: n
   return canvas.toDataURL();
 }
 
+function svgElement(name: string, attributes: Record<string, string>): SVGElement {
+  const element = document.createElementNS(SVG_NS, name);
+  for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
+  return element;
+}
+
+const CHANNELS = [
+  { name: 'r', matrix: '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0' },
+  { name: 'g', matrix: '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0' },
+  { name: 'b', matrix: '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0' },
+] as const;
+
 export function useGlassRefraction<T extends HTMLElement>(
   ref: React.RefObject<T | null>,
-  { radius, bezel = 16, scale = 36, blur = 12 }: GlassRefractionOptions,
+  { radius, bezel = 30, scale = 90, dispersion = 0.12, blur = 1.5 }: GlassRefractionOptions,
 ): void {
   const baseId = React.useId().replace(/[^a-zA-Z0-9_-]/g, '');
 
@@ -93,12 +108,9 @@ export function useGlassRefraction<T extends HTMLElement>(
     const element = ref.current;
     if (!element || !runsBackdropSvgFilters()) return undefined;
 
-    const svg = document.createElementNS(SVG_NS, 'svg');
-    svg.setAttribute('aria-hidden', 'true');
-    svg.setAttribute('width', '0');
-    svg.setAttribute('height', '0');
-    svg.style.position = 'absolute';
-    const defs = document.createElementNS(SVG_NS, 'defs');
+    const svg = svgElement('svg', { 'aria-hidden': 'true', width: '0', height: '0' });
+    (svg as SVGSVGElement).style.position = 'absolute';
+    const defs = svgElement('defs', {});
     svg.appendChild(defs);
     document.body.appendChild(svg);
 
@@ -114,31 +126,52 @@ export function useGlassRefraction<T extends HTMLElement>(
       // A fresh id per map, so no browser keeps serving a cached filter output.
       version += 1;
       const id = `glass-${baseId}-${version}`;
-      const filter = document.createElementNS(SVG_NS, 'filter');
-      filter.setAttribute('id', id);
-      filter.setAttribute('filterUnits', 'userSpaceOnUse');
-      filter.setAttribute('primitiveUnits', 'userSpaceOnUse');
-      filter.setAttribute('x', '0');
-      filter.setAttribute('y', '0');
-      filter.setAttribute('width', String(width));
-      filter.setAttribute('height', String(height));
-      filter.setAttribute('color-interpolation-filters', 'sRGB');
-      const map = document.createElementNS(SVG_NS, 'feImage');
-      map.setAttribute('href', displacementMap(width, height, radius, bezel));
-      map.setAttribute('x', '0');
-      map.setAttribute('y', '0');
-      map.setAttribute('width', String(width));
-      map.setAttribute('height', String(height));
-      map.setAttribute('result', 'map');
-      const displace = document.createElementNS(SVG_NS, 'feDisplacementMap');
-      displace.setAttribute('in', 'SourceGraphic');
-      displace.setAttribute('in2', 'map');
-      displace.setAttribute('scale', String(scale));
-      displace.setAttribute('xChannelSelector', 'R');
-      displace.setAttribute('yChannelSelector', 'G');
-      filter.append(map, displace);
+      const box = { x: '0', y: '0', width: String(width), height: String(height) };
+      const filter = svgElement('filter', {
+        id,
+        filterUnits: 'userSpaceOnUse',
+        primitiveUnits: 'userSpaceOnUse',
+        'color-interpolation-filters': 'sRGB',
+        ...box,
+      });
+      filter.append(
+        svgElement('feGaussianBlur', {
+          in: 'SourceGraphic',
+          stdDeviation: String(blur),
+          edgeMode: 'duplicate',
+          result: 'frost',
+        }),
+        svgElement('feImage', {
+          href: displacementMap(width, height, radius, bezel),
+          ...box,
+          result: 'map',
+        }),
+      );
+      // Bend each colour channel on its own, a little more for green and blue.
+      CHANNELS.forEach((channel, index) => {
+        filter.append(
+          svgElement('feDisplacementMap', {
+            in: 'frost',
+            in2: 'map',
+            scale: String(scale * (1 + dispersion * index)),
+            xChannelSelector: 'R',
+            yChannelSelector: 'G',
+            result: `${channel.name}-bent`,
+          }),
+          svgElement('feColorMatrix', {
+            in: `${channel.name}-bent`,
+            type: 'matrix',
+            values: channel.matrix,
+            result: channel.name,
+          }),
+        );
+      });
+      filter.append(
+        svgElement('feBlend', { in: 'r', in2: 'g', mode: 'screen', result: 'rg' }),
+        svgElement('feBlend', { in: 'rg', in2: 'b', mode: 'screen' }),
+      );
       defs.replaceChildren(filter);
-      element.style.backdropFilter = `blur(${blur}px) saturate(160%) url(#${id})`;
+      element.style.backdropFilter = `url(#${id}) saturate(150%)`;
     };
 
     update();
@@ -149,5 +182,5 @@ export function useGlassRefraction<T extends HTMLElement>(
       svg.remove();
       element.style.backdropFilter = '';
     };
-  }, [ref, baseId, radius, bezel, scale, blur]);
+  }, [ref, baseId, radius, bezel, scale, dispersion, blur]);
 }

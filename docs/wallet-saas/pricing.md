@@ -26,6 +26,43 @@ day. Signatures above the allowance have a published price.
 - **Gas and chain fees** pass through at cost.
 - **Registration** has a fair-use rate limit. A new user costs about $0.0001, so
   bot sign-ups are cheap but not free.
+- **The public page** says that prices may change and that they follow our own
+  hosting costs.
+
+## Free plan limits
+
+The free plan costs us money for each organization that uses it. These limits
+keep that cost bounded:
+
+1. **One free plan per organization.** The free plan does not apply per project
+   or per environment. The Console already bills per organization.
+2. **One free organization per browser origin.** An app registers its browser
+   origins on its publishable key. An origin can belong to only one free
+   organization, so one app cannot split its users over several free plans.
+3. **A hard stop at the free limits until a card is on file.** At 1,000 MAU, new
+   sign-ups stop. At 300,000 signatures in a month, signing stops. With a card on
+   file, the organization moves to Growth.
+4. **An internal alert on the total free-plan cost.** Start with an alert at
+   $500 a month of Cloudflare cost for all free organizations together.
+
+Cost of one free organization each month:
+
+| Use                                     | Signatures / month | Our cost |
+| --------------------------------------- | -----------------: | -------: |
+| Full allowance: 1,000 users at 10 a day |            300,000 |   ~$3.00 |
+| Typical small app: 50 users at 3 a day  |              4,500 |   ~$0.05 |
+
+Cost of all free organizations each month:
+
+| Free organizations | All at the full allowance | 90% typical, 10% at the full allowance |
+| -----------------: | ------------------------: | -------------------------------------: |
+|                100 |                      $300 |                                   ~$35 |
+|              1,000 |                    $3,000 |                                  ~$345 |
+|             10,000 |                   $30,000 |                                ~$3,450 |
+
+Open decision: a signing stop also blocks existing users of that app. Decide if
+recovery and key export stay open during a stop, so that no user loses access to
+funds.
 
 ## Why this shape
 
@@ -223,5 +260,7 @@ cost.
 2. Read D1 and Durable Object row counts for that run from the Cloudflare
    analytics.
 3. Recompute the margin table.
-4. Update the public pricing page and the Wallet price definitions in the Console
-   billing code.
+4. Update the Wallet price definitions in the Console billing code. The public
+   pricing page in `apps/seams-site` already shows this model.
+5. Build the free plan limits in the Console: the origin check across free
+   organizations, the hard stop, the card requirement, and the cost alert.

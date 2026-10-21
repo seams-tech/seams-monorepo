@@ -26,7 +26,7 @@ const plans: readonly Plan[] = [
       'Up to 1,000 monthly active users',
       '300,000 signatures a month',
       'Passkeys, Email OTP, and split-key wallets',
-      'Policy checks and audit log',
+      'One free plan per organization',
     ],
     cta: { label: 'Start building', to: '/docs/concepts/', primary: false },
   },

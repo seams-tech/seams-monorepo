@@ -1547,7 +1547,11 @@ const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
     },
     {
       q: 'What happens when my app grows past the free plan?',
-      a: 'Above 1,000 active users or 300,000 signatures in a month, your app moves to Growth at $99 a month, with 5,000 users included.',
+      a: 'The free plan stops at 1,000 active users or 300,000 signatures in a month. Add a card to continue on Growth at $99 a month, with 5,000 users included.',
+    },
+    {
+      q: 'Can I use more than one free plan?',
+      a: 'No. Each organization has one free plan, and each app origin can belong to only one free organization.',
     },
   ],
 };

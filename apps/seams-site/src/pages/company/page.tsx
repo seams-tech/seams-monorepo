@@ -6,6 +6,7 @@ import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { H2Footer } from '@/components/h2/sections';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
+import { startSiteAnchorScroll } from '@/app/router/siteRouting';
 import '@/styles/h2.css';
 import './styles.css';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
@@ -136,6 +137,7 @@ function ProductCard({ product }: { product: Product }): React.JSX.Element {
 }
 
 export function CompanyPage(): React.JSX.Element {
+  React.useEffect(startSiteAnchorScroll, []);
   const t = useTranslation();
   const products = getProducts(t);
   const principles = getPrinciples(t);
@@ -173,6 +175,7 @@ export function CompanyPage(): React.JSX.Element {
           </header>
 
           <section
+            id="blog"
             className="h2-section h2-section--compact h2-rule company-products"
             aria-labelledby="company-products-title"
           >
@@ -234,6 +237,7 @@ export function CompanyPage(): React.JSX.Element {
           </section>
 
           <section
+            id="company"
             className="h2-section h2-section--compact h2-rule"
             aria-labelledby="company-details-title"
           >

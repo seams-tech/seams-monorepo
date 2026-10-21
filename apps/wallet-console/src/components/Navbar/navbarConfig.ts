@@ -134,7 +134,7 @@ const aboutDropdownPane: DropdownPane = {
     {
       title: t('companyLink'),
       description: t('companyDescription'),
-      to: '/company/',
+      to: '/company/#company',
       icon: Building2,
       field: 'sky-sand',
     },
@@ -166,6 +166,6 @@ export const siteNavbarConfig: SiteNavbarConfig = {
     pricing: pricingDropdownPane,
   },
   homeHref: '/',
-  aboutHref: '/company/',
+  aboutHref: '/company/#company',
   dashboardHref: '/dashboard',
 };

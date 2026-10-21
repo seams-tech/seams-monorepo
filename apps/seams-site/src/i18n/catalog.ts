@@ -177,8 +177,8 @@ export const messages = {
   contactUs: { en: 'Contact us', ja: 'お問い合わせ' },
   readDocs: { en: 'Read the docs', ja: 'ドキュメントを読む' },
   productsTitle: {
-    en: 'Two products on one policy engine',
-    ja: 'ひとつのポリシーエンジン、ふたつの製品',
+    en: 'What we build',
+    ja: '私たちがつくるもの',
   },
   principlesTitle: { en: 'Three rules behind every feature', ja: 'すべての機能を支える3つの原則' },
   teamReply: {

@@ -147,7 +147,7 @@ function aboutDropdownPane(t: Translate): DropdownPane {
       {
         title: t('company'),
         description: t('companyNav'),
-        to: '/company/',
+        to: '/company/#company',
         icon: Building2,
         field: 'sky-sand',
       },
@@ -189,7 +189,7 @@ export function getSiteNavbarConfig(locale: Locale): SiteNavbarConfig {
       pricing: pricingDropdownPane(t),
     },
     homeHref: '/',
-    aboutHref: '/company/',
+    aboutHref: '/company/#company',
     dashboardHref: '/dashboard',
     mobilePlanLinks: [
       {

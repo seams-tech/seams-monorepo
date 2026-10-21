@@ -13,6 +13,11 @@
   max-width: none;
 }
 
+#blog,
+#company {
+  scroll-margin-top: 96px;
+}
+
 @media (max-width: 900px) {
   .h2-hero-simple.company-hero {
     padding: 120px 0 28px;

@@ -75,3 +75,26 @@ export function normalizePathname(pathname: string): string {
   const normalized = clean.startsWith('/') ? clean : `/${clean}`;
   return stripTrailingSlash(normalized) || '/';
 }
+
+function scrollToSiteAnchor(): void {
+  const id = window.location.hash.slice(1);
+  if (id) document.getElementById(id)?.scrollIntoView();
+}
+
+function unsubscribeFromSiteNavigation(listener: () => void): void {
+  window.removeEventListener('site:navigate', listener);
+  window.removeEventListener('popstate', listener);
+  window.removeEventListener('hashchange', listener);
+}
+
+export function subscribeToSiteNavigation(listener: () => void): () => void {
+  window.addEventListener('site:navigate', listener);
+  window.addEventListener('popstate', listener);
+  window.addEventListener('hashchange', listener);
+  return unsubscribeFromSiteNavigation.bind(null, listener);
+}
+
+export function startSiteAnchorScroll(): () => void {
+  scrollToSiteAnchor();
+  return subscribeToSiteNavigation(scrollToSiteAnchor);
+}

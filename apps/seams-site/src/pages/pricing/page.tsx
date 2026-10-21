@@ -6,6 +6,7 @@ import { H2Faq, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
+import { startSiteAnchorScroll, subscribeToSiteNavigation } from '@/app/router/siteRouting';
 import { EnterpriseCalculator } from './EnterpriseCalculator';
 import '@/styles/h2.css';
 import './styles.css';
@@ -183,11 +184,6 @@ function PlanCard({ plan, selected }: { plan: Plan; selected: boolean }): React.
   );
 }
 
-function scrollToPricingAnchor(): void {
-  const id = window.location.hash.slice(1);
-  if (id) document.getElementById(id)?.scrollIntoView();
-}
-
 function readSelectedPlanId(): PlanId {
   switch (window.location.hash) {
     case '#free':
@@ -199,32 +195,11 @@ function readSelectedPlanId(): PlanId {
   }
 }
 
-function unsubscribeFromPricingNavigation(listener: () => void): void {
-  window.removeEventListener('site:navigate', listener);
-  window.removeEventListener('popstate', listener);
-  window.removeEventListener('hashchange', listener);
-}
-
-function subscribeToPricingNavigation(listener: () => void): () => void {
-  window.addEventListener('site:navigate', listener);
-  window.addEventListener('popstate', listener);
-  window.addEventListener('hashchange', listener);
-  return unsubscribeFromPricingNavigation.bind(null, listener);
-}
-
-function startPricingAnchorScroll(): () => void {
-  scrollToPricingAnchor();
-  return subscribeToPricingNavigation(scrollToPricingAnchor);
-}
-
 export function PricingPage(): React.JSX.Element {
   const t = useTranslation();
   const plans = getPlans(t);
-  React.useEffect(startPricingAnchorScroll, []);
-  const selectedPlanId = React.useSyncExternalStore(
-    subscribeToPricingNavigation,
-    readSelectedPlanId,
-  );
+  React.useEffect(startSiteAnchorScroll, []);
+  const selectedPlanId = React.useSyncExternalStore(subscribeToSiteNavigation, readSelectedPlanId);
 
   return (
     <div className="h2-page">

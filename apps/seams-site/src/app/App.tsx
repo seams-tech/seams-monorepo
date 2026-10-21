@@ -9,9 +9,6 @@ import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 const HomePage = React.lazy(() =>
   import('@/pages/home2/page').then((module) => ({ default: module.HomePage })),
 );
-const Home2Page = React.lazy(() =>
-  import('@/pages/home2/page').then((module) => ({ default: module.Home2Page })),
-);
 const EcommercePage = React.lazy(() =>
   import('@/pages/ecommerce/page').then((module) => ({ default: module.EcommercePage })),
 );
@@ -87,8 +84,6 @@ export const App: React.FC = () => {
     switch (pathname) {
       case '/':
         return <HomePage />;
-      case '/home2':
-        return <Home2Page />;
       case '/wallet':
         return <WalletProductRedirect />;
       case '/ecommerce':

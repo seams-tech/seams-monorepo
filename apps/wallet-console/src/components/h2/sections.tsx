@@ -686,34 +686,38 @@ export function H2Start(): React.JSX.Element {
             aria-label="Open a signing session and send a transfer"
           >
             <span className="tok-kw">import</span>
-            {' { transfer, useSeams, useWallet } '}
+            {' { transfer, useSeams } '}
             <span className="tok-kw">from</span>{' '}
             <span className="tok-str">'@seams/wallet/react'</span>
             {';\n'}
             <span className="tok-kw">const</span>
-            {' { unlock } = useSeams();\n'}
-            <span className="tok-kw">const</span>
-            {' wallet = useWallet();\n\n'}
+            {' { unlock, wallet } = useSeams();\n\n'}
+            <span className="tok-kw">async function</span>
+            {' openSession() {\n  '}
             <span className="tok-kw">await</span>
-            {' unlock(walletId, {\n  '}
-            <span className="tok-cm">{'// a session: 15 minutes or 5 signatures\n'}</span>
-            {'  '}
+            {' unlock(walletId, {\n    '}
+            <span className="tok-cm">{'// 15 minutes or 5 signatures\n'}</span>
+            {'    '}
             <span className="tok-prop">signingSession</span>
             {': { '}
             <span className="tok-prop">ttlMs</span>
             {': 15 * 60_000, '}
             <span className="tok-prop">remainingUses</span>
-            {': 5 },\n});\n'}
+            {': 5 },\n  });\n}\n\n'}
+            <span className="tok-kw">async function</span>
+            {' sendTransfer() {\n  '}
+            <span className="tok-kw">if</span>
+            {' (!wallet?.near) return;\n  '}
             <span className="tok-kw">await</span>
-            {' wallet.near.signAndSendTransaction({\n  '}
+            {' wallet.near.signAndSendTransaction({\n    '}
             <span className="tok-prop">receiverId</span>
             {': '}
             <span className="tok-str">"bob.near"</span>
-            {',\n  '}
+            {',\n    '}
             <span className="tok-prop">actions</span>
             {': [transfer('}
             <span className="tok-str">'1 NEAR'</span>
-            {')],\n});'}
+            {')],\n  });\n}'}
           </div>
         </div>
       </div>

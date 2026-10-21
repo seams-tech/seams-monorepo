@@ -1492,7 +1492,7 @@ type FaqItem = {
 };
 
 type H2FaqProps = {
-  audience: 'home' | 'wallet';
+  audience: 'home' | 'wallet' | 'pricing';
 };
 
 const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
@@ -1529,7 +1529,25 @@ const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
     },
     {
       q: 'How is usage metered?',
-      a: 'Plans are based on monthly active wallets, with overage pricing as you grow: from a free tier for launch through usage-based Growth and Professional plans. See the pricing page for details.',
+      a: 'Plans are based on monthly active users. Each user includes 300 signatures a month, pooled across your app. The first 1,000 users are free. See the pricing page for details.',
+    },
+  ],
+  pricing: [
+    {
+      q: 'What counts as a monthly active user?',
+      a: 'A user who signs in during the month, or who gets a new wallet that month. A user counts once, however many times they sign in.',
+    },
+    {
+      q: 'What if my users sign more than 10 times a day?',
+      a: 'Signatures are pooled across your app: 300 for each active user each month. Busy users are covered while the average stays inside the pool. Signatures above the pool cost $0.05 per 1,000.',
+    },
+    {
+      q: 'Do you charge for gas?',
+      a: 'Gas and chain fees pass through at cost. We add no margin to them.',
+    },
+    {
+      q: 'What happens when my app grows past the free plan?',
+      a: 'Above 1,000 active users or 300,000 signatures in a month, your app moves to Growth at $99 a month, with 5,000 users included.',
     },
   ],
 };

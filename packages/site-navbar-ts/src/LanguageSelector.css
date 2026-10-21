@@ -76,7 +76,7 @@
   --h2-ash: #a59f97;
   --h2-smoke: #777169;
   --h2-taupe: #f5f3f1;
-  --h2-text-title: 15px;
+  --h2-text-title: 14px;
   --h2-font: 'Hanken Grotesk', system-ui, sans-serif;
   border: 1px solid #ebe8e4;
   background: #ffffff;
@@ -85,15 +85,15 @@
     0 6px 18px -10px rgba(4, 3, 14, 0.16);
 
   z-index: 1000;
-  min-width: 240px;
+  min-width: 200px;
   max-width: calc(100vw - 32px);
   max-height: var(--radix-select-content-available-height);
-  padding: 6px;
+  padding: 4px;
   overflow-y: auto;
   overscroll-behavior: contain;
   color-scheme: light;
   color: var(--h2-ink);
-  border-radius: 18px;
+  border-radius: 14px;
   font: 400 var(--h2-text-title) / 1.5 var(--h2-font);
   -webkit-font-smoothing: antialiased;
 }
@@ -106,18 +106,18 @@
 .site-language__option {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: 9px;
   cursor: pointer;
   outline: none;
 }
 
 .site-language__flag {
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   overflow: hidden;
   border-radius: 50%;
 }
@@ -134,6 +134,12 @@
 
 .site-language__option[data-highlighted] {
   background: var(--h2-taupe);
+}
+
+@media (pointer: coarse) {
+  .site-language__option {
+    min-height: 44px;
+  }
 }
 
 html:lang(ja) .site-language__menu {

@@ -1,4 +1,4 @@
-/* ---------- hero: plain and short, like the pricing page ---------- */
+/* ---------- company hero ---------- */
 
 .h2-hero-simple.company-hero {
   padding: 144px 0 32px;
@@ -9,9 +9,29 @@
   padding-left: 36px;
 }
 
+.company-hero__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 44px;
+  align-items: center;
+}
+
+.company-hero__gradient {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--h2-radius-card);
+}
+
 @media (max-width: 900px) {
   .h2-hero-simple.company-hero {
     padding: 120px 0 28px;
+  }
+
+  .company-hero__layout {
+    grid-template-columns: 1fr;
+    gap: 28px;
   }
 }
 

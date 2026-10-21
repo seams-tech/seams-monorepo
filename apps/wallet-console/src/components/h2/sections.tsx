@@ -900,7 +900,7 @@ const faqs: Record<FaqAudience, readonly FaqGroup[]> = {
         },
         {
           q: 'How is usage metered?',
-          a: 'Plans are based on monthly active wallets, with overage pricing as you grow: from a free tier for launch through usage-based Growth and Professional plans.',
+          a: 'Plans are based on monthly active users. The first 300 users are free. See the pricing page for plan allowances.',
           more: { label: 'See pricing', to: '/pricing/' },
         },
       ],

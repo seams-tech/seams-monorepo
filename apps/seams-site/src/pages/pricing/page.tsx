@@ -110,7 +110,25 @@ function PlanCard({ plan }: { plan: Plan }): React.JSX.Element {
   );
 }
 
+function scrollToPricingAnchor(): void {
+  const id = window.location.hash.slice(1);
+  if (id) document.getElementById(id)?.scrollIntoView();
+}
+
+function stopPricingAnchorScroll(): void {
+  window.removeEventListener('site:navigate', scrollToPricingAnchor);
+  window.removeEventListener('popstate', scrollToPricingAnchor);
+}
+
+function startPricingAnchorScroll(): () => void {
+  scrollToPricingAnchor();
+  window.addEventListener('site:navigate', scrollToPricingAnchor);
+  window.addEventListener('popstate', scrollToPricingAnchor);
+  return stopPricingAnchorScroll;
+}
+
 export function PricingPage(): React.JSX.Element {
+  React.useEffect(startPricingAnchorScroll, []);
   const { linkProps } = useSiteRouter();
   const startProps = linkProps('/docs/concepts/');
   const contactProps = linkProps('/contact/');

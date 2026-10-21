@@ -315,7 +315,13 @@ function writeWalletConsoleRedirects(site) {
     '/dashboard/invoices/*',
     '/platform/*',
   ];
-  const lines = ['/docs /docs/ 301'];
+  const lines = [
+    '/docs /docs/ 301',
+    `/pricing ${site.origin}/pricing 302`,
+    `/pricing/* ${site.origin}/pricing/:splat 302`,
+    `/company ${site.origin}/company 302`,
+    `/company/* ${site.origin}/company/:splat 302`,
+  ];
   for (const route of shared) {
     lines.push(`${route} ${consoleSite.platformOrigin}${route.replace('*', ':splat')} 302`);
   }

@@ -32,13 +32,26 @@ export function maybeDocsHref(target: string): string | null {
 
 export function resolveHref(target: string): string {
   if (isHttpUrl(target)) return target;
+  if (target.startsWith('#')) return toSiteAbsolutePath(target);
 
   if (target === '/wallet') return SITE_LINKS.walletPath;
 
   const docsHref = maybeDocsHref(target);
   if (docsHref) return docsHref;
 
-  return toSiteAbsolutePath(target);
+  const pathname = normalizePathname(target);
+  switch (pathname) {
+    case '/':
+    case '/pricing':
+    case '/company':
+    case '/contact':
+    case '/ecommerce': {
+      const base = SITE_LINKS.companyOrigin === '/' ? '' : SITE_LINKS.companyOrigin;
+      return `${base}${toSiteAbsolutePath(target)}`;
+    }
+    default:
+      return toSiteAbsolutePath(target);
+  }
 }
 
 export function normalizePathname(pathname: string): string {

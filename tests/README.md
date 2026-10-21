@@ -46,6 +46,20 @@ at the canvas's dimensions, independently of the separate live login widget.
 Set `SEAMS_CHECKOUT_DEMO_URL` for another checkout URL. Per-frame measurements,
 screenshots, and a trace go to `.artifacts/transaction-details-jank/`.
 
+## Public site navigation
+
+The wallet marketing app owns the wallet page. Pricing, company, and contact pages
+belong to the company site. Wallet links use document navigation and the configured
+company origin. Deployed wallet hosts redirect existing pricing and company URLs
+to the company site. Pricing anchors scroll after the page loads, including on refresh.
+
+Run `node tests/e2e/wallet-site-navigation.e2e.mjs` with the local frontend running.
+The scenario checks desktop and mobile pricing links, plan anchors, keyboard input,
+browser history, refresh, and company navigation. Screenshots, `result.json`, and
+`trace.zip` go to `output/playwright/wallet-site-navigation/`. Set
+`SEAMS_SITE_ORIGIN` and `SEAMS_WALLET_SITE_ORIGIN` to check separate site origins.
+Set `SEAMS_NAVIGATION_ARTIFACTS` to choose another artifact directory.
+
 ## Gates
 
 - `pnpm test` runs the Console operating E2E cases on a fresh managed local stack.

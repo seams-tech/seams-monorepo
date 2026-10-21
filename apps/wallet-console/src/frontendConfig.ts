@@ -382,6 +382,7 @@ function buildDeployment(
 // Site pages sit at the origin root. BASE_URL is only the asset base: local dev
 // serves the marketing assets from /wallet-static/ and its page from /wallet.
 export function readFrontendSiteLinks(source: ImportMetaEnv): {
+  companyOrigin: string;
   walletPath: string;
   docsOrigin: string;
 } {
@@ -389,10 +390,14 @@ export function readFrontendSiteLinks(source: ImportMetaEnv): {
     toTrimmedString(source.VITE_DOCS_ORIGIN) || DEFAULT_DOCS_ORIGIN,
   );
   const walletSiteOrigin = toTrimmedString(source.VITE_WALLET_SITE_ORIGIN);
+  const companyOrigin =
+    stripTrailingSlash(
+      toTrimmedString(source.VITE_COMPANY_SITE_ORIGIN) || toTrimmedString(source.VITE_SITE_ORIGIN),
+    ) || '/';
   const walletPath = walletSiteOrigin
     ? stripTrailingSlash(new URL(walletSiteOrigin).pathname) || '/'
     : '/';
-  return { walletPath, docsOrigin };
+  return { companyOrigin, walletPath, docsOrigin };
 }
 
 function buildSiteConfig(source: ImportMetaEnv): FrontendConfigCandidate {

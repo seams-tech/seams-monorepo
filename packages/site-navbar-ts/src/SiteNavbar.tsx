@@ -62,7 +62,7 @@ export type SiteNavbarRouter = {
   go: (to: string) => void;
   linkProps: (to: string) => {
     href: string;
-    onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;
+    onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   };
 };
 
@@ -339,7 +339,7 @@ export function SiteNavbar({
       return {
         href: props.href,
         onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
-          props.onClick(e);
+          props.onClick?.(e);
           closeMenus();
         },
       };

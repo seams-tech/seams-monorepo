@@ -28,7 +28,7 @@ const documentationDropdownPane: DropdownPane = {
     {
       title: 'Ecommerce Agents',
       description: 'AI agents with scoped credentials, acting inside policy',
-      to: 'https://seams.sh/ecommerce',
+      to: '/ecommerce',
       icon: Bot,
     },
     {
@@ -89,31 +89,34 @@ const pricingDropdownPane: DropdownPane = {
   kicker: 'Plans',
   rows: [
     {
-      title: 'Starter',
-      description: 'Up to 5K monthly active wallets',
-      to: '/pricing/#starter',
+      title: 'Free',
+      description: 'Up to 300 monthly active users',
+      to: '/pricing/#free',
       icon: Sprout,
-      meta: 'Included',
+      meta: '$0',
       field: 'sky-sand',
     },
     {
       title: 'Growth',
-      description: '5K–100K monthly active wallets',
+      description: '5,000 users included, then $0.004 per user',
       to: '/pricing/#growth',
       icon: TrendingUp,
-      meta: 'Usage-based',
+      meta: '$99 / mo',
       field: 'azure-coral',
     },
     {
-      title: 'Scale',
-      description: '100K+ monthly active wallets, SLA, and advanced controls',
-      to: '/pricing/#scale',
+      title: 'Enterprise',
+      description: 'From $0.003 per user on committed volume',
+      to: '/pricing/#enterprise',
       icon: Rocket,
-      meta: 'Volume',
+      meta: 'Custom',
       field: 'mauve-ember',
     },
   ],
-  footerLinks: [{ label: 'Compare plans', to: '/pricing/' }],
+  footerLinks: [
+    { label: 'Compare plans', to: '/pricing/' },
+    { label: 'Estimate your price', to: '/pricing/#calculator' },
+  ],
 };
 
 const aboutDropdownPane: DropdownPane = {
@@ -146,7 +149,7 @@ export const siteNavbarConfig: SiteNavbarConfig = {
     about: aboutDropdownPane,
     pricing: pricingDropdownPane,
   },
-  homeHref: 'https://seams.sh/',
+  homeHref: '/',
   aboutHref: '/company/',
   dashboardHref: '/dashboard',
 };

@@ -1,4 +1,4 @@
--- Free plan: plan state, the 60-day card clock, verified cards, production usage
+-- Free plan: plan state, the card clock, verified cards, production usage
 -- counts, and sent notices, per billing account (docs/feat-4-free-plan-card-and-growth-move.md).
 -- Existing billing accounts start their card clock on the release date of this migration.
 -- The email outbox gains the FREE_PLAN_NOTICE family; its rows and deliveries are preserved.

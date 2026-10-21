@@ -1,5 +1,5 @@
 /**
- * Free plan rules: the 60-day card clock, the Free limits, and the move to Growth.
+ * Free plan rules: the 30-day card clock, the Free limits, and the move to Growth.
  * The prices and limits come from docs/wallet-saas/pricing.md; the transitions come
  * from docs/feat-4-free-plan-card-and-growth-move.md. This module is pure: the D1
  * service persists its decisions.
@@ -10,8 +10,8 @@ export const FREE_PLAN_LIMITS_V1 = Object.freeze({
   productionSignatures: 30_000,
 });
 
-export const FREE_PLAN_CARD_GRACE_DAYS = 60;
-export const FREE_PLAN_CARD_REMINDER_DAYS = Object.freeze([30, 46, 53, 59] as const);
+export const FREE_PLAN_CARD_GRACE_DAYS = 30;
+export const FREE_PLAN_CARD_REMINDER_DAYS = Object.freeze([16, 23, 29] as const);
 export const FREE_PLAN_WARNING_PERCENT = 80;
 
 const DAY_MS = 86_400_000;

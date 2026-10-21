@@ -288,7 +288,7 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
   await mkdir(output, { recursive: true });
   const startMs = Date.now();
   const clock = new Clock(startMs);
-  // The setup card expires in the month after day 90, so day 60 still sees a usable card.
+  // The setup card expires in the month after day 100, so day 30 still sees a usable card.
   const cardExpiry = new Date(startMs + 100 * DAY_MS);
   const worker = runtime();
   const evidence: Record<string, unknown> = {};
@@ -408,36 +408,35 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
     ).toEqual({ kind: 'rejected', error: { code: 'scope_forbidden' } });
     evidence.carded = { plan: cardedPlan };
 
-    // The 60-day card clock: reminders, then the production stop.
-    clock.ms = startMs + 29 * DAY_MS + 3_600_000;
+    // The 30-day card clock: reminders, then the production stop.
+    clock.ms = startMs + 15 * DAY_MS + 3_600_000;
     await pass(services);
     expect(await noticeEmails(database, clockOrg)).toEqual([]);
-    clock.ms = startMs + 30 * DAY_MS + 3_600_000;
+    clock.ms = startMs + 16 * DAY_MS + 3_600_000;
     await pass(services);
     await pass(services);
-    expect(await noticeEmails(database, clockOrg)).toEqual(['card_reminder:30']);
+    expect(await noticeEmails(database, clockOrg)).toEqual(['card_reminder:16']);
     let clockPlan = await services.core.freePlan.getPlan({ orgId: clockOrg.orgId });
     expect(clockPlan.banners).toEqual([{ kind: 'card_due', deadlineAt: clockPlan.cardDeadlineAt }]);
-    for (const day of [46, 53, 59]) {
+    for (const day of [23, 29]) {
       clock.ms = startMs + day * DAY_MS + 3_600_000;
       await pass(services);
     }
-    clock.ms = startMs + 60 * DAY_MS + 3_600_000;
+    clock.ms = startMs + 30 * DAY_MS + 3_600_000;
     await pass(services);
     expect(await noticeEmails(database, clockOrg)).toEqual([
-      'card_reminder:30',
-      'card_reminder:46',
-      'card_reminder:53',
-      'card_reminder:59',
+      'card_reminder:16',
+      'card_reminder:23',
+      'card_reminder:29',
       'card_required',
     ]);
     clockPlan = await services.core.freePlan.getPlan({ orgId: clockOrg.orgId });
     expect(clockPlan).toMatchObject({ plan: 'free', productionState: 'card_required' });
-    expect(await register(database, clockOrg, 'prod', 'day-60')).toMatchObject({
+    expect(await register(database, clockOrg, 'prod', 'day-30')).toMatchObject({
       ok: false,
       code: 'production_paused',
     });
-    expect((await register(database, clockOrg, 'dev', 'day-60')).ok).toBe(true);
+    expect((await register(database, clockOrg, 'dev', 'day-30')).ok).toBe(true);
 
     // Another organization cannot verify this organization's setup session.
     const foreign = await services.core.freePlan.startCardSetup({
@@ -480,10 +479,9 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
     clockPlan = await services.core.freePlan.getPlan({ orgId: clockOrg.orgId });
     expect(clockPlan).toMatchObject({ productionState: 'card_required', card: { kind: 'expired' } });
     expect(await noticeEmails(database, clockOrg)).toEqual([
-      'card_reminder:30',
-      'card_reminder:46',
-      'card_reminder:53',
-      'card_reminder:59',
+      'card_reminder:16',
+      'card_reminder:23',
+      'card_reminder:29',
       'card_required',
     ]);
     evidence.clock = { plan: clockPlan };

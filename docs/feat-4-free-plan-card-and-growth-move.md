@@ -1,6 +1,7 @@
 # Free plan card requirement and Growth move: implementation plan
 
-Status: proposed; implementation has not started.
+Status: phases 1–5 implemented on `dev` for the Console side; signature counts and
+the signing stop wait for seams-wallet. See [Implementation status](#implementation-status).
 Date: October 21, 2026.
 
 ## Outcome
@@ -161,3 +162,48 @@ email and as a Console banner. The banner stays until the condition ends.
 3. **Notice days:** 16, 23, 29, and 30 are proposals.
 4. **In-flight sessions at a stop:** whether a signing session that started
    before the stop can finish.
+
+## Implementation status
+
+Implemented on `dev` (October 21, 2026), with the proposed defaults for every open
+decision:
+
+- **Card setup (minimum of feat-3 phase 1).** One persisted Stripe Customer per
+  billing account, card setup through Checkout in setup mode, verification by a
+  server-side Stripe lookup (never by the redirect), the card as the Customer's
+  invoice default, and removal from `payment_method.detached`. Routes:
+  `GET /console/billing/plan`, `POST /console/billing/card-setup`,
+  `POST /console/billing/card-setup/reconcile`. Code:
+  `packages/console-server-ts/src/billing/freePlan.ts`, `freePlanD1.ts`,
+  `freePlanSchema.ts`.
+- **Plan state and card clock.** Migration `0010` (Console core) and `0101` (Wallet
+  Console) add the plan, the card clock, the production state, verified cards, usage
+  counts, and sent notices. Existing billing accounts start on the release date.
+- **Production MAU.** Registration completion and each session publication append one
+  outbox fact per established wallet and UTC month, in `prod` environments only, to
+  their existing batch. The scheduled delivery counts each fact once.
+- **Enforcement.** The atomic registration reservation refuses new production
+  sign-ups with `production_paused` while the persisted state is not `active`. The
+  check adds no statement on the success path. Unlock, recovery, and key export do
+  not read the state.
+- **Notices and banners.** One `FREE_PLAN_NOTICE` email family, each notice keyed
+  once per account; banners on the billing page and the dashboard.
+- **Growth move.** One statement changes the plan, pins `wallet-growth-v1`, and sets
+  the 12-month lock date; the move notice is queued only if that statement commits.
+- **Test.** `tests/e2e/console/shared-account-free-plan.e2e.test.ts`.
+
+Not built yet:
+
+- **Signature counts and the signing stop.** Signing does not reach Console per
+  request. The Wallet runtime (seams-wallet) must emit `production_signature` facts
+  through the same contract, and the stop must reach the Gateway through its
+  regional admission state. Until then, only the MAU limit and the card clock stop
+  production, and they stop sign-ups only.
+- **SDK error code.** The Wallet maps an unknown reservation code to "unavailable";
+  seams-wallet must pass `production_paused` to the SDK.
+- **Growth charges.** The plan and price are persisted, but the feat-3 monthly close
+  that bills them does not exist. The existing `wallet.monthly_active_resource`
+  prepaid charge still applies.
+- **Switch back to Free**, the Stripe test-mode staging run, and the existing credit
+  purchase flow's own Stripe Customer creation, which does not use the persisted
+  mapping.

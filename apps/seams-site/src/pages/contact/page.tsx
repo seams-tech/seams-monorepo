@@ -12,25 +12,103 @@ function readFormValue(formData: FormData, name: string): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function handleContactSubmit(event: React.FormEvent<HTMLFormElement>): void {
-  event.preventDefault();
+type PreparedMessage = {
+  subject: string;
+  body: string;
+};
 
-  const formData = new FormData(event.currentTarget);
+function prepareMessage(form: HTMLFormElement): PreparedMessage {
+  const formData = new FormData(form);
   const name = readFormValue(formData, 'name');
   const email = readFormValue(formData, 'email');
   const company = readFormValue(formData, 'company');
   const details = readFormValue(formData, 'details');
-  const subject = `Sales inquiry from ${name} at ${company}`;
-  const body = [`Name: ${name}`, `Work email: ${email}`, `Company: ${company}`, '', details].join(
-    '\n',
-  );
+  return {
+    subject: `Sales inquiry from ${name} at ${company}`,
+    body: [`Name: ${name}`, `Work email: ${email}`, `Company: ${company}`, '', details].join('\n'),
+  };
+}
 
-  window.location.assign(
-    `mailto:${SALES_EMAIL_ADDRESS}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+function mailtoHref(message: PreparedMessage): string {
+  return `mailto:${SALES_EMAIL_ADDRESS}?subject=${encodeURIComponent(message.subject)}&body=${encodeURIComponent(message.body)}`;
+}
+
+type CopyTarget = 'message' | 'address';
+
+/* The async clipboard API can be blocked, e.g. in an embedded browser; the
+   older copy command still works there. */
+async function copyText(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return;
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    const copied = document.execCommand('copy');
+    area.remove();
+    if (!copied) throw new Error('copy command failed');
+  }
+}
+
+/* A mailto link does nothing when the visitor has no email app set up, and the
+   page cannot detect that. So after every submit, show the prepared message
+   with copy buttons as a path that always works. */
+function PreparedMessageNotice({ message }: { message: PreparedMessage }): React.JSX.Element {
+  const [copied, setCopied] = React.useState<CopyTarget | 'failed' | null>(null);
+  const text = `To: ${SALES_EMAIL_ADDRESS}\nSubject: ${message.subject}\n\n${message.body}`;
+
+  async function copy(target: CopyTarget): Promise<void> {
+    try {
+      await copyText(target === 'message' ? text : SALES_EMAIL_ADDRESS);
+      setCopied(target);
+    } catch {
+      setCopied('failed');
+    }
+  }
+
+  return (
+    <div className="contact-notice" role="status">
+      <p className="contact-notice__lead">
+        Your message is ready. If your email app did not open, copy the message and send it to{' '}
+        <a href={mailtoHref(message)}>{SALES_EMAIL_ADDRESS}</a>.
+      </p>
+      <pre className="contact-notice__message">{text}</pre>
+      <div className="contact-notice__actions">
+        <button
+          type="button"
+          className="h2-btn h2-btn--outline"
+          onClick={() => void copy('message')}
+        >
+          {copied === 'message' ? 'Message copied' : 'Copy message'}
+        </button>
+        <button
+          type="button"
+          className="h2-btn h2-btn--outline"
+          onClick={() => void copy('address')}
+        >
+          {copied === 'address' ? 'Address copied' : 'Copy address'}
+        </button>
+        {copied === 'failed' ? <span>Copy failed. Select the text above and copy it.</span> : null}
+      </div>
+    </div>
   );
 }
 
 export function ContactPage(): React.JSX.Element {
+  const [prepared, setPrepared] = React.useState<PreparedMessage | null>(null);
+
+  function handleContactSubmit(event: React.FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    const message = prepareMessage(event.currentTarget);
+    setPrepared(message);
+    window.location.assign(mailtoHref(message));
+  }
+
   return (
     <div className="h2-page">
       <NavbarCompact appearance="light" />
@@ -102,6 +180,8 @@ export function ContactPage(): React.JSX.Element {
                   </button>
                   <span>Opens your email app</span>
                 </div>
+
+                {prepared ? <PreparedMessageNotice message={prepared} /> : null}
               </form>
             </div>
           </section>

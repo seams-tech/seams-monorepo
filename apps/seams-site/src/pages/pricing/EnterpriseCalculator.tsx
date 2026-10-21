@@ -1,5 +1,4 @@
 import React from 'react';
-import { GrainField } from '@seams-internal/grain-field';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 
@@ -148,8 +147,7 @@ export function EnterpriseCalculator(): React.JSX.Element {
             Estimate your monthly price
           </h2>
           <p className="h2-split-head__copy">
-            Set your active users and how often each user signs. The estimate uses our published
-            rates. Committed volume can lower it further.
+            Set your active users and how often they sign. Committed volume lowers the price.
           </p>
         </div>
         <div className="pricing-calc">
@@ -188,7 +186,6 @@ export function EnterpriseCalculator(): React.JSX.Element {
             </p>
           </div>
           <div className="pricing-calc__result" aria-live="polite">
-            <GrainField field="coral-tide" flow={1.6} />
             <dl className="pricing-calc__lines">
               <div>
                 <dt>Growth base, 5,000 users included</dt>

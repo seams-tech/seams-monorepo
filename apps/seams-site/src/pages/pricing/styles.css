@@ -422,32 +422,12 @@
 }
 
 .pricing-calc__result {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 28px;
   border-radius: var(--h2-radius-card);
-  background: var(--h2-ink);
-  color: #ffffff;
-}
-
-/* a plain black card: no grain field and no shading layer */
-.pricing-calc__result .grain-field,
-.pricing-calc__result::after {
-  display: none;
-}
-
-/* A light scrim over the grain keeps white text readable on its paler top. */
-.pricing-calc__result::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(to bottom, rgba(16, 16, 16, 0.24), rgba(16, 16, 16, 0.06) 60%);
-  pointer-events: none;
+  background: var(--h2-taupe);
 }
 
 .pricing-calc__lines {
@@ -463,32 +443,32 @@
   gap: 16px;
   margin: 0;
   padding: 10px 0;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.32);
+  border-bottom: 1px dashed var(--h2-stone);
   font-variant-numeric: tabular-nums;
 }
 
 .pricing-calc__lines dt {
   font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--h2-graphite);
 }
 
 .pricing-calc__lines dd {
   margin: 0;
   font-size: 13.5px;
-  color: #ffffff;
+  color: var(--h2-ink);
 }
 
 .pricing-calc__total {
   align-items: baseline;
   font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--h2-graphite);
 }
 
 .pricing-calc__total strong {
   font-size: 32px;
   font-weight: 300;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: var(--h2-ink);
 }
 
 .pricing-calc__total--enterprise strong {
@@ -499,24 +479,12 @@
   margin: 0;
   font-size: var(--h2-text-base);
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--h2-smoke);
 }
 
 .pricing-calc__result .h2-btn {
   align-self: flex-start;
   margin-top: auto;
-}
-
-/* white button on the black card */
-.h2-page .pricing-calc__result .h2-btn--primary {
-  background: #ffffff;
-  color: var(--h2-ink);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .h2-page .pricing-calc__result .h2-btn--primary:hover {
-    background: var(--h2-stone);
-  }
 }
 
 @media (max-width: 900px) {
@@ -544,21 +512,67 @@
 }
 
 .pricing-banner__card {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 20px 20px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(8px);
+  overflow: hidden;
+  border-radius: 22px;
+  /* glass: a frosted backdrop with a faint top-left sheen */
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(160%);
+  /* rim light on top, a softer one below, a faint colour fringe on the sides,
+     and a drop shadow that lifts the card off the gradient */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+    inset 2px 0 3px -2px rgba(255, 110, 110, 0.4),
+    inset -2px 0 3px -2px rgba(110, 160, 255, 0.4),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 12px 32px -12px rgba(10, 10, 10, 0.35);
   color: #ffffff;
-  transition: background 150ms ease;
+  text-shadow: 0 1px 2px rgba(10, 10, 10, 0.18);
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease;
+}
+
+/* the specular highlight: light caught on the curved top-left corner */
+.pricing-banner__card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 70% at 12% 0%, rgba(255, 255, 255, 0.38), transparent 55%),
+    radial-gradient(80% 40% at 100% 100%, rgba(255, 255, 255, 0.12), transparent 60%);
+  pointer-events: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .pricing-banner__card:hover {
-    background: rgba(255, 255, 255, 0.26);
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.22),
+      inset 2px 0 3px -2px rgba(255, 110, 110, 0.45),
+      inset -2px 0 3px -2px rgba(110, 160, 255, 0.45),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.3),
+      0 18px 40px -14px rgba(10, 10, 10, 0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pricing-banner__card {
+    transition: none;
+  }
+
+  .pricing-banner__card:hover {
+    transform: none;
   }
 }
 

@@ -654,7 +654,7 @@ export function H2Start(): React.JSX.Element {
             <span className="tok-prop">rpId</span>
             {': '}
             <span className="tok-str">'wallet.example.com'</span>
-            {'\n  },\n  signerSelection,\n});'}
+            {'\n  },\n});'}
           </div>
         </div>
       </div>

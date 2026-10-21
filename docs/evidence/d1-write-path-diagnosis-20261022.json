@@ -1,0 +1,650 @@
+{
+  "date": "2026-10-22",
+  "result": "The fault is isolated to selective completion waits in the D1 access path, outside reported SQL execution. Independent client receipts and fast simultaneous database controls exclude a whole-caller pause for the strongest events. The exact internal queue, dispatch, durable acknowledgement, transport or selective binding callback remains unmeasured. A stable five-second phase failed its prospective test. No latency fix is established.",
+  "fault": "Intermittent long waits for D1 admission writes during wallet registration, despite short SQL execution.",
+  "affectedDatabases": {
+    "A": {
+      "name": "router-ab-deriver-a-private-sin",
+      "id": "10a3cda4-2271-4484-af26-a7f926ba739c"
+    },
+    "B": {
+      "name": "router-ab-deriver-b-private-sin",
+      "id": "f619fa0e-8c1d-4fa2-8e75-e2909ac20dc2"
+    }
+  },
+  "method": "One standalone JavaScript Worker streams operation starts, completions and 25 ms heartbeats. A separate client records monotonic receipt times. Each write has a delayed same-database first-primary read and a simultaneous second-database control. Only task-owned one-row diagnostic tables are mutation targets.",
+  "experiments": {
+    "initialComparison": {
+      "artifactDirectory": ".artifacts/d1-root-cause-20261022",
+      "diagnosticWorker": "seams-d1-root-probe-313554a6",
+      "diagnosticWorkerVersion": [
+        {
+          "version_id": "6c3f8199-ae2f-4eab-bf95-a7166d91221f",
+          "percentage": 100
+        }
+      ],
+      "completedCalls": 480,
+      "statementAttempts": [
+        1
+      ],
+      "databasePrimaryColos": [
+        "SIN"
+      ],
+      "groups": {
+        "CONTROL_A": {
+          "concurrent_read": {
+            "count": 60,
+            "workerMedianMs": 16.0,
+            "workerMaximumMs": 341,
+            "workerIntervalsAbove100Ms": 2,
+            "maximumSqlMs": 1.1651
+          },
+          "read": {
+            "count": 60,
+            "workerMedianMs": 20.5,
+            "workerMaximumMs": 40,
+            "workerIntervalsAbove100Ms": 0,
+            "maximumSqlMs": 0.7092
+          },
+          "unchanged": {
+            "count": 60,
+            "workerMedianMs": 25.0,
+            "workerMaximumMs": 232,
+            "workerIntervalsAbove100Ms": 1,
+            "maximumSqlMs": 3.2215
+          },
+          "write": {
+            "count": 60,
+            "workerMedianMs": 28.0,
+            "workerMaximumMs": 378,
+            "workerIntervalsAbove100Ms": 2,
+            "maximumSqlMs": 2.1933
+          }
+        },
+        "SUBJECT_B": {
+          "concurrent_read": {
+            "count": 60,
+            "workerMedianMs": 19.5,
+            "workerMaximumMs": 834,
+            "workerIntervalsAbove100Ms": 4,
+            "maximumSqlMs": 0.3081
+          },
+          "read": {
+            "count": 60,
+            "workerMedianMs": 19.5,
+            "workerMaximumMs": 47,
+            "workerIntervalsAbove100Ms": 0,
+            "maximumSqlMs": 1.9388
+          },
+          "unchanged": {
+            "count": 60,
+            "workerMedianMs": 25.0,
+            "workerMaximumMs": 232,
+            "workerIntervalsAbove100Ms": 1,
+            "maximumSqlMs": 2.1487
+          },
+          "write": {
+            "count": 60,
+            "workerMedianMs": 28.0,
+            "workerMaximumMs": 888,
+            "workerIntervalsAbove100Ms": 4,
+            "maximumSqlMs": 2.1199
+          }
+        }
+      },
+      "slowIntervals": [
+        {
+          "id": "SUBJECT_B:12:write",
+          "round": 12,
+          "operation": "write",
+          "workerIntervalMs": 233,
+          "clientReceiptIntervalMs": 162.22179200000028,
+          "sqlMs": 0.2856,
+          "workerStartAtMs": 1792604958877,
+          "workerFinishAtMs": 1792604959110,
+          "pendingHeartbeatCount": 10,
+          "pendingHeartbeatClientSpanMs": 151.3770000000004,
+          "pairedDatabase": "CONTROL_A",
+          "pairedWorkerIntervalMs": 25
+        },
+        {
+          "id": "SUBJECT_B:12:concurrent_read",
+          "round": 12,
+          "operation": "concurrent_read",
+          "workerIntervalMs": 181,
+          "clientReceiptIntervalMs": 165.92324999999983,
+          "sqlMs": 0.115,
+          "workerStartAtMs": 1792604958929,
+          "workerFinishAtMs": 1792604959110,
+          "pendingHeartbeatCount": 8,
+          "pendingHeartbeatClientSpanMs": 151.28762500000084,
+          "pairedDatabase": "CONTROL_A",
+          "pairedWorkerIntervalMs": 15
+        },
+        {
+          "id": "SUBJECT_B:26:write",
+          "round": 26,
+          "operation": "write",
+          "workerIntervalMs": 159,
+          "clientReceiptIntervalMs": 130.17749999999978,
+          "sqlMs": 0.4162,
+          "workerStartAtMs": 1792604964232,
+          "workerFinishAtMs": 1792604964391,
+          "pendingHeartbeatCount": 6,
+          "pendingHeartbeatClientSpanMs": 106.77487499999916,
+          "pairedDatabase": "CONTROL_A",
+          "pairedWorkerIntervalMs": 41
+        },
+        {
+          "id": "SUBJECT_B:26:concurrent_read",
+          "round": 26,
+          "operation": "concurrent_read",
+          "workerIntervalMs": 113,
+          "clientReceiptIntervalMs": 120.82895800000006,
+          "sqlMs": 0.1625,
+          "workerStartAtMs": 1792604964283,
+          "workerFinishAtMs": 1792604964396,
+          "pendingHeartbeatCount": 4,
+          "pendingHeartbeatClientSpanMs": 59.95387499999924,
+          "pairedDatabase": "CONTROL_A",
+          "pairedWorkerIntervalMs": 21
+        },
+        {
+          "id": "SUBJECT_B:31:unchanged",
+          "round": 31,
+          "operation": "unchanged",
+          "workerIntervalMs": 232,
+          "clientReceiptIntervalMs": 0.2255829999994603,
+          "sqlMs": 0.305,
+          "workerStartAtMs": 1792604966343,
+          "workerFinishAtMs": 1792604966575,
+          "pendingHeartbeatCount": 9,
+          "pendingHeartbeatClientSpanMs": 0.1617499999993015,
+          "pairedDatabase": "CONTROL_A",
+          "pairedWorkerIntervalMs": 232
+        },
+        {
+          "id": "CONTROL_A:31:unchanged",
+          "round": 31,
+          "operation": "unchanged",
+          "workerIntervalMs": 232,
+          "clientReceiptIntervalMs": 0.3265000000010332,
+          "sqlMs": 0.4495,
+          "workerStartAtMs": 1792604966343,
+          "workerFinishAtMs": 1792604966575,
+          "pendingHeartbeatCount": 9,
+          "pendingHeartbeatClientSpanMs": 0.1617499999993015,
+          "pairedDatabase": "SUBJECT_B",
+          "pairedWorkerIntervalMs": 232
+        },
+        {
+          "id": "CONTROL_A:34:concurrent_read",
+          "round": 34,
+          "operation": "concurrent_read",
+          "workerIntervalMs": 194,
+          "clientReceiptIntervalMs": 187.02591699999903,
+          "sqlMs": 0.1499,
+          "workerStartAtMs": 1792604967682,
+          "workerFinishAtMs": 1792604967876,
+          "pendingHeartbeatCount": 7,
+          "pendingHeartbeatClientSpanMs": 161.29054200000064,
+          "pairedDatabase": "SUBJECT_B",
+          "pairedWorkerIntervalMs": 21
+        },
+        {
+          "id": "CONTROL_A:34:write",
+          "round": 34,
+          "operation": "write",
+          "workerIntervalMs": 246,
+          "clientReceiptIntervalMs": 199.33499999999913,
+          "sqlMs": 0.46070000000000005,
+          "workerStartAtMs": 1792604967632,
+          "workerFinishAtMs": 1792604967878,
+          "pendingHeartbeatCount": 9,
+          "pendingHeartbeatClientSpanMs": 199.21399999999994,
+          "pairedDatabase": "SUBJECT_B",
+          "pairedWorkerIntervalMs": 20
+        },
+        {
+          "id": "SUBJECT_B:37:concurrent_read",
+          "round": 37,
+          "operation": "concurrent_read",
+          "workerIntervalMs": 485,
+          "clientReceiptIntervalMs": 456.7008339999993,
+          "sqlMs": 0.1386,
+          "workerStartAtMs": 1792604969014,
+          "workerFinishAtMs": 1792604969499,
+          "pendingHeartbeatCount": 19,
+          "pendingHeartbeatClientSpanMs": 424.6320419999993,
+          "pairedDatabase": "CONTROL_A",
+          "pairedWorkerIntervalMs": 23
+        },
+        {
+          "id": "SUBJECT_B:37:write",
+          "round": 37,
+          "operation": "write",
+          "workerIntervalMs": 539,
+          "clientReceiptIntervalMs": 514.672208,
+          "sqlMs": 0.3987,
+          "workerStartAtMs": 1792604968960,
+          "workerFinishAtMs": 1792604969499,
+          "pendingHeartbeatCount": 21,
+          "pendingHeartbeatClientSpanMs": 477.9307919999992,
+          "pairedDatabase": "CONTROL_A",
+          "pairedWorkerIntervalMs": 36
+        },
+        {
+          "id": "SUBJECT_B:49:concurrent_read",
+          "round": 49,
+          "operation": "concurrent_read",
+          "workerIntervalMs": 834,
+          "clientReceiptIntervalMs": 709.3089999999975,
+          "sqlMs": 0.1225,
+          "workerStartAtMs": 1792604974088,
+          "workerFinishAtMs": 1792604974922,
+          "pendingHeartbeatCount": 33,
+          "pendingHeartbeatClientSpanMs": 674.2548339999994,
+          "pairedDatabase": "CONTROL_A",
+          "pairedWorkerIntervalMs": 25
+        },
+        {
+          "id": "SUBJECT_B:49:write",
+          "round": 49,
+          "operation": "write",
+          "workerIntervalMs": 888,
+          "clientReceiptIntervalMs": 838.2025419999991,
+          "sqlMs": 0.2888,
+          "workerStartAtMs": 1792604974034,
+          "workerFinishAtMs": 1792604974922,
+          "pendingHeartbeatCount": 35,
+          "pendingHeartbeatClientSpanMs": 782.8706669999992,
+          "pairedDatabase": "CONTROL_A",
+          "pairedWorkerIntervalMs": 21
+        },
+        {
+          "id": "CONTROL_A:57:write",
+          "round": 57,
+          "operation": "write",
+          "workerIntervalMs": 378,
+          "clientReceiptIntervalMs": 358.6335829999989,
+          "sqlMs": 0.2586,
+          "workerStartAtMs": 1792604977704,
+          "workerFinishAtMs": 1792604978082,
+          "pendingHeartbeatCount": 16,
+          "pendingHeartbeatClientSpanMs": 338.41149999999834,
+          "pairedDatabase": "SUBJECT_B",
+          "pairedWorkerIntervalMs": 30
+        },
+        {
+          "id": "CONTROL_A:57:concurrent_read",
+          "round": 57,
+          "operation": "concurrent_read",
+          "workerIntervalMs": 341,
+          "clientReceiptIntervalMs": 420.903459000001,
+          "sqlMs": 0.1405,
+          "workerStartAtMs": 1792604977754,
+          "workerFinishAtMs": 1792604978095,
+          "pendingHeartbeatCount": 14,
+          "pendingHeartbeatClientSpanMs": 209.98233400000026,
+          "pairedDatabase": "SUBJECT_B",
+          "pairedWorkerIntervalMs": 20
+        }
+      ],
+      "cleanupConfirmed": true,
+      "sources": {
+        ".artifacts/d1-root-cause-20261022/stream.jsonl": "ec34d443e88c2a6417adaa4915dac384e6e2ef174dba1bd3b94b5c91ba1860cd",
+        ".artifacts/d1-root-cause-20261022/state.json": "abe3ca1cd97f21a2ada2dfee9fd31494f3d43e7c342e5862fbedac1a0113f067",
+        ".artifacts/d1-root-cause-20261022/worker-deployed.mjs": "07885ec0e2fe484d47ae2980c847c251b6977789c2a2e744ee9d31b2ac6dce62",
+        ".artifacts/d1-root-cause-20261022/run.py": "8c6bc541dc8d398ae34a64dea910e8e7983048f41820fd29175cf88ff9551234",
+        ".artifacts/d1-root-cause-20261022/local-proof.json": "ce72b8a3d7337b2ed8149c1b8c3fb15ce2a1955701cb0d64f62444d57157299f",
+        ".artifacts/d1-root-cause-20261022/original-schema-hashes.json": "de32ca158993e751cf5e53c2c4bf925e8c0dd4944b4af0d9082d003d02d45947"
+      }
+    },
+    "prospectivePhaseTest": {
+      "artifactDirectory": ".artifacts/d1-root-phase-confirm-20261022",
+      "diagnosticWorker": "seams-d1-root-probe-57a8ffc4",
+      "diagnosticWorkerVersion": [
+        {
+          "version_id": "2b0c753f-4f43-4002-844e-be87287060f3",
+          "percentage": 100
+        }
+      ],
+      "completedCalls": 80,
+      "statementAttempts": [
+        1
+      ],
+      "databasePrimaryColos": [
+        "SIN"
+      ],
+      "groups": {
+        "CONTROL_A": {
+          "concurrent_read": {
+            "count": 20,
+            "workerMedianMs": 11.5,
+            "workerMaximumMs": 704,
+            "workerIntervalsAbove100Ms": 2,
+            "maximumSqlMs": 0.292
+          },
+          "write": {
+            "count": 20,
+            "workerMedianMs": 22.0,
+            "workerMaximumMs": 754,
+            "workerIntervalsAbove100Ms": 2,
+            "maximumSqlMs": 0.8220000000000001
+          }
+        },
+        "SUBJECT_B": {
+          "concurrent_read": {
+            "count": 20,
+            "workerMedianMs": 11.0,
+            "workerMaximumMs": 27,
+            "workerIntervalsAbove100Ms": 0,
+            "maximumSqlMs": 0.2047
+          },
+          "write": {
+            "count": 20,
+            "workerMedianMs": 18.0,
+            "workerMaximumMs": 26,
+            "workerIntervalsAbove100Ms": 0,
+            "maximumSqlMs": 2.8056
+          }
+        }
+      },
+      "slowIntervals": [
+        {
+          "id": "CONTROL_A:14:write",
+          "round": 14,
+          "operation": "write",
+          "workerIntervalMs": 754,
+          "clientReceiptIntervalMs": 758.4288329999981,
+          "sqlMs": 0.45380000000000004,
+          "workerStartAtMs": 1792605186500,
+          "workerFinishAtMs": 1792605187254,
+          "pendingHeartbeatCount": 30,
+          "pendingHeartbeatClientSpanMs": 725.4568330000038,
+          "pairedDatabase": "SUBJECT_B",
+          "pairedWorkerIntervalMs": 18
+        },
+        {
+          "id": "CONTROL_A:14:concurrent_read",
+          "round": 14,
+          "operation": "concurrent_read",
+          "workerIntervalMs": 704,
+          "clientReceiptIntervalMs": 706.010666999995,
+          "sqlMs": 0.1957,
+          "workerStartAtMs": 1792605186550,
+          "workerFinishAtMs": 1792605187254,
+          "pendingHeartbeatCount": 28,
+          "pendingHeartbeatClientSpanMs": 595.3001250000016,
+          "pairedDatabase": "SUBJECT_B",
+          "pairedWorkerIntervalMs": 27
+        },
+        {
+          "id": "CONTROL_A:16:concurrent_read",
+          "round": 16,
+          "operation": "concurrent_read",
+          "workerIntervalMs": 342,
+          "clientReceiptIntervalMs": 343.9381659999999,
+          "sqlMs": 0.203,
+          "workerStartAtMs": 1792605191550,
+          "workerFinishAtMs": 1792605191892,
+          "pendingHeartbeatCount": 14,
+          "pendingHeartbeatClientSpanMs": 320.8786669999972,
+          "pairedDatabase": "SUBJECT_B",
+          "pairedWorkerIntervalMs": 11
+        },
+        {
+          "id": "CONTROL_A:16:write",
+          "round": 16,
+          "operation": "write",
+          "workerIntervalMs": 392,
+          "clientReceiptIntervalMs": 398.5902500000011,
+          "sqlMs": 0.6127,
+          "workerStartAtMs": 1792605191500,
+          "workerFinishAtMs": 1792605191892,
+          "pendingHeartbeatCount": 16,
+          "pendingHeartbeatClientSpanMs": 381.24195899999904,
+          "pairedDatabase": "SUBJECT_B",
+          "pairedWorkerIntervalMs": 14
+        }
+      ],
+      "cleanupConfirmed": true,
+      "sources": {
+        ".artifacts/d1-root-phase-confirm-20261022/stream.jsonl": "ed1be5d26ddad6b8233ce53822f78ae01c7877335dbe1396032aeff1a0b0d5f6",
+        ".artifacts/d1-root-phase-confirm-20261022/state.json": "cda6145d39363e57e44a17a3b9c629966a6c2a6bb53cfb810e0cd15168f91f1e",
+        ".artifacts/d1-root-phase-confirm-20261022/worker-deployed.mjs": "d8a6b8ff3d5be3251c4a68eef3249c900b6010e0d8a29362cbed25a94244d4ec",
+        ".artifacts/d1-root-phase-confirm-20261022/run.py": "f1b30990f7984fc80d44530d34ac7c76d0981ac72a8f40b5cf731ea4115e72e1",
+        ".artifacts/d1-root-phase-confirm-20261022/local-proof.json": "9563eaecc439cadf25de9c432d0edaf499c5ddb1614000babd8b8c00b52e8996",
+        ".artifacts/d1-root-phase-confirm-20261022/original-schema-hashes.json": "de32ca158993e751cf5e53c2c4bf925e8c0dd4944b4af0d9082d003d02d45947"
+      }
+    }
+  },
+  "freshDatabaseComparison": {
+    "result": "Not measured. The first run found a SIN primary but its Worker request returned HTTP 404 before any measurement. The remaining four placement attempts found no SIN primary. Eight databases were created and deleted. The evidence neither supports nor rejects a data-preserving migration.",
+    "attempts": [
+      {
+        "artifactDirectory": ".artifacts/d1-root-fresh-20261022",
+        "createdDatabases": 4,
+        "deletedDatabases": 4,
+        "matchedPrimaryFound": true,
+        "primaryColos": [
+          "HKG",
+          "NRT",
+          "KIX",
+          "SIN"
+        ],
+        "cleanupConfirmed": true
+      },
+      {
+        "artifactDirectory": ".artifacts/d1-root-fresh-confirm-20261022",
+        "createdDatabases": 4,
+        "deletedDatabases": 4,
+        "matchedPrimaryFound": false,
+        "primaryColos": [
+          "HKG",
+          "NRT",
+          "NRT",
+          "HKG"
+        ],
+        "cleanupConfirmed": true
+      }
+    ]
+  },
+  "facts": [
+    {
+      "id": "F1",
+      "fact": "Initial SUBJECT_B:49:write records 888 ms with 0.2888 ms SQL. The client receipt interval is 838.203 ms. Thirty-five pending heartbeats arrive across 782.871 client ms. Its same-round A write records 21 ms."
+    },
+    {
+      "id": "F2",
+      "fact": "The delayed independent first-primary B read in that round records 834 ms and returns at the same Worker timestamp as the write."
+    },
+    {
+      "id": "F3",
+      "fact": "Prospective CONTROL_A:14:write records 754 ms with 0.4538 ms SQL. Its client receipt interval is 758.429 ms, with pending heartbeats across 725.457 ms. The same-time B write records 18 ms."
+    },
+    {
+      "id": "F4",
+      "fact": "Every statement in both completed experiments reports one attempt and a Singapore primary."
+    },
+    {
+      "id": "F5",
+      "fact": "All ten prospectively targeted B writes at 4000 ms modulo 5000 complete in 15\u201324 Worker ms. Opposite-phase B writes complete in 14\u201326 ms."
+    },
+    {
+      "id": "F6",
+      "fact": "The probe Worker has only D1 bindings. It contains no Wallet WASM or Durable Object binding and executes only task-owned diagnostic rows."
+    }
+  ],
+  "measured": [
+    "Both production role databases show selective write waits while the other database responds quickly.",
+    "Delayed same-database reads remain pending with the affected write.",
+    "Client receipts of pending heartbeats confirm real elapsed time for the strongest waits.",
+    "SQL execution remains below one millisecond for the strongest isolated write events."
+  ],
+  "inferred": [
+    "A selective delay in the D1 access path explains the standalone reproduction and the earlier wallet admission delay class.",
+    "The association with value-changing writes and same-database reads is consistent with a storage completion or visibility barrier. It does not uniquely identify durable acknowledgement."
+  ],
+  "unknown": [
+    {
+      "question": "Which D1 internal component causes the wait?",
+      "settlingMeasurement": "Provider-side correlation of the affected request with dispatch, queue, commit, acknowledgement and reply timings.",
+      "owner": "Cloudflare. Customer-visible metadata does not expose these boundaries."
+    },
+    {
+      "question": "Would database replacement fix the fault?",
+      "settlingMeasurement": "A successful concurrent same-SIN fresh-database comparison while the existing database reproduces stalls, followed by a full-data candidate comparison.",
+      "owner": "Repository operator. The bounded attempt here produced no comparison data."
+    },
+    {
+      "question": "Does a periodic process explain these waits?",
+      "settlingMeasurement": "A new prospectively defined prediction with a measured stable database host or instance identity.",
+      "owner": "Cloudflare can expose the identity. The fixed-phase customer prediction failed."
+    }
+  ],
+  "causeTable": [
+    {
+      "cause": "Slow SQL or missing index",
+      "status": "Contradicted for the isolated slow calls",
+      "evidence": "F1, F3: less than one millisecond of reported SQL and one-row operations."
+    },
+    {
+      "cause": "Reported automatic retries",
+      "status": "Contradicted for the observed calls",
+      "evidence": "F4: every statement reports one attempt."
+    },
+    {
+      "cause": "Wallet Rust/WASM or wallet-owned storage",
+      "status": "Contradicted as a necessary cause of the reproduction",
+      "evidence": "F6."
+    },
+    {
+      "cause": "The entire caller event loop stops",
+      "status": "Contradicted for the strongest selective events",
+      "evidence": "F1, F3: other-database replies and heartbeats reach the client during the wait."
+    },
+    {
+      "cause": "A permanent defect specific to database B",
+      "status": "Unsupported",
+      "evidence": "F3 reproduces the same delay class on A."
+    },
+    {
+      "cause": "A stable B five-second phase across runs",
+      "status": "Contradicted by the prospective test",
+      "evidence": "F5."
+    },
+    {
+      "cause": "Selective D1 dispatch, queue, storage acknowledgement, transport or binding callback delay",
+      "status": "Fits. The inspected instruments cannot separate these components.",
+      "evidence": "F1\u2013F4, F6."
+    },
+    {
+      "cause": "Streaming or clock artifact alone",
+      "status": "Contradicted for the strongest long events; remains relevant to exact timing and the shared unchanged-update burst",
+      "evidence": "F1, F3 include live client heartbeat receipts across hundreds of milliseconds."
+    }
+  ],
+  "reproductionParity": "The probe reproduces the long D1 wait class on the actual role databases. Full wallet-workload parity and equivalence of the hidden internal cause remain unproved.",
+  "fixDecision": "Preserve custody admission and durability checks. No measured application-code change or database migration is justified as a proven repair. Internal attribution needs Cloudflare correlation; a database replacement remains a testable candidate rather than an established fix.",
+  "phasePrediction": {
+    "periodMs": 5000,
+    "predictedBPausePhaseMs": 4000,
+    "oppositePhaseMs": 1500,
+    "samplesPerPhasePerDatabase": 10,
+    "workerIntervalsMs": {
+      "CONTROL_A": {
+        "oppositePhase": [
+          22,
+          17,
+          26,
+          17,
+          26,
+          22,
+          36,
+          754,
+          392,
+          14
+        ],
+        "predictedPause": [
+          25,
+          16,
+          15,
+          14,
+          16,
+          23,
+          30,
+          23,
+          14,
+          20
+        ]
+      },
+      "SUBJECT_B": {
+        "oppositePhase": [
+          23,
+          18,
+          22,
+          15,
+          26,
+          17,
+          15,
+          18,
+          14,
+          14
+        ],
+        "predictedPause": [
+          19,
+          20,
+          16,
+          19,
+          18,
+          18,
+          24,
+          20,
+          15,
+          20
+        ]
+      }
+    },
+    "result": "The predicted B pause did not occur in any of ten targeted writes. A stable B five-second phase across runs is unsupported. No host movement was measured to explain this failed prediction."
+  },
+  "instrumentLimits": [
+    "Worker clocks are platform clocks. Heartbeats refresh them but are not independent physical clocks.",
+    "Client receipt intervals include streaming and network buffering. They are not exact D1 service durations. Multiple heartbeats can arrive together.",
+    "Continuous client receipt of heartbeats while one database call remains pending, alongside a fast other-database response, excludes a stop of the entire caller event loop for that interval.",
+    "The shared 232 ms unchanged-update observation in the initial run arrived as a compressed burst. It does not independently establish a physical 232 ms D1 wait.",
+    "D1 metadata exposes SQL time and attempt counts. It does not divide dispatch, service queueing, durable acknowledgement, transport or selective binding callback scheduling.",
+    "Worker placement was configured for Singapore. Native Worker execution location was not verified because the telemetry endpoint returned HTTP 403. Every database statement reported a Singapore primary.",
+    "This one-row workload reproduces the delay class outside the Wallet runtime. It does not reproduce the full wallet lifecycle or establish production percentile rates.",
+    "Only short bounded samples were collected. Absence of a pause during a sample does not prove a permanent repair."
+  ],
+  "earlierEvidence": [
+    "docs/evidence/respond-0156-d1-parameter-write-probe-20261021.json",
+    "docs/evidence/respond-0156-production-d1-gates-20261021.json",
+    "docs/evidence/respond-0156-native-d1-traces-20261021.json"
+  ],
+  "failedExperiments": [
+    {
+      "directory": ".artifacts/d1-root-phase-20261022",
+      "result": "HTTP 500 before measurement; diagnostic resources removed."
+    },
+    {
+      "directory": ".artifacts/d1-root-fresh-20261022",
+      "result": "HTTP 404 before measurement; diagnostic resources removed, including four created databases."
+    }
+  ],
+  "safety": {
+    "walletRowsMutated": false,
+    "applicationWorkersDeployed": false,
+    "taskWorkersRemoved": true,
+    "taskTablesRemoved": true,
+    "taskDatabasesRemoved": true,
+    "providerSupportContacted": false,
+    "initialAndPhaseApplicationVersionsUnchanged": true
+  },
+  "definitions": {
+    "sqlDuration": "https://developers.cloudflare.com/d1/worker-api/return-object/",
+    "durableWriteConfirmation": "https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/"
+  },
+  "reproduceAnalysis": "python3 .artifacts/d1-root-cause-20261022/analyze.py"
+}

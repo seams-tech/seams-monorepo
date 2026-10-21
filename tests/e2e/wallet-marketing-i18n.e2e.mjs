@@ -30,7 +30,7 @@ async function selectLanguage(page, currentLabel, optionLabel) {
 
 async function checkJapanesePage(page, viewport) {
   await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('パスキーで開くウォレット');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('所有できるウォレット。');
   await expect(
     page.getByRole('status').filter({ hasText: 'ライブデモを一時的にご利用いただけません。' }),
   ).toBeVisible();
@@ -112,20 +112,16 @@ try {
   try {
     await page.goto(`${origin}/?campaign=language-test#wallet-security`);
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      'Wallets that open with a passkey',
-    );
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
     await selectLanguage(page, 'Language', '日本語');
     await expect(page).toHaveURL(`${origin}/ja/?campaign=language-test#wallet-security`);
     await checkJapanesePage(page, 'desktop');
     await page.reload();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('パスキーで開くウォレット');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('所有できるウォレット。');
     await checkPreviews(page);
     await selectLanguage(page, '言語', 'English');
     await expect(page).toHaveURL(`${origin}/?campaign=language-test#wallet-security`);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      'Wallets that open with a passkey',
-    );
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
     await page.goBack();
     await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
     await page.goForward();

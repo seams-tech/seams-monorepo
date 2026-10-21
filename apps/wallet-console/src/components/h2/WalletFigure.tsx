@@ -86,7 +86,7 @@ const figures = {
     document: figureDocument(devices, 200, 160, [[200, 160, 0]]),
   },
   infrastructure: {
-    title: t('selfHostable'),
+    title: t('noLockIn'),
     document: figureDocument(infrastructure, 205, 157, infrastructurePlay),
   },
   signing: {

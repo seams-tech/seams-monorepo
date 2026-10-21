@@ -64,11 +64,11 @@ export function H2DemoHero({
               href={startProps.href}
               onClick={startProps.onClick}
             >
-              {t('startBuilding')}
+              {t('startFree')}
               <ArrowRightAnim size={12} />
             </a>
             <a className="h2-btn h2-btn--outline" href={authProps.href} onClick={authProps.onClick}>
-              {t('howAuthWorks')}
+              {t('readDocs')}
               <ArrowRightAnim size={12} />
             </a>
           </div>
@@ -232,7 +232,7 @@ const walletCapabilities: readonly WalletCapability[] = [
   {
     figure: 'keychain',
     label: t('keysControl'),
-    title: t('nonCustodial'),
+    title: t('nobodySignsAlone'),
     copy: t('splitKeysDescription'),
     icon: KeyRound,
     field: 'teal-peach',
@@ -250,7 +250,7 @@ const walletCapabilities: readonly WalletCapability[] = [
   {
     figure: 'devices',
     label: t('linkedDevices'),
-    title: t('multipleDevices'),
+    title: t('walletsNotLost'),
     copy: t('devicesDescription'),
     icon: MonitorSmartphone,
     field: 'aqua-evergreen',
@@ -258,8 +258,8 @@ const walletCapabilities: readonly WalletCapability[] = [
   },
   {
     figure: 'infrastructure',
-    label: t('selfHostable'),
-    title: t('selfHosted'),
+    label: t('noLockIn'),
+    title: t('ownAccounts'),
     copy: t('hostingDescription'),
     icon: Server,
     field: 'slate-amber',

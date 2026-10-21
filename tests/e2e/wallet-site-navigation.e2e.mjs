@@ -11,9 +11,7 @@ const entries = [];
 
 async function openWallet(page) {
   await page.goto(walletUrl);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Wallets that open with a passkey',
-  );
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
 }
 
 async function checkPricing(page, hash, source) {
@@ -47,9 +45,7 @@ try {
     await page.getByRole('menuitem', { name: 'Compare plans', exact: true }).click();
     await checkPricing(page, '', 'desktop-compare');
     await page.goBack();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      'Wallets that open with a passkey',
-    );
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
     await page.goForward();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(pricingTitle);
 

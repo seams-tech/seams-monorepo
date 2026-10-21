@@ -78,18 +78,6 @@ Documentation, Console, live SDK dialogs, and the SDK account-menu preview remai
 in English. Translate SDK-owned
 surfaces in `seams-wallet` and consume an exact release here.
 
-To check a built marketing preview, run:
-
-```sh
-pnpm -C apps/wallet-console build:marketing
-pnpm -C apps/wallet-console exec vite preview --host 127.0.0.1 --port 4018
-# In another terminal:
-node tests/e2e/wallet-marketing-i18n.e2e.mjs
-```
-
-The E2E scenario writes screenshots, a trace, and `result.json` under
-`output/playwright/wallet-marketing-i18n/`.
-
 ## Dashboard inline modal scrolling
 
 Keep one scroll host active while an inline modal is open. The backdrop owns

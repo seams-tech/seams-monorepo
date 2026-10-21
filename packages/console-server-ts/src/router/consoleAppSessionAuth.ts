@@ -58,7 +58,7 @@ function parseCsvValues(value: unknown): string[] {
     .filter(Boolean);
 }
 
-function normalizeConsoleEmailList(input: unknown): readonly string[] {
+export function normalizeConsoleEmailList(input: unknown): readonly string[] {
   const out: string[] = [];
   const seen = new Set<string>();
   const values = Array.isArray(input) ? input : parseCsvValues(input);

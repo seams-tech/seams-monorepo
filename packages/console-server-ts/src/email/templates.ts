@@ -20,6 +20,7 @@ import type {
   OwnerMembershipChangedEmailV1,
   PrepaidTopUpReceiptEmailV1,
   RenderedConsoleEmail,
+  TeamSignupAlertEmailV1,
 } from './types';
 
 type UnknownRecord = Readonly<Record<string, unknown>>;
@@ -109,6 +110,13 @@ export interface FreePlanNoticeEmailV1Input {
   readonly organizationName: string;
   readonly consoleBaseUrl: string;
   readonly notice: FreePlanNoticeV1;
+}
+
+export interface TeamSignupAlertEmailV1Input {
+  readonly accountEmail: string;
+  readonly accountDisplayName: string;
+  readonly organizationName: string;
+  readonly signedUpAt: string;
 }
 
 export function buildAccountWelcomeEmailV1(
@@ -252,6 +260,19 @@ export function buildFreePlanNoticeEmailV1(
   };
 }
 
+export function buildTeamSignupAlertEmailV1(
+  input: TeamSignupAlertEmailV1Input,
+): TeamSignupAlertEmailV1 {
+  return {
+    family: 'TEAM_SIGNUP_ALERT',
+    version: 1,
+    accountEmail: requiredText(input.accountEmail, 'accountEmail'),
+    accountDisplayName: requiredText(input.accountDisplayName, 'accountDisplayName'),
+    organizationName: requiredText(input.organizationName, 'organizationName'),
+    signedUpAt: isoTimestamp(input.signedUpAt, 'signedUpAt'),
+  };
+}
+
 export function parseConsoleEmailTemplate(raw: unknown): ConsoleEmailTemplateV1 {
   const record = unknownRecord(raw, 'template');
   if (record.version !== 1) {
@@ -277,6 +298,13 @@ export function parseConsoleEmailTemplate(raw: unknown): ConsoleEmailTemplateV1 
         organizationName: requiredRawString(record.organizationName, 'organizationName'),
         consoleBaseUrl: requiredRawString(record.consoleBaseUrl, 'consoleBaseUrl'),
         notice: parseFreePlanNotice(unknownRecord(record.notice, 'notice')),
+      });
+    case 'TEAM_SIGNUP_ALERT':
+      return buildTeamSignupAlertEmailV1({
+        accountEmail: requiredRawString(record.accountEmail, 'accountEmail'),
+        accountDisplayName: requiredRawString(record.accountDisplayName, 'accountDisplayName'),
+        organizationName: requiredRawString(record.organizationName, 'organizationName'),
+        signedUpAt: requiredRawString(record.signedUpAt, 'signedUpAt'),
       });
     default:
       throw new Error('Unsupported console email template family');
@@ -334,6 +362,8 @@ export function renderConsoleEmailV1(
       return renderLowBalanceWarning(template);
     case 'FREE_PLAN_NOTICE':
       return renderFreePlanNotice(template);
+    case 'TEAM_SIGNUP_ALERT':
+      return renderTeamSignupAlert(template);
     default:
       return assertNever(template);
   }
@@ -600,6 +630,19 @@ function renderLowBalanceWarning(template: LowBalanceWarningEmailV1): RenderedCo
       actionLabel: 'Top up balance',
       actionUrl: billingUrl(template.consoleBaseUrl),
     }),
+  };
+}
+
+function renderTeamSignupAlert(template: TeamSignupAlertEmailV1): RenderedConsoleEmail {
+  const subject = `New Console sign-up: ${template.organizationName}`;
+  const paragraphs = [
+    `${template.accountDisplayName} (${template.accountEmail}) created the organization ${template.organizationName}.`,
+    `Signed up at ${template.signedUpAt}.`,
+  ];
+  return {
+    subject,
+    text: paragraphs.join('\n\n'),
+    html: htmlMessage({ heading: subject, paragraphs, actionLabel: null, actionUrl: null }),
   };
 }
 

@@ -1,7 +1,4 @@
-import {
-  freePlanServiceForBilling,
-  type D1FreePlanService,
-} from '../../billing/freePlanD1';
+import { freePlanServiceForBilling, type D1FreePlanService } from '../../billing/freePlanD1';
 import { createD1ConsoleAccountService } from '../../account/d1';
 import { ConsoleAccountError } from '../../account/errors';
 import type { AccountOrganizationDeletionPort, ConsoleAccountService } from '../../account/service';
@@ -26,6 +23,7 @@ import {
   createInMemoryConsoleOnboardingService,
   type ConsoleOnboardingService,
 } from '../../onboarding/service';
+import { createD1ConsoleTeamSignupAlert } from '../../onboarding/signupAlert';
 import { createD1ConsoleOnboardingWelcomeEmail } from '../../onboarding/welcomeEmail';
 import { createD1ConsoleOrgProjectService } from '../../orgProjectEnv/d1';
 import type { ConsoleOrgProjectService } from '../../orgProjectEnv/service';
@@ -53,6 +51,8 @@ export interface CloudflareD1AccountServiceBundleOptions {
     readonly consoleBaseUrl: string;
     readonly docsBaseUrl: string;
   };
+  /** Addresses told about each new Console sign-up; empty or absent sends nothing. */
+  readonly teamSignupAlertRecipients?: readonly string[];
   readonly auditCategories?: readonly ConsoleAuditCategory[];
   readonly auditEvidenceReferenceKinds?: readonly ConsoleAuditEvidenceReferenceKind[];
 }
@@ -205,6 +205,12 @@ export async function createCloudflareD1AccountServiceBundle(
     orgProjectEnv: orgProjects,
     organizationAccess,
     welcomeEmail,
+    teamSignupAlert: createD1ConsoleTeamSignupAlert({
+      database: options.database,
+      namespace,
+      recipients: options.teamSignupAlertRecipients ?? [],
+      now: options.now,
+    }),
     logger: options.logger,
   });
   const account = await createD1ConsoleAccountService({

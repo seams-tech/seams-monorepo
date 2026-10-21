@@ -4,6 +4,7 @@ import type { ConsoleOrgProjectService } from '../orgProjectEnv/service';
 import type { ConsoleOrganizationAccessService } from '../teamRbac/service';
 import { isConsoleOrganizationAccessError } from '../teamRbac/errors';
 import { ConsoleOnboardingError } from './errors';
+import type { ConsoleTeamSignupAlertPort } from './signupAlert';
 import type { ConsoleOnboardingWelcomeEmailPort } from './welcomeEmail';
 import type {
   ConsoleOnboardingState,
@@ -51,6 +52,7 @@ export interface InMemoryConsoleOnboardingServiceOptions {
   orgProjectEnv: ConsoleOrgProjectService;
   organizationAccess: ConsoleOrganizationAccessService;
   welcomeEmail?: ConsoleOnboardingWelcomeEmailPort | null;
+  teamSignupAlert?: ConsoleTeamSignupAlertPort | null;
   logger?: Logger | null;
   telemetry?: {
     windowMinutes?: number;
@@ -369,6 +371,7 @@ class InMemoryConsoleOnboardingService implements ConsoleOnboardingService {
   readonly #orgProjectEnv: ConsoleOrgProjectService;
   readonly #organizationAccess: ConsoleOrganizationAccessService;
   readonly #welcomeEmail: ConsoleOnboardingWelcomeEmailPort | null;
+  readonly #teamSignupAlert: ConsoleTeamSignupAlertPort | null;
   readonly #logger: ReturnType<typeof normalizeLogger>;
   readonly #telemetryWindowMinutes: number;
   readonly #telemetryRetentionMinutes: number;
@@ -380,6 +383,7 @@ class InMemoryConsoleOnboardingService implements ConsoleOnboardingService {
     this.#orgProjectEnv = options.orgProjectEnv;
     this.#organizationAccess = options.organizationAccess;
     this.#welcomeEmail = options.welcomeEmail ?? null;
+    this.#teamSignupAlert = options.teamSignupAlert ?? null;
     this.#logger = normalizeLogger(options.logger);
     this.#telemetryWindowMinutes = coerceIntegerInRange({
       value: options.telemetry?.windowMinutes,
@@ -685,11 +689,33 @@ class InMemoryConsoleOnboardingService implements ConsoleOnboardingService {
   ): Promise<CreateConsoleOnboardingOrganizationResult> {
     const { organization, created } = await this.#upsertOrganizationProfile(ctx, request.org);
     const owner = await this.#ensureOwner(ctx);
+    if (created && this.#teamSignupAlert) await this.#alertTeam(ctx, organization);
     return {
       organization,
       created: { organization: created, owner: owner.created },
       state: (await this.#resolveState(ctx)).state,
     };
+  }
+
+  /** A new account's first organization; an alert failure never fails the sign-up. */
+  async #alertTeam(
+    ctx: ConsoleOnboardingContext,
+    organization: ConsoleOrganization,
+  ): Promise<void> {
+    try {
+      await this.#teamSignupAlert?.enqueue({
+        orgId: ctx.orgId,
+        userId: ctx.actorUserId,
+        accountEmail: ctx.actorEmail,
+        accountDisplayName: ctx.actorDisplayName || ctx.actorEmail,
+        organizationName: organization.name || organization.id,
+      });
+    } catch (error: unknown) {
+      this.#logger.warn('[console-onboarding] team sign-up alert was not queued', {
+        orgId: ctx.orgId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   async #createProject(

@@ -10,7 +10,8 @@ export type ConsoleEmailTemplateFamily =
   | 'PREPAID_TOP_UP_RECEIPT'
   | 'BILLING_REFUND_RESULT'
   | 'LOW_BALANCE_WARNING'
-  | 'FREE_PLAN_NOTICE';
+  | 'FREE_PLAN_NOTICE'
+  | 'TEAM_SIGNUP_ALERT';
 
 export type ConsoleEmailInvitationRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 
@@ -132,6 +133,16 @@ export interface FreePlanNoticeEmailV1 {
   readonly notice: FreePlanNoticeV1;
 }
 
+/** Sent to the platform support addresses, not to the customer. */
+export interface TeamSignupAlertEmailV1 {
+  readonly family: 'TEAM_SIGNUP_ALERT';
+  readonly version: 1;
+  readonly accountEmail: string;
+  readonly accountDisplayName: string;
+  readonly organizationName: string;
+  readonly signedUpAt: string;
+}
+
 export type ConsoleEmailTemplateV1 =
   | AccountWelcomeEmailV1
   | OrganizationInvitationEmailV1
@@ -140,7 +151,8 @@ export type ConsoleEmailTemplateV1 =
   | PrepaidTopUpReceiptEmailV1
   | BillingRefundResultEmailV1
   | LowBalanceWarningEmailV1
-  | FreePlanNoticeEmailV1;
+  | FreePlanNoticeEmailV1
+  | TeamSignupAlertEmailV1;
 
 export type ConsoleEmailNonInvitationTemplateV1 = Exclude<
   ConsoleEmailTemplateV1,

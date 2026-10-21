@@ -27,6 +27,7 @@ export type {
   OwnerMembershipChangedEmailV1,
   PrepaidTopUpReceiptEmailV1,
   RenderedConsoleEmail,
+  TeamSignupAlertEmailV1,
 } from './types';
 
 export type {
@@ -38,6 +39,7 @@ export type {
   OrganizationInvitationEmailV1Input,
   OwnerMembershipChangedEmailV1Input,
   PrepaidTopUpReceiptEmailV1Input,
+  TeamSignupAlertEmailV1Input,
 } from './templates';
 export {
   buildAccountWelcomeEmailV1,
@@ -48,6 +50,7 @@ export {
   buildOrganizationInvitationEmailV1,
   buildOwnerMembershipChangedEmailV1,
   buildPrepaidTopUpReceiptEmailV1,
+  buildTeamSignupAlertEmailV1,
   parseConsoleEmailTemplate,
   renderConsoleEmailV1,
   renderOrganizationInvitationEmailV1,

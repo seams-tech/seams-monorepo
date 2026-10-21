@@ -11,6 +11,7 @@ import {
   findConsoleRouteDefinitionForRequest,
 } from '@seams-internal/console-server/router/consoleRouteDefinitions';
 import type { SessionAdapter } from '@seams-internal/console-server/boundary/session';
+import { normalizeConsoleEmailList } from '@seams-internal/console-server/router/consoleAppSessionAuth';
 import type { ConsoleWebhookService } from '@seams-internal/console-server/webhooks/service';
 import { normalizeLogger } from '@seams-internal/console-server/boundary';
 import { createD1ConsoleObservabilityIngestionService } from '@seams-internal/console-server/observability/d1';
@@ -94,6 +95,8 @@ export async function createD1AccountConsoleComposition(
   const services = await createCloudflareD1AccountServiceBundle({
     ...options,
     externalDeletionGuard: new D1WalletOrganizationDeletion(options.database, options.namespace),
+    // the platform support addresses hear about each new Console sign-up
+    teamSignupAlertRecipients: normalizeConsoleEmailList(options.platformSupportEmails ?? []),
     auditCategories: WALLET_CONSOLE_AUDIT_CATEGORIES,
     auditEvidenceReferenceKinds: WALLET_CONSOLE_AUDIT_EVIDENCE_REFERENCE_KINDS,
   });

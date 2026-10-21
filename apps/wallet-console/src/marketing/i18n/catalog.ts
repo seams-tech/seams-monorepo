@@ -92,14 +92,14 @@ export const catalog = {
   keysControl: { en: 'Keys you control', ja: '自分で管理する鍵' },
   nobodySignsAlone: { en: 'Nobody signs alone', ja: '単独では誰も署名できない' },
   splitKeysDescription: {
-    en: 'Each key is split between the user’s device and the server. One stolen server is not enough to sign.',
-    ja: '鍵はユーザーのデバイスとサーバーに分割されます。サーバーが1台盗まれても署名できません。',
+    en: 'Keys split between user device and server.',
+    ja: 'ユーザーのデバイスとサーバーで鍵を分割。',
   },
   scopedPermissions: { en: 'Scoped permissions', ja: '範囲を限定した権限' },
   permissions: { en: 'Permissions', ja: '権限の管理' },
   permissionsDescription: {
-    en: 'Checks limit what apps and agents can sign.',
-    ja: 'アプリやエージェントが署名できる操作を制限します。',
+    en: 'Limit what apps and agents can sign.',
+    ja: 'アプリやエージェントの署名を制限。',
   },
   linkedDevices: { en: 'Linked devices', ja: 'リンク済みデバイス' },
   walletsNotLost: {
@@ -107,8 +107,8 @@ export const catalog = {
     ja: 'ユーザーが失わないウォレット',
   },
   devicesDescription: {
-    en: 'Link a new phone or laptop with a QR code. Recover with an email code or a recovery code.',
-    ja: 'QRコードで新しいスマートフォンやノートPCをリンク。メールのコードか復元コードで復元できます。',
+    en: 'Link by QR. Recover with email or recovery codes.',
+    ja: 'QRで連携。メールコードか復元コードで復元。',
   },
   noLockIn: { en: 'No lock-in', ja: 'ロックインなし' },
   ownAccounts: {
@@ -116,8 +116,8 @@ export const catalog = {
     ja: 'アカウントは自社のもの。いつでも移行可能。',
   },
   hostingDescription: {
-    en: 'Open source under Apache-2.0, and users can export their keys. Your accounts do not depend on us.',
-    ja: 'Apache-2.0のオープンソースで、ユーザーは鍵をエクスポートできます。アカウントは当社に依存しません。',
+    en: 'Apache-2.0 open source with key export.',
+    ja: 'Apache-2.0で公開。鍵のエクスポートも可能。',
   },
   signingFigure: { en: 'Two shares, one signed transaction', ja: '2つのシェアで、1つの取引に署名' },
   custodyViews: { en: 'Custody views', ja: '資産管理の表示' },

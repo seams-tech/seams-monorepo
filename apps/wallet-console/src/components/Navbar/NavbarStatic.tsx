@@ -147,7 +147,7 @@ const pricingDropdownPane: DropdownPane = {
       to: '/pricing/#starter',
       icon: Sprout,
       meta: 'Included',
-      field: 'glacier-ink',
+      field: 'sky-sand',
     },
     {
       title: 'Growth',

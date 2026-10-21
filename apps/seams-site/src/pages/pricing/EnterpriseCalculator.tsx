@@ -128,7 +128,6 @@ export function EnterpriseCalculator(): React.JSX.Element {
     >
       <div className="h2-shell">
         <div className="h2-split-head">
-          <p className="h2-kicker">Enterprise</p>
           <h2 id="pricing-calculator-title" className="h2-display">
             Estimate your monthly price
           </h2>

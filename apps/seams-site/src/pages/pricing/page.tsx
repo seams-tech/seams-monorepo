@@ -225,7 +225,6 @@ export function PricingPage(): React.JSX.Element {
           >
             <div className="h2-shell pricing-example-layout">
               <div className="pricing-example-head">
-                <p className="h2-kicker">At scale</p>
                 <h2 id="pricing-example-title" className="h2-display">
                   What a month costs as you grow
                 </h2>

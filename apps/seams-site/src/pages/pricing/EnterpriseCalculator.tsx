@@ -72,7 +72,7 @@ export function EnterpriseCalculator(): React.JSX.Element {
   return (
     <section
       id="calculator"
-      className="h2-section h2-rule pricing-calc-section"
+      className="h2-section h2-rule pricing-section pricing-calc-section"
       aria-labelledby="pricing-calculator-title"
     >
       <div className="h2-shell">

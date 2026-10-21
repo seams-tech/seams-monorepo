@@ -5,6 +5,23 @@
   isolation: isolate;
   overflow: hidden;
   background: var(--h2-ink);
+  padding: 6rem 56px 40px;
+}
+
+@media (max-width: 900px) {
+  .h2-hero-simple--sage.pricing-hero > .h2-shell {
+    padding: 76px 28px 40px;
+  }
+}
+
+/* ---------- compact sections ---------- */
+
+.h2-section.pricing-section {
+  padding: 56px 0;
+}
+
+.h2-section.pricing-section .h2-split-head {
+  margin-bottom: 28px;
 }
 
 /* ---------- plan cards: taupe panels, like the frontpage duo ---------- */
@@ -136,16 +153,45 @@
 
 /* ---------- example month ---------- */
 
+/* headline left, table right, so the section stays short */
+.pricing-example-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 28px 58px;
+  align-items: start;
+}
+
+.pricing-example-head .h2-kicker {
+  margin-bottom: 14px;
+}
+
+.pricing-example-head h2 {
+  font-size: clamp(29px, 3.25vw, 41.5px);
+}
+
+.pricing-example-head__copy {
+  margin: 16px 0 0;
+  max-width: 432px;
+  font-size: var(--h2-text-title);
+  line-height: 1.55;
+  color: var(--h2-smoke);
+}
+
+@media (max-width: 900px) {
+  .pricing-example-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .pricing-example {
   width: 100%;
-  max-width: 640px;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
 }
 
 .pricing-example th,
 .pricing-example td {
-  padding: 14px 2px;
+  padding: 11px 2px;
   border-bottom: 1px dashed var(--h2-stone);
   text-align: left;
 }

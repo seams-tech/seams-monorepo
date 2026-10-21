@@ -1,6 +1,6 @@
 import React from 'react';
 import { GrainField } from '@seams-internal/grain-field';
-import { H2Duo, H2Faq, H2Footer } from '@/components/h2/sections';
+import { H2Faq, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { EnterpriseCalculator } from './EnterpriseCalculator';
@@ -149,14 +149,17 @@ export function PricingPage(): React.JSX.Element {
             </div>
           </header>
 
-          <section className="h2-section h2-rule" aria-labelledby="pricing-example-title">
-            <div className="h2-shell">
-              <div className="h2-split-head">
+          <section
+            className="h2-section h2-rule pricing-section"
+            aria-labelledby="pricing-example-title"
+          >
+            <div className="h2-shell pricing-example-layout">
+              <div className="pricing-example-head">
                 <p className="h2-kicker">At scale</p>
                 <h2 id="pricing-example-title" className="h2-display">
                   What a month costs as you grow
                 </h2>
-                <p className="h2-split-head__copy">
+                <p className="pricing-example-head__copy">
                   An app where each user signs 10 times a day. Every user includes 300 signatures a
                   month, so you pay for active users only.
                 </p>
@@ -180,7 +183,10 @@ export function PricingPage(): React.JSX.Element {
             </div>
           </section>
 
-          <section className="h2-section h2-rule" aria-labelledby="pricing-plans-title">
+          <section
+            className="h2-section h2-rule pricing-section"
+            aria-labelledby="pricing-plans-title"
+          >
             <div className="h2-shell">
               <div className="h2-split-head">
                 <p className="h2-kicker">Plans</p>
@@ -209,7 +215,6 @@ export function PricingPage(): React.JSX.Element {
 
           <H2Faq audience="pricing" />
         </main>
-        <H2Duo />
         <H2Footer />
       </div>
     </div>

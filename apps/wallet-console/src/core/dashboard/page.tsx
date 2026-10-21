@@ -24,7 +24,10 @@ import type {
   TopbarMenuKey,
   TopbarOption,
 } from './types';
+import { FreePlanBanners } from './routes/billing/FreePlanBanners';
 import {
+  canDashboardManageBilling,
+  canDashboardViewBilling,
   DashboardConsoleSessionProvider,
   markDashboardConsoleSignOut,
   revokeDashboardConsoleSession,
@@ -1233,6 +1236,15 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
           <p className="dashboard-table-limit" role="alert">
             {contextActionErrorMessage}
           </p>
+        ) : null}
+        {canDashboardViewBilling(consoleSession.claims) &&
+        !onboardingRouteActive &&
+        !activeRoute.startsWith('/dashboard/billing') ? (
+          <FreePlanBanners
+            key={consoleSession.claims?.orgId}
+            variant="dashboard"
+            canManageBilling={canDashboardManageBilling(consoleSession.claims)}
+          />
         ) : null}
 
         <DashboardSelectedContextProvider

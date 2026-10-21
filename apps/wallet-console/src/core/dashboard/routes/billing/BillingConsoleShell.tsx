@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSiteRouter } from '@core/router/useSiteRouter';
+import { FreePlanBanners } from './FreePlanBanners';
 import { canDashboardManageBilling, useDashboardConsoleSession } from '../../consoleSession';
 import { useDashboardSelectedContext } from '../../selectedContext';
 import { BillingAccountView } from './BillingAccountView';
@@ -689,6 +690,11 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
           )
         ) : (
           <>
+            <FreePlanBanners
+              variant="billing"
+              canManageBilling={canDashboardManageBilling(session.claims)}
+              search={search}
+            />
             <p className="dashboard-pagination-note">
               Billing is organization-scoped. All projects and services use the same prepaid
               balance.

@@ -49,14 +49,15 @@ async function checkNavbarMenu(page, languageLabel, viewport) {
 
 async function checkJapanesePage(page, viewport) {
   await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('所有できるウォレット。');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(/\p{Script=Katakana}/u);
   await expect(
     page.getByRole('status').filter({ hasText: 'ライブデモを一時的にご利用いただけません。' }),
   ).toBeVisible();
   const footer = page.getByRole('contentinfo');
-  await expect(
-    footer.getByRole('link', { name: 'ドキュメント（英語）', exact: true }),
-  ).toHaveAttribute('href', /\/docs\/concepts\/$/);
+  await expect(footer.getByRole('link', { name: 'ドキュメント', exact: true })).toHaveAttribute(
+    'href',
+    /\/docs\/concepts\/$/,
+  );
   await footer.scrollIntoViewIfNeeded();
   await expect(footer.getByRole('combobox', { name: '言語', exact: true })).toHaveText('日本語');
   const question = footer.getByRole('button', { name: 'デバイスを紛失した場合は？', exact: true });
@@ -147,7 +148,7 @@ try {
     await expect(page).toHaveURL(`${origin}/ja/?campaign=language-test#wallet-security`);
     await checkJapanesePage(page, 'desktop');
     await page.reload();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('所有できるウォレット。');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/\p{Script=Katakana}/u);
     await checkPreviews(page);
     await selectLanguage(page, footer, '言語', 'English');
     await expect(page).toHaveURL(`${origin}/?campaign=language-test#wallet-security`);

@@ -75,7 +75,7 @@ components. The Vite build emits language-specific HTML metadata and a sitemap.
 Showcase frames receive the language through `?lang=ja`.
 
 Documentation, Console, live SDK dialogs, and the SDK account-menu preview remain
-in English. Japanese labels identify these destinations. Translate SDK-owned
+in English. Translate SDK-owned
 surfaces in `seams-wallet` and consume an exact release here.
 
 To check a built marketing preview, run:

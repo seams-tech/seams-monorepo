@@ -150,12 +150,6 @@ const aboutDropdownPane: DropdownPane = {
       field: 'coral-tide',
     },
   ],
-  highlight: {
-    title: 'Plan a rollout',
-    description: 'Talk through marketplaces and merchant fleets',
-    to: '/contact/',
-    field: 'mauve-ember',
-  },
   footerLinks: [{ label: 'Contact sales', to: '/contact/' }],
 };
 

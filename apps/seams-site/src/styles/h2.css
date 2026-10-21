@@ -4370,9 +4370,9 @@ body:has(.h2-page) {
 
 /* Banner variant (pricing): a rounded panel like the hero, on the teal-peach
    grain field with light ink, the headline left and the actions right. */
-/* its own ruled section, with the same spacing as the compact sections */
+/* its own ruled section; the banner sits 0.5rem inside the rules and column edges */
 .h2-cta.h2-cta--banner {
-  padding: 56px 0;
+  padding: 0.5rem;
 }
 
 .h2-cta__banner {

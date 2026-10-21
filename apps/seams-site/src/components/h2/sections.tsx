@@ -990,79 +990,6 @@ export function H2Cases(): React.JSX.Element {
   );
 }
 
-/* ---------- reasons (the front page's three selling points) ---------- */
-
-type Reason = {
-  title: string;
-  coverLabel: string;
-  field: GrainFieldName;
-  copy: string;
-  link?: { label: string; to: string };
-};
-
-const reasons: readonly Reason[] = [
-  {
-    title: 'Start at $0. Pay as you grow.',
-    coverLabel: '$0 to start',
-    field: 'sky-sand',
-    copy: 'Your first 300 users are free. Growth costs $99 a month for 5,000 users, then $0.004 for each extra user. An app with 100,000 users pays $479 a month.',
-    link: { label: 'See pricing', to: '/pricing/' },
-  },
-  {
-    title: 'Own your accounts. Leave any time.',
-    coverLabel: 'Open source',
-    field: 'teal-peach',
-    copy: 'The wallet SDK and signer runtimes are open source under Apache-2.0, and users can export their keys. Your accounts do not depend on our company. Seams runs on Cloudflare Workers, and our runtime build runs on Google Cloud and AWS VMs. Self-serve deployment tooling is coming soon.',
-  },
-  {
-    title: 'Wallets your users do not lose.',
-    coverLabel: 'No seed phrases',
-    field: 'azure-coral',
-    copy: 'Users sign in with a passkey and link a new phone or laptop with a QR code. If they lose a device, they recover with an email code or a recovery code.',
-  },
-];
-
-export function H2Reasons(): React.JSX.Element {
-  const { linkProps } = useSiteRouter();
-
-  return (
-    <section className="h2-section h2-rule" aria-labelledby="h2-reasons-title">
-      <div className="h2-shell">
-        <div className="h2-split-head">
-          <p className="h2-kicker">Why Seams</p>
-          <h2 id="h2-reasons-title" className="h2-display">
-            Grow on our cloud. Keep your users either way.
-          </h2>
-          <p className="h2-split-head__copy">
-            Seams costs nothing until your app has users, and nothing locks you in after it does.
-          </p>
-        </div>
-        <div className="h2-cases">
-          {reasons.map((reason) => {
-            const props = reason.link ? linkProps(reason.link.to) : null;
-            return (
-              <div className="h2-case" key={reason.title}>
-                <div className="h2-case__cover h2-case__cover--grain" aria-hidden>
-                  <GrainField field={reason.field} />
-                  <span>{reason.coverLabel}</span>
-                </div>
-                <h3 className="h2-case__title">{reason.title}</h3>
-                <p className="h2-case__copy">{reason.copy}</p>
-                {reason.link && props ? (
-                  <a className="h2-fork h2-case__link" href={props.href} onClick={props.onClick}>
-                    {reason.link.label}
-                    <ArrowRightAnim size={12} />
-                  </a>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ---------- security ---------- */
 
 function LineArt({ children }: { children: React.ReactNode }): React.JSX.Element {
@@ -1105,28 +1032,27 @@ export function H2Security(): React.JSX.Element {
         <div className="h2-security">
           <div>
             <h2 id="h2-security-title" className="h2-display h2-security__title">
-              Nobody signs alone
+              Custody and control, engineered in
             </h2>
             <div className="h2-security__item">
-              <h3>Two shares, one signature</h3>
+              <h3>Non-custodial by design</h3>
               <p>
-                Each wallet key is split into two shares. One stays on the user&rsquo;s device. The
-                other stays on the server. A signature needs both, so one stolen server is not
-                enough.
+                Signing authority is split between the user&rsquo;s device and your infrastructure.
+                Neither can sign alone. Exporting keys requires fresh authorization.
               </p>
             </div>
             <div className="h2-security__item">
-              <h3>Not us, not you</h3>
+              <h3>Policy checks before execution</h3>
               <p>
-                Seams cannot move your users&rsquo; funds, and your server cannot either. Exporting
-                a key always needs the user&rsquo;s fresh approval.
+                Approvals, budgets, revocation, and replay checks run before transactions are
+                signed, payments are sent, or API calls are made.
               </p>
             </div>
             <div className="h2-security__item">
-              <h3>Open source</h3>
+              <h3>An audit trail for decisions</h3>
               <p>
-                The wallet SDK and signer runtimes are public under Apache-2.0. Read every line that
-                touches a key.
+                Review which actions were allowed, held, or blocked, with identity and policy
+                context recorded in the audit log.
               </p>
             </div>
           </div>
@@ -1643,28 +1569,20 @@ type H2FaqProps = {
 const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
   home: [
     {
-      q: 'Is Seams custodial?',
-      a: 'No. Each wallet key is split between the user’s device and the server. Neither Seams nor your server can sign without the user’s device.',
+      q: 'What is Seams?',
+      a: 'Seams is key and credential infrastructure for ecommerce: one SDK for authentication, non-custodial wallets, a credentials and permissions layer, and delegated access for staff and AI agents.',
     },
     {
-      q: 'What happens if Seams shuts down?',
-      a: 'Your users can always export their keys. The wallet SDK and signer runtimes are open source under Apache-2.0, so your accounts do not depend on our company.',
+      q: 'What can AI agents do with Seams?',
+      a: 'Agents get their own identity and scoped credentials. They can act on commerce events: follow-ups, refunds, listing updates, but only inside the merchant’s policy. Risky actions route to a human approval gate with passkey or biometric confirmation.',
     },
     {
-      q: 'Can I self-host Seams?',
-      a: 'Yes, with our help. The code is open source. Seams runs on Cloudflare Workers, and our runtime build runs on Google Cloud and AWS virtual machines. Self-serve tooling to deploy Seams to your own cloud account is still coming. Contact us for early access.',
+      q: 'How do merchants stay in control?',
+      a: 'Policy runs before anything executes: roles, amount limits, thresholds, expiry, and revocation. Every decision is attributed and logged, and delegated credentials can be revoked at any time.',
     },
     {
-      q: 'Which chains do you support?',
-      a: 'NEAR, Ethereum, Tempo, and Arc, on mainnet and testnet.',
-    },
-    {
-      q: 'What does “programmable” mean?',
-      a: 'You set rules in code: spending limits, expiry times, scoped keys for staff and agents, and owner approval for risky actions. Seams checks each rule before a signature happens.',
-    },
-    {
-      q: 'How much does it cost?',
-      a: 'Free for up to 300 monthly active users. Growth costs $99 a month with 5,000 users included, then $0.004 for each extra user. Development is always free. See the pricing page for details.',
+      q: 'How do we get started?',
+      a: 'The SDK is self-serve: install it, register an account with a passkey, and apply a policy template. For marketplaces and merchant fleets, contact us and we’ll plan the rollout together.',
     },
   ],
   wallet: [
@@ -1812,18 +1730,18 @@ export function H2Cta(): React.JSX.Element {
     <>
       <div>
         <h2 id="h2-cta-title" className="h2-display h2-cta__title">
-          Ship wallets this week. Keep your users for good.
+          Build with the Seams SDK
         </h2>
         <p className="h2-cta__sub">
-          Passkey wallets with device linking and recovery. Free for up to 300 monthly active users.
+          Passkey sign-in, split-key wallets, and account recovery. Free for up to 300 users.
         </p>
       </div>
       <div className="h2-cta__actions">
         <a className="h2-btn h2-btn--outline" href={docsProps.href} onClick={docsProps.onClick}>
-          Read the docs
+          Explore docs
         </a>
         <a className="h2-btn h2-btn--primary" href={startProps.href} onClick={startProps.onClick}>
-          Start free
+          Start building
         </a>
       </div>
     </>

@@ -517,16 +517,6 @@ body:has(.h2-page) {
   color: rgba(255, 255, 255, 0.9);
 }
 
-.h2-hero-simple--sage .h2-kicker {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.h2-hero-simple__note {
-  margin: 16px 0 0;
-  font-size: var(--h2-text-base);
-  color: rgba(255, 255, 255, 0.8);
-}
-
 @media (max-width: 900px) {
   .h2-hero-simple--sage {
     padding: 64px 0 14px;
@@ -2796,17 +2786,6 @@ body:has(.h2-page) {
   background-position:
     85% 82%,
     center;
-}
-
-/* Live GrainField cover: the canvas fills the card behind its label. */
-.h2-case__cover--grain {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-}
-
-.h2-case__link {
-  margin-top: 14px;
 }
 
 .h2-case__title {

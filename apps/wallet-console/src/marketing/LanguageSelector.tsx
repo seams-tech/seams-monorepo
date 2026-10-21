@@ -23,12 +23,21 @@ function LanguageOption({ language }: { language: Locale }): React.JSX.Element {
   );
 }
 
-export function LanguageSelector(): React.JSX.Element {
+export function LanguageSelector({
+  placement,
+}: {
+  placement: 'navbar' | 'footer';
+}): React.JSX.Element {
   return (
     <Select.Root value={locale} onValueChange={changeLanguage}>
-      <Select.Trigger className="wallet-language__trigger" aria-label={t('language')}>
+      <Select.Trigger
+        className={`wallet-language__trigger wallet-language__trigger--${placement}`}
+        aria-label={t('language')}
+      >
         <Languages size={19} strokeWidth={1.7} aria-hidden />
-        <Select.Value />
+        <span className="wallet-language__name" lang={locale}>
+          <Select.Value />
+        </span>
         <Select.Icon>
           <ChevronDown size={15} aria-hidden />
         </Select.Icon>
@@ -37,8 +46,8 @@ export function LanguageSelector(): React.JSX.Element {
         <Select.Content
           className="wallet-language__menu"
           position="popper"
-          side="top"
-          align="start"
+          side={placement === 'navbar' ? 'bottom' : 'top'}
+          align={placement === 'navbar' ? 'end' : 'start'}
           sideOffset={8}
           collisionPadding={16}
         >

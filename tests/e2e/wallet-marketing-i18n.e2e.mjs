@@ -18,14 +18,33 @@ function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
-async function selectLanguage(page, currentLabel, optionLabel) {
-  const selector = page.getByRole('combobox', { name: currentLabel, exact: true });
+async function selectLanguage(page, scope, currentLabel, optionLabel) {
+  const selector = scope.getByRole('combobox', { name: currentLabel, exact: true });
   await selector.scrollIntoViewIfNeeded();
   await selector.focus();
   await selector.press('Enter');
   const option = page.getByRole('option', { name: optionLabel, exact: true });
   await expect(option).toBeVisible();
   await option.press('Enter');
+}
+
+async function checkNavbarMenu(page, languageLabel, viewport) {
+  await page.evaluate(scrollToTop);
+  const navbar = page.locator('.navbar-static');
+  const selector = navbar.getByRole('combobox', { name: languageLabel, exact: true });
+  await selector.focus();
+  const triggerBox = await selector.boundingBox();
+  await selector.press('Enter');
+  const menu = page.getByRole('listbox');
+  await expect(menu).toBeVisible();
+  const menuBox = await menu.boundingBox();
+  assert.ok(menuBox && triggerBox);
+  assert.ok(menuBox.y >= triggerBox.y + triggerBox.height);
+  assert.ok(menuBox.x >= 0 && menuBox.x + menuBox.width <= page.viewportSize().width);
+  await page.screenshot({ path: `${artifacts}/${viewport}-navbar-language-menu.png` });
+  await page.keyboard.press('Escape');
+  await expect(selector).toBeFocused();
+  assert.equal(await page.evaluate(hasHorizontalOverflow), false);
 }
 
 async function checkJapanesePage(page, viewport) {
@@ -113,13 +132,22 @@ try {
     await page.goto(`${origin}/?campaign=language-test#wallet-security`);
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
-    await selectLanguage(page, 'Language', '日本語');
+    const navbar = page.locator('.navbar-static');
+    const footer = page.getByRole('contentinfo');
+    await checkNavbarMenu(page, 'Language', 'desktop-en');
+    await selectLanguage(page, navbar, 'Language', '日本語');
+    await expect(page).toHaveURL(`${origin}/ja/?campaign=language-test#wallet-security`);
+    await expect(footer.getByRole('combobox', { name: '言語', exact: true })).toHaveText('日本語');
+    await checkNavbarMenu(page, '言語', 'desktop-ja');
+    await selectLanguage(page, navbar, '言語', 'English');
+    await expect(page).toHaveURL(`${origin}/?campaign=language-test#wallet-security`);
+    await selectLanguage(page, footer, 'Language', '日本語');
     await expect(page).toHaveURL(`${origin}/ja/?campaign=language-test#wallet-security`);
     await checkJapanesePage(page, 'desktop');
     await page.reload();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('所有できるウォレット。');
     await checkPreviews(page);
-    await selectLanguage(page, '言語', 'English');
+    await selectLanguage(page, footer, '言語', 'English');
     await expect(page).toHaveURL(`${origin}/?campaign=language-test#wallet-security`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
     await page.goBack();
@@ -129,6 +157,15 @@ try {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${origin}/ja/`);
+    await checkNavbarMenu(page, '言語', 'mobile-ja');
+    await selectLanguage(page, navbar, '言語', 'English');
+    await expect(page).toHaveURL(`${origin}/`);
+    await expect(footer.getByRole('combobox', { name: 'Language', exact: true })).toHaveText(
+      'English',
+    );
+    await checkNavbarMenu(page, 'Language', 'mobile-en');
+    await selectLanguage(page, navbar, 'Language', '日本語');
+    await expect(page).toHaveURL(`${origin}/ja/`);
     await checkJapanesePage(page, 'mobile');
     await page.evaluate(scrollToTop);
     await page.getByRole('button', { name: 'メニューを開く', exact: true }).click();
@@ -170,13 +207,15 @@ try {
           unavailableDemo: true,
           staticMetadata: true,
           sitemap: true,
+          navbarLanguageSwitching: true,
+          navbarMenuPlacement: true,
         },
         null,
         2,
       ),
     );
     console.log(
-      'Passed English/Japanese routes, keyboard switching, history, previews, FAQ, mobile layout, outage, and static metadata.',
+      'Passed navbar/footer language switching, routes, keyboard controls, history, previews, FAQ, mobile layout, outage, and static metadata.',
     );
   } finally {
     await context.tracing.stop({ path: `${artifacts}/trace.zip` });

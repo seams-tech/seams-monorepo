@@ -63,7 +63,7 @@ Check deep links from marketing and Console with the configured `VITE_DOCS_ORIGI
 ## Wallet marketing languages
 
 The Wallet marketing app in `apps/wallet-console` serves English at `/` and
-Japanese at `/ja/`. The URL selects the language. The footer selector preserves
+Japanese at `/ja/`. The URL selects the language. The navbar and footer selectors preserve
 query parameters and section anchors. Local development uses `/wallet` and
 `/wallet/ja/` through Caddy.
 

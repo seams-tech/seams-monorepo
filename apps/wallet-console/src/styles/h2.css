@@ -3414,6 +3414,56 @@ body:has(.h2-page) {
   border-radius: 4px;
 }
 
+.wallet-language__trigger--navbar {
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.wallet-language__trigger--navbar:focus-visible {
+  border-radius: 9999px;
+  outline-offset: 2px;
+}
+
+.wallet-language__trigger--navbar[data-state='open'] {
+  background: var(--h2-taupe);
+}
+
+@media (hover: hover) {
+  .wallet-language__trigger--navbar:hover {
+    background: var(--h2-taupe);
+  }
+}
+
+.navbar-static.is-hidden:has(.wallet-language__trigger[data-state='open']) {
+  transform: none;
+}
+
+@media (max-width: 620px) {
+  .wallet-language__trigger--navbar {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .wallet-language__trigger--navbar .wallet-language__name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .wallet-language__trigger--navbar > span:last-child {
+    display: none;
+  }
+}
+
 .wallet-language__menu {
   z-index: 1000;
   min-width: 160px;

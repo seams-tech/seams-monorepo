@@ -139,6 +139,7 @@ export type SiteNavbarProps = NavbarStaticProps & {
   Wordmark: React.ComponentType<{ className?: string; height?: number }>;
   /** The site's animated arrow component. */
   Arrow: React.ComponentType<{ size?: number }>;
+  languageSelector?: React.ReactNode;
 };
 
 export function SiteNavbar({
@@ -148,6 +149,7 @@ export function SiteNavbar({
   router,
   Wordmark,
   Arrow,
+  languageSelector,
 }: SiteNavbarProps): React.JSX.Element {
   const OPEN_DELAY_MS = 0;
   const CLOSE_DELAY_MS = 120;
@@ -682,6 +684,7 @@ export function SiteNavbar({
 
         <div className="navbar-static__right">
           <div className="navbar-static__actions">
+            {languageSelector}
             <a
               className="navbar-static__pill navbar-static__pill--solid"
               href={getStartedProps.href}

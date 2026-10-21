@@ -1242,7 +1242,7 @@ export function H2Footer(): React.JSX.Element {
             <a href={homeProps.href} onClick={homeProps.onClick} aria-label={t('seamsHome')}>
               <SeamsWordmark height={20} />
             </a>
-            <LanguageSelector />
+            <LanguageSelector placement="footer" />
           </div>
 
           <div className="h2-footer__main">

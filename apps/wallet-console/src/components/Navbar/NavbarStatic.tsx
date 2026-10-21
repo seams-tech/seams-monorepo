@@ -4,6 +4,7 @@ import { ArrowRightAnim } from '../ArrowRightAnim';
 import SeamsWordmark from '../icons/SeamsWordmark';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { siteNavbarConfig } from './navbarConfig';
+import { LanguageSelector } from '@/marketing/LanguageSelector';
 
 export type { NavbarStaticProps };
 
@@ -16,6 +17,7 @@ export function NavbarStatic(props: NavbarStaticProps = {}): React.JSX.Element {
       router={router}
       Wordmark={SeamsWordmark}
       Arrow={ArrowRightAnim}
+      languageSelector={<LanguageSelector placement="navbar" />}
     />
   );
 }

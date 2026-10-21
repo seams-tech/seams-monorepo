@@ -685,8 +685,8 @@ async function journey(): Promise<void> {
     });
     const warnings = await database
       .prepare(
-        `SELECT COUNT(*) AS count FROM console_email_outbox
-      WHERE namespace = ? AND org_id = ? AND template_family = 'LOW_BALANCE_WARNING'`,
+        `SELECT COUNT(*) AS count FROM billing_accounts
+      WHERE namespace = ? AND org_id = ? AND low_balance_warning_active = 1`,
       )
       .bind(namespace, owner.orgId)
       .first<number>('count');

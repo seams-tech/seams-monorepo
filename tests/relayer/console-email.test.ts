@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 import {
   buildAccountWelcomeEmailV1,
   buildBillingRefundResultEmailV1,
-  buildLowBalanceWarningEmailV1,
   buildOrganizationInvitationEmailV1,
+  buildOwnerMembershipChangedEmailV1,
   buildPrepaidTopUpReceiptEmailV1,
   createAesGcmConsoleInvitationSecretCipher,
   createCaptureConsoleEmailProvider,
@@ -283,6 +283,12 @@ test.describe('console transactional email', () => {
         consoleBaseUrl: 'https://console.example.test',
         expiresAt: '2026-07-29T10:00:00.000Z',
       }),
+      buildOwnerMembershipChangedEmailV1({
+        change: 'ADDED',
+        organizationName: 'Acme',
+        ownerDisplayName: 'Bob',
+        changedByDisplayName: 'Alice',
+      }),
       buildPrepaidTopUpReceiptEmailV1({
         organizationName: 'Acme',
         purchaseId: 'purchase-1',
@@ -297,12 +303,6 @@ test.describe('console transactional email', () => {
         refundId: 'refund-1',
         amountMinor: 1_000,
         balanceAfterMinor: 7_000,
-        consoleBaseUrl: 'https://console.example.test',
-      }),
-      buildLowBalanceWarningEmailV1({
-        organizationName: 'Acme',
-        balanceMinor: 500,
-        thresholdMinor: 2_000,
         consoleBaseUrl: 'https://console.example.test',
       }),
     ];

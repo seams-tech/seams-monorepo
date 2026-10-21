@@ -315,12 +315,25 @@ test.describe('console organization access', () => {
     expect(await service.listMemberships(adminContext, { kind: 'all' })).toHaveLength(3);
     expect(await service.listInvitations(adminContext, { kind: 'all' })).toHaveLength(3);
     await expectAccessError(
-      () => service.invite(adminContext, { email: 'forbidden@example.com', role: 'MEMBER', projectAccess: [] }),
+      () =>
+        service.invite(adminContext, {
+          email: 'forbidden@example.com',
+          role: 'MEMBER',
+          projectAccess: [],
+        }),
       'forbidden',
     );
-    await service.setAdminPermissions(ownerContext, secondOwner.id, { permissions: ['billing.view'] });
-    await expectAccessError(() => service.listMemberships(adminContext, { kind: 'all' }), 'forbidden');
-    await expectAccessError(() => service.listInvitations(adminContext, { kind: 'all' }), 'forbidden');
+    await service.setAdminPermissions(ownerContext, secondOwner.id, {
+      permissions: ['billing.view'],
+    });
+    await expectAccessError(
+      () => service.listMemberships(adminContext, { kind: 'all' }),
+      'forbidden',
+    );
+    await expectAccessError(
+      () => service.listInvitations(adminContext, { kind: 'all' }),
+      'forbidden',
+    );
   });
 
   test('D1 service stores token hashes and preserves access across service instances', async () => {
@@ -415,18 +428,32 @@ test.describe('console organization access', () => {
       expect(acceptedRow?.token_hash).toBeNull();
       expect(acceptedRow?.kind).toBe('ACCEPTED');
       await recreated.changeRole(ownerContext, member.id, {
-        role: 'ADMIN', adminPermissions: ['projects.manage'],
+        role: 'ADMIN',
+        adminPermissions: ['projects.manage'],
       });
       const projectAdminContext = { orgId: owner.orgId, actorUserId: member.userId };
       expect(await recreated.listMemberships(projectAdminContext, { kind: 'all' })).toHaveLength(2);
       expect(await recreated.listInvitations(projectAdminContext, { kind: 'all' })).toHaveLength(1);
       await expectAccessError(
-        () => recreated.invite(projectAdminContext, { email: 'forbidden@example.com', role: 'MEMBER', projectAccess: [] }),
+        () =>
+          recreated.invite(projectAdminContext, {
+            email: 'forbidden@example.com',
+            role: 'MEMBER',
+            projectAccess: [],
+          }),
         'forbidden',
       );
-      await recreated.setAdminPermissions(ownerContext, member.id, { permissions: ['billing.view'] });
-      await expectAccessError(() => recreated.listMemberships(projectAdminContext, { kind: 'all' }), 'forbidden');
-      await expectAccessError(() => recreated.listInvitations(projectAdminContext, { kind: 'all' }), 'forbidden');
+      await recreated.setAdminPermissions(ownerContext, member.id, {
+        permissions: ['billing.view'],
+      });
+      await expectAccessError(
+        () => recreated.listMemberships(projectAdminContext, { kind: 'all' }),
+        'forbidden',
+      );
+      await expectAccessError(
+        () => recreated.listInvitations(projectAdminContext, { kind: 'all' }),
+        'forbidden',
+      );
       await recreated.purgeOrganization(owner.orgId);
       expect(await recreated.getAuthorizationVersion(owner.orgId)).toBeNull();
     } finally {
@@ -644,21 +671,37 @@ test.describe('console organization access', () => {
         }
       }
 
-      // owner and membership changes no longer send email
-      const changeEmails = await temporary.database
+      // membership suspensions and removals no longer send email
+      const membershipEmails = await temporary.database
         .prepare(
           `SELECT COUNT(*) AS count
              FROM console_email_outbox
             WHERE namespace = ?
               AND org_id = ?
-              AND template_family IN ('MEMBERSHIP_ACCESS_CHANGED', 'OWNER_MEMBERSHIP_CHANGED')`,
+              AND template_family = 'MEMBERSHIP_ACCESS_CHANGED'`,
         )
         .bind('email-lifecycle', owner.orgId)
         .first<{ count?: unknown }>();
-      expect(Number(changeEmails?.count)).toBe(0);
+      expect(Number(membershipEmails?.count)).toBe(0);
+
+      const ownerEmails = await temporary.database
+        .prepare(
+          `SELECT template_payload_json
+             FROM console_email_outbox
+            WHERE namespace = ?
+              AND org_id = ?
+              AND recipient_email = ?
+              AND template_family = 'OWNER_MEMBERSHIP_CHANGED'
+            ORDER BY created_at_ms, id`,
+        )
+        .bind('email-lifecycle', owner.orgId, secondOwner.email)
+        .all<{ template_payload_json?: unknown }>();
+      const ownerChanges = (ownerEmails.results || []).map((row) =>
+        String(JSON.parse(String(row.template_payload_json)).change),
+      );
+      expect(ownerChanges).toEqual(['ADDED', 'REMOVED']);
     } finally {
       cleanupTemporaryD1Database(temporary.tempDir);
     }
   });
-
 });

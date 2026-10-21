@@ -2,8 +2,8 @@ import type { FreePlanNoticeV1 } from '../billing/freePlan';
 
 export type ConsoleEmailTemplateVersion = 1;
 
-/** Families a stored outbox row may carry; OWNER_MEMBERSHIP_CHANGED and
-    MEMBERSHIP_ACCESS_CHANGED are retired and appear only on old rows. */
+/** Families a stored outbox row may carry; MEMBERSHIP_ACCESS_CHANGED and
+    LOW_BALANCE_WARNING are retired and appear only on old rows. */
 export type ConsoleEmailTemplateFamily =
   | 'ACCOUNT_WELCOME'
   | 'ORGANIZATION_INVITATION'
@@ -43,6 +43,24 @@ export interface AccountWelcomeEmailV1 {
   readonly docsBaseUrl: string;
 }
 
+export type OwnerMembershipChangedEmailV1 =
+  | {
+      readonly family: 'OWNER_MEMBERSHIP_CHANGED';
+      readonly version: 1;
+      readonly change: 'ADDED';
+      readonly organizationName: string;
+      readonly ownerDisplayName: string;
+      readonly changedByDisplayName: string;
+    }
+  | {
+      readonly family: 'OWNER_MEMBERSHIP_CHANGED';
+      readonly version: 1;
+      readonly change: 'REMOVED';
+      readonly organizationName: string;
+      readonly ownerDisplayName: string;
+      readonly changedByDisplayName: string;
+    };
+
 export interface PrepaidTopUpReceiptEmailV1 {
   readonly family: 'PREPAID_TOP_UP_RECEIPT';
   readonly version: 1;
@@ -68,16 +86,6 @@ export interface BillingRefundResultEmailV1 {
   readonly consoleBaseUrl: string;
 }
 
-export interface LowBalanceWarningEmailV1 {
-  readonly family: 'LOW_BALANCE_WARNING';
-  readonly version: 1;
-  readonly organizationName: string;
-  readonly balanceMinor: number;
-  readonly thresholdMinor: number;
-  readonly currency: 'USD';
-  readonly consoleBaseUrl: string;
-}
-
 export interface FreePlanNoticeEmailV1 {
   readonly family: 'FREE_PLAN_NOTICE';
   readonly version: 1;
@@ -99,9 +107,9 @@ export interface TeamSignupAlertEmailV1 {
 export type ConsoleEmailTemplateV1 =
   | AccountWelcomeEmailV1
   | OrganizationInvitationEmailV1
+  | OwnerMembershipChangedEmailV1
   | PrepaidTopUpReceiptEmailV1
   | BillingRefundResultEmailV1
-  | LowBalanceWarningEmailV1
   | FreePlanNoticeEmailV1
   | TeamSignupAlertEmailV1;
 

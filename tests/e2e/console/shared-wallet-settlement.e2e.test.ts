@@ -749,8 +749,7 @@ test('Wallet execution settles overshoot, zero quotes, and uncertain NEAR outcom
     expect(await rowCount(database, 'billing_usage_receipts')).toBe(2);
     const warningCount = await database
       .prepare(
-        `SELECT COUNT(*) AS count FROM console_email_outbox
-      WHERE template_family = 'LOW_BALANCE_WARNING'`,
+        'SELECT COUNT(*) AS count FROM billing_accounts WHERE low_balance_warning_active = 1',
       )
       .first<number>('count');
     expect(warningCount).toBe(1);
@@ -867,7 +866,7 @@ test('Wallet execution settles overshoot, zero quotes, and uncertain NEAR outcom
     expect(
       await database
         .prepare(
-          "SELECT COUNT(*) AS count FROM console_email_outbox WHERE template_family = 'LOW_BALANCE_WARNING'",
+          'SELECT COUNT(*) AS count FROM billing_accounts WHERE low_balance_warning_active = 1',
         )
         .first<number>('count'),
     ).toBe(1);

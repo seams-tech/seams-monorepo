@@ -806,10 +806,10 @@ async function renderClaimedConsoleEmail(
       });
       return renderOrganizationInvitationEmailV1(claimed.template, invitationSecret);
     }
+    case 'OWNER_MEMBERSHIP_CHANGED':
     case 'ACCOUNT_WELCOME':
     case 'PREPAID_TOP_UP_RECEIPT':
     case 'BILLING_REFUND_RESULT':
-    case 'LOW_BALANCE_WARNING':
     case 'FREE_PLAN_NOTICE':
     case 'TEAM_SIGNUP_ALERT':
       return renderConsoleEmailV1(claimed.template);

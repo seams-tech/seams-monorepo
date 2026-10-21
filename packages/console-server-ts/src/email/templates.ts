@@ -22,8 +22,8 @@ import type {
   ConsoleEmailNonInvitationTemplateV1,
   ConsoleEmailTemplateV1,
   FreePlanNoticeEmailV1,
-  LowBalanceWarningEmailV1,
   OrganizationInvitationEmailV1,
+  OwnerMembershipChangedEmailV1,
   PrepaidTopUpReceiptEmailV1,
   RenderedConsoleEmail,
   TeamSignupAlertEmailV1,
@@ -48,6 +48,20 @@ export interface OrganizationInvitationEmailV1Input {
   readonly expiresAt: string;
 }
 
+export type OwnerMembershipChangedEmailV1Input =
+  | {
+      readonly change: 'ADDED';
+      readonly organizationName: string;
+      readonly ownerDisplayName: string;
+      readonly changedByDisplayName: string;
+    }
+  | {
+      readonly change: 'REMOVED';
+      readonly organizationName: string;
+      readonly ownerDisplayName: string;
+      readonly changedByDisplayName: string;
+    };
+
 export interface PrepaidTopUpReceiptEmailV1Input {
   readonly organizationName: string;
   readonly purchaseId: string;
@@ -63,13 +77,6 @@ export interface BillingRefundResultEmailV1Input {
   readonly refundId: string;
   readonly amountMinor: number;
   readonly balanceAfterMinor: number;
-  readonly consoleBaseUrl: string;
-}
-
-export interface LowBalanceWarningEmailV1Input {
-  readonly organizationName: string;
-  readonly balanceMinor: number;
-  readonly thresholdMinor: number;
   readonly consoleBaseUrl: string;
 }
 
@@ -115,6 +122,26 @@ export function buildOrganizationInvitationEmailV1(
   };
 }
 
+export function buildOwnerMembershipChangedEmailV1(
+  input: OwnerMembershipChangedEmailV1Input,
+): OwnerMembershipChangedEmailV1 {
+  const common = {
+    family: 'OWNER_MEMBERSHIP_CHANGED' as const,
+    version: 1 as const,
+    organizationName: requiredText(input.organizationName, 'organizationName'),
+    ownerDisplayName: requiredText(input.ownerDisplayName, 'ownerDisplayName'),
+    changedByDisplayName: requiredText(input.changedByDisplayName, 'changedByDisplayName'),
+  };
+  switch (input.change) {
+    case 'ADDED':
+      return { ...common, change: 'ADDED' };
+    case 'REMOVED':
+      return { ...common, change: 'REMOVED' };
+    default:
+      return assertNever(input);
+  }
+}
+
 export function buildPrepaidTopUpReceiptEmailV1(
   input: PrepaidTopUpReceiptEmailV1Input,
 ): PrepaidTopUpReceiptEmailV1 {
@@ -143,20 +170,6 @@ export function buildBillingRefundResultEmailV1(
     amountMinor: positiveMinorAmount(input.amountMinor, 'amountMinor'),
     currency: 'USD',
     balanceAfterMinor: integerMinorAmount(input.balanceAfterMinor, 'balanceAfterMinor'),
-    consoleBaseUrl: httpBaseUrl(input.consoleBaseUrl, 'consoleBaseUrl'),
-  };
-}
-
-export function buildLowBalanceWarningEmailV1(
-  input: LowBalanceWarningEmailV1Input,
-): LowBalanceWarningEmailV1 {
-  return {
-    family: 'LOW_BALANCE_WARNING',
-    version: 1,
-    organizationName: requiredText(input.organizationName, 'organizationName'),
-    balanceMinor: integerMinorAmount(input.balanceMinor, 'balanceMinor'),
-    thresholdMinor: nonNegativeMinorAmount(input.thresholdMinor, 'thresholdMinor'),
-    currency: 'USD',
     consoleBaseUrl: httpBaseUrl(input.consoleBaseUrl, 'consoleBaseUrl'),
   };
 }
@@ -196,12 +209,12 @@ export function parseConsoleEmailTemplate(raw: unknown): ConsoleEmailTemplateV1 
       return parseAccountWelcome(record);
     case 'ORGANIZATION_INVITATION':
       return parseOrganizationInvitation(record);
+    case 'OWNER_MEMBERSHIP_CHANGED':
+      return parseOwnerMembershipChanged(record);
     case 'PREPAID_TOP_UP_RECEIPT':
       return parsePrepaidTopUpReceipt(record);
     case 'BILLING_REFUND_RESULT':
       return parseBillingRefundResult(record);
-    case 'LOW_BALANCE_WARNING':
-      return parseLowBalanceWarning(record);
     case 'FREE_PLAN_NOTICE':
       return buildFreePlanNoticeEmailV1({
         organizationName: requiredRawString(record.organizationName, 'organizationName'),
@@ -260,12 +273,12 @@ export function renderConsoleEmailV1(
   switch (template.family) {
     case 'ACCOUNT_WELCOME':
       return renderAccountWelcome(template);
+    case 'OWNER_MEMBERSHIP_CHANGED':
+      return renderOwnerMembershipChanged(template);
     case 'PREPAID_TOP_UP_RECEIPT':
       return renderPrepaidTopUpReceipt(template);
     case 'BILLING_REFUND_RESULT':
       return renderSucceededRefund(template);
-    case 'LOW_BALANCE_WARNING':
-      return renderLowBalanceWarning(template);
     case 'FREE_PLAN_NOTICE':
       return renderFreePlanNotice(template);
     case 'TEAM_SIGNUP_ALERT':
@@ -298,6 +311,22 @@ function parseOrganizationInvitation(record: UnknownRecord): OrganizationInvitat
   });
 }
 
+function parseOwnerMembershipChanged(record: UnknownRecord): OwnerMembershipChangedEmailV1 {
+  const common = {
+    organizationName: requiredRawString(record.organizationName, 'organizationName'),
+    ownerDisplayName: requiredRawString(record.ownerDisplayName, 'ownerDisplayName'),
+    changedByDisplayName: requiredRawString(record.changedByDisplayName, 'changedByDisplayName'),
+  };
+  switch (record.change) {
+    case 'ADDED':
+      return buildOwnerMembershipChangedEmailV1({ ...common, change: 'ADDED' });
+    case 'REMOVED':
+      return buildOwnerMembershipChangedEmailV1({ ...common, change: 'REMOVED' });
+    default:
+      throw new Error('Invalid owner membership email change');
+  }
+}
+
 function parsePrepaidTopUpReceipt(record: UnknownRecord): PrepaidTopUpReceiptEmailV1 {
   requireUsd(record.currency);
   return buildPrepaidTopUpReceiptEmailV1({
@@ -324,14 +353,28 @@ function parseBillingRefundResult(record: UnknownRecord): BillingRefundResultEma
   });
 }
 
-function parseLowBalanceWarning(record: UnknownRecord): LowBalanceWarningEmailV1 {
-  requireUsd(record.currency);
-  return buildLowBalanceWarningEmailV1({
-    organizationName: requiredRawString(record.organizationName, 'organizationName'),
-    balanceMinor: requiredRawNumber(record.balanceMinor, 'balanceMinor'),
-    thresholdMinor: requiredRawNumber(record.thresholdMinor, 'thresholdMinor'),
-    consoleBaseUrl: requiredRawString(record.consoleBaseUrl, 'consoleBaseUrl'),
-  });
+function renderOwnerMembershipChanged(
+  template: OwnerMembershipChangedEmailV1,
+): RenderedConsoleEmail {
+  const added = template.change === 'ADDED';
+  const subject = added
+    ? `Owner added to ${template.organizationName}`
+    : `Owner removed from ${template.organizationName}`;
+  const sentence = added
+    ? `${template.ownerDisplayName} is now an owner of ${template.organizationName}.`
+    : `${template.ownerDisplayName} is no longer an owner of ${template.organizationName}.`;
+  const changedBy = `This change was made by ${template.changedByDisplayName}.`;
+  return {
+    subject,
+    text: `${sentence}\n\n${changedBy}`,
+    html: htmlMessage({
+      kicker: 'Team',
+      heading: subject,
+      paragraphs: [sentence, changedBy],
+      actionLabel: null,
+      actionUrl: null,
+    }),
+  };
 }
 
 function renderAccountWelcome(template: AccountWelcomeEmailV1): RenderedConsoleEmail {
@@ -429,24 +472,6 @@ function renderSucceededRefund(template: BillingRefundResultEmailV1): RenderedCo
         { label: 'Reference', value: template.refundId },
       ],
       actionLabel: 'View billing',
-      actionUrl: billingUrl(template.consoleBaseUrl),
-    }),
-  };
-}
-
-function renderLowBalanceWarning(template: LowBalanceWarningEmailV1): RenderedConsoleEmail {
-  const subject = `Low prepaid balance for ${template.organizationName}`;
-  const details = `Your prepaid balance is ${usd(
-    template.balanceMinor,
-  )}, below your ${usd(template.thresholdMinor)} warning threshold.`;
-  return {
-    subject,
-    text: `${details}\n\nTop up: ${billingUrl(template.consoleBaseUrl)}`,
-    html: htmlMessage({
-      kicker: 'Billing',
-      heading: subject,
-      paragraphs: [details],
-      actionLabel: 'Top up balance',
       actionUrl: billingUrl(template.consoleBaseUrl),
     }),
   };
@@ -739,12 +764,6 @@ function integerMinorAmount(value: number, field: string): number {
 function positiveMinorAmount(value: number, field: string): number {
   const amount = integerMinorAmount(value, field);
   if (amount <= 0) throw new Error(`${field} must be positive`);
-  return amount;
-}
-
-function nonNegativeMinorAmount(value: number, field: string): number {
-  const amount = integerMinorAmount(value, field);
-  if (amount < 0) throw new Error(`${field} must be non-negative`);
   return amount;
 }
 

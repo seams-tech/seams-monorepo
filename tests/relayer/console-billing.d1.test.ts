@@ -83,6 +83,21 @@ async function listBillingEmailRows(
   return [...(result.results || [])];
 }
 
+async function readLowBalanceWarningActive(
+  database: Parameters<typeof createD1ConsoleBillingService>[0]['database'],
+): Promise<number> {
+  const row = await database
+    .prepare(
+      `SELECT low_balance_warning_active
+         FROM billing_accounts
+        WHERE namespace = ?
+          AND org_id = ?`,
+    )
+    .bind(BILLING_NAMESPACE, SUPPORT_CONTEXT.orgId)
+    .first<{ low_balance_warning_active: number }>();
+  return Number(row?.low_balance_warning_active);
+}
+
 async function seedHistoricalUsageDebit(
   database: Parameters<typeof createD1ConsoleBillingService>[0]['database'],
 ): Promise<void> {
@@ -150,14 +165,11 @@ test('D1 billing reconstructs balanced credit and persists provider-backed refun
     expect(
       afterRefundEmails.filter((row) => row.template_family === 'BILLING_REFUND_RESULT'),
     ).toHaveLength(2);
+    // a low balance arms the console warning and sends no email
     expect(
       afterRefundEmails.filter((row) => row.template_family === 'LOW_BALANCE_WARNING'),
-    ).toHaveLength(2);
-    expect(
-      afterRefundEmails
-        .filter((row) => row.template_family === 'LOW_BALANCE_WARNING')
-        .map((row) => JSON.parse(row.template_payload_json).balanceMinor),
-    ).toEqual([1500, 1500]);
+    ).toHaveLength(0);
+    expect(await readLowBalanceWarningActive(temporary.database)).toBe(1);
 
     const duplicate = await billing.createRefund(SUPPORT_CONTEXT, {
       purchaseId: settled.purchase.id,
@@ -191,11 +203,7 @@ test('D1 billing reconstructs balanced credit and persists provider-backed refun
     expect(secondInvoicePage.invoices).toHaveLength(1);
     expect(secondInvoicePage.invoices[0]?.id).not.toBe(firstInvoicePage.invoices[0]?.id);
     expect(secondInvoicePage.nextCursor).toBeNull();
-    expect(
-      (await listBillingEmailRows(temporary.database)).filter(
-        (row) => row.template_family === 'LOW_BALANCE_WARNING',
-      ),
-    ).toHaveLength(2);
+    expect(await readLowBalanceWarningActive(temporary.database)).toBe(1);
     const failedExternal = await billing.processStripeWebhookEvent({
       eventId: 'evt_d1_external_refund_failed',
       eventType: 'refund.updated',

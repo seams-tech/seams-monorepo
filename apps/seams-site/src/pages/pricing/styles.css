@@ -17,6 +17,10 @@
 
 /* ---------- plan cards: black panels that show the plan gradient when lit ---------- */
 
+.pricing-plans-head {
+  row-gap: 14px;
+}
+
 .pricing-plans-title {
   grid-column: 1 / -1;
 }
@@ -189,10 +193,11 @@
 }
 
 .pricing-note {
+  grid-column: 1 / -1;
   display: grid;
   gap: 4px;
-  margin: 22px 0 0;
-  font-size: 12.5px;
+  margin: 0;
+  font-size: var(--h2-text-body);
   line-height: 1.6;
   color: var(--h2-graphite);
 }

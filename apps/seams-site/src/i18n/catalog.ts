@@ -86,12 +86,12 @@ export const messages = {
     ja: '署名を含む、アクティブユーザー数に応じた料金',
   },
   poolNote: {
-    en: 'Each active user includes 300 signatures a month, shared across your app. Extra signatures cost $0.05 per 1,000.',
-    ja: 'アクティブユーザー1人につき月300回の署名を含み、アプリ全体で共有できます。超過分は1,000回あたり$0.05です。',
+    en: 'Get 300 signatures per active user each month, pooled across your app. Scale beyond the pool for $0.05 per 1,000 extra signatures.',
+    ja: 'アクティブユーザー1人につき月300回の署名を、アプリ全体で共有。利用が増えても、共有枠を超える署名は1,000回あたり$0.05です。',
   },
   sdkNote: {
-    en: 'Every plan has the full SDK. Development is free. Gas and chain fees are passed through at cost.',
-    ja: 'すべてのプランでSDKの全機能を使えます。開発環境は無料です。ガス代とチェーン手数料は実費です。',
+    en: 'Build with the full SDK on every plan, and develop for free. Gas and chain fees pass through at cost, with no markup.',
+    ja: 'どのプランでもSDKの全機能で開発でき、開発環境はいつでも無料。ガス代とチェーン手数料は、上乗せなしの実費です。',
   },
   exampleTitle: { en: 'What a month costs as you grow', ja: 'ユーザー数に応じた月額料金の例' },
   exampleCopy: {

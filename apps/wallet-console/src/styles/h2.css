@@ -1634,14 +1634,14 @@ body:has(.h2-page) {
   align-items: center;
   gap: 9px;
   color: var(--h2-ash);
-  font-size: 15.5px;
+  font-size: clamp(15.5px, 1.6vw, 20px);
   font-weight: 600;
   white-space: nowrap;
 }
 
 .h2-logo svg {
-  width: 17px;
-  height: 17px;
+  width: 1.2em;
+  height: 1.2em;
   flex: none;
 }
 
@@ -1995,7 +1995,7 @@ body:has(.h2-page) {
 
 /* Keep extra room around the Wallet demo without enlarging the card. */
 .h2-page--wallet .h2-hero__split {
-  --h2-hero-min-height: calc(600px + 3rem);
+  --h2-hero-min-height: calc(600px + 1rem);
 }
 
 @media (min-width: 981px) {
@@ -3305,7 +3305,7 @@ body:has(.h2-page) {
 /* ---------- equal ruled bands ---------- */
 
 /* The showcase heading, get-started, wallet console, and closing banners
-   share one height. The network logos use a minimum height of 10rem.
+   share one height. The network logos use a minimum height of 12rem.
    It fits a banner row (two insets, 52px paddings) around the taller of
    a two-line heading and a one-line heading over the 36px subtitle. At
    760px and below each band keeps its own height. */
@@ -3329,7 +3329,7 @@ body:has(.h2-page) {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: 10rem;
+    min-height: 12rem;
     padding-block: 0;
   }
 }

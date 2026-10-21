@@ -1,4 +1,4 @@
-# Seams Wallet Cloudflare account migration plan
+# Refactor 200 — Seams Wallet Cloudflare account migration plan
 
 Create fresh Seams infrastructure in the Cloudflare account owned by `seamsadmin@gmail.com`.
 Move traffic from the account identified as `n63878056@gmail.com`.

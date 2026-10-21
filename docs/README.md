@@ -26,7 +26,7 @@ of Platform and Wallet entry points and the reasons for that design.
   contact form.
 - [Wallet database schema](wallet-saas/console-docs/wallet-db-schema.md).
 - [CLI release procedure](wallet-cli-release.md).
-- [Cloudflare account migration](cloudflare-account-migration.md): move all Wallet
+- [Refactor 200 — Cloudflare account migration](refactor-200.md): move all Wallet
   infrastructure into the dedicated Seams account with fresh application state.
 - [Local/provider runtime qualification](../deployment/celld/README.md): retain
   its qualification limits when describing private infrastructure.

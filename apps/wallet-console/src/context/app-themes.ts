@@ -1,4 +1,5 @@
 import { SHAPE_PRESETS } from '@seams/wallet/react';
+import type { WalletLocale } from '@seams/wallet';
 import type { ThemeProps, WalletShapeId } from '@seams/wallet/react';
 // The resolved appearance the presets build. seams.config.setAppearance accepts it, and
 // so do the wallet surfaces the homepage showcase mounts directly.
@@ -315,8 +316,12 @@ export function demoReactTokens(preset: DemoThemePreset): ThemeProps['tokens'] {
 }
 
 /** Build the wallet-iframe appearance (colors + shape) for a preset — fed to seams.config.setAppearance. */
-export function demoIframeAppearance(preset: DemoThemePreset): AppearanceConfig {
+export function demoIframeAppearance(
+  preset: DemoThemePreset,
+  locale: WalletLocale = 'en',
+): AppearanceConfig {
   return {
+    locale,
     theme: {
       id: preset.id,
       mode: preset.mode,
@@ -343,6 +348,6 @@ export function paperReactTokens(): ThemeProps['tokens'] {
   };
 }
 
-export function paperIframeAppearance(): AppearanceConfig {
-  return demoIframeAppearance(DEMO_THEME_PRESETS[0]);
+export function paperIframeAppearance(locale: WalletLocale = 'en'): AppearanceConfig {
+  return demoIframeAppearance(DEMO_THEME_PRESETS[0], locale);
 }

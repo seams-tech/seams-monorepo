@@ -17,7 +17,7 @@
     "@seams-internal/grain-field": "workspace:*",
     "@seams-internal/site-navbar": "workspace:*",
     "@seams-internal/wallet-console-shared": "workspace:*",
-    "@seams/wallet": "0.17.0",
+    "@seams/wallet": "0.18.0",
     "@tanstack/react-query": "^5.76.1",
     "borsh": "^2.0.0",
     "bs58": "^6.0.0",

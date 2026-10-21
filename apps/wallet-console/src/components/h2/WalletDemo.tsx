@@ -21,6 +21,7 @@ function selectDemoPasskeyColumn(module: typeof import('@/components/DemoPasskey
   return { default: module.DemoPasskeyColumn };
 }
 const DemoPasskeyColumnLazy = React.lazy(loadDemoPasskeyColumn);
+const demoAppearance = { ...SITE_APPEARANCE, locale };
 const demoPageNames = [t('login'), t('transactions'), t('accountRecovery')];
 const demoThemeLabels: Record<DemoThemeId, MessageKey> = {
   paper: 'themePaper',
@@ -108,7 +109,7 @@ function WalletDemoContent({
 
   React.useEffect(() => {
     try {
-      seams.config.setAppearance(demoIframeAppearance(activePreset));
+      seams.config.setAppearance(demoIframeAppearance(activePreset, locale));
     } catch {}
   }, [seams, activePreset, loginState?.isLoggedIn, activeWalletId]);
 
@@ -201,7 +202,7 @@ export default function WalletDemo(props: WalletDemoProps): React.JSX.Element {
   return (
     <FrontendRuntimeProvider>
       <FrontendSdkProvider
-        appearance={SITE_APPEARANCE}
+        appearance={demoAppearance}
         theme={{ theme, tokens: SITE_THEME_TOKEN_OVERRIDES }}
       >
         <WalletDemoContent {...props} />

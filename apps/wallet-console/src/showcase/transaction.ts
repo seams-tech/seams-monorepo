@@ -1,4 +1,4 @@
-import { t } from '@/marketing/i18n/browser';
+import { locale, t } from '@/marketing/i18n/browser';
 import './embeddedFocus';
 import '@wallet-ui/sdk/wallet-ui.css';
 import './showcase.css';
@@ -48,7 +48,7 @@ let stopLifecycle = (): void => {};
 
 function model(): ConfirmSurfaceModel {
   return {
-    appearance: paperIframeAppearance(),
+    appearance: paperIframeAppearance(locale),
     content: {
       kind: 'transaction',
       review: {

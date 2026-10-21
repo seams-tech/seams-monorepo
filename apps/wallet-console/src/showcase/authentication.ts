@@ -1,4 +1,4 @@
-import { t } from '@/marketing/i18n/browser';
+import { locale, t } from '@/marketing/i18n/browser';
 import './embeddedFocus';
 import '@wallet-ui/sdk/wallet-ui.css';
 import '@fontsource/hanken-grotesk/400.css';
@@ -36,7 +36,7 @@ function registration(
   return {
     kind: 'passkey',
     mode: 'register',
-    appearance: paperIframeAppearance(),
+    appearance: paperIframeAppearance(locale),
     hostname: 'shop.example.com',
     closeLabel: t('back'),
     heading: t('createWallet'),
@@ -58,7 +58,7 @@ function login(
   return {
     kind: 'passkey',
     mode: 'login',
-    appearance: paperIframeAppearance(),
+    appearance: paperIframeAppearance(locale),
     hostname: 'shop.example.com',
     closeLabel: t('back'),
     heading: t('unlockWallet'),

@@ -1,4 +1,4 @@
-import { t } from '@/marketing/i18n/browser';
+import { locale, t } from '@/marketing/i18n/browser';
 import type {
   AuthMenuLinkDeviceState,
   AuthMenuLinkDeviceViewModel,
@@ -23,7 +23,7 @@ export function linkMenu(linkDevice: AuthMenuLinkDeviceState): AuthMenuLinkDevic
     kind: 'link_device',
     mode: 'login',
     linkDevice,
-    appearance: paperIframeAppearance(),
+    appearance: paperIframeAppearance(locale),
     hostname: 'shop.example.com',
     closeLabel: t('back'),
     heading: t('linkDevice'),
@@ -41,7 +41,7 @@ export function recoveryEntry(code: string, error: string | null): AuthMenuRecov
     stage: 'enter_code',
     recoveryCode: code,
     recoveryCodeError: error,
-    appearance: paperIframeAppearance(),
+    appearance: paperIframeAppearance(locale),
     hostname: 'shop.example.com',
     closeLabel: t('back'),
     heading: t('recoverWalletHeading'),
@@ -64,7 +64,7 @@ export function passkeyRecovery(
     walletId: 'alex',
     recoveryCode: code,
     recoveryCodeError: null,
-    appearance: paperIframeAppearance(),
+    appearance: paperIframeAppearance(locale),
     hostname: 'shop.example.com',
     closeLabel: t('back'),
     heading: stage === 'sign_in_ready' ? t('walletRecovered') : t('newPasskey'),
@@ -87,7 +87,7 @@ export function googleRecovery(
     walletId: 'alex',
     recoveryCode: code,
     recoveryCodeError: null,
-    appearance: paperIframeAppearance(),
+    appearance: paperIframeAppearance(locale),
     hostname: 'shop.example.com',
     closeLabel: t('back'),
     heading: stage === 'sign_in_ready' ? t('walletRecovered') : t('recoverGoogle'),

@@ -278,10 +278,6 @@ export const catalog = {
     en: 'Use built-in wallet components,\nor use your own.',
     ja: '標準のウォレットUIも、独自のUIも。',
   },
-  sdkPreviewEnglish: {
-    en: 'Some SDK controls in these previews are in English.',
-    ja: 'プレビュー内のSDK標準UIの一部は英語で表示されます。',
-  },
   secondsUnit: { en: 's', ja: '秒' },
   customComponents: { en: 'Custom Components', ja: '独自のUI' },
   recoverLink: { en: 'Recover and Link Devices', ja: '復元・デバイスのリンク' },

@@ -1,10 +1,11 @@
 import type { AppearanceConfig } from '@wallet-ui/core/types/seams';
+import { locale } from '@/marketing/i18n/browser';
 import { paperIframeAppearance } from '@/context/app-themes';
 
 /* The homepage's Paper wallet theme with the sample merchant's maroon accent,
    shared by the checkout dialog's shell and the wallet approval inside it. */
 export function checkoutAppearance(): AppearanceConfig {
-  const appearance = paperIframeAppearance();
+  const appearance = paperIframeAppearance(locale);
   return {
     ...appearance,
     theme: {

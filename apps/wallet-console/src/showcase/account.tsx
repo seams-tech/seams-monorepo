@@ -1,5 +1,5 @@
 import './embeddedFocus';
-import '@/marketing/i18n/browser';
+import { locale } from '@/marketing/i18n/browser';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { AccountMenuButtonMock } from '@seams/wallet/react/profile';
@@ -14,5 +14,10 @@ import './account.css';
 const root = document.getElementById('root');
 if (!root) throw new Error('Account showcase requires a root element.');
 createRoot(root).render(
-  <AccountMenuButtonMock className="account-showcase" theme="light" style={{ width: '100%' }} />,
+  <AccountMenuButtonMock
+    locale={locale}
+    className="account-showcase"
+    theme="light"
+    style={{ width: '100%' }}
+  />,
 );

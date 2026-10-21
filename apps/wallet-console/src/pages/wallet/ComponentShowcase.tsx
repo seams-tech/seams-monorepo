@@ -1,4 +1,4 @@
-import { locale, t } from '@/marketing/i18n/browser';
+import { t } from '@/marketing/i18n/browser';
 import React from 'react';
 import { Play } from 'lucide-react';
 import { ComponentPreview } from './ComponentPreview';
@@ -249,7 +249,6 @@ export function ComponentShowcase(): React.JSX.Element {
             <h2 id="component-showcase-title" className="h2-display h2-eco__title h2-banner__title">
               {t('componentsTitle')}
             </h2>
-            {locale === 'ja' ? <p className="h2-banner__sub">{t('sdkPreviewEnglish')}</p> : null}
           </div>
         </FieldBanner>
       </section>

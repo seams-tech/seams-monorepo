@@ -524,6 +524,11 @@
 
 /* ---------- closing banner: the SDK pitch with one card per plan ---------- */
 
+/* the plan cards sit close to their rules, like the banners */
+.h2-section.pricing-banner-plans {
+  padding: 0.5rem 0;
+}
+
 .pricing-banner__cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -548,6 +553,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-height: 240px;
   padding: 20px 20px 18px;
   border-radius: 22px;
   background: var(--h2-ink);
@@ -621,7 +627,9 @@
   align-items: center;
   gap: 2px;
   align-self: flex-start;
-  margin-top: 10px;
+  /* the link sits at the bottom of the taller card */
+  margin-top: auto;
+  padding-top: 10px;
   font-size: 14px;
   font-weight: 600;
   color: var(--pricing-banner-ink);
@@ -630,5 +638,9 @@
 @media (max-width: 900px) {
   .pricing-banner__cards {
     grid-template-columns: 1fr;
+  }
+
+  .pricing-banner__card {
+    min-height: 0;
   }
 }

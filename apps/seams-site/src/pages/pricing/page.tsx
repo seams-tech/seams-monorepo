@@ -132,7 +132,10 @@ function PlanBanner(): React.JSX.Element {
           </div>
         </div>
       </section>
-      <section className="h2-section h2-section--compact h2-rule" aria-label="Start with a plan">
+      <section
+        className="h2-section h2-section--compact h2-rule pricing-banner-plans"
+        aria-label="Start with a plan"
+      >
         <div className="h2-shell">
           <div className="pricing-banner__cards">
             {plans.map((plan) => (

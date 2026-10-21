@@ -6,7 +6,7 @@ import { PlusIcon } from '../icons/SidebarIcons';
 import DashboardSidebarToggleIcon from '../icons/DashboardSidebarToggleIcon';
 import { getDocsOrigin } from '@core/router/siteRouting';
 import SeamsWordmark from '@core/components/SeamsWordmark';
-import { GrainField } from '@/components/GrainField/GrainField';
+import { GrainField } from '@seams-internal/grain-field';
 import type { DashboardProduct, DashboardProductId, SidebarGroup, TopbarOption } from '../types';
 
 export type DashboardLinkPropsFactory = (to: string) => {

@@ -15,8 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { ArrowRightAnim } from '../ArrowRightAnim';
-import { GrainField } from '../GrainField/GrainField';
-import type { GrainFieldName } from '../GrainField/fields';
+import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import SeamsWordmark from '../icons/SeamsWordmark';
 import { isModifiedClick, useSiteRouter } from '@/app/router/useSiteRouter';
 import { blinkMenuItem } from '../menuItemBlink';

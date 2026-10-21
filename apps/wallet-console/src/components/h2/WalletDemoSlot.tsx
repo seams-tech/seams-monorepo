@@ -1,6 +1,6 @@
 import React from 'react';
 import type { HostedAuthMenuMode } from '@seams/wallet/react';
-import { GrainField } from '@/components/GrainField/GrainField';
+import { GrainField } from '@seams-internal/grain-field';
 
 function loadWalletDemo() {
   return import('./WalletDemo');

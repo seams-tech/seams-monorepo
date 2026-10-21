@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
+import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { EcosystemLattice } from '@/components/h2/EcosystemLattice';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
@@ -38,12 +39,12 @@ const DemoPasskeyColumnLazy = React.lazy(() =>
 
 const demoPageNames = ['Login', 'Transactions', 'Account recovery'];
 
-/* Compact product forks under the CTAs. Chips reuse the case-cover gradients
-   so each product keeps one fabric. */
-const productForks = [
-  { label: 'Wallet', to: '/wallet', chip: 'h2-fork__chip--wallet' },
-  { label: 'Harness', to: '/ecommerce', chip: 'h2-fork__chip--harness' },
-  { label: 'API', to: '/docs/concepts/', chip: 'h2-fork__chip--api' },
+/* Compact product forks under the CTAs. Each chip draws its product's grain
+   field, the same fields as the wallet console's forks. */
+const productForks: readonly { label: string; to: string; field: GrainFieldName }[] = [
+  { label: 'Wallet', to: '/wallet', field: 'teal-peach' },
+  { label: 'Harness', to: '/ecommerce', field: 'mauve-ember' },
+  { label: 'API', to: '/docs/concepts/', field: 'azure-coral' },
 ];
 
 /* Grab-and-drag horizontal scrolling for a single-line chip row. Dragging only
@@ -184,7 +185,9 @@ export function H2DemoHero({
                   href={forkProps.href}
                   onClick={forkProps.onClick}
                 >
-                  <span className={`h2-fork__chip ${fork.chip}`} aria-hidden />
+                  <span className="h2-fork__chip" aria-hidden>
+                    <GrainField field={fork.field} />
+                  </span>
                   {fork.label}
                 </a>
               );
@@ -1624,7 +1627,9 @@ export function H2Cta(): React.JSX.Element {
 
   return (
     <section className="h2-cta h2-rule" aria-labelledby="h2-cta-title">
-      <div className="h2-cta__grain" aria-hidden="true" />
+      <div className="h2-cta__grain" aria-hidden="true">
+        <GrainField field="sky-sand" />
+      </div>
       <div className="h2-shell h2-cta__inner">
         <div>
           <h2 id="h2-cta-title" className="h2-display h2-cta__title">

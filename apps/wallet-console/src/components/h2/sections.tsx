@@ -15,8 +15,7 @@ import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
-import { GrainField } from '@/components/GrainField/GrainField';
-import type { GrainFieldName } from '@/components/GrainField/fields';
+import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import '@/styles/h2.css';
 
 /* Shared section library for the h2 marketing pages (/, /wallet, /ecommerce).

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { GrainFieldName } from '@/components/GrainField/fields';
+import type { GrainFieldName } from '@seams-internal/grain-field';
 
 export type SidebarGroupKey = 'overview' | 'administration' | 'billing' | 'platform';
 

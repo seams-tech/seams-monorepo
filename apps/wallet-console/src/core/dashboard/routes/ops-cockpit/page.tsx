@@ -1,7 +1,7 @@
 import React from 'react';
 import { toast } from 'sonner';
 import { useSiteRouter } from '@core/router/useSiteRouter';
-import { GrainField } from '@/components/GrainField/GrainField';
+import { GrainField } from '@seams-internal/grain-field';
 import { formatDashboardTimestamp } from '../../utils/timestamps';
 import { KeyRoundIcon } from '../../icons/SidebarIcons';
 import type { SidebarIconComponent } from '../../types';

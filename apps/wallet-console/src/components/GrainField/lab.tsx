@@ -1,8 +1,13 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { GrainField } from './GrainField';
-import { GRAIN_FIELD_NAMES, type GeneratedField } from './fields';
-import { DEFAULT_GRAIN_STYLE, setGrainStyle, type GrainStyle } from './renderer';
+import {
+  DEFAULT_GRAIN_STYLE,
+  GRAIN_FIELD_NAMES,
+  GrainField,
+  setGrainStyle,
+  type GeneratedField,
+  type GrainStyle,
+} from '@seams-internal/grain-field';
 import './lab.css';
 
 /* Dev-only page (/gradients/ on the dev server, not in the build): every

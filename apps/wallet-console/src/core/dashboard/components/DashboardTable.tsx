@@ -1,6 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
-import { GrainField } from '@/components/GrainField/GrainField';
+import { GrainField } from '@seams-internal/grain-field';
 import { DashboardMenu, DashboardMenuItem, useDashboardMenu } from './DashboardMenu';
 
 export type DashboardTableTone = 'neutral' | 'success' | 'warning' | 'danger';

@@ -2013,22 +2013,11 @@ body:has(.h2-page) {
 .h2-fork__chip {
   width: 16px;
   height: 16px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   border-radius: 5px;
-  background-size: cover;
-  background-position: center;
   box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
-}
-
-.h2-fork__chip--wallet {
-  background-image: url('/gradients/web/sky-sand.jpg');
-}
-
-.h2-fork__chip--harness {
-  background-image: url('/gradients/web/cyan-lime.jpg');
-}
-
-.h2-fork__chip--api {
-  background-image: url('/gradients/web/dusk-blue-mauve.jpg');
 }
 
 .h2-hero__note {
@@ -4198,7 +4187,8 @@ body:has(.h2-page) {
     radial-gradient(closest-side, rgba(0, 0, 0, 0.45), transparent);
   position: absolute;
   inset: 0 0 0 24%;
-  background: url('/gradients/web/sky-sand.jpg') center / cover;
+  /* keeps the grain field's negative z-index inside the masked layer */
+  isolation: isolate;
   -webkit-mask-image: var(--h2-cta-mask);
   mask-image: var(--h2-cta-mask);
   -webkit-mask-size:

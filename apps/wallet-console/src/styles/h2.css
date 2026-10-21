@@ -88,7 +88,7 @@
   --h2-wallet-auth-menu-block-size: 500px;
 }
 
-/* Keep overscroll/rubber-band areas white while this page is mounted */
+/* Keep the base page canvas white outside the hero's gradient. */
 body:has(.h2-page) {
   background: #ffffff;
 }
@@ -2001,6 +2001,12 @@ body:has(.h2-page) {
 @media (min-width: 981px) {
   .h2-page--wallet .h2-hero__demo {
     padding-bottom: 16px;
+  }
+
+  /* Paint into the area revealed above the page during elastic overscroll. */
+  .h2-page--wallet .h2-hero__demo > .grain-field {
+    top: -16rem;
+    height: calc(100% + 16rem);
   }
 }
 

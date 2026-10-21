@@ -17,7 +17,7 @@ function LanguageOption({ language }: { language: Locale }): React.JSX.Element {
     <Select.Item className="wallet-language__option" value={language} lang={language}>
       <Select.ItemText>{languages[language]}</Select.ItemText>
       <Select.ItemIndicator>
-        <Check size={16} aria-hidden />
+        <Check size={16} strokeWidth={1.7} aria-hidden />
       </Select.ItemIndicator>
     </Select.Item>
   );

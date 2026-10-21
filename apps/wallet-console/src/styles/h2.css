@@ -2,7 +2,8 @@
    Scoped under .h2-page and independent of the site theme: the palette is
    hardcoded so the page stays light in dark mode too. */
 
-.h2-page {
+.h2-page,
+.wallet-language__menu {
   /* bordered content column width (~86% of a 1440 viewport, per reference).
      Shared by every .h2-page (home, /wallet, /ecommerce) so the rails line up;
      the two-panel hero band is 1fr 1fr inside it, so +32px here = +1rem per
@@ -56,7 +57,9 @@
   --h2-text-xl: 13px; /* standout UI (was 14.5px) */
   --h2-text-body: 14px; /* paragraph copy (was 15.5px) */
   --h2-text-title: 15px; /* card titles (was 16.5px) */
+}
 
+.h2-page {
   font-family: var(--h2-font);
   color: var(--h2-ink);
   background: var(--h2-bg);
@@ -3385,7 +3388,7 @@ body:has(.h2-page) {
   border: 0;
   background: transparent;
   color: var(--h2-ink);
-  font: inherit;
+  font: 400 var(--h2-text-body) / 1.5 var(--h2-font);
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -3413,40 +3416,40 @@ body:has(.h2-page) {
 
 .wallet-language__menu {
   z-index: 1000;
-  min-width: 180px;
+  min-width: 160px;
   max-height: var(--radix-select-content-available-height);
   padding: 6px;
   overflow-y: auto;
-  border: 1px solid var(--site-border);
-  border-radius: 10px;
-  background: var(--site-surface, #fff);
-  color: var(--site-text-primary);
-  box-shadow: 0 6px 24px rgb(0 0 0 / 10%);
-  font:
-    15px/1.5 'Hanken Grotesk',
-    'Hiragino Kaku Gothic ProN',
-    'Yu Gothic',
-    Meiryo,
-    sans-serif;
+  overscroll-behavior: contain;
+  color-scheme: light;
+  color: var(--h2-ink);
+  font: 400 var(--h2-text-body) / 1.5 var(--h2-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+.wallet-language__menu,
+.wallet-language__menu * {
+  box-sizing: border-box;
 }
 
 .wallet-language__option {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 20px;
   min-height: 44px;
   padding: 8px 12px;
-  border-radius: 5px;
+  border-radius: 7px;
   cursor: pointer;
   outline: none;
 }
 
 .wallet-language__option[data-highlighted] {
-  background: var(--site-surface-muted);
+  background: var(--h2-taupe);
 }
 
-html:lang(ja) .h2-page {
+html:lang(ja) .h2-page,
+html:lang(ja) .wallet-language__menu {
   font-family: 'Hanken Grotesk', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif;
   line-break: strict;
   word-break: normal;
@@ -3636,6 +3639,10 @@ html:lang(ja) .h2-startrow__text p {
 .h2-faq-pop__card {
   position: relative;
   overflow: hidden;
+}
+
+.h2-faq-pop__card,
+.wallet-language__menu {
   border-radius: 14px;
   border: 1px solid var(--h2-stone);
   background: var(--h2-bg);

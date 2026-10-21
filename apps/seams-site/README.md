@@ -67,6 +67,8 @@ Japanese at `/ja/`. The URL selects the language. The navbar and footer selector
 query parameters and section anchors. Local development uses `/wallet` and
 `/wallet/ja/` through Caddy.
 
+The local Caddy process watches its configuration and reloads route changes.
+
 Keep translations in `apps/wallet-console/src/marketing/i18n/catalog.ts`. Every
 message requires English and Japanese text. Both languages use the same React
 components. The Vite build emits language-specific HTML metadata and a sitemap.

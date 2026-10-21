@@ -27,4 +27,4 @@ echo "Validating Caddyfile..."
 "$CADDY_BIN" validate --config "$CADDYFILE" --adapter caddyfile
 
 echo "Starting Caddy"
-exec "$CADDY_BIN" run --config "$CADDYFILE" --adapter caddyfile
+exec "$CADDY_BIN" run --config "$CADDYFILE" --adapter caddyfile --watch

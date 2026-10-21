@@ -14,6 +14,50 @@ async function openWallet(page) {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
 }
 
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+async function checkWalletLanguages(page) {
+  const english = new URL(walletUrl);
+  const base = english.pathname.replace(/\/$/, '');
+  english.pathname = `${base}/`;
+  english.searchParams.set('source', 'language-check');
+  english.hash = 'wallet-security';
+  const japanese = new URL(english);
+  japanese.pathname = `${base}/ja/`;
+
+  const response = await page.goto(japanese.href);
+  assert.equal(response.status(), 200);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('所有できるウォレット。');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
+  await page.screenshot({ path: `${artifacts}/japanese-wallet.png`, fullPage: true });
+
+  await page.evaluate(scrollToTop);
+  const navbar = page.locator('.navbar-static');
+  await navbar.getByRole('combobox', { name: '言語', exact: true }).click();
+  await page.getByRole('option', { name: 'English', exact: true }).click();
+  await expect(page).toHaveURL(english.href);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Wallets you own.');
+  await page.goBack();
+  await expect(page).toHaveURL(japanese.href);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
+
+  const withoutSlash = new URL(japanese);
+  withoutSlash.pathname = withoutSlash.pathname.slice(0, -1);
+  await page.goto(withoutSlash.href);
+  await expect(page).toHaveURL(japanese.href);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
+  const footer = page.getByRole('contentinfo');
+  await footer.getByRole('combobox', { name: '言語', exact: true }).click();
+  await page.getByRole('option', { name: 'English', exact: true }).click();
+  await expect(page).toHaveURL(english.href);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  entries.push({ source: 'wallet-language', url: japanese.href, refreshMatches: true });
+}
+
 async function checkPricing(page, hash, source) {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(pricingTitle);
   const address = new URL(page.url());
@@ -40,6 +84,7 @@ try {
   await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
   const page = await context.newPage();
   try {
+    await checkWalletLanguages(page);
     await openWallet(page);
     await page.getByRole('button', { name: 'Pricing', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Compare plans', exact: true }).click();
@@ -71,7 +116,8 @@ try {
     await openWallet(page);
     await page.getByRole('button', { name: 'About Us', exact: true }).click();
     await page.getByRole('menuitem', { name: /^Company Who we are/ }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Seams', exact: true })).toBeVisible();
+    await expect(page.locator('main[aria-labelledby="company-title"]')).toBeVisible();
+    assert.equal(new URL(page.url()).pathname.replace(/\/$/, ''), '/company');
     assert.equal(new URL(page.url()).origin, origin);
 
     await openWallet(page);
@@ -104,13 +150,14 @@ try {
           history: true,
           calculatorKeyboard: true,
           companyNavigation: true,
+          walletLanguageNavigation: true,
         },
         null,
         2,
       ),
     );
     console.log(
-      'Passed wallet and homepage pricing links, plan anchors, refresh, history, and keyboard navigation.',
+      'Passed Japanese Wallet routing, navbar/footer language switching, pricing links, plan anchors, refresh, history, and keyboard navigation.',
     );
   } finally {
     await context.tracing.stop({ path: `${artifacts}/trace.zip` });

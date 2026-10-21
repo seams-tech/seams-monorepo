@@ -1,13 +1,14 @@
 import React from 'react';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 
-/* Published rates from docs/wallet-saas/pricing.md. Enterprise rates beyond
-   the signature floor are negotiated, so the estimate only applies that floor. */
+/* Published rates from docs/wallet-saas/pricing.md. Enterprise prices are
+   negotiated, so the estimate applies only its published floors. */
 const FREE_USERS = 300;
 const FREE_SIGNATURES = 30_000;
 const GROWTH_BASE = 99;
 const GROWTH_INCLUDED_USERS = 5_000;
-const PRICE_PER_USER = 0.004;
+const GROWTH_PER_USER = 0.004;
+const ENTERPRISE_PER_USER = 0.003;
 const POOL_PER_USER = 300;
 const GROWTH_PER_1000_SIGNATURES = 0.05;
 const ENTERPRISE_PER_1000_SIGNATURES = 0.03;
@@ -28,12 +29,12 @@ type Estimate = {
   total: number;
 };
 
-function estimate(users: number, perDay: number, per1000: number): Estimate {
+function estimate(users: number, perDay: number, perUser: number, per1000: number): Estimate {
   const signatures = users * perDay * DAYS_PER_MONTH;
   if (users <= FREE_USERS && signatures <= FREE_SIGNATURES) {
     return { signatures, base: 0, users: 0, overageSignatures: 0, overage: 0, total: 0 };
   }
-  const userCost = Math.max(0, users - GROWTH_INCLUDED_USERS) * PRICE_PER_USER;
+  const userCost = Math.max(0, users - GROWTH_INCLUDED_USERS) * perUser;
   const overageSignatures = Math.max(0, signatures - users * POOL_PER_USER);
   const overage = (overageSignatures / 1_000) * per1000;
   return {
@@ -65,8 +66,8 @@ export function EnterpriseCalculator(): React.JSX.Element {
   const usersId = React.useId();
   const perDayId = React.useId();
   const users = USER_STEPS[userStep];
-  const growth = estimate(users, perDay, GROWTH_PER_1000_SIGNATURES);
-  const enterprise = estimate(users, perDay, ENTERPRISE_PER_1000_SIGNATURES);
+  const growth = estimate(users, perDay, GROWTH_PER_USER, GROWTH_PER_1000_SIGNATURES);
+  const enterprise = estimate(users, perDay, ENTERPRISE_PER_USER, ENTERPRISE_PER_1000_SIGNATURES);
 
   return (
     <section className="h2-section h2-rule" aria-labelledby="pricing-calculator-title">
@@ -150,8 +151,8 @@ export function EnterpriseCalculator(): React.JSX.Element {
               <strong>{formatDollars(enterprise.total)}</strong>
             </p>
             <p className="pricing-calc__fine">
-              Enterprise signatures start at $0.03 per 1,000. Volume pricing on committed usage is
-              quoted by our team.
+              Enterprise starts at $0.003 per active user above 5,000 and $0.03 per 1,000 signatures
+              above the pool. Volume pricing on committed usage is quoted by our team.
             </p>
             <a
               className="h2-btn h2-btn--primary"

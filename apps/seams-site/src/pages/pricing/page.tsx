@@ -55,6 +55,7 @@ const plans: readonly Plan[] = [
     summary: 'For large apps and merchant fleets.',
     features: [
       'Volume pricing on committed usage',
+      'From $0.003 per active user above 5,000',
       'Signatures from $0.03 per 1,000',
       'Rollout planning with our team',
     ],

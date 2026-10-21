@@ -11,18 +11,20 @@ Seams charges per monthly active user (MAU), at least 20% below Dynamic's list
 price at every size. Each MAU includes a signature allowance of 10 signatures a
 day. Signatures above the allowance have a published price.
 
-| Plan       | Price                        | Users included | Signature allowance |
-| ---------- | ---------------------------- | -------------: | ------------------- |
-| Free       | $0                           |      Up to 300 | 30,000 / month      |
-| Growth     | $99 / month                  |    Up to 5,000 | 300 per MAU, pooled |
-| Growth     | + $0.004 per MAU above 5,000 |              — | 300 per MAU, pooled |
-| Enterprise | Committed volume             |     Negotiated | Negotiated          |
+| Plan       | Price                           | Users included | Signature allowance |
+| ---------- | ------------------------------- | -------------: | ------------------- |
+| Free       | $0                              |      Up to 300 | 30,000 / month      |
+| Growth     | $99 / month                     |    Up to 5,000 | 300 per MAU, pooled |
+| Growth     | + $0.004 per MAU above 5,000    |              — | 300 per MAU, pooled |
+| Enterprise | From $0.003 per MAU above 5,000 |     Negotiated | Negotiated          |
 
 - **Pooled allowance:** the app gets 300 signatures for each MAU, for all its
   users together. With 10,000 MAU, the pool is 3,000,000 signatures. A few busy
   users do not cause a charge if the average stays below 300.
 - **Above the pool:** $0.05 per 1,000 signatures on Growth. Enterprise starts at
   $0.03 per 1,000 signatures.
+- **Enterprise floor:** from $0.003 per MAU above 5,000, on committed volume. The
+  public page shows this floor in its price calculator.
 - **Gas and chain fees** pass through at cost.
 - **Registration** has a fair-use rate limit. A new user costs about $0.0001, so
   bot sign-ups are cheap but not free.
@@ -165,6 +167,23 @@ month.
 - At large sizes, Enterprise contracts and dedicated infrastructure carry the
   margin. See [Infrastructure at scale](#infrastructure-at-scale).
 
+### Enterprise floor at 10 signatures a day
+
+The Enterprise floor is $99 plus $0.003 per MAU above 5,000. At 10 signatures a
+day, one user costs us about $0.003 a month, so the floor is close to our
+Cloudflare cost.
+
+| Users     | Our cost | Enterprise floor | Margin | Margin if a warm signature costs $0.000007 |
+| --------- | -------: | ---------------: | -----: | -----------------------------------------: |
+| 10,000    |      $30 |             $114 |    74% |                                        81% |
+| 100,000   |     $301 |             $384 |    22% |                                        45% |
+| 1,000,000 |   $3,010 |           $3,084 |     2% |                                        32% |
+
+- At 1,000,000 users, the floor leaves almost no margin on Cloudflare.
+- Offer the floor only with committed volume. Before a large contract at the
+  floor, measure the warm signature cost, or move the customer to dedicated
+  infrastructure.
+
 ## Competitor prices
 
 Read from the public pricing pages on October 21, 2026.
@@ -264,7 +283,8 @@ This path is not ready yet:
   fixed monthly cost sets the size at which it is cheaper than Cloudflare.
 
 Until this path is measured, the Enterprise price must cover the Cloudflare
-cost.
+cost. The published floor of $0.003 per MAU only just does so at 10 signatures a
+day.
 
 ## Before publication
 

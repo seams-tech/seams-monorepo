@@ -2775,7 +2775,7 @@ body:has(.h2-page) {
 /* the API notes stack in one column */
 .h2-startrow__grid .h2-startrow__notes {
   grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
+  gap: 18px;
   margin-top: 20px;
 }
 

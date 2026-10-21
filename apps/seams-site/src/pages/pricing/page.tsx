@@ -1,6 +1,6 @@
 import React from 'react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
-import { H2Faq, H2Footer } from '@/components/h2/sections';
+import { H2Cta, H2Faq, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { EnterpriseCalculator } from './EnterpriseCalculator';
@@ -196,6 +196,34 @@ export function PricingPage(): React.JSX.Element {
 
           <section
             className="h2-section h2-section--compact h2-rule"
+            aria-labelledby="pricing-plans-title"
+          >
+            <div className="h2-shell">
+              <div className="h2-split-head">
+                <p className="h2-kicker">Plans</p>
+                <h2 id="pricing-plans-title" className="h2-display">
+                  One price per active user
+                </h2>
+                <p className="h2-split-head__copy">
+                  Every plan has the full SDK: passkeys, split-key wallets, policy checks, and the
+                  audit log. Development environments are free on every plan. Gas and chain fees
+                  pass through at cost.
+                </p>
+              </div>
+              <div className="pricing-plans">
+                {plans.map((plan) => (
+                  <PlanCard key={plan.id} plan={plan} selected={plan.id === selectedPlanId} />
+                ))}
+              </div>
+              <p className="pricing-note">
+                Growth prices are fixed for 12 months from sign-up. After that, they may change with
+                our own hosting costs.
+              </p>
+            </div>
+          </section>
+
+          <section
+            className="h2-section h2-section--compact h2-rule"
             aria-labelledby="pricing-example-title"
           >
             <div className="h2-shell pricing-example-layout">
@@ -228,33 +256,7 @@ export function PricingPage(): React.JSX.Element {
             </div>
           </section>
 
-          <section
-            className="h2-section h2-section--compact h2-rule"
-            aria-labelledby="pricing-plans-title"
-          >
-            <div className="h2-shell">
-              <div className="h2-split-head">
-                <p className="h2-kicker">Plans</p>
-                <h2 id="pricing-plans-title" className="h2-display">
-                  One price per active user
-                </h2>
-                <p className="h2-split-head__copy">
-                  Every plan has the full SDK: passkeys, split-key wallets, policy checks, and the
-                  audit log. Development environments are free on every plan. Gas and chain fees
-                  pass through at cost.
-                </p>
-              </div>
-              <div className="pricing-plans">
-                {plans.map((plan) => (
-                  <PlanCard key={plan.id} plan={plan} selected={plan.id === selectedPlanId} />
-                ))}
-              </div>
-              <p className="pricing-note">
-                Growth prices are fixed for 12 months from sign-up. After that, they may change with
-                our own hosting costs.
-              </p>
-            </div>
-          </section>
+          <H2Cta />
 
           <EnterpriseCalculator />
 

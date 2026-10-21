@@ -1,6 +1,7 @@
 # Pricing page conversion funnel: plan
 
-Status: proposed; implementation has not started.
+Status: proposed; implementation has not started. Decisions recorded on
+October 21, 2026: see [Decisions](#decisions).
 Date: October 21, 2026.
 
 ## Outcome
@@ -10,12 +11,13 @@ and arrives at the right next step, with the plan choice kept:
 
 - **Free:** sign in with SSO, create the organization and first project, open the
   dashboard on the Free plan.
-- **Growth:** the same sign-in and onboarding, then card setup in Stripe Checkout,
-  then the dashboard with the card on file and the Growth move ready.
+- **Growth:** sign in with SSO, then go straight to Stripe Checkout. The Console
+  creates the organization and the first project with default names on the way.
+  Growth starts when Stripe confirms the card.
 - **Enterprise:** the contact form, filled in with the plan and the calculator
   values.
 
-Each step records one funnel event, so we can see where visitors stop.
+Each Console step records one funnel event, so we can see where visitors stop.
 
 Prices and limits come from [Wallet pricing and costs](wallet-saas/pricing.md).
 The Free plan state, card setup, and the Growth move come from
@@ -26,8 +28,8 @@ The Free plan state, card setup, and the Growth move come from
 Facts from the code on `dev`, October 21, 2026:
 
 - **Plan cards.** All three cards are links. Free and Growth go to `/docs/concepts/`,
-  Enterprise goes to `/contact/`. The hero "Start building" also goes to
-  `/docs/concepts/`. No link carries the plan.
+  Enterprise goes to `/contact/`. No link carries the plan. The hero buttons were
+  removed in `f68933d3`, so the cards are the only plan entry.
 - **Calculator.** `EnterpriseCalculator.tsx` keeps the user count and the
   signatures per day in React state. Its "Contact sales" link goes to `/contact/`
   without these values.
@@ -35,9 +37,8 @@ Facts from the code on `dev`, October 21, 2026:
   real endpoint, `POST /console/public/sales-inquiries`, with Turnstile. That
   route refuses unknown fields.
 - **Console sign-in.** `apps/wallet-console/src/core/dashboard/login/page.tsx` has
-  two providers only: Google (an ID token from a popup) and GitHub (a full-page
-  OAuth redirect to a fixed callback). Apple was decided for the Platform Console
-  but is not built. There is no email sign-in.
+  two providers: Google (an ID token from a popup) and GitHub (a full-page OAuth
+  redirect to a fixed callback). There is no email sign-in.
 - **Session resume.** The login page reads the Console session first. A signed-in
   visitor goes to `/dashboard` at once. An identity with no organization goes to
   `/dashboard/onboarding`, but only in the Platform Console build. The Wallet
@@ -54,6 +55,13 @@ Facts from the code on `dev`, October 21, 2026:
 - **Onboarding.** `POST /console/onboarding/organization`, then
   `POST /console/onboarding/project` with a browser-generated project id. Reload
   resumes from saved records. Onboarding ends on the dashboard overview.
+- **The billing account comes with the first project.** `bindProjectBilling`
+  (`packages/console-server-ts/src/accountPlatform/d1.ts`) creates the row in
+  `organization_billing_accounts`. Onboarding calls it when it creates the first
+  project. Card setup refuses an organization without this row
+  (`billing_account_missing`). So Stripe can open only after the first project
+  exists.
+- **Organization rename exists.** `PATCH /console/account/organizations/:orgId`.
 - **Plan state (feat-4, local, not released).** Each billing account has a plan:
   `free`, `growth`, or `enterprise`. New accounts start on `free`. There is no
   operation that moves an account to Growth on request. The only move is the
@@ -67,62 +75,92 @@ Facts from the code on `dev`, October 21, 2026:
 - **Growth charges.** The plan and the price version (`wallet-growth-v1`) are
   stored, but nothing bills them. The feat-3 monthly close does not exist. The
   prepaid `wallet.monthly_active_resource` meter ($3 per resource) still applies.
-- **Price lock.** The pricing page says Growth prices are fixed "for 12 months from
-  sign-up". feat-4 pins the lock on the day of the move to Growth. These differ.
-- **Analytics.** The company site and the Console have no analytics script.
+- **Price lock.** See [The 12-month price lock](#the-12-month-price-lock).
+- **Analytics.** The company site and the Console have no analytics script. We do
+  not track clicks on the company site.
 
 ## Evaluation of the starting idea
 
-| Card       | Starting idea                                     | Verdict                                                        |
-| ---------- | ------------------------------------------------- | -------------------------------------------------------------- |
-| Free       | Create an account and sign in                     | Keep. Go to the Platform Console login, not to the docs.       |
-| Growth     | Checkout first; the account is made after payment | Change. Sign in first, then card setup. See decisions 1 and 2. |
-| Enterprise | The contact form                                  | Keep. Add the plan and the calculator values to the form.      |
+| Card       | Starting idea                                     | Verdict                                                                 |
+| ---------- | ------------------------------------------------- | ----------------------------------------------------------------------- |
+| Free       | Create an account and sign in                     | Keep. Go to the Platform Console login, not to the docs.                |
+| Growth     | Checkout first; the account is made after payment | Change the order: sign in first, then straight to Checkout. Decision 1. |
+| Enterprise | The contact form                                  | Keep. Add the plan and the calculator values to the form.               |
 
 The Free and Enterprise parts fit the code with small changes. The Growth part
-does not fit. It needs a Stripe Customer before a billing account exists, it needs
-account linking by email, and it would take no payment, because a Growth charge
-cannot be made today.
+needs one change of order. Checkout before an account needs a Stripe Customer
+before a billing account exists, and account linking by email.
 
 ## Decision 1: guest checkout or sign-in first
 
-| Question                      | Guest checkout, account after payment                                                                                                                                                       | Sign-in first, then card setup (recommended)                 |
+| Question                      | Guest checkout, account after payment                                                                                                                                                       | Sign-in, then straight to Checkout (recommended)             |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | Stripe Customer               | Made before a billing account exists. It must move to the account later. feat-3 requires one persisted Customer per account, made by the server, never chosen by browser input.             | Made for the billing account by the existing route.          |
 | Who owns the result           | Only the email that the visitor typed into Stripe. Stripe does not verify it.                                                                                                               | The SSO identity. Google and GitHub verify the email.        |
 | Account linking               | Needed: link the paid checkout to an SSO account by email.                                                                                                                                  | Not needed.                                                  |
 | Takeover risk                 | Yes. An attacker types a victim's work email and prepares an account that the victim later joins. Or an attacker signs in with an unverified provider email and claims a victim's checkout. | None added. Card setup runs inside an authenticated session. |
 | Safe form of linking          | A claim link sent by email, opened before sign-in. That is an extra email step, and longer than one SSO click.                                                                              | —                                                            |
-| Visitor steps before the card | Zero, but a claim email and a sign-in follow.                                                                                                                                               | One SSO click and two onboarding fields.                     |
+| Visitor steps before the card | Zero, but a claim email and a sign-in follow.                                                                                                                                               | One SSO click. The Console sets up the rest.                 |
 | Abandon after Stripe          | A Customer and a card with no account. Cleanup work.                                                                                                                                        | An organization on Free. The feat-4 reminders follow up.     |
-| New code                      | Public checkout route, orphan Customers, claim tokens, linking rules.                                                                                                                       | A stored intent and one billing panel. The routes exist.     |
+| New code                      | Public checkout route, orphan Customers, claim tokens, linking rules.                                                                                                                       | A stored intent, automatic setup, and the Growth start.      |
 
-**Recommendation: sign-in first.** SSO is one click, so the guest flow saves almost
-nothing. It adds a takeover risk and a second Customer path that feat-3 forbids.
+**Recommendation: sign-in first, then straight to Checkout.** SSO is one click, so
+the guest flow saves almost nothing. It adds a takeover risk and a second Customer
+path that feat-3 forbids.
 
-## Decision 2: what the Growth "checkout" charges today
+## Decision 2: Growth starts at once
 
-**Recommendation: card setup only, with no first payment.**
+Decided October 21, 2026: the "card on file, move at the limit" state belongs to the
+Free plan only. A Growth click starts Growth, at $99 a month, when Stripe confirms
+the card. There is no "Growth-ready" state.
 
-- A first payment needs a Stripe payment-mode session or a Stripe subscription.
-  feat-3 rules out a subscription engine, and feat-4 rules out a second billing
-  path. The Platform ledger must own every charge.
-- Growth charges start with the feat-3 monthly close. Until it exists, a Growth
-  account accrues no collectable charge.
-- Below 300 users, Growth gives nothing that Free with a card does not give.
-  feat-4 already moves a Free account with a card to Growth at the first Free
-  limit, with no stop. A $99 charge before that point buys nothing.
+### Growth start operation
 
-So the Growth funnel ends in a **Growth-ready** state: plan `free`, card on file,
-and the automatic move at the first Free limit. The card page says "$0 today".
+Add one server operation that starts Growth on request. It runs the same statement
+as the feat-4 automatic move: it changes the plan to `growth`, pins
+`wallet-growth-v1`, and sets the lock date. It queues the move notice only if that
+statement commits.
 
-If we want Growth to start at once (for revenue or for the price lock), we need a
-new operation that moves the plan on request. See open decision 1.
+Two entry points use it:
+
+1. **Card setup with a purpose.** `POST /console/billing/card-setup` accepts
+   `purpose: 'growth_start'`. The server stores the purpose with the setup
+   session. When the server verifies that setup (reconcile or webhook), it starts
+   Growth in the same transaction. Growth then starts even if the browser never
+   returns from Stripe.
+2. **Start with the card on file.** `POST /console/billing/plan/growth`, for an
+   account that already has a usable card. It needs no Stripe step.
+
+Rules:
+
+- Only owners and billing administrators can start Growth. These are the same
+  permissions as card setup.
+- Start Growth only from `free`. On `growth`, return the current plan. On
+  `enterprise`, refuse.
+- A Free account that is stopped at a limit or at day 30 can start Growth. The
+  verified card lifts the stop, as in feat-4.
+- A replayed verification or a repeated request must not start Growth twice or
+  move the start date.
+
+### What Checkout charges
+
+Checkout stays in setup mode. It saves the card and charges nothing on that day.
+
+- A first payment at Checkout needs a Stripe payment-mode session or a Stripe
+  subscription. feat-3 rules out a subscription engine, and feat-4 rules out a
+  second billing path. The Platform ledger must own every charge.
+- $99 a month accrues from the Growth start date. The feat-3 monthly close
+  collects it. The first month is pro rata (the feat-4 default).
+- The login page and the Stripe page must say this before the visitor enters a
+  card: "Growth: $99 a month from today. We charge your card after each month."
+  Check that Stripe's `custom_text` works in setup mode.
+- Until the feat-3 close exists, Growth accounts accrue charges that nothing
+  collects. See open decision 2.
 
 ## Plan intent: how the choice travels
 
-The plan choice is an **intent**, not a plan state. It routes the visitor. It does
-not change what the account pays. The plan state stays the feat-4 state.
+The plan choice is an **intent**. It routes the visitor. Only the Growth start
+operation changes the plan, and only after a verified card.
 
 1. **Site link.** Free and Growth cards link to the Platform Console login:
    `<platform console origin>/dashboard/login?plan=free&src=pricing_card` (or
@@ -138,13 +176,12 @@ not change what the account pays. The plan state stays the feat-4 state.
    the invitation pattern. The value survives the GitHub redirect in the same tab
    and the Google popup.
 4. **Expiry.** Ignore an intent older than one hour. Clear it when the funnel ends:
-   at the dashboard (Free), or at card verification or "Continue on Free"
-   (Growth).
+   at the dashboard (Free), or at the Growth start or "Continue on Free" (Growth).
 5. **Precedence.** A pending invitation wins. If both exist, drop the intent: the
    inviting organization already has a plan.
 6. **Server record.** Send `planIntent` with `POST /console/onboarding/organization`.
-   Store it in that request's existing audit event only. It is for measurement. No
-   code reads it to decide a price.
+   Store it in that request's existing audit event. It is for measurement. The
+   card-setup `purpose` is the only server input that starts Growth.
 
 Why not only a URL parameter: the GitHub callback URL is fixed, so a parameter is
 lost at the OAuth redirect. Why not a server field before sign-in: there is no
@@ -160,11 +197,14 @@ identity to attach it to.
 | 2    | Console login               | Store the intent. Show "Start on the Free plan" above the provider buttons.                                                              |
 | 3    | Google popup or GitHub page | SSO. A new identity gets `console_identity_v1`.                                                                                          |
 | 4    | Onboarding: organization    | Existing step. Send `planIntent: 'free'`.                                                                                                |
-| 5    | Onboarding: first project   | Existing step. Creates the Development environment.                                                                                      |
+| 5    | Onboarding: first project   | Existing step. Creates the Development environment and the billing account.                                                              |
 | 6    | Dashboard overview          | Show a plan summary: Free, 300 users, 30,000 signatures, card needed by the day-30 date. Link to the docs quick start. Clear the intent. |
 
 The plan summary is new. The feat-4 banners start only on day 16, so without it a
 new account sees no plan on day 0.
+
+The Free plan keeps the feat-4 rules: a card after 30 days, and with a card on
+file, the automatic move to Growth at the first Free limit.
 
 ### Visitor who already has an account
 
@@ -195,56 +235,65 @@ free organization uses the existing "create organization" path.
 
 ### Steps and screens
 
-| Step | Screen                              | What happens                                                                                                                                                                                                                     |
-| ---- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | Pricing page, Growth card           | Link to the Platform Console login with `plan=growth`.                                                                                                                                                                           |
-| 2    | Console login                       | Store the intent. Show "Start on Growth: sign in, then add a card. $0 today."                                                                                                                                                    |
-| 3    | Google popup or GitHub page         | SSO.                                                                                                                                                                                                                             |
-| 4    | Onboarding: organization            | Existing step. Send `planIntent: 'growth'`. Show "Next: add a card" in the stepper.                                                                                                                                              |
-| 5    | Onboarding: first project           | Existing step.                                                                                                                                                                                                                   |
-| 6    | Billing account: Growth setup panel | New panel on `/dashboard/billing/account`. Text: "$0 today. You move to Growth, $99 a month, when you pass 300 users or 30,000 signatures. Growth prices are fixed for 12 months." Buttons: "Add a card" and "Continue on Free". |
-| 7    | Stripe Checkout, setup mode         | Existing `POST /console/billing/card-setup`.                                                                                                                                                                                     |
-| 8    | Billing account, return from Stripe | Existing reconcile call. On a verified card, show "You are ready for Growth" and "Open dashboard". Clear the intent.                                                                                                             |
-| 9    | Dashboard overview                  | A new `growth_ready` banner: "Card on file. You move to Growth at the first Free limit, with no stop."                                                                                                                           |
+| Step | Screen                              | What happens                                                                                                                                                     |
+| ---- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Pricing page, Growth card           | Link to the Platform Console login with `plan=growth`.                                                                                                           |
+| 2    | Console login                       | Store the intent. Show "Start Growth: $99 a month. Sign in, then add a card."                                                                                    |
+| 3    | Google popup or GitHub page         | SSO.                                                                                                                                                             |
+| 4    | "Setting up your organization"      | Automatic setup: create the organization and the first project with default names, with `planIntent: 'growth'`. No form. This also creates the billing account.  |
+| 5    | Stripe Checkout, setup mode         | `POST /console/billing/card-setup` with `purpose: 'growth_start'`, then a redirect to Stripe. Stripe's custom text repeats the price.                            |
+| 6    | Billing account, return from Stripe | The existing reconcile call. The server verifies the card and starts Growth in the same transaction. Show "Growth started" and the start date. Clear the intent. |
+| 7    | Dashboard overview                  | The existing feat-4 `growth_move` banner. A prompt to name the organization, with the rename route. A link to the docs quick start.                              |
 
-The onboarding contract does not change: onboarding still ends when the
-organization, project, and Development environment exist. The Growth panel comes
-after it, and the login page sends the visitor there when the intent is `growth`.
+Automatic setup:
 
-`growth_ready` is a derived banner: plan `free` and a usable card. Add it to the
-feat-4 evaluation. It needs no new stored state.
+- **Organization name:** the email domain for a work address (`acme.com` gives
+  "Acme"). Otherwise the display name ("Pat's organization"). The visitor renames
+  it on the dashboard.
+- **Project name:** "My first app". The project creates the Development
+  environment, as in normal onboarding.
+- The browser generates the project id once and keeps it in the onboarding draft,
+  so a retry or a reload creates no second project.
+- Onboarding still completes when the organization, project, and Development
+  environment exist. Only the form is skipped.
+
+The Growth start screen is a fallback only. It shows for the cases in the
+next table, and after a Stripe cancel.
 
 ### Visitor who already has an account
 
-The panel acts on the selected organization. It names that organization and links
-to the organization switcher.
+The funnel acts on the selected organization. Screens name that organization and
+link to the organization switcher.
 
-| Visitor state                                   | Result                                                                              |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Signed in, organization on Free, no usable card | The Growth setup panel.                                                             |
-| Signed in, Free with a usable card              | "You are ready for Growth." No Stripe step. Clear the intent.                       |
-| Signed in, already on Growth                    | "You are on Growth since <date>. Prices fixed until <date>." Clear the intent.      |
-| Signed in, on Enterprise                        | The dashboard. Drop the intent.                                                     |
-| Signed in without billing permission            | "Ask an owner or a billing administrator to add a card." Clear the intent.          |
-| Free account stopped at a limit or at day 30    | The panel, with the existing stop message. A verified card lifts the stop (feat-4). |
-| Has an account, not signed in                   | SSO, then the rows above.                                                           |
-| Signed in, no organization                      | Onboarding resumes, then the panel.                                                 |
-| Pending invitation                              | The invitation. Drop the intent.                                                    |
+| Visitor state                                | Result                                                                                                                      |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Signed in, one organization, Free, no card   | Straight to Stripe with `purpose: 'growth_start'`.                                                                          |
+| Signed in, Free with a usable card           | Confirm screen: "Start Growth: $99 a month from today", card brand and last four. Then `POST /console/billing/plan/growth`. |
+| Signed in, more than one organization        | Choose the organization first. Then the rows above.                                                                         |
+| Signed in, already on Growth                 | "You are on Growth since <date>." Clear the intent.                                                                         |
+| Signed in, on Enterprise                     | The dashboard. Drop the intent.                                                                                             |
+| Signed in without billing permission         | "Ask an owner or a billing administrator to start Growth." Clear the intent.                                                |
+| Free account stopped at a limit or at day 30 | Straight to Stripe. The verified card lifts the stop and starts Growth.                                                     |
+| Has an account, not signed in                | SSO, then the rows above.                                                                                                   |
+| Signed in, no organization                   | Automatic setup, then Stripe.                                                                                               |
+| Pending invitation                           | The invitation. Drop the intent.                                                                                            |
 
 ### Failure and abandon paths
 
-- **Card setup does not start** (Stripe or the route fails): show the error, "Try
-  again", and "Continue on Free". Keep the intent.
-- **Visitor cancels in Stripe:** Stripe returns with `card_setup=cancel`. Show the
-  existing message, "Try again", and "Continue on Free".
+- **Automatic setup fails:** show the error and "Try again". The retry reuses the
+  same project id. After two failures, offer the normal onboarding form.
+- **Card setup does not start** (Stripe or the route fails): the Growth start
+  screen, with the error, "Try again", and "Continue on Free". Keep the intent.
+- **Visitor cancels in Stripe:** Stripe returns with `card_setup=cancel`. The
+  Growth start screen, with "Try again" and "Continue on Free".
 - **Card declined or 3-D Secure fails:** Stripe shows the error on its page. If the
   visitor leaves there, the Checkout session expires and nothing is stored.
-- **Redirect arrives before Stripe confirms:** the existing "Stripe has not
-  confirmed the card yet" message. The webhook or the next reconcile completes it.
-- **Visitor leaves at the panel or in Stripe:** the organization stays on Free with
-  no card. The feat-4 reminders follow up. Add one email on day 1 for an
-  organization with `planIntent: 'growth'` and no card: "Finish your Growth setup".
-  Send it once, through the feat-4 notice keys.
+- **Redirect arrives before Stripe confirms:** "Stripe has not confirmed the card
+  yet." The webhook or the next reconcile verifies the card and starts Growth.
+- **Visitor leaves in Stripe:** the organization stays on Free with no card, and
+  with the default names. The feat-4 reminders follow up. Add one email on day 1
+  for an organization with `planIntent: 'growth'` and no card: "Finish starting
+  Growth". Send it once, through the feat-4 notice keys.
 - **"Continue on Free":** clear the intent, open the dashboard. Record the event.
 
 ## Enterprise funnel
@@ -293,37 +342,38 @@ from the Console.
 
 ## Measurement
 
+We do not track clicks on the company site. Counting starts at the Console login
+page. For Enterprise, it starts at the sent inquiry.
+
 ### What to count
 
-| Step                        | Event                           | Properties            | Source                             |
-| --------------------------- | ------------------------------- | --------------------- | ---------------------------------- |
-| Card click                  | `pricing_plan_click`            | `plan`, `src`         | Company site (see open decision 3) |
-| Login page with an intent   | `console_login_view`            | `plan`, `src`         | Console                            |
-| New identity                | `console_identity_created`      | `plan`, `provider`    | Console session exchange           |
-| Existing identity signs in  | `console_signin_existing`       | `plan`, `provider`    | Console session exchange           |
-| Organization created        | `onboarding_org_created`        | `plan`                | Existing audit event               |
-| First project created       | `onboarding_project_created`    | `plan`                | Existing audit event               |
-| Growth panel shown          | `growth_panel_view`             | `account_state`       | Console                            |
-| Card setup started          | `card_setup_started`            | `plan`                | Existing route                     |
-| Card setup canceled         | `card_setup_canceled`           | `plan`                | Return URL                         |
-| Card verified               | `card_verified`                 | `plan`                | Existing reconcile or webhook      |
-| Continue on Free            | `growth_continue_free`          | —                     | Console                            |
-| First production wallet     | `first_production_registration` | `plan`                | feat-4 production MAU facts        |
-| Move to Growth              | `growth_move`                   | `limit`               | Existing feat-4 move               |
-| Contact page with an intent | `contact_view`                  | `src`, `has_estimate` | Company site                       |
-| Inquiry sent                | `contact_submit`                | `src`, `spam_verdict` | feat-5 endpoint                    |
-| Fallback used               | `contact_fallback`              | `reason`              | Company site                       |
+| Step                       | Event                           | Properties            | Source                        |
+| -------------------------- | ------------------------------- | --------------------- | ----------------------------- |
+| Login page with an intent  | `console_login_view`            | `plan`, `src`         | Console                       |
+| New identity               | `console_identity_created`      | `plan`, `provider`    | Console session exchange      |
+| Existing identity signs in | `console_signin_existing`       | `plan`, `provider`    | Console session exchange      |
+| Organization created       | `onboarding_org_created`        | `plan`, `automatic`   | Existing audit event          |
+| First project created      | `onboarding_project_created`    | `plan`, `automatic`   | Existing audit event          |
+| Card setup started         | `card_setup_started`            | `purpose`             | Existing route                |
+| Card setup canceled        | `card_setup_canceled`           | `purpose`             | Return URL                    |
+| Card verified              | `card_verified`                 | `purpose`             | Existing reconcile or webhook |
+| Growth started             | `growth_start`                  | `entry`               | Growth start operation        |
+| Continue on Free           | `growth_continue_free`          | —                     | Console                       |
+| Organization renamed       | `organization_renamed`          | `was_default`         | Existing rename route         |
+| First production wallet    | `first_production_registration` | `plan`                | feat-4 production MAU facts   |
+| Automatic move to Growth   | `growth_move`                   | `limit`               | Existing feat-4 move          |
+| Inquiry sent               | `contact_submit`                | `src`, `spam_verdict` | feat-5 endpoint               |
 
 ### Rates to watch
 
-- Free: click → login view → identity → organization → project → first
-  production wallet.
-- Growth: the same, then panel → card started → card verified, and "Continue on
-  Free" as a share of panel views.
-- Enterprise: click → contact view → inquiry sent → fallback share.
-- Time from sign-up to the first production wallet, per plan intent. This is the
+- Free: login view → identity → organization → project → first production
+  wallet.
+- Growth: login view → identity → card started → card verified → Growth started,
+  and "Continue on Free" as a share of card starts.
+- Enterprise: inquiries per source (card or calculator).
+- Time from sign-up to the first production wallet, per plan. This is the
   activation measure.
-- Share of Growth intents that reach a verified card within 7 days.
+- Share of Growth intents that start Growth within 7 days.
 
 ### Rules
 
@@ -334,37 +384,59 @@ from the Console.
 - Keep event writes off the registration, unlock, and signing paths. Use the
   existing audit events and the outbox.
 
+## The 12-month price lock
+
+The lock is a promise that an organization's Growth prices do not change for 12
+months. After that, the prices may change with our own hosting costs. It is in
+three places:
+
+- The pricing page, under the plan cards: "Growth prices are fixed for 12 months
+  from sign-up. After that, they may change with our own hosting costs."
+- [Wallet pricing and costs](wallet-saas/pricing.md): "12-month price lock on
+  Growth".
+- The feat-4 code: the Growth move pins the price version `wallet-growth-v1` and
+  stores `priceLockedUntilMs`, 12 months after the move.
+
+With Growth on request, a Growth visitor starts Growth at sign-up, so "from
+sign-up" is true for this funnel. It is not true for a Free organization that moves
+to Growth later: its lock starts at the move. See open decision 1.
+
 ## Implementation phases
 
 1. **Plan intent in the Console.** Login page parameters, the stored intent, the
    precedence rules, the `planIntent` audit field, routing after sign-in, and the
    login text per intent. Unit tests for parsing, expiry, and precedence.
-2. **Site links.** The Platform Console origin setting. Free and Growth cards and
-   the hero "Start building" link to the login with an intent. The Enterprise card
-   and the calculator link to the contact page with the context.
-3. **Growth setup panel.** The panel and its account-state table, "Continue on
-   Free", the `growth_ready` banner, and the day-1 "Finish your Growth setup"
-   email. Reuse the feat-4 card-setup routes.
-4. **Free plan summary** on the dashboard overview.
-5. **Contact prefill.** The shared estimate module, the prefill rules, and the
+2. **Site links.** The Platform Console origin setting. Free and Growth cards link
+   to the login with an intent. The Enterprise card and the calculator link to the
+   contact page with the context.
+3. **Growth start operation.** The card-setup `purpose`, the start inside the
+   verification transaction, `POST /console/billing/plan/growth`, and the rules in
+   Decision 2. Tests through the shared billing factories: start once, replay,
+   stopped account, Enterprise refusal, missing permission.
+4. **Growth funnel screens.** Automatic setup, the straight redirect to Stripe,
+   the Stripe custom text, the confirm screen, the fallback screen with "Continue
+   on Free", the rename prompt, and the day-1 email.
+5. **Free plan summary** on the dashboard overview.
+6. **Contact prefill.** The shared estimate module, the prefill rules, and the
    `mailto:` lines. After feat-5: the `context` field.
-6. **Measurement.** The events in the table, from the existing audit events where
+7. **Measurement.** The events in the table, from the existing audit events where
    they exist.
-7. **Acceptance.** A browser test per funnel against the local Console, with
-   Stripe test mode for the Growth card: new visitor, signed-in visitor, visitor
-   without billing permission, Stripe cancel, and a reload in the middle. Check
-   that an intent never changes the stored plan or a price. Check the `/dashboard`
-   hop on the Wallet Console for a new identity, and fix or bypass it.
+8. **Acceptance.** A browser test per funnel against the local Console, with
+   Stripe test mode for Growth: new visitor, signed-in visitor with and without a
+   card, more than one organization, no billing permission, Stripe cancel, a
+   reload during automatic setup, and a lost Stripe return (the webhook starts
+   Growth). Check the `/dashboard` hop on the Wallet Console for a new identity,
+   and fix or bypass it.
 
 ## Dependencies
 
 - feat-4 released: the plan state, card setup, and the Growth move. They are on
   `dev` locally, not released.
 - The prepaid `wallet.monthly_active_resource` charge must not apply to Free or
-  Growth accounts before these funnels go live. Otherwise the page promises $0 and
-  production charges $3 per resource. Check whether production registration needs
-  a prepaid balance today.
-- feat-3 monthly close, before any Growth account pays.
+  Growth accounts before these funnels go live. Otherwise the page promises one
+  price and production charges $3 per resource. Check whether production
+  registration needs a prepaid balance today.
+- feat-3 monthly close, to collect Growth charges. See open decision 2.
 - feat-5, for the real contact endpoint. The Enterprise prefill works before it,
   through the `mailto:` body.
 
@@ -374,29 +446,36 @@ from the Console.
   the GitHub redirect, and a reload in the same tab.
 - A new Free visitor reaches the dashboard in one SSO click and two onboarding
   fields, and sees the Free plan on day 0.
-- A new Growth visitor reaches a verified card and the `growth_ready` banner, and
-  pays nothing on that day.
+- A new Growth visitor reaches Stripe after one SSO click and no form, and is on
+  Growth when Stripe confirms the card, also if the browser never returns.
+- Growth starts only from a verified card or an explicit confirm, never from the
+  intent alone, and never twice.
 - A signed-in visitor never repeats onboarding and never gets a second
   organization from a card click.
-- An intent never changes a stored plan, a price version, or a lock date.
 - The contact form shows the plan and the estimate from the calculator, recomputed
   from the shared constants.
 - Every step in the measurement table records one event.
 
+## Decisions
+
+Recorded October 21, 2026:
+
+1. **Growth starts at once.** The "card on file, move at the limit" state is for
+   the Free plan only. A Growth click starts Growth at $99 a month.
+2. **Sign-in, then straight to Checkout** for Growth, with automatic setup of the
+   organization and the first project.
+3. **No click tracking on the company site** for now.
+4. **Google and GitHub first.** Apple sign-in is not needed for these funnels.
+5. **No hero buttons.** They were removed in `f68933d3`. The plan cards are the
+   only entry.
+
 ## Open decisions
 
-1. **Growth on request.** Keep the Growth-ready state (this plan), or add an
-   operation that moves an account to Growth when the visitor asks. The second
-   charges $99 a month from that day, once the feat-3 close exists, and starts the
-   price lock at once.
-2. **Price lock start.** The pricing page says "12 months from sign-up". feat-4
-   pins the lock at the move to Growth. Change the page text to "from your move to
-   Growth", or pin the lock at card setup for a Growth intent.
-3. **Click counting on the company site.** The site has no analytics. Options:
-   Cloudflare Web Analytics (no cookies, page views only), or a count at the
-   Console login page only (no site event). The second loses visitors who never
-   reach the login page.
-4. **Apple sign-in.** It was decided for the Platform Console but is not built.
-   Decide if it must ship before these funnels.
-5. **Hero "Start building".** Send it to the Free funnel (this plan) or keep the
-   docs link. The docs stay one click away from the dashboard.
+1. **The 12-month price lock.** Keep it, and change the page text to "for 12 months
+   from the day you start Growth"? Or remove the promise from the page, the pricing
+   document, and the feat-4 lock date?
+2. **Growth before the feat-3 close.** Until the monthly close exists, a Growth
+   account accrues $99 a month that nothing collects. Open the Growth funnel only
+   after the close ships, or accept unbilled Growth months until then.
+3. **Default organization name.** The email domain and the display name are a
+   proposal.

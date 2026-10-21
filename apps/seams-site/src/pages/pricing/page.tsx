@@ -202,12 +202,12 @@ export function PricingPage(): React.JSX.Element {
               <div className="h2-split-head">
                 <p className="h2-kicker">Plans</p>
                 <h2 id="pricing-plans-title" className="h2-display">
-                  One price per active user
+                  Pay for active users, with signing included
                 </h2>
                 <p className="h2-split-head__copy">
-                  Every plan has the full SDK: passkeys, split-key wallets, policy checks, and the
-                  audit log. Development environments are free on every plan. Gas and chain fees
-                  pass through at cost.
+                  Each active user includes 300 signatures a month, pooled across your app. Above
+                  the pool, signatures cost $0.05 per 1,000. Every plan has the full SDK,
+                  development is free, and gas and chain fees pass through at cost.
                 </p>
               </div>
               <div className="pricing-plans">

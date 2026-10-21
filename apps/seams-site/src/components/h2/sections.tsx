@@ -1551,7 +1551,11 @@ const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
     },
     {
       q: 'What happens when my app grows past the free plan?',
-      a: 'The free plan stops at 300 active users or 30,000 signatures in a month. Recovery and key export stay open, with rate limits, so your users keep access to their funds. Add a card to continue on Growth at $99 a month, with 5,000 users included.',
+      a: 'We warn you at 80% of a free limit: 300 active users or 30,000 signatures in a month. With a card on file, your app moves to Growth at the limit, with no pause: $99 a month, with 5,000 users included. Without a card, production sign-ups and signing pause at the limit until you add one. Recovery and key export stay open, with rate limits, so your users keep access to their funds.',
+    },
+    {
+      q: 'Do I need a card for the free plan?',
+      a: 'Not at first. From 60 days after you create your organization, production needs a card on file. We do not charge it while you stay inside the free limits. Development environments never need a card.',
     },
     {
       q: 'Can I use more than one free plan?',

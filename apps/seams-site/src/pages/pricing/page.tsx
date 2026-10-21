@@ -27,6 +27,7 @@ const plans: readonly Plan[] = [
       '30,000 signatures a month',
       'Passkeys, Email OTP, and split-key wallets',
       'One free plan per organization',
+      'Card required after 60 days, not charged',
     ],
     cta: { label: 'Start building', to: '/docs/concepts/', primary: false },
   },

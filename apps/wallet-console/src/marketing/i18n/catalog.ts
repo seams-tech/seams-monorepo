@@ -78,8 +78,8 @@ export const catalog = {
     ja: 'ロックインのない組み込みウォレット。',
   },
   heroDescription: {
-    en: 'Give every user a passkey wallet with device linking and recovery. Start free on our cloud. The code is open source, so you are never locked in.',
-    ja: 'すべてのユーザーに、デバイスのリンクと復元に対応したパスキーウォレットを。当社のクラウドで無料で始められます。コードはオープンソースなので、ロックインされることはありません。',
+    en: 'Passkey wallets with device linking and recovery, running on serverless infrastructure like Cloudflare Workers. Start free, pay as you grow, and never get locked in.',
+    ja: 'デバイスのリンクと復元に対応したパスキーウォレットを、Cloudflare Workersなどのサーバーレス基盤で。無料で始めて利用に応じて支払い、ロックインもありません。',
   },
   startFree: { en: 'Start free', ja: '無料で始める（英語）' },
   startBuilding: { en: 'Start building', ja: '開発を始める（英語）' },
@@ -143,8 +143,8 @@ export const catalog = {
   approvals: { en: 'Approvals', ja: '承認' },
   approvalsDescription: { en: 'The owner confirms in the wallet', ja: '所有者がウォレットで確認' },
   integrationTitle: {
-    en: 'Add wallets and permissions with a few API calls',
-    ja: 'わずかなAPI呼び出しで、ウォレットと権限管理を追加',
+    en: 'Serverless wallets on Cloudflare, in a few API calls',
+    ja: 'Cloudflare上のサーバーレスウォレットを、わずかなAPI呼び出しで',
   },
   exploreDocumentation: { en: 'Explore documentation', ja: 'ドキュメントを見る（英語）' },
   accountsApi: { en: 'Accounts and Wallets API', ja: 'アカウント・ウォレットAPI' },

@@ -19,7 +19,14 @@ checks quota exhaustion, and unlocks with its owner passkey. Approval then produ
 a real Ed25519 Yao signature, which the test verifies against the registered key.
 The final stage funds the disposable wallet and confirms a one-yoctoNEAR transfer
 on NEAR testnet. The automated passkey is a browser virtual authenticator.
-Live microphone qualification remains the next acceptance step.
+The native package also passes relocation and installation checks. Its runtime
+metadata contains eight fields and no evaluation data. The package journey denies
+source-checkout reads, runs the C lifecycle with real models and network denied,
+and checks installation, model tampering, recovery, reinstallation, and removal
+through real Chromium. This qualifies relocation on the development Mac.
+Live microphone and clean-Mac qualification remain open.
+The [package evidence](../verifier-spike/reports/macos-package-2026-10-23.json)
+records the archive hash, native lifecycle cases, and browser outcomes.
 
 The [testnet report](../verifier-spike/reports/browser-wallet-testnet-2026-10-23.json)
 records the transaction, signature digest, funding, and cleanup. Its
@@ -38,9 +45,12 @@ repository. Set these paths to your checkouts:
 VOICEID_PRIVATE=/Users/pta/.codex/worktrees/voiceid/seams-monorepo
 VOICEID_WALLET=/Users/pta/.codex/worktrees/voiceid/seams-wallet
 VOICEID_MODELS="$VOICEID_PRIVATE/voiceId/verifier-spike/.cache/native-models/native-inputs.json"
+VOICEID_PACKAGE="$VOICEID_PRIVATE/voiceId/engine/target/voiceid-macos-package"
 cd "$VOICEID_WALLET"
 cargo build --offline --locked --release --lib --bin voiceid-host \
   --manifest-path "$VOICEID_PRIVATE/voiceId/engine/Cargo.toml"
+node "$VOICEID_PRIVATE/voiceId/browser/package.mjs" \
+  --models "$VOICEID_MODELS" --output "$VOICEID_PACKAGE"
 pnpm -C packages/wallet build:sdk
 ```
 
@@ -49,27 +59,48 @@ A fresh Wallet worktree needs `pnpm install --frozen-lockfile` and
 [native model instructions](../verifier-spike/README.md). The host checks the
 provisioned model and library hashes before use.
 
-Record three deliberate enrollment samples:
+The package output directory and archive must be new. Choose a new output path
+for another build. Assembly uses the existing model manifest's explicit asset list.
+It copies the native host, shared library, header, extension, installer, and notices.
+It preserves dependency license texts and pinned upstream notices when a crate's
+archive omits them. The builder also writes a `.tar.gz` archive and its checksum.
+The package contains no recordings, speaker templates, transcripts, or fixture cases.
+
+Extract the archive into a stable location. Node.js is required for installation.
+Python, Rust, and the source checkout are unnecessary on the target Mac.
+The package is an internal prototype with an ad hoc signed shared library.
+Developer ID signing, notarization, and clean-Mac qualification remain open.
+
+Follow the package's `SETUP.txt`. Record three deliberate enrollment samples:
 
 ```sh
-"$VOICEID_PRIVATE/voiceId/engine/target/release/voiceid-host" enroll "$VOICEID_MODELS"
+"$VOICEID_PACKAGE/bin/voiceid-host" enroll "$VOICEID_PACKAGE/native-inputs.json"
 ```
 
 Each capture requires Enter. Grant microphone permission when macOS requests it.
 Only the template remains in the local Keychain. `voiceid-host status` checks the
 enrollment. `voiceid-host delete` removes it.
 
-Choose the Chrome or Chromium profile that will run the prototype. Register the
-native host for that profile:
+Choose the Chrome or Chromium user data directory that will run the prototype.
+It contains the `Default` and `Profile 1` directories. Register the native host:
 
 ```sh
-node "$VOICEID_PRIVATE/voiceId/browser/install.mjs" \
-  --models "$VOICEID_MODELS" --profile /absolute/path/to/Chrome-profile
+node "$VOICEID_PACKAGE/install.mjs" install \
+  --user-data-dir "$HOME/Library/Application Support/Google/Chrome"
 ```
 
 Open that browser profile. Enable Developer mode at `chrome://extensions`.
-Select **Load unpacked** and choose `voiceId/browser/extension` from this worktree.
+Select **Load unpacked** and choose the package's `extension` directory.
 The pinned extension ID is `ackhkimailmgolplljlhgoclgdjcgdba`.
+Moving the package requires registration again. Removal uses the same installer:
+
+```sh
+node "$VOICEID_PACKAGE/install.mjs" remove \
+  --user-data-dir "$HOME/Library/Application Support/Google/Chrome"
+```
+
+Disable VoiceID in the Wallet settings before removal. Removal preserves the
+Keychain enrollment. `voiceid-host delete` removes enrollment deliberately.
 
 Serve this Wallet build through the existing local wallet origin,
 `https://localhost:4002`. Run the existing Caddy configuration directly with
@@ -93,6 +124,19 @@ Capture and consumption share a maximum 25-second deadline. A failure requires
 a new review. Disable VoiceID through the same wallet settings page when finished.
 
 ## Repeatable evidence
+
+The package journey needs the current package archive and the existing synthetic
+fixtures. It opens no microphone and submits no Wallet transaction:
+
+```sh
+cd "$VOICEID_WALLET"
+node "$VOICEID_PRIVATE/tests/e2e/voiceid-package.e2e.mjs" \
+  "$VOICEID_WALLET" "$VOICEID_PACKAGE.tar.gz"
+```
+
+Its report and C evidence appear under `voiceId/engine/target/package-journey/`.
+The archive is extracted outside both checkouts into a path with spaces and an
+apostrophe. Browser removal affects its disposable profile only.
 
 The public approval contract runs without private models:
 
@@ -145,7 +189,7 @@ No live microphone capture occurs.
 1. Enroll with deliberate live microphone samples on the intended Mac and browser.
 2. Qualify approval, cancellation, another speaker, and background noise with live speech.
 3. Measure end-to-end delay and tune the speaker gate from those results.
-4. Package the native host and extension for installation on a clean Mac.
+4. Qualify the prepared package on a clean Mac and complete Developer ID signing before distribution.
 5. Integrate the isolated branches after concurrent work is ready.
 
 Replay and targeted synthesis detection remain outside the selected MVP.

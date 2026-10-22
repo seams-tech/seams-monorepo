@@ -139,8 +139,12 @@ impl LocalModels {
     /// Reference templates and fixture cases in research inputs are never consumed here.
     pub fn load(path: &Path, work: &WorkContext<'_>) -> Result<Self, AdapterError> {
         work.check().map_err(AdapterError::Work)?;
+        let path = std::fs::canonicalize(path).map_err(model_failure)?;
+        let directory = path
+            .parent()
+            .ok_or(AdapterError::InvalidInput(InputError::Empty))?;
         let mut bytes = Vec::new();
-        File::open(path)
+        File::open(&path)
             .map_err(model_failure)?
             .take(1_048_577)
             .read_to_end(&mut bytes)
@@ -148,11 +152,15 @@ impl LocalModels {
         if bytes.len() > 1_048_576 {
             return Err(AdapterError::InvalidInput(InputError::LimitExceeded));
         }
-        let input: ModelInputs = serde_json::from_slice(&bytes).map_err(model_failure)?;
+        let mut input: ModelInputs = serde_json::from_slice(&bytes).map_err(model_failure)?;
         bytes.fill(0);
         if input.schema_version != "voiceid_native_journey_input_v1" {
             return Err(AdapterError::Failed(FailureReason::InvalidOutput));
         }
+        input.model_directory = directory.join(input.model_directory);
+        input.moonshine_library.path = directory.join(input.moonshine_library.path);
+        input.onnx_runtime_library.path = directory.join(input.onnx_runtime_library.path);
+        input.speaker_model.path = directory.join(input.speaker_model.path);
         let runtime = verify_file(&input.onnx_runtime_library, work)?;
         let transcriber = MoonshineTranscriber::load(
             verify_file(&input.moonshine_library, work)?,

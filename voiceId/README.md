@@ -34,7 +34,10 @@ verifies its lifecycle. The [browser prototype](browser/README.md) now connects
 the wallet-owned review gate to the native engine through Chrome native messaging.
 The real-model browser journey now runs Ed25519 Yao MPC, verifies the resulting
 signature, and confirms a reviewed NEAR transfer on testnet.
-Live microphone qualification remains open.
+An internal macOS package now includes the host, shared library, runtime assets,
+extension, installer, and notices. Relocation and source-denied native/browser
+checks pass on the development Mac. Live microphone and clean-Mac qualification
+remain open. See the [package setup](browser/SETUP.txt).
 Engine results carry no robot or signing authority.
 
 The first MVP assumes a user-controlled, authorized device. It checks the enrolled

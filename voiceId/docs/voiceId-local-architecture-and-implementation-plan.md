@@ -595,6 +595,14 @@ selected and measured, label the system experimental.
 
 ### L6 — Release the proprietary native package
 
+An internal Apple Silicon macOS package now contains the native host, ABI 1
+library and header, verified runtime assets, extension, installer, and notices.
+The builder writes an archive and checksum. Its runtime metadata excludes research
+templates and fixtures. The package journey extracts it outside the checkouts,
+denies source reads, and runs real-model C and Chromium installation checks.
+This is a development-Mac result. Live capture, clean-host qualification,
+Developer ID signing, notarization, and publication remain open.
+
 - [ ] Build and publish a versioned artifact from `seams-monorepo` using the
       selected release mechanism. Include required runtime/model dependencies,
       integrity information, target profile, and license notices.

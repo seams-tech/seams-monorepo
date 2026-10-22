@@ -8,8 +8,10 @@ The macOS development host adds capture, enrollment collection, Keychain storage
 deletion, and command checks. ABI 1 exposes those engine lifecycles to a native
 C caller. The development executable also hosts one Chrome native-messaging
 connection. The [browser prototype](../browser/README.md) reaches the wallet's
-existing signing boundary with real native models and synthetic speech.
-Live microphone qualification, robot actions, and a funded wallet transaction remain open.
+existing signing boundary with real native models and synthetic speech. It also
+confirms a funded NEAR testnet transfer. A relocatable package now includes the
+host, shared library, runtime assets, extension, and installer.
+Live microphone qualification, clean-Mac installation, and robot actions remain open.
 
 The first MVP assumes a user-controlled, authorized device. It uses speaker
 matching and local approval of one exact wallet operation under existing authority.
@@ -33,6 +35,9 @@ and assurance-aware admission remain unimplemented contract work.
 | Speaker backend | Full-waveform ECAPA ONNX export from the pinned SpeechBrain reference. CPU inference uses ONNX Runtime through `ort`. |
 | Browser direction | The prototype uses Chrome native messaging on macOS. The portable engine also compiles for `wasm32-unknown-unknown`; browser model execution remains separate work. |
 | Package boundary | One unpublished private crate in `seams-monorepo/voiceId/engine`. Its Chrome host transports opaque perception bindings. Wallet operation construction, authentication, and signing remain in the public Wallet repository. |
+
+Native model paths resolve from the metadata file's directory. The loader verifies
+each model and library before inference. The package uses relative asset paths.
 
 The shared library exports the macOS [C API](include/voiceid.h).
 Its native C journey links only the compiled library and this header.

@@ -1,0 +1,53 @@
+Seams VoiceID — Apple Silicon macOS prototype
+
+This internal prototype runs from this directory. Keep the directory in a stable
+location. The installer needs Node.js. The host needs no Python, Rust, or source
+checkout. Install the extension in Chrome or Chromium with Developer mode.
+This package is not signed for public distribution or notarized.
+
+1. Open Terminal in this package directory.
+
+2. Record three deliberate enrollment samples:
+
+   ./bin/voiceid-host enroll "$PWD/native-inputs.json"
+
+   Each sample starts after you press Enter. Grant microphone access if macOS
+   requests it. Only the voice template stays in your local Keychain. The package
+   contains no enrollment, recordings, transcripts, or evaluation fixtures.
+
+3. Register the host for the browser's user data directory. For normal Chrome:
+
+   node install.mjs install --user-data-dir "$HOME/Library/Application Support/Google/Chrome"
+
+   Select the user data directory, which contains Default or Profile 1. Do not
+   select the Default or Profile 1 subdirectory itself. Custom browser instances
+   must use the same directory in their --user-data-dir launch argument.
+
+4. Open chrome://extensions in that browser. Enable Developer mode. Select
+   Load unpacked, then select this package's extension directory. Its ID is
+   ackhkimailmgolplljlhgoclgdjcgdba.
+
+5. Open https://localhost:4002/sdk/voiceid.html in a separate tab. Select Enable
+   VoiceID. This requires the VoiceID Wallet build and existing local Wallet
+   services. The package supplies the local voice host only.
+
+6. Review a NEAR testnet transfer. Select Confirm. Wait for Microphone is ready.
+   Say exactly "I approve this operation" or "I cancel this operation".
+
+For a local voice check with no Wallet action:
+
+   ./bin/voiceid-host check "$PWD/native-inputs.json"
+
+To remove browser registration, first disable VoiceID in the Wallet settings.
+Then run:
+
+   node install.mjs remove --user-data-dir "$HOME/Library/Application Support/Google/Chrome"
+
+Removal preserves enrollment. To delete your enrollment deliberately:
+
+   ./bin/voiceid-host delete
+
+Moving the package requires registering the host again. Live microphone accuracy
+and a clean Mac remain acceptance checks. The MVP trusts your device and OS.
+Spoof detection is outside this profile. See NOTICE.txt and licenses/ for
+third-party attribution.

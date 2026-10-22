@@ -54,6 +54,26 @@ import {
   type TenantRootOperationStoreV1,
 } from './service';
 import type { TenantRootStepUpProofV1 } from './stepUp';
+import { assertNever } from '@seams-internal/console-shared/accountPlatform/boundary';
+
+function sameOperationSubject(
+  expected: TenantRootOperationSubjectV1,
+  current: TenantRootOperationSubjectV1,
+): boolean {
+  switch (expected.kind) {
+    case 'tenant_root':
+      return current.kind === 'tenant_root';
+    case 'recovery_set':
+      return current.kind === 'recovery_set' && expected.recoverySetId === current.recoverySetId;
+    case 'recipient_pair':
+      return (
+        current.kind === 'recipient_pair' &&
+        expected.recipientPairDigest === current.recipientPairDigest
+      );
+    default:
+      return assertNever(expected);
+  }
+}
 
 function custodyFailureResponse(error: TenantRootCustodyErrorV1): Response {
   if (error.kind === 'download' && error.error.kind === 'recovery_holder_required') {
@@ -384,6 +404,11 @@ export function createAuthorizedTenantRootCustodyHandlerV1(
         resolved.error.kind === 'invalid_operation_record' ? 400 : 409,
       );
     }
+    if (!sameOperationSubject(resolved.record.subject, input.subject)) {
+      const code = 'idempotency_key_reused_with_different_operation';
+      await record(baseEvent(state, guarded, input.auditAction, 'failure', code));
+      return tenantRootSecurityJson({ ok: false, code }, 409);
+    }
 
     const started = await startTenantRootOperationV1(dependencies.operations, {
       record: resolved.record,
@@ -697,21 +722,25 @@ export function createAuthorizedTenantRootCustodyHandlerV1(
               state.recipientPair,
           });
           if (!staged.ok) {
-            // Nothing to authorize yet; the refusal is still audited.
-            const outcome = await commitRecipientPairV1(dependencies.custody, {
-              actorUserId,
-              atIso,
-            });
-            await record(outcome.audit);
+            await record(
+              baseEvent(
+                state,
+                authorized,
+                'recovery_recipient_pair_committed',
+                'failure',
+                staged.error.kind,
+              ),
+            );
             return tenantRootSecurityJson(
               { ok: false, error: { kind: 'recipient', error: staged.error } },
               409,
             );
           }
-          const recipientPairDigest = await tenantRootRecipientPairDigestB64uV1({
+          const expectedPair = {
             deriverAFingerprintB64u: staged.value.deriverA.recipientFingerprintB64u,
             deriverBFingerprintB64u: staged.value.deriverB.recipientFingerprintB64u,
-          });
+          };
+          const recipientPairDigest = await tenantRootRecipientPairDigestB64uV1(expectedPair);
           return await runOperation({
             guarded: authorized,
             stepUp,
@@ -723,7 +752,8 @@ export function createAuthorizedTenantRootCustodyHandlerV1(
             subject: { kind: 'recipient_pair', recipientPairDigest },
             idempotencyKey: requiredText(body.idempotencyKey, 'idempotencyKey'),
             auditAction: 'recovery_recipient_pair_committed',
-            execute: () => commitRecipientPairV1(dependencies.custody, { actorUserId, atIso }),
+            execute: () =>
+              commitRecipientPairV1(dependencies.custody, { actorUserId, atIso, expectedPair }),
           });
         }
         case TENANT_ROOT_BACKUP_PATH_V1: {

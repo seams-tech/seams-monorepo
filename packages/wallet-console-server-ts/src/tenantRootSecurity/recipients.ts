@@ -88,6 +88,7 @@ export type TenantRootRecipientErrorV1 =
   | { readonly kind: 'recipient_pair_incomplete'; readonly missingRole: TenantRootDeriverRoleV1 }
   | { readonly kind: 'recipient_pair_reuses_one_key' }
   | { readonly kind: 'recipient_pair_requires_two_owners' }
+  | { readonly kind: 'recipient_pair_changed' }
   | { readonly kind: 'recovery_set_generation_in_flight' };
 
 /** Result of one governance selection. */

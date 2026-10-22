@@ -65,7 +65,6 @@ type CustodyScope = {
 type StateJsonUpdate =
   | { readonly column: 'governance_json'; readonly value: TenantRootRecoveryGovernanceV1 }
   | { readonly column: 'backup_json'; readonly value: TenantRootRecoveryBackupV1 }
-  | { readonly column: 'recipient_pair_json'; readonly value: TenantRootRecipientPairV1 }
   | {
       readonly column: 'source_disposition_json';
       readonly value: TenantRootSourceCustodyDispositionV1;
@@ -700,7 +699,10 @@ async function readStateForScope(
   };
 }
 
-function serialize(value: StateJsonUpdate['value'], label: string): string {
+function serialize(
+  value: StateJsonUpdate['value'] | TenantRootRecipientPairV1,
+  label: string,
+): string {
   const serialized = JSON.stringify(value);
   if (typeof serialized !== 'string') return invalid(label);
   return serialized;
@@ -1022,11 +1024,50 @@ class D1TenantRootCustodyStoreV1 implements TenantRootCustodyStoreV1 {
     }
   }
 
-  putRecipientPair(pair: TenantRootRecipientPairV1): Promise<void> {
-    return putStateJson(this.scope, this.readRoot, {
-      column: 'recipient_pair_json',
-      value: pair,
-    });
+  async putRecipientPair(pair: TenantRootRecipientPairV1): Promise<void> {
+    const state = await readStateForScope(this.scope, this.readRoot);
+    const serialized = serialize(pair, 'recipient_pair_json');
+    const result = await this.scope.database
+      .prepare(
+        `UPDATE tenant_root_security_custody_state
+            SET recipient_pair_json = ?5,
+                lifecycle_revision = ?6,
+                root_commitment_b64u = ?7,
+                updated_at_ms = ?8
+          WHERE namespace = ?1
+            AND org_id = ?2
+            AND identity_digest_b64u = ?3
+            AND custody_lineage_b64u = ?4
+            AND root_commitment_b64u = ?7
+            AND EXISTS (
+              SELECT 1 FROM tenant_root_security_custody_staged_recipients
+              WHERE namespace = ?1 AND org_id = ?2
+                AND identity_digest_b64u = ?3 AND custody_lineage_b64u = ?4
+                AND role = 'deriver_a' AND recipient_fingerprint_b64u = ?9
+            )
+            AND EXISTS (
+              SELECT 1 FROM tenant_root_security_custody_staged_recipients
+              WHERE namespace = ?1 AND org_id = ?2
+                AND identity_digest_b64u = ?3 AND custody_lineage_b64u = ?4
+                AND role = 'deriver_b' AND recipient_fingerprint_b64u = ?10
+            )`,
+      )
+      .bind(
+        ...scopeValues(this.scope),
+        serialized,
+        state.lifecycleRevision,
+        state.rootCommitmentB64u,
+        requiredPositiveInteger(this.scope.now(), 'state updated time'),
+        pair.deriverAFingerprintB64u,
+        pair.deriverBFingerprintB64u,
+      )
+      .run();
+    if (d1ChangedRows(result) !== 1) return invalid('recipient pair write conflicted');
+    const stored = await readStateRow(this.scope);
+    if (stored === null || stored.recipient_pair_json !== serialized) {
+      return invalid('recipient pair write was not retained');
+    }
+    parseStateRow(stored, this.scope, normalizeCurrentRoot(await this.readRoot()));
   }
 
   putBackup(backup: TenantRootRecoveryBackupV1): Promise<void> {

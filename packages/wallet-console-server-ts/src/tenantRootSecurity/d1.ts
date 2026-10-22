@@ -59,7 +59,7 @@ export class RecoveryBackupCooldownError extends Error {
 }
 
 const OPERATIONS_COLUMNS = `
-  operation_id, operation_kind, trigger_kind, operation_digest_b64u, canonical_record_json,
+  operation_id, operation_kind, trigger_kind, operation_digest_b64u, canonical_record_json, payload_json,
   idempotency_key, requester_user_id, approver_user_id, nonce_b64u, status,
   created_at_ms, authorization_expires_at_ms, accepted_result_json, failure_code,
   dispatch_uncertain_at_ms
@@ -128,6 +128,7 @@ function toEntry(row: D1Row): TenantRootOperationEntryV1 {
     ...parseTenantRootOperationTriggerV1(kind, row.trigger_kind),
     operationDigestB64u: text(row.operation_digest_b64u),
     canonicalRecordJson: text(row.canonical_record_json),
+    payloadJson: optionalText(row.payload_json),
     idempotencyKey: text(row.idempotency_key),
     requesterUserId: text(row.requester_user_id),
     approverUserId: optionalText(row.approver_user_id),
@@ -339,9 +340,9 @@ export function createD1TenantRootOperationStoreV1(
              namespace, operation_id, org_id, identity_digest_b64u, custody_lineage_b64u,
              operation_kind, trigger_kind, operation_digest_b64u, canonical_record_json, idempotency_key,
              requester_user_id, approver_user_id, nonce_b64u, status,
-             created_at_ms, authorization_expires_at_ms, updated_at_ms
+             created_at_ms, authorization_expires_at_ms, updated_at_ms, payload_json
            )
-           SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, 'pending', ?14, ?15, ?14
+           SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, 'pending', ?14, ?15, ?14, ?18
            WHERE (?16 IS NULL
               OR EXISTS (
                    SELECT 1 FROM tenant_root_security_approvals
@@ -376,6 +377,7 @@ export function createD1TenantRootOperationStoreV1(
           input.authorizationExpiresAtMs,
           approvalDigest,
           input.createdAtMs - (options.backupIntervalMs ?? 600_000),
+          input.payloadJson,
         );
 
       const statements = [insert];

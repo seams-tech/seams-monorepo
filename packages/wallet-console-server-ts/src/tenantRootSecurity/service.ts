@@ -82,6 +82,7 @@ export type TenantRootOperationEntryV1 = TenantRootOperationTriggerV1 & {
   readonly operationId: string;
   readonly operationDigestB64u: string;
   readonly canonicalRecordJson: string;
+  readonly payloadJson: string | null;
   readonly idempotencyKey: string;
   readonly requesterUserId: string;
   readonly approverUserId: string | null;
@@ -111,6 +112,7 @@ export type TenantRootOperationCreateInputV1 = TenantRootOperationTriggerV1 & {
   readonly operationId: string;
   readonly operationDigestB64u: string;
   readonly canonicalRecordJson: string;
+  readonly payloadJson: string | null;
   readonly idempotencyKey: string;
   readonly requesterUserId: string;
   readonly approverUserId: string | null;
@@ -280,7 +282,8 @@ export async function startTenantRootOperationV1<TOperationKind extends TenantRo
   if (existing !== null) {
     if (
       existing.operationDigestB64u !== input.operationDigestB64u ||
-      existing.triggerKind !== input.triggerKind
+      existing.triggerKind !== input.triggerKind ||
+      existing.payloadJson !== (input.payloadJson ?? null)
     ) {
       return {
         ok: false,
@@ -349,6 +352,7 @@ export async function startTenantRootOperationV1<TOperationKind extends TenantRo
       ...trigger,
       operationDigestB64u: input.operationDigestB64u,
       canonicalRecordJson: canonicalTenantRootOperationRecordJsonV1(input.record),
+      payloadJson: input.payloadJson ?? null,
       idempotencyKey: input.record.idempotencyKey,
       requesterUserId: authorized.authorized.requesterUserId,
       approverUserId,
@@ -475,7 +479,7 @@ export async function resolveTenantRootOperationRecordV1(
     if (
       record.operationKind !== input.operationKind ||
       record.requesterActorId !== input.requesterUserId ||
-      (storedPayloadJson !== null && storedPayloadJson !== (input.payloadJson ?? null))
+      storedPayloadJson !== (input.payloadJson ?? null)
     ) {
       return { ok: false, error: { kind: 'idempotency_key_reused_with_different_operation' } };
     }
@@ -484,7 +488,7 @@ export async function resolveTenantRootOperationRecordV1(
 
   const existing = await store.findByIdempotencyKey(input.idempotencyKey);
   if (existing !== null) {
-    return reuse(existing.canonicalRecordJson, existing.operationDigestB64u, null);
+    return reuse(existing.canonicalRecordJson, existing.operationDigestB64u, existing.payloadJson);
   }
   const request = await store.findApprovalRequestByIdempotencyKey(input.idempotencyKey);
   if (request !== null && request.expiresAtMs > input.nowMs) {

@@ -343,6 +343,7 @@ async function createScheduledOperation(input: {
     triggerKind: 'scheduled',
     operationDigestB64u: await tenantRootOperationDigestB64uV1(record),
     canonicalRecordJson: canonicalTenantRootOperationRecordJsonV1(record),
+    payloadJson: null,
     idempotencyKey: record.idempotencyKey,
     requesterUserId: record.requesterActorId,
     approverUserId: null,

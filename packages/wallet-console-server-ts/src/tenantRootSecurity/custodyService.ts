@@ -429,7 +429,11 @@ export async function confirmRecipientV1(
 /** Commits the verified Deriver A and Deriver B pair. */
 export async function commitRecipientPairV1(
   store: TenantRootCustodyStoreV1,
-  input: { readonly actorUserId: string; readonly atIso: string },
+  input: {
+    readonly actorUserId: string;
+    readonly atIso: string;
+    readonly expectedPair: TenantRootRecipientPairV1;
+  },
 ): Promise<TenantRootCustodyOutcomeV1<TenantRootRecipientPairV1>> {
   const state = await store.readState();
   const context: AuditContext = { state, actorUserId: input.actorUserId, atIso: input.atIso };
@@ -451,6 +455,18 @@ export async function commitRecipientPairV1(
     deriverAFingerprintB64u: committed.value.deriverA.recipientFingerprintB64u,
     deriverBFingerprintB64u: committed.value.deriverB.recipientFingerprintB64u,
   };
+  if (
+    pair.deriverAFingerprintB64u !== input.expectedPair.deriverAFingerprintB64u ||
+    pair.deriverBFingerprintB64u !== input.expectedPair.deriverBFingerprintB64u
+  ) {
+    return {
+      ok: false,
+      error: { kind: 'recipient', error: { kind: 'recipient_pair_changed' } },
+      audit: audit(context, 'recovery_recipient_pair_committed', 'failure', {
+        failureCode: 'recipient_pair_changed',
+      }),
+    };
+  }
   if (state.governance?.kind === 'two_person_v1') {
     const deriverA = await store.readRecipientOwner(
       'deriver_a',

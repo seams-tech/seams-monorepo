@@ -6,8 +6,12 @@ The same artifact serves all lanes: the browser origin selects the matching
 network, and tenant discovery supplies its registration credentials and RP ID.
 An unavailable mainnet lane displays an error; it never opens the testnet wallet.
 
-`/wallet-service/index.html` and `/sdk/*` remain the exact installed SDK's embedded
-runtime and assets. The settings app connects to that same-origin wallet service.
+`/sdk/*` remains the exact installed SDK's embedded runtime and assets. The
+frontend build copies `/wallet-service/index.html`, then sets its approved
+relayer-origin metadata from the selected deployment lanes. It removes any
+package-build relayer policy first. The wallet host rejects a parent-selected
+relayer URL unless that metadata approves its origin. The settings app connects
+to the same-origin wallet service.
 
 Build and deploy through the existing frontend workflow with `surface: wallet-host`
 (or `all`). Before deployment, publish the SDK release containing

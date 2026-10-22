@@ -828,6 +828,8 @@ function componentRuntimeRequirements(lane, component) {
         'SIGNING_WORKER_PRIVATE_D1_ID',
         'SIGNING_WORKER_PRIVATE_D1_KEK_PUBLIC_KEY',
         'SIGNING_WORKER_PRIVATE_D1_KEK_VERSION',
+        'TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON',
+        'ROUTER_TENANT_ROOT_CREATION_ROLE_VERIFYING_KEYS_JSON',
       ];
     case 'deriver-a':
       return deriverRuntimeRequirements(lane, 'a');
@@ -974,6 +976,9 @@ function applyBackendMigration(migration) {
 }
 
 async function deployBackend(lane, component) {
+  if (component !== 'console') {
+    assertWalletServerSecurityPolicy();
+  }
   preflightBackend(lane, component);
   validateDeploymentKeyPairs(lane, component);
   switch (component) {
@@ -1003,6 +1008,17 @@ async function deployBackend(lane, component) {
       return;
     default:
       throw new Error(`Unsupported backend component: ${component}`);
+  }
+}
+
+function assertWalletServerSecurityPolicy() {
+  if (
+    WALLET_SERVER_ARTIFACT_MANIFEST.walletSecurityPolicy !==
+    'scoped_seals_and_owner_proofs_v1'
+  ) {
+    throw new Error(
+      'The pinned @seams/wallet-server release lacks scoped seals and owner proofs. Publish the updated Wallet Server release and update the exact package pin before deploying.',
+    );
   }
 }
 
@@ -1311,6 +1327,10 @@ function deploySigningWorker(lane) {
     `SIGNING_WORKER_PRIVATE_D1_KEK_PUBLIC_KEY:${requireEnvironmentValue('SIGNING_WORKER_PRIVATE_D1_KEK_PUBLIC_KEY')}`,
     '--var',
     `SIGNING_WORKER_PRIVATE_D1_KEK_VERSION:${requireEnvironmentValue('SIGNING_WORKER_PRIVATE_D1_KEK_VERSION')}`,
+    '--var',
+    `TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON:${requireEnvironmentValue('TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON')}`,
+    '--var',
+    `ROUTER_TENANT_ROOT_CREATION_ROLE_VERIFYING_KEYS_JSON:${requireEnvironmentValue('ROUTER_TENANT_ROOT_CREATION_ROLE_VERIFYING_KEYS_JSON')}`,
     '--var',
     `SIGNING_WORKER_PRIVATE_D1_ENVIRONMENT:${lane.id}`,
   );

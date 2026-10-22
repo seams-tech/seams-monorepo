@@ -187,6 +187,18 @@ if (manifestFile) {
   repository = resolveGitHubRepository(requestedRepository);
   if (deploymentComponent === 'wallet-system') {
     assertTargetCanInitialize(environmentPrefix, repository, rotate);
+    if (rotate) {
+      const existingRootSecretB64u = requireExistingSigningSessionSealRoot(
+        loadSuppliedValues(valuesFile),
+        environmentPrefix,
+      );
+      const manifestRootSecretB64u =
+        preparedManifest.environments[`${environmentPrefix}-gateway`]?.secrets
+          ?.SIGNING_SESSION_SEAL_ROOT_SECRET_B64U;
+      if (manifestRootSecretB64u !== existingRootSecretB64u) {
+        throw new Error('Prepared rotation must retain the existing signing-session seal root');
+      }
+    }
   }
   assertCompleteApplyInput(preparedManifest, true, allowIncomplete, manifestFile);
   const application = applyGeneratedValues(
@@ -216,6 +228,10 @@ if (prepare) {
 progress.step('Load supplied deployment values');
 const suppliedValues = loadSuppliedValues(valuesFile);
 validateOptionalIntegrationInputs(environmentPrefix, suppliedValues);
+const preservedSigningSessionRootSecretB64u =
+  rotate && deploymentComponent === 'wallet-system'
+    ? requireExistingSigningSessionSealRoot(suppliedValues, environmentPrefix)
+    : null;
 if (prepare) {
   requireCloudflareApiTokenForApply(environmentPrefix, suppliedValues, valuesFile);
   configureWranglerEnvironment(environmentPrefix, suppliedValues);
@@ -317,7 +333,9 @@ const deployment = runJsonScript(join(scriptDir, 'generate-deployment-keys.mjs')
 ]);
 progress.step('Build and validate the GitHub Environment manifest');
 const configuration = buildTargetConfiguration(target, suppliedValues);
-const generatedSecrets = buildGeneratedSecrets(environmentPrefix);
+const signingSessionRootSecretB64u =
+  preservedSigningSessionRootSecretB64u || randomBase64Url(32);
+const generatedSecrets = buildGeneratedSecrets(environmentPrefix, signingSessionRootSecretB64u);
 const output = buildOutput({
   target,
   environmentPrefix,
@@ -633,7 +651,7 @@ function buildTargetConfiguration(targetName, suppliedValues) {
   };
 }
 
-function buildGeneratedSecrets(environmentPrefix) {
+function buildGeneratedSecrets(environmentPrefix, signingSessionRootSecretB64u) {
   return {
     internalServiceAuth: `router-ab-internal-service-auth-v1:${randomBase64Url(32)}`,
     routerToSigningWorkerEcdsaAuth: randomBase64Url(32),
@@ -642,9 +660,9 @@ function buildGeneratedSecrets(environmentPrefix) {
     relaySessionHmac: randomBase64Url(32),
     ceremonyPrivateJwk: generateCeremonyPrivateJwk(),
     signingSession: {
-      rootSecretB64u: randomBase64Url(32),
-      currentKeyVersion: `signing-session-seal-${environmentPrefix}-r2`,
-      acceptedWarmKeyVersions: [`signing-session-seal-${environmentPrefix}-r2`],
+      rootSecretB64u: signingSessionRootSecretB64u,
+      currentKeyVersion: `signing-session-seal-${environmentPrefix}-r3`,
+      acceptedWarmKeyVersions: [`signing-session-seal-${environmentPrefix}-r3`],
     },
     generationId: `${environmentPrefix}-${randomBase64Url(12)}`,
   };
@@ -1060,6 +1078,11 @@ function buildGatewayDeploymentConfig(input) {
       currentKeyVersion: input.generatedSecrets.signingSession.currentKeyVersion,
       acceptedWarmKeyVersions: input.generatedSecrets.signingSession.acceptedWarmKeyVersions,
     },
+    emailOtpServerSeal: {
+      acceptedWarmKeyVersions:
+        deploymentIdentity.lane.provisioning.gatewayDeploymentConfig.emailOtpServerSeal
+          .acceptedWarmKeyVersions,
+    },
     routerAb: {
       ceremonyJwtAudience: configuration.routerJwtAudience,
       ceremonyJwtKeyId: configuration.ceremonyJwtKeyId,
@@ -1406,6 +1429,10 @@ function buildSigningWorkerEnvironment(input) {
           input.deployment.variables.ROUTER_AB_SIGNING_WORKER_PRIVATE_D1_KEK_VERSION,
         ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:
           input.deployment.variables.ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY,
+        ROUTER_AB_TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON:
+          input.deployment.variables.ROUTER_AB_TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON,
+        ROUTER_AB_TENANT_ROOT_CREATION_ROLE_VERIFYING_KEYS_JSON:
+          input.deployment.variables.ROUTER_AB_TENANT_ROOT_CREATION_ROLE_VERIFYING_KEYS_JSON,
       },
       optionalVariables: {},
       secrets,
@@ -1866,6 +1893,26 @@ function readSuppliedValue(suppliedValues, targetName, environmentName, name) {
     }
   }
   return undefined;
+}
+
+function requireExistingSigningSessionSealRoot(suppliedValues, environmentPrefix) {
+  const rootSecretB64u = readSuppliedValue(
+    suppliedValues,
+    environmentPrefix,
+    `${environmentPrefix}-gateway`,
+    'SIGNING_SESSION_SEAL_ROOT_SECRET_B64U',
+  );
+  if (
+    !rootSecretB64u ||
+    !/^[A-Za-z0-9_-]{43}$/u.test(rootSecretB64u) ||
+    Buffer.from(rootSecretB64u, 'base64url').length !== 32 ||
+    Buffer.from(rootSecretB64u, 'base64url').toString('base64url') !== rootSecretB64u
+  ) {
+    throw new Error(
+      'Wallet-system rotation requires the existing 32-byte signing-session seal root from the protected backup',
+    );
+  }
+  return rootSecretB64u;
 }
 
 function readFirstNonEmptyValue(values, names) {

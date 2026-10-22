@@ -89,7 +89,7 @@
         "provisioning": {
           "kind": "provisioned",
           "gatewayDeploymentConfig": {
-            "schemaVersion": 5,
+            "schemaVersion": 6,
             "lane": "staging-testnet",
             "runtimeProfile": {
               "kind": "testnet_live_demo",
@@ -167,9 +167,15 @@
             "signingSessionSeal": {
               "algorithm": "shamir3pass-v2",
               "groupId": "rfc2409-group2",
-              "currentKeyVersion": "signing-session-seal-staging-r2",
+              "currentKeyVersion": "signing-session-seal-staging-r3",
               "acceptedWarmKeyVersions": [
-                "signing-session-seal-staging-r2"
+                "signing-session-seal-staging-r3"
+              ]
+            },
+            "emailOtpServerSeal": {
+              "acceptedWarmKeyVersions": [
+                "signing-session-seal-staging-r2",
+                "signing-session-seal-staging-r3"
               ]
             },
             "routerAb": {
@@ -342,7 +348,7 @@
         "provisioning": {
           "kind": "provisioned",
           "gatewayDeploymentConfig": {
-            "schemaVersion": 5,
+            "schemaVersion": 6,
             "lane": "production-testnet",
             "runtimeProfile": {
               "kind": "testnet_live_demo",
@@ -420,9 +426,15 @@
             "signingSessionSeal": {
               "algorithm": "shamir3pass-v2",
               "groupId": "rfc2409-group2",
-              "currentKeyVersion": "signing-session-seal-production-testnet-r2",
+              "currentKeyVersion": "signing-session-seal-production-testnet-r3",
               "acceptedWarmKeyVersions": [
-                "signing-session-seal-production-testnet-r2"
+                "signing-session-seal-production-testnet-r3"
+              ]
+            },
+            "emailOtpServerSeal": {
+              "acceptedWarmKeyVersions": [
+                "signing-session-seal-production-testnet-r2",
+                "signing-session-seal-production-testnet-r3"
               ]
             },
             "routerAb": {
@@ -575,7 +587,7 @@
         "provisioning": {
           "kind": "provisioned",
           "gatewayDeploymentConfig": {
-            "schemaVersion": 5,
+            "schemaVersion": 6,
             "lane": "production-mainnet",
             "runtimeProfile": {
               "kind": "mainnet_service",
@@ -652,9 +664,15 @@
             "signingSessionSeal": {
               "algorithm": "shamir3pass-v2",
               "groupId": "rfc2409-group2",
-              "currentKeyVersion": "signing-session-seal-production-r2",
+              "currentKeyVersion": "signing-session-seal-production-r3",
               "acceptedWarmKeyVersions": [
-                "signing-session-seal-production-r2"
+                "signing-session-seal-production-r3"
+              ]
+            },
+            "emailOtpServerSeal": {
+              "acceptedWarmKeyVersions": [
+                "signing-session-seal-production-r2",
+                "signing-session-seal-production-r3"
               ]
             },
             "routerAb": {

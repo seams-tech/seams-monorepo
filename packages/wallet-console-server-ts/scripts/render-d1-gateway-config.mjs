@@ -501,6 +501,8 @@ function buildWorkerVars(
     SIGNING_SESSION_SEAL_CURRENT_KEY_VERSION: deployment.signingSessionSeal.currentKeyVersion,
     SIGNING_SESSION_SEAL_ACCEPTED_WARM_KEY_VERSIONS:
       deployment.signingSessionSeal.acceptedWarmKeyVersions.join(','),
+    EMAIL_OTP_SERVER_SEAL_ACCEPTED_WARM_KEY_VERSIONS:
+      deployment.emailOtpServerSeal.acceptedWarmKeyVersions.join(','),
     EMAIL_OTP_RUNTIME_PROFILE: deployment.runtimeProfile.kind,
     EMAIL_OTP_DELIVERY_MODE: deployment.runtimeProfile.emailOtpDelivery.kind,
     EMAIL_OTP_PRODUCTION: String(production),

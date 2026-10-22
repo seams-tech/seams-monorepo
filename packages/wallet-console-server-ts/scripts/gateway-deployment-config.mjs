@@ -5,7 +5,7 @@ const X25519_PUBLIC_KEY_PATTERN = /^x25519:[0-9a-f]{64}$/;
 const ED25519_PUBLIC_KEY_PATTERN = /^ed25519:[1-9A-HJ-NP-Za-km-z]+$/;
 const UNSIGNED_INTEGER_PATTERN = /^(?:0|[1-9][0-9]*)$/;
 
-export const GATEWAY_DEPLOYMENT_CONFIG_SCHEMA_VERSION = 5;
+export const GATEWAY_DEPLOYMENT_CONFIG_SCHEMA_VERSION = 6;
 export const DEFAULT_NEAR_INITIAL_BALANCE_YOCTO = '30000000000000000000000';
 export const DEFAULT_RELAY_SESSION_AUDIENCE = 'seams-wallet-session';
 export const DEFAULT_SESSION_COOKIE_NAME = 'seams-jwt';
@@ -157,6 +157,10 @@ export function parseGatewayDeploymentConfig(source, expectedLaneId) {
   const origins = parseOrigins(root.origins);
   const session = parseSession(root.session);
   const signingSessionSeal = parseSigningSessionSeal(root.signingSessionSeal);
+  const emailOtpServerSeal = parseEmailOtpServerSeal(
+    root.emailOtpServerSeal,
+    signingSessionSeal.currentKeyVersion,
+  );
   const routerAb = parseRouterAb(root.routerAb, serviceNames);
   const optional = parseOptionalConfig(root.optional);
 
@@ -173,6 +177,7 @@ export function parseGatewayDeploymentConfig(source, expectedLaneId) {
     origins,
     session,
     signingSessionSeal,
+    emailOtpServerSeal,
     routerAb,
     optional,
     serviceNames,
@@ -189,6 +194,7 @@ function gatewayDeploymentConfigKeys() {
     'origins',
     'session',
     'signingSessionSeal',
+    'emailOtpServerSeal',
     'routerAb',
     'optional',
   ];
@@ -405,6 +411,19 @@ function parseSigningSessionSeal(value) {
     currentKeyVersion,
     acceptedWarmKeyVersions,
   };
+}
+
+function parseEmailOtpServerSeal(value, currentKeyVersion) {
+  const seal = requireObject(value, 'emailOtpServerSeal');
+  requireExactKeys(seal, ['acceptedWarmKeyVersions'], 'emailOtpServerSeal');
+  const acceptedWarmKeyVersions = parseStringArray(
+    seal.acceptedWarmKeyVersions,
+    'emailOtpServerSeal.acceptedWarmKeyVersions',
+  );
+  if (!acceptedWarmKeyVersions.includes(currentKeyVersion)) {
+    throw new Error('emailOtpServerSeal.acceptedWarmKeyVersions must include currentKeyVersion');
+  }
+  return { acceptedWarmKeyVersions };
 }
 
 function parseRouterAb(value, serviceNames) {

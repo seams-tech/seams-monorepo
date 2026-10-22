@@ -83,8 +83,9 @@ CONSOLE_SESSION_COOKIE_NAME = "seams-console-jwt"
 CONSOLE_SESSION_ISSUER = "https://localhost:4101/console"
 CONSOLE_SESSION_AUDIENCE = "seams-console-session"
 SIGNING_SESSION_SEAL_ROOT_SECRET_B64U = "bG9jYWwtc2lnbmluZy1zZXNzaW9uLXJvb3QtdjIhISE"
-SIGNING_SESSION_SEAL_CURRENT_KEY_VERSION = "signing-session-seal-local-r2"
-SIGNING_SESSION_SEAL_ACCEPTED_WARM_KEY_VERSIONS = "signing-session-seal-local-r2"
+SIGNING_SESSION_SEAL_CURRENT_KEY_VERSION = "signing-session-seal-local-r3"
+SIGNING_SESSION_SEAL_ACCEPTED_WARM_KEY_VERSIONS = "signing-session-seal-local-r3"
+EMAIL_OTP_SERVER_SEAL_ACCEPTED_WARM_KEY_VERSIONS = "signing-session-seal-local-r2,signing-session-seal-local-r3"
 # Local-only deterministic Tempo testnet sponsor key.
 SPONSORED_EVM_EXECUTORS_JSON = '{"42431":{"sponsorPrivateKeyHex":"0x1111111111111111111111111111111111111111111111111111111111111111"}}'
 # Local-only deterministic NEAR pricing: $3.00 per NEAR with a 0.001 NEAR estimate.

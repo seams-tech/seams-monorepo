@@ -244,6 +244,7 @@ interface LocalD1DevEnv extends RouterAbServiceBindingEnv, SatyrProvisioningEnvi
   readonly SIGNING_SESSION_SEAL_ROOT_SECRET_B64U?: string;
   readonly SIGNING_SESSION_SEAL_CURRENT_KEY_VERSION?: string;
   readonly SIGNING_SESSION_SEAL_ACCEPTED_WARM_KEY_VERSIONS?: string;
+  readonly EMAIL_OTP_SERVER_SEAL_ACCEPTED_WARM_KEY_VERSIONS?: string;
   readonly EMAIL_OTP_DELIVERY_MODE?: string;
   readonly EMAIL_OTP_RUNTIME_PROFILE?: string;
   readonly EMAIL_OTP_DEMO_ALLOWED_ORIGINS?: string;
@@ -906,7 +907,7 @@ function localEmailOtpServerSealConfig(
   const rootSecretB64u = normalizeLocalString(env.SIGNING_SESSION_SEAL_ROOT_SECRET_B64U);
   const currentKeyVersion = normalizeLocalString(env.SIGNING_SESSION_SEAL_CURRENT_KEY_VERSION);
   const acceptedWarmKeyVersions = normalizeLocalString(
-    env.SIGNING_SESSION_SEAL_ACCEPTED_WARM_KEY_VERSIONS,
+    env.EMAIL_OTP_SERVER_SEAL_ACCEPTED_WARM_KEY_VERSIONS,
   )
     .split(',')
     .map((value) => value.trim())

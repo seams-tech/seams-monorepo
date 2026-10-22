@@ -93,11 +93,15 @@ export async function handleConsoleAuditRoutes(
       { status: 501 },
     );
 
+  const projectId =
+    ctx.url.searchParams.get('projectId') ||
+    (auth.claims.role === 'MEMBER' ? auth.claims.projectId : undefined);
+
   try {
     if (ctx.method === 'GET' && ctx.pathname === '/console/audit/events') {
       const request = parseListConsoleAuditEventsRequest(
         {
-          projectId: ctx.url.searchParams.get('projectId') || undefined,
+          projectId,
           environmentId: ctx.url.searchParams.get('environmentId') || undefined,
           category: ctx.url.searchParams.get('category') || undefined,
           actorUserId: ctx.url.searchParams.get('actorUserId') || undefined,
@@ -119,7 +123,7 @@ export async function handleConsoleAuditRoutes(
     if (ctx.method === 'GET' && ctx.pathname === '/console/audit/activity') {
       const request = parseCountConsoleAuditActivityRequest(
         {
-          projectId: ctx.url.searchParams.get('projectId') || undefined,
+          projectId,
           environmentId: ctx.url.searchParams.get('environmentId') || undefined,
           category: ctx.url.searchParams.get('category') || undefined,
           actorUserId: ctx.url.searchParams.get('actorUserId') || undefined,
@@ -128,7 +132,10 @@ export async function handleConsoleAuditRoutes(
           from: ctx.url.searchParams.get('from') || undefined,
           to: ctx.url.searchParams.get('to') || undefined,
           bins: ctx.url.searchParams.get('bins') || undefined,
-          includeOrgScoped: ctx.url.searchParams.get('includeOrgScoped') || undefined,
+          includeOrgScoped:
+            auth.claims.role === 'MEMBER'
+              ? undefined
+              : ctx.url.searchParams.get('includeOrgScoped') || undefined,
         },
         presentation.categories,
       );
@@ -138,7 +145,7 @@ export async function handleConsoleAuditRoutes(
 
     if (ctx.method === 'GET' && ctx.pathname === '/console/audit/evidence') {
       const request = parseListConsoleAuditEvidenceRequest({
-        projectId: ctx.url.searchParams.get('projectId') || undefined,
+        projectId,
         environmentId: ctx.url.searchParams.get('environmentId') || undefined,
         domain: ctx.url.searchParams.get('domain') || undefined,
         from: ctx.url.searchParams.get('from') || undefined,

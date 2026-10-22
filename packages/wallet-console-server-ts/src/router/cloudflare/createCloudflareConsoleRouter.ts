@@ -93,6 +93,10 @@ import {
   parseUpdateConsoleWebhookEndpointRequest,
 } from '@seams-internal/console-server/webhooks/requests';
 import type { ConsoleKeyExportService } from '@seams-internal/wallet-console-server/keyExports/service';
+import type {
+  ConsoleKeyExportRequestRecord,
+  ListConsoleKeyExportsRequest,
+} from '@seams-internal/wallet-console-server/keyExports/types';
 import { isConsoleKeyExportError } from '@seams-internal/wallet-console-server/keyExports/errors';
 import {
   parseApproveConsoleKeyExportRequest,
@@ -105,7 +109,6 @@ import {
   parseGetLatestConsoleRuntimeSnapshotRequest,
   parseListConsoleRuntimeSnapshotsRequest,
   parsePublishCurrentConsoleRuntimeSnapshotRequest,
-  parsePublishConsoleRuntimeSnapshotRequest,
 } from '@seams-internal/wallet-console-server/runtimeSnapshots/requests';
 import type { ConsoleOrganizationAccessService } from '@seams-internal/console-server/teamRbac/index';
 import type {
@@ -1387,8 +1390,62 @@ function isConsoleKeyExportPath(pathname: string): boolean {
 
 function isConsoleRuntimeSnapshotPath(pathname: string): boolean {
   return (
-    pathname === '/console/runtime-snapshots' || pathname.startsWith('/console/runtime-snapshots/')
+    pathname === '/console/runtime-snapshots' ||
+    pathname === '/console/runtime-snapshots/latest' ||
+    pathname === '/console/runtime-snapshots/publish-current'
   );
+}
+
+async function requireWalletEnvironmentProjectAccess(
+  ctx: CloudflareConsoleContext,
+  claims: ConsoleAuthClaims,
+  environmentId: string,
+  projectId: string | undefined,
+  level: 'viewer' | 'editor',
+): Promise<Response | null> {
+  const environmentsOrResponse = requireWalletEnvironmentService(ctx);
+  if (environmentsOrResponse instanceof Response) return environmentsOrResponse;
+  const environments = await environmentsOrResponse.listEnvironments(
+    toWalletEnvironmentContext(claims),
+  );
+  const environment = environments.find((entry) => entry.id === environmentId);
+  if (!environment || (projectId && projectId !== environment.projectId)) {
+    return json(
+      { ok: false, code: 'invalid_environment', message: 'Wallet environment was not found' },
+      { status: 404 },
+    );
+  }
+  if (!hasConsoleProjectAccess(claims, environment.projectId, level)) {
+    return json(
+      { ok: false, code: 'forbidden', message: 'No access to this Wallet project' },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
+async function visibleConsoleKeyExports(
+  ctx: CloudflareConsoleContext,
+  claims: ConsoleAuthClaims,
+  keyExports: ConsoleKeyExportService,
+  request: ListConsoleKeyExportsRequest,
+  level: 'viewer' | 'editor',
+): Promise<readonly ConsoleKeyExportRequestRecord[] | Response> {
+  const rows = await keyExports.listKeyExports(toBillingContext(claims), request);
+  if (claims.role !== 'MEMBER') return rows;
+
+  const environmentsOrResponse = requireWalletEnvironmentService(ctx);
+  if (environmentsOrResponse instanceof Response) return environmentsOrResponse;
+  const environments = await environmentsOrResponse.listEnvironments(
+    toWalletEnvironmentContext(claims),
+  );
+  const projectByEnvironment = new Map(
+    environments.map((environment) => [environment.id, environment.projectId]),
+  );
+  return rows.filter((row) => {
+    const projectId = projectByEnvironment.get(row.environmentId);
+    return projectId !== undefined && hasConsoleProjectAccess(claims, projectId, level);
+  });
 }
 
 async function handleConsoleKeyExports(ctx: CloudflareConsoleContext): Promise<Response | null> {
@@ -1408,7 +1465,14 @@ async function handleConsoleKeyExports(ctx: CloudflareConsoleContext): Promise<R
         environmentId: ctx.url.searchParams.get('environmentId') || undefined,
         status: ctx.url.searchParams.get('status') || undefined,
       });
-      const keyExportRows = await keyExports.listKeyExports(toBillingContext(auth.claims), request);
+      const keyExportRows = await visibleConsoleKeyExports(
+        ctx,
+        auth.claims,
+        keyExports,
+        request,
+        'viewer',
+      );
+      if (keyExportRows instanceof Response) return keyExportRows;
       return json({ ok: true, exports: keyExportRows }, { status: 200 });
     }
 
@@ -1416,6 +1480,14 @@ async function handleConsoleKeyExports(ctx: CloudflareConsoleContext): Promise<R
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const request = parseCreateConsoleKeyExportRequest(await readJson(ctx.request));
+      const accessFailure = await requireWalletEnvironmentProjectAccess(
+        ctx,
+        auth.claims,
+        request.environmentId,
+        undefined,
+        'editor',
+      );
+      if (accessFailure) return accessFailure;
       const keyExport = await keyExports.createKeyExport(toBillingContext(auth.claims), request);
       return json({ ok: true, keyExport }, { status: 201 });
     }
@@ -1424,6 +1496,14 @@ async function handleConsoleKeyExports(ctx: CloudflareConsoleContext): Promise<R
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const exportId = decodePathPart(approveMatch[1]);
+      const visible = await visibleConsoleKeyExports(ctx, auth.claims, keyExports, {}, 'editor');
+      if (visible instanceof Response) return visible;
+      if (!visible.some((row) => row.id === exportId)) {
+        return json(
+          { ok: false, code: 'key_export_not_found', message: 'Key export request was not found' },
+          { status: 404 },
+        );
+      }
       const rawBody = await readJson(ctx.request);
       const approvalRequired = await requireApprovedOperationApproval(ctx, auth.claims, {
         operationType: 'KEY_EXPORT',
@@ -1488,6 +1568,14 @@ async function handleConsoleRuntimeSnapshots(
         projectId: ctx.url.searchParams.get('projectId') || undefined,
         limit: ctx.url.searchParams.get('limit') || undefined,
       });
+      const accessFailure = await requireWalletEnvironmentProjectAccess(
+        ctx,
+        auth.claims,
+        request.environmentId,
+        request.projectId,
+        'viewer',
+      );
+      if (accessFailure) return accessFailure;
       const snapshots = await runtimeSnapshots.listSnapshots(
         toBillingContext(auth.claims),
         request,
@@ -1500,6 +1588,14 @@ async function handleConsoleRuntimeSnapshots(
         environmentId: ctx.url.searchParams.get('environmentId') || undefined,
         projectId: ctx.url.searchParams.get('projectId') || undefined,
       });
+      const accessFailure = await requireWalletEnvironmentProjectAccess(
+        ctx,
+        auth.claims,
+        request.environmentId,
+        request.projectId,
+        'viewer',
+      );
+      if (accessFailure) return accessFailure;
       const snapshot = await runtimeSnapshots.getLatestSnapshot(
         toBillingContext(auth.claims),
         request,
@@ -1507,21 +1603,18 @@ async function handleConsoleRuntimeSnapshots(
       return json({ ok: true, snapshot }, { status: 200 });
     }
 
-    if (ctx.method === 'POST' && ctx.pathname === '/console/runtime-snapshots/publish') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parsePublishConsoleRuntimeSnapshotRequest(await readJson(ctx.request));
-      const snapshot = await runtimeSnapshots.publishSnapshot(
-        toBillingContext(auth.claims),
-        request,
-      );
-      return json({ ok: true, snapshot }, { status: 201 });
-    }
-
     if (ctx.method === 'POST' && ctx.pathname === '/console/runtime-snapshots/publish-current') {
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const request = parsePublishCurrentConsoleRuntimeSnapshotRequest(await readJson(ctx.request));
+      const accessFailure = await requireWalletEnvironmentProjectAccess(
+        ctx,
+        auth.claims,
+        request.environmentId,
+        request.projectId,
+        'editor',
+      );
+      if (accessFailure) return accessFailure;
       const payload = await resolveConsoleRuntimeSnapshotPayload({
         orgId: auth.claims.orgId,
         actorUserId: auth.claims.userId,
@@ -2287,7 +2380,9 @@ async function handleConsoleWallets(ctx: CloudflareConsoleContext): Promise<Resp
   const query = {
     limit: ctx.url.searchParams.get('limit') || undefined,
     cursor: ctx.url.searchParams.get('cursor') || undefined,
-    projectId: ctx.url.searchParams.get('projectId') || undefined,
+    projectId:
+      ctx.url.searchParams.get('projectId') ||
+      (auth.claims.role === 'MEMBER' ? auth.claims.projectId : undefined),
     environmentId: ctx.url.searchParams.get('environmentId') || undefined,
     chain: ctx.url.searchParams.get('chain') || undefined,
     walletType: ctx.url.searchParams.get('walletType') || undefined,
@@ -2695,6 +2790,22 @@ async function handleConsoleInsights(ctx: CloudflareConsoleContext): Promise<Res
       if (keyExportsOrResponse instanceof Response) return keyExportsOrResponse;
       const environmentIdRaw = String(ctx.url.searchParams.get('environmentId') || '').trim();
       const environmentIdFilter = environmentIdRaw || auth.claims.environmentId || undefined;
+      if (auth.claims.role === 'MEMBER' && !environmentIdFilter) {
+        return json(
+          { ok: false, code: 'environment_required', message: 'Select a Wallet environment' },
+          { status: 400 },
+        );
+      }
+      if (environmentIdFilter) {
+        const accessFailure = await requireWalletEnvironmentProjectAccess(
+          ctx,
+          auth.claims,
+          environmentIdFilter,
+          undefined,
+          'viewer',
+        );
+        if (accessFailure) return accessFailure;
+      }
       const governance = await buildConsoleExportGovernanceView({
         keyExports: keyExportsOrResponse,
         keyExportCtx: toBillingContext(auth.claims),

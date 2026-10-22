@@ -63,10 +63,20 @@ const AUTHENTICATED_ROUTES: readonly ConsoleRouteTuple[] = [
   ],
   ['console_organization_leave', 'POST', '/console/organization/leave'],
   ['console_onboarding_state_get', 'GET', '/console/onboarding/state'],
-  ['console_onboarding_organization_create', 'POST', '/console/onboarding/organization'],
 ];
 
 const OWNER_ROUTES: readonly ConsoleRouteTuple[] = [
+  ['console_onboarding_organization_create', 'POST', '/console/onboarding/organization'],
+  ['console_webhooks_list', 'GET', '/console/webhooks'],
+  ['console_webhooks_deliveries_list', 'GET', '/console/webhooks/:id/deliveries'],
+  ['console_webhooks_attempts_list', 'GET', '/console/webhooks/:id/attempts'],
+  ['console_webhooks_dead_letters_list', 'GET', '/console/webhooks/:id/dead-letters'],
+  ['console_webhooks_create', 'POST', '/console/webhooks'],
+  ['console_webhooks_update', 'PATCH', '/console/webhooks/:id'],
+  ['console_webhooks_delete', 'DELETE', '/console/webhooks/:id'],
+  ['console_webhooks_replay', 'POST', '/console/webhooks/:id/replay'],
+  ['console_webhooks_test', 'POST', '/console/webhooks/:id/test'],
+  ['console_webhooks_rotate_secret', 'POST', '/console/webhooks/:id/rotate-secret'],
   ['console_account_organizations_delete', 'DELETE', '/console/account/organizations/:orgId'],
   [
     'console_organization_membership_change_role',
@@ -147,10 +157,6 @@ const PROJECT_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_observability_events_list', 'GET', '/console/observability/events'],
   ['console_observability_timeseries_get', 'GET', '/console/observability/timeseries'],
   ['console_observability_services_list', 'GET', '/console/observability/services'],
-  ['console_webhooks_list', 'GET', '/console/webhooks'],
-  ['console_webhooks_deliveries_list', 'GET', '/console/webhooks/:id/deliveries'],
-  ['console_webhooks_attempts_list', 'GET', '/console/webhooks/:id/attempts'],
-  ['console_webhooks_dead_letters_list', 'GET', '/console/webhooks/:id/dead-letters'],
 ];
 
 const PROJECT_LIST_ROUTES: readonly ConsoleRouteTuple[] = [
@@ -160,12 +166,6 @@ const PROJECT_LIST_ROUTES: readonly ConsoleRouteTuple[] = [
 
 const PROJECT_EDIT_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_audit_exports_create', 'POST', '/console/audit/exports'],
-  ['console_webhooks_create', 'POST', '/console/webhooks'],
-  ['console_webhooks_update', 'PATCH', '/console/webhooks/:id'],
-  ['console_webhooks_delete', 'DELETE', '/console/webhooks/:id'],
-  ['console_webhooks_replay', 'POST', '/console/webhooks/:id/replay'],
-  ['console_webhooks_test', 'POST', '/console/webhooks/:id/test'],
-  ['console_webhooks_rotate_secret', 'POST', '/console/webhooks/:id/rotate-secret'],
 ];
 
 const BILLING_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [

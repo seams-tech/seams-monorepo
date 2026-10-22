@@ -360,6 +360,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         icon: WebhookIcon,
         component: WalletWebhooksPage,
         context: 'wallet',
+        access: 'owner',
         createLabel: 'New webhook endpoint',
       },
     ],

@@ -36,6 +36,11 @@ import { createD1ConsoleApiKeyService } from '../../../packages/wallet-console-s
 import type { ConsoleApiKeyService } from '../../../packages/wallet-console-server-ts/src/apiKeys/service';
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '../../../packages/wallet-console-shared-ts/src/apiKeyScopes';
 import { createD1ConsoleWalletEnvironmentService } from '../../../packages/wallet-console-server-ts/src/environments/d1';
+import { createInMemoryConsoleWebhookService } from '../../../packages/console-server-ts/src/webhooks/service';
+import { WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION } from '../../../packages/wallet-console-shared-ts/src/webhookEventCategories';
+import { createD1ConsoleRuntimeSnapshotService } from '../../../packages/wallet-console-server-ts/src/runtimeSnapshots/d1';
+import { createD1ConsoleWalletService } from '../../../packages/wallet-console-server-ts/src/wallets/d1';
+import { createD1ConsoleKeyExportService } from '../../../packages/wallet-console-server-ts/src/keyExports/d1';
 import {
   createRouterApiKeyAuthAdapter,
   createRouterApiPublishableKeyAuthAdapter,
@@ -1552,7 +1557,7 @@ test(
   verifyAutomaticWalletSetup,
 );
 
-async function consoleApiKeyRequest(
+async function consoleRequest(
   router: ReturnType<typeof createCloudflareConsoleRouter>,
   token: string,
   selectedProjectId: string,
@@ -1591,7 +1596,7 @@ async function consoleApiKeyIds(response: Response): Promise<string[]> {
   });
 }
 
-test('project members manage only their projects while owners manage all API keys', async () => {
+test('project members see only assigned project resources while owners govern the organization', async () => {
   test.setTimeout(120_000);
   const testInfo = test.info();
   const worker = runtime(testInfo.outputPath('api-key-project-state'));
@@ -1632,6 +1637,92 @@ test('project members manage only their projects while owners manage all API key
       environmentId: environmentB.id,
       scopes: ['wallets.read'],
     });
+    const wallets = await createD1ConsoleWalletService({
+      database,
+      namespace,
+      ensureSchema: true,
+      now,
+    });
+    if (!wallets.upsertWallet) throw new Error('Wallet projection cannot be seeded');
+    await wallets.upsertWallet(owner, {
+      id: 'member-scope-wallet-a',
+      projectId: projectA,
+      environmentId: environmentA.id,
+      userId: 'customer-a',
+      externalRefId: 'external-a',
+      address: '0x1111111111111111111111111111111111111111',
+      chain: 'Ethereum',
+    });
+    const keyExports = await createD1ConsoleKeyExportService({
+      database,
+      namespace,
+      ensureSchema: true,
+      now,
+    });
+    const exportA = await keyExports.createKeyExport(owner, {
+      id: 'export-member-project-a',
+      environmentId: environmentA.id,
+      reason: 'Project A export request',
+    });
+    const exportB = await keyExports.createKeyExport(owner, {
+      id: 'export-member-project-b',
+      environmentId: environmentB.id,
+      reason: 'Project B export request',
+    });
+    await wallets.upsertWallet(owner, {
+      id: 'member-scope-wallet-b',
+      projectId: projectB,
+      environmentId: environmentB.id,
+      userId: 'customer-b',
+      externalRefId: 'external-b',
+      address: '0x2222222222222222222222222222222222222222',
+      chain: 'Ethereum',
+    });
+    const webhooks = createInMemoryConsoleWebhookService({
+      categoryValidation: WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION,
+      now,
+    });
+    const runtimeSnapshots = await createD1ConsoleRuntimeSnapshotService({
+      database,
+      namespace,
+      ensureSchema: true,
+      now,
+    });
+    const snapshotPayload = { policy: {}, gasSponsorship: {} };
+    await runtimeSnapshots.publishSnapshot(owner, {
+      environmentId: environmentA.id,
+      projectId: projectA,
+      payload: snapshotPayload,
+    });
+    await runtimeSnapshots.publishSnapshot(owner, {
+      environmentId: environmentB.id,
+      projectId: projectB,
+      payload: snapshotPayload,
+    });
+    for (const projectId of [projectA, projectB]) {
+      await product.core.audit.appendEvent(owner, {
+        id: `audit-${projectId}`,
+        projectId,
+        category: 'SYSTEM',
+        action: 'scope.check',
+        outcome: 'SUCCESS',
+        summary: `Audit for ${projectId}`,
+      });
+      await product.core.audit.appendEvidence(owner, {
+        id: `evidence-${projectId}`,
+        projectId,
+        domain: 'SECURITY',
+        title: `Evidence for ${projectId}`,
+        summary: `Evidence for ${projectId}`,
+      });
+    }
+    await product.core.audit.appendEvent(owner, {
+      id: 'audit-organization-wide',
+      category: 'SYSTEM',
+      action: 'scope.check',
+      outcome: 'SUCCESS',
+      summary: 'Organization-wide audit event',
+    });
 
     const editor = await product.core.organizationAccess.invite(owner, {
       email: 'editor@activation.invalid',
@@ -1669,6 +1760,10 @@ test('project members manage only their projects while owners manage all API key
       audit: product.core.audit,
       walletEnvironments: product.environments,
       apiKeys: product.apiKeys,
+      wallets,
+      webhooks,
+      runtimeSnapshots,
+      keyExports,
       walletProvisioning: product.delivery,
       satyrProvisioning: null,
       corsOrigins: [origin],
@@ -1690,21 +1785,85 @@ test('project members manage only their projects while owners manage all API key
     });
 
     const ownerIds = await consoleApiKeyIds(
-      await consoleApiKeyRequest(router, ownerToken, projectA, 'GET', '/console/api-keys'),
+      await consoleRequest(router, ownerToken, projectA, 'GET', '/console/api-keys'),
     );
     expect(ownerIds).toContain(keyA.apiKey.id);
     expect(ownerIds).toContain(keyB.apiKey.id);
     const editorIds = await consoleApiKeyIds(
-      await consoleApiKeyRequest(router, editorToken, projectA, 'GET', '/console/api-keys'),
+      await consoleRequest(router, editorToken, projectA, 'GET', '/console/api-keys'),
     );
     expect(editorIds).toEqual([keyA.apiKey.id]);
     const viewerIds = await consoleApiKeyIds(
-      await consoleApiKeyRequest(router, viewerToken, projectA, 'GET', '/console/api-keys'),
+      await consoleRequest(router, viewerToken, projectA, 'GET', '/console/api-keys'),
     );
     expect(viewerIds).toEqual([keyA.apiKey.id]);
+    const memberWallets = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      '/console/wallets',
+    );
+    expect(memberWallets.status).toBe(200);
+    expect(await memberWallets.json()).toMatchObject({
+      wallets: [{ id: 'member-scope-wallet-a' }],
+    });
+    const ownerWallets = await consoleRequest(
+      router,
+      ownerToken,
+      projectA,
+      'GET',
+      '/console/wallets',
+    );
+    expect(ownerWallets.status).toBe(200);
+    const ownerWalletPayload: unknown = await ownerWallets.json();
+    if (ownerWalletPayload === null || typeof ownerWalletPayload !== 'object') {
+      throw new Error('Owner wallet response was invalid');
+    }
+    expect(Reflect.get(ownerWalletPayload, 'wallets')).toHaveLength(2);
+    const memberExports = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      '/console/key-exports',
+    );
+    expect(memberExports.status).toBe(200);
+    expect(await memberExports.json()).toMatchObject({ exports: [{ id: exportA.id }] });
+    const ownerExports = await consoleRequest(
+      router,
+      ownerToken,
+      projectA,
+      'GET',
+      '/console/key-exports',
+    );
+    expect(ownerExports.status).toBe(200);
+    const ownerExportPayload: unknown = await ownerExports.json();
+    if (ownerExportPayload === null || typeof ownerExportPayload !== 'object') {
+      throw new Error('Owner export response was invalid');
+    }
+    expect(Reflect.get(ownerExportPayload, 'exports')).toHaveLength(2);
+    const foreignExportApproval = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      `/console/key-exports/${exportB.id}/approve`,
+      { approvalId: 'unrelated-approval', reason: 'Unauthorized', mfaVerified: true },
+    );
+    expect(foreignExportApproval.status).toBe(404);
+    const foreignExportCreate = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      '/console/key-exports',
+      { environmentId: environmentB.id, reason: 'Unauthorized export request' },
+    );
+    expect(foreignExportCreate.status).toBe(403);
 
     const deniedB = [
-      await consoleApiKeyRequest(
+      await consoleRequest(
         router,
         editorToken,
         projectA,
@@ -1712,7 +1871,7 @@ test('project members manage only their projects while owners manage all API key
         `/console/api-keys/${keyB.apiKey.id}/rotate`,
         {},
       ),
-      await consoleApiKeyRequest(
+      await consoleRequest(
         router,
         editorToken,
         projectA,
@@ -1720,7 +1879,7 @@ test('project members manage only their projects while owners manage all API key
         `/console/api-keys/${keyB.apiKey.id}`,
         { name: 'Unauthorized rename' },
       ),
-      await consoleApiKeyRequest(
+      await consoleRequest(
         router,
         editorToken,
         projectA,
@@ -1728,7 +1887,7 @@ test('project members manage only their projects while owners manage all API key
         `/console/api-keys/${keyB.apiKey.id}`,
         { reason: 'Unauthorized revocation' },
       ),
-      await consoleApiKeyRequest(
+      await consoleRequest(
         router,
         editorToken,
         projectA,
@@ -1737,7 +1896,7 @@ test('project members manage only their projects while owners manage all API key
       ),
     ];
     expect(deniedB.map((response) => response.status)).toEqual([404, 404, 404, 404]);
-    const createB = await consoleApiKeyRequest(
+    const createB = await consoleRequest(
       router,
       editorToken,
       projectA,
@@ -1751,7 +1910,7 @@ test('project members manage only their projects while owners manage all API key
       },
     );
     expect(createB.status).toBe(403);
-    const viewerRotation = await consoleApiKeyRequest(
+    const viewerRotation = await consoleRequest(
       router,
       viewerToken,
       projectA,
@@ -1761,7 +1920,7 @@ test('project members manage only their projects while owners manage all API key
     );
     expect(viewerRotation.status).toBe(403);
 
-    const editorRotation = await consoleApiKeyRequest(
+    const editorRotation = await consoleRequest(
       router,
       editorToken,
       projectA,
@@ -1775,7 +1934,7 @@ test('project members manage only their projects while owners manage all API key
       apiKey: { id: keyA.apiKey.id },
       secret: expect.any(String),
     });
-    const ownerRotation = await consoleApiKeyRequest(
+    const ownerRotation = await consoleRequest(
       router,
       ownerToken,
       projectA,
@@ -1796,12 +1955,132 @@ test('project members manage only their projects while owners manage all API key
     expect(finalKeys.find((key) => key.id === keyB.apiKey.id)?.status).toBe('ACTIVE');
     expect(finalKeys.find((key) => key.id === keyB.apiKey.id)?.name).toBe('Project B key');
 
+    const memberAuditEvents = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      '/console/audit/events?category=SYSTEM',
+    );
+    expect(memberAuditEvents.status).toBe(200);
+    expect(await memberAuditEvents.json()).toMatchObject({
+      events: [{ id: `audit-${projectA}` }],
+    });
+    const memberEvidence = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      '/console/audit/evidence?domain=SECURITY',
+    );
+    expect(memberEvidence.status).toBe(200);
+    expect(await memberEvidence.json()).toMatchObject({
+      evidence: [{ id: `evidence-${projectA}` }],
+    });
+    const activityQuery =
+      '/console/audit/activity?category=SYSTEM&from=2026-10-12T00:00:00.000Z&to=2026-10-14T00:00:00.000Z&bins=1&includeOrgScoped=true';
+    const memberActivity = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      activityQuery,
+    );
+    expect(memberActivity.status).toBe(200);
+    expect(await memberActivity.json()).toMatchObject({ bins: [{ total: 1 }] });
+    const ownerActivity = await consoleRequest(router, ownerToken, projectA, 'GET', activityQuery);
+    expect(ownerActivity.status).toBe(200);
+    expect(await ownerActivity.json()).toMatchObject({ bins: [{ total: 3 }] });
+
+    const foreignSnapshot = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      `/console/runtime-snapshots/latest?environmentId=${environmentB.id}&projectId=${projectB}`,
+    );
+    expect(foreignSnapshot.status).toBe(403);
+    const foreignExportGovernance = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      `/console/export/governance?environmentId=${environmentB.id}`,
+    );
+    expect(foreignExportGovernance.status).toBe(403);
+    const ownerSnapshot = await consoleRequest(
+      router,
+      ownerToken,
+      projectA,
+      'GET',
+      `/console/runtime-snapshots/latest?environmentId=${environmentB.id}&projectId=${projectB}`,
+    );
+    expect(ownerSnapshot.status).toBe(200);
+    const rawSnapshotPublish = await consoleRequest(
+      router,
+      ownerToken,
+      projectA,
+      'POST',
+      '/console/runtime-snapshots/publish',
+      {
+        environmentId: environmentB.id,
+        projectId: projectB,
+        payload: { policy: {}, gasSponsorship: { rules: [{ sponsorAnyCall: true }] } },
+      },
+    );
+    expect(rawSnapshotPublish.status).toBe(404);
+
+    const memberWebhook = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      '/console/webhooks',
+      { url: 'https://member.invalid/hook', eventCategories: ['billing', 'policy'] },
+    );
+    expect(memberWebhook.status).toBe(403);
+    const ownerWebhook = await consoleRequest(
+      router,
+      ownerToken,
+      projectA,
+      'POST',
+      '/console/webhooks',
+      { url: 'https://owner.invalid/hook', eventCategories: ['billing', 'policy'] },
+    );
+    expect(ownerWebhook.status).toBe(201);
+    const memberWebhooks = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      '/console/webhooks',
+    );
+    expect(memberWebhooks.status).toBe(403);
+    const organizationBefore = await product.core.orgProjects.getOrganization(owner);
+    const memberOnboarding = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      '/console/onboarding/organization',
+      { org: { name: 'Unauthorized organization rename' } },
+    );
+    expect(memberOnboarding.status).toBe(403);
+    const organizationAfter = await product.core.orgProjects.getOrganization(owner);
+    expect(organizationAfter.name).toBe(organizationBefore.name);
+
     const evidencePath = testInfo.outputPath('api-key-project-access.json');
     await writeFile(
       evidencePath,
       `${JSON.stringify(
         {
           ownerVisibleKeyIds: ownerIds,
+          memberVisibleWalletIds: ['member-scope-wallet-a'],
+          ownerVisibleWalletCount: 2,
+          memberVisibleExportIds: [exportA.id],
+          ownerVisibleExportCount: 2,
+          foreignExportApprovalStatus: foreignExportApproval.status,
+          foreignExportCreateStatus: foreignExportCreate.status,
           editorVisibleKeyIds: editorIds,
           viewerVisibleKeyIds: viewerIds,
           deniedForeignMutationStatuses: deniedB.map((response) => response.status),
@@ -1809,6 +2088,18 @@ test('project members manage only their projects while owners manage all API key
           deniedViewerRotationStatus: viewerRotation.status,
           editorOwnRotationStatus: editorRotation.status,
           ownerForeignRotationStatus: ownerRotation.status,
+          memberAuditProjectId: projectA,
+          memberActivityCount: 1,
+          ownerActivityCount: 3,
+          foreignSnapshotStatus: foreignSnapshot.status,
+          foreignExportGovernanceStatus: foreignExportGovernance.status,
+          ownerSnapshotStatus: ownerSnapshot.status,
+          rawSnapshotPublishStatus: rawSnapshotPublish.status,
+          memberWebhookCreateStatus: memberWebhook.status,
+          memberWebhookListStatus: memberWebhooks.status,
+          ownerWebhookCreateStatus: ownerWebhook.status,
+          memberOnboardingStatus: memberOnboarding.status,
+          organizationNameUnchanged: organizationAfter.name === organizationBefore.name,
           finalSecretVersions: finalKeys.map((key) => ({
             keyId: key.id,
             secretVersion: key.secretVersion,

@@ -321,8 +321,20 @@ Notes:
   - `wallets.read`
 - Adding a new machine scope should require adding a real machine route plus an explicit catalog update.
 - Webhook secrets are encrypted at rest and rotate with versioning.
+- Webhook endpoints and deliveries span the organization. Only owners can read
+  or manage them.
+- The Console publishes runtime snapshots from current published policies.
+  It does not accept caller-authored snapshot payloads through an HTTP route.
+- Sponsored EVM calls reject `WALLET_CHAIN_TOTAL` caps until the request carries
+  a verified wallet identity. `CHAIN_TOTAL` caps remain available.
 
 ### 7) Governance, Audit, and Approvals
+
+Project members can read audit events, evidence, and activity only for a project
+they can view. An omitted project filter uses the member's selected project.
+Organization-scoped activity does not enter a member's project count.
+Custody retries reuse the stored operation subject and target. A recipient-pair
+write succeeds only while the staged fingerprints match the approved pair.
 
 Tables:
 

@@ -15,7 +15,8 @@ An empty deployment database must not cause project creation to fail.
 ## Requests and retries
 
 - `POST /console/onboarding/organization` configures the organization and ensures
-  its first owner membership.
+  its first owner membership. Only an organization owner can use this route.
+  A member cannot change the organization profile through onboarding.
 - `POST /console/onboarding/project` requires an organization. It creates or
   resolves the requested project and its default `dev` environment. A new project
   returns HTTP 201. A replay that reuses both records returns HTTP 200.

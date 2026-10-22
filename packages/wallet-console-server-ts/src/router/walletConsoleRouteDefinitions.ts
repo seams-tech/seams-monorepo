@@ -66,7 +66,6 @@ const PROJECT_EDIT_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_policies_publish', 'POST', '/console/policies/:id/publish'],
   ['console_key_exports_create', 'POST', '/console/key-exports'],
   ['console_key_exports_approve', 'POST', '/console/key-exports/:id/approve'],
-  ['console_runtime_snapshots_publish', 'POST', '/console/runtime-snapshots/publish'],
   [
     'console_runtime_snapshots_publish_current',
     'POST',

@@ -43,7 +43,6 @@ export {
 export {
   parseListConsoleRuntimeSnapshotsRequest,
   parseGetLatestConsoleRuntimeSnapshotRequest,
-  parsePublishConsoleRuntimeSnapshotRequest,
   parsePublishCurrentConsoleRuntimeSnapshotRequest,
 } from './requests';
 

@@ -318,10 +318,6 @@ export const messages = {
   growthMonthlyPrice: { en: '{growthBase} / mo', ja: '{growthBase} / 月' },
   proMonthlyPrice: { en: '{proBase} / mo', ja: '{proBase} / 月' },
   estimatePrice: { en: 'Estimate your price', ja: '料金を試算' },
-  estimateNav: {
-    en: 'Set your users and see the monthly total',
-    ja: 'ユーザー数を指定して月額料金を確認',
-  },
   comparePlans: { en: 'Compare plans', ja: 'プランを比較' },
   aboutUs: { en: 'About Us', ja: 'Seamsについて' },
   companyNav: {

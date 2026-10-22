@@ -3,8 +3,8 @@ import type { Locale } from '@/i18n/locale';
 import {
   Bot,
   Building2,
+  Crown,
   Fingerprint,
-  Gauge,
   LifeBuoy,
   ListChecks,
   PenLine,
@@ -124,26 +124,23 @@ function pricingDropdownPane(t: Translate): DropdownPane {
         title: 'Pro',
         description: t('proNav'),
         to: '/pricing/#pro',
-        icon: Gauge,
+        icon: Rocket,
         meta: t('proMonthlyPrice'),
         field: 'vermilion-sky',
       },
-      {
-        title: 'Enterprise',
-        description: t('enterpriseNav'),
-        to: '/pricing/#enterprise',
-        icon: Rocket,
-        meta: t('custom'),
-        field: 'onyx-slate',
-      },
     ],
+    // Enterprise takes the large card; the phone menu lists it under the plans.
     highlight: {
-      title: t('estimatePrice'),
-      description: t('estimateNav'),
-      to: '/pricing/#calculator',
-      field: 'coral-tide',
+      title: 'Enterprise',
+      description: t('enterpriseNav'),
+      to: '/pricing/#enterprise',
+      field: 'onyx-slate',
+      icon: Crown,
     },
-    footerLinks: [{ label: t('comparePlans'), to: '/pricing/' }],
+    footerLinks: [
+      { label: t('comparePlans'), to: '/pricing/' },
+      { label: t('estimatePrice'), to: '/pricing/#calculator' },
+    ],
   };
 }
 
@@ -201,6 +198,11 @@ export function getSiteNavbarConfig(locale: Locale): SiteNavbarConfig {
     aboutHref: '/company/#company',
     dashboardHref: '/dashboard',
     mobilePlanLinks: [
+      {
+        title: 'Enterprise',
+        description: t('enterpriseNav'),
+        to: '/pricing/#enterprise',
+      },
       {
         title: t('talkUs'),
         description: t('talkCopy'),

@@ -7,6 +7,7 @@ import previousKeychain from '../../../showcase/motion/credentials/index.html?ra
 import previousInterlock from '../../../showcase/motion/interlock/index.html?raw';
 import previousDevices from '../../../showcase/motion/delegation/index.html?raw';
 import previousInfrastructure from '../../../showcase/motion/infrastructure-array/index.html?raw';
+import bladeInterlock from '../../../showcase/motion/interlock-blade/index.html?raw';
 import { H2Security } from './sections';
 import {
   candidateFigureDocument,
@@ -16,29 +17,37 @@ import {
 } from './WalletFigure';
 
 /* Dev-only page (/figure-review/ on the dev server, not in the build): each
-   live custody figure beside the detailed figure it replaced, at the page's
-   cell size, then the real custody section as it ships. */
+   candidate beside the live figure it would replace, each live custody figure
+   beside the detailed figure it replaced, all at the page's cell size, then
+   the real custody section as it ships. */
 
-const reviews: readonly { figure: WalletFigureName; label: string; html: string }[] = [
+type Review = { figure: WalletFigureName; label: string; html: string };
+
+const candidates: readonly Review[] = [
+  { figure: 'interlock', label: 'Scoped permissions: flat blade', html: bladeInterlock },
+];
+
+const reviews: readonly Review[] = [
   { figure: 'keychain', label: 'Keys you control', html: previousKeychain },
   { figure: 'interlock', label: 'Scoped permissions', html: previousInterlock },
   { figure: 'devices', label: 'Linked devices', html: previousDevices },
   { figure: 'infrastructure', label: 'No lock-in', html: previousInfrastructure },
 ];
 
-const previous: Partial<Record<WalletFigureName, string>> = Object.fromEntries(
-  reviews.map(({ figure, html }) => [figure, candidateFigureDocument(figure, html)]),
-);
-
 function ReviewPair({
-  figure,
-  label,
+  review: { figure, label, html },
+  other,
   playing,
 }: {
-  figure: WalletFigureName;
-  label: string;
+  review: Review;
+  /* the caption of the right cell, which shows the review's drawing */
+  other: string;
   playing: boolean;
 }): React.JSX.Element {
+  const swap = React.useMemo(
+    () => ({ [figure]: candidateFigureDocument(figure, html) }),
+    [figure, html],
+  );
   return (
     <div>
       <h3>{label}</h3>
@@ -48,10 +57,10 @@ function ReviewPair({
             <WalletFigure figure={figure} playing={playing} />
             <span>Live</span>
           </div>
-          <WalletFigureCandidates.Provider value={previous}>
+          <WalletFigureCandidates.Provider value={swap}>
             <div className="h2-security__cell">
               <WalletFigure figure={figure} playing={playing} />
-              <span>Previous</span>
+              <span>{other}</span>
             </div>
           </WalletFigureCandidates.Provider>
         </div>
@@ -59,6 +68,13 @@ function ReviewPair({
     </div>
   );
 }
+
+const pairGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 448px), 448px))',
+  gap: '32px 64px',
+  marginTop: 24,
+};
 
 function FigureReview(): React.JSX.Element {
   const [playing, setPlaying] = React.useState(false);
@@ -77,16 +93,25 @@ function FigureReview(): React.JSX.Element {
             >
               {playing ? 'Rest all' : 'Play all'}
             </button>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 448px), 448px))',
-                gap: '32px 64px',
-                marginTop: 40,
-              }}
-            >
-              {reviews.map(({ figure, label }) => (
-                <ReviewPair key={figure} figure={figure} label={label} playing={playing} />
+            <h2 className="h2-display" style={{ marginTop: 48 }}>
+              Candidates
+            </h2>
+            <div style={pairGrid}>
+              {candidates.map((review) => (
+                <ReviewPair
+                  key={review.label}
+                  review={review}
+                  other="Candidate"
+                  playing={playing}
+                />
+              ))}
+            </div>
+            <h2 className="h2-display" style={{ marginTop: 48 }}>
+              Previous figures
+            </h2>
+            <div style={pairGrid}>
+              {reviews.map((review) => (
+                <ReviewPair key={review.label} review={review} other="Previous" playing={playing} />
               ))}
             </div>
           </div>

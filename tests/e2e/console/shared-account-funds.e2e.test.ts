@@ -109,6 +109,8 @@ async function services(database: D1DatabaseLike) {
     database,
     namespace,
     now,
+    // Historical fixtures must get their schema only from migrations.
+    ensureSchema: false,
     providers: createSimulatedBillingProviderAdapters(),
   });
   const platform = createD1AccountPlatformService({

@@ -134,7 +134,7 @@ function pricingDropdownPane(t: Translate): DropdownPane {
         to: '/pricing/#enterprise',
         icon: Rocket,
         meta: t('custom'),
-        field: 'mauve-ember',
+        field: 'onyx-slate',
       },
     ],
     highlight: {

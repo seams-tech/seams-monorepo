@@ -111,6 +111,7 @@ function isSharedBillingPath(pathname: string): boolean {
     pathname === '/console/billing/stripe/checkout-session' ||
     pathname === '/console/billing/stripe/checkout-session/reconcile' ||
     pathname === '/console/billing/plan' ||
+    pathname === '/console/billing/plan/start' ||
     pathname === '/console/billing/card-setup' ||
     pathname === '/console/billing/card-setup/reconcile'
   );

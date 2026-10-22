@@ -725,7 +725,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 /* global HL, hairline */
 // The keychain of credentials/scoped-credentials.js, reduced to circles and
-// lines: the same keys, ring, fan and camera, with no thickness or fill.
+// lines: the same keys, ring, fan and camera, with no thickness. Each head is
+// an opaque disc with a real hole, so nearer heads cover farther keys.
 const COUNT = 4;
 const BOW_RADIUS = 16;
 const BOW_Y = 9;
@@ -763,10 +764,12 @@ function cuts(index) {
 }
 
 function makeKey(svg, index) {
+  const group = HL.mk('g', {}, svg);
   return {
     index,
     cuts: cuts(index),
-    path: HL.mk('path', { class: 'nf sil' }, svg),
+    blade: HL.mk('path', { class: 'nf sil' }, group),
+    head: HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, group),
     angle: HL.tween(restAngle(index)),
     drawn: NaN,
   };
@@ -776,10 +779,10 @@ function drawKey(state, key, angle) {
   if (angle === key.drawn) return;
   key.drawn = angle;
   const at = projectKey.bind(null, state.P, angle, keyHeight(key.index));
-  let d = HL.poly(BOW.map(at)) + HL.poly(HOLE.map(at));
-  d += HL.seg(at([0, BOW_Y + BOW_RADIUS]), at([0, TIP_Y]));
-  for (const [v, depth] of key.cuts) d += HL.seg(at([0, v]), at([depth, v]));
-  key.path.setAttribute('d', d);
+  key.head.setAttribute('d', HL.poly(BOW.map(at)) + HL.poly(HOLE.map(at)));
+  let blade = HL.seg(at([0, BOW_Y + BOW_RADIUS]), at([0, TIP_Y]));
+  for (const [v, depth] of key.cuts) blade += HL.seg(at([0, v]), at([depth, v]));
+  key.blade.setAttribute('d', blade);
 }
 
 function guides(svg, P) {
@@ -795,15 +798,21 @@ function guides(svg, P) {
   HL.mk('path', { d, class: 'nf lo dash' }, svg);
 }
 
-function ring(svg, P) {
-  const points = [];
+function ringPoint(P, angle) {
+  return P(0, RING_RADIUS * Math.cos(angle) - RING_RADIUS, RING_Z + RING_RADIUS * Math.sin(angle));
+}
+
+// The ring section between two key heights, painted between those keys, so
+// the ring passes through each head's hole.
+function ring(svg, P, minimum, maximum) {
+  let d = '';
   for (let step = 0; step < 96; step++) {
-    const angle = (step / 96) * Math.PI * 2;
-    points.push(
-      P(0, RING_RADIUS * Math.cos(angle) - RING_RADIUS, RING_Z + RING_RADIUS * Math.sin(angle)),
-    );
+    const a = (step / 96) * Math.PI * 2;
+    const b = ((step + 1) / 96) * Math.PI * 2;
+    const height = RING_Z + RING_RADIUS * Math.sin((a + b) / 2);
+    if (height >= minimum && height < maximum) d += HL.seg(ringPoint(P, a), ringPoint(P, b));
   }
-  HL.mk('path', { d: HL.poly(points), class: 'nf sil' }, svg);
+  HL.mk('path', { d, class: 'nf sil' }, svg);
 }
 
 function tick(state, _dt, now) {
@@ -827,7 +836,9 @@ function select(state, index) {
     if (selected) part = -state.fanAngle;
     else if (index >= 0) part = Math.sign(key.index - index) * 4;
     HL.tset(key.angle, restAngle(key.index) + part, now, distance * 35);
-    key.path.classList.toggle('hi', selected || (index < 0 && key.index === COUNT - 1));
+    const lit = selected || (index < 0 && key.index === COUNT - 1);
+    key.head.classList.toggle('hi', lit);
+    key.blade.classList.toggle('hi', lit);
   }
   state.read.textContent = index < 0 ? 'rest' : `key 0${index + 1}`;
   state.loop.wake();
@@ -868,9 +879,12 @@ function mount({ stage, svg, read }, fanAngle) {
   HL.fit(C, bounds, 200, 166);
   const P = HL.proj(C);
   guides(svg, P);
-  ring(svg, P);
+  ring(svg, P, -Infinity, keyHeight(0));
   const keys = [];
-  for (let index = 0; index < COUNT; index++) keys.push(makeKey(svg, index));
+  for (let index = 0; index < COUNT; index++) {
+    keys.push(makeKey(svg, index));
+    ring(svg, P, keyHeight(index), index === COUNT - 1 ? Infinity : keyHeight(index + 1));
+  }
   const state = { C, P, keys, read, fanAngle, active: -2, loop: null };
   state.loop = HL.register(stage, tick.bind(null, state));
   select(state, -1);
@@ -884,7 +898,7 @@ function mount({ stage, svg, read }, fanAngle) {
 hairline({
   name: 'abstract-keychain',
   means:
-    'Four keys on one ring, drawn as circles and lines. Hover a key to fan it out around the ring.',
+    'Four keys on one ring, drawn as solid discs and lines. Hover a key to fan it out around the ring.',
   rules: [1, 2, 4, 8],
   range: [6, 10, 14],
   mount,

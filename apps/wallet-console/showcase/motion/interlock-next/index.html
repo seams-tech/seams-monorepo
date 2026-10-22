@@ -724,21 +724,14 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /* global HL, hairline */
-// Slotted wheels, out of line at rest; once aligned, a traced blade drops onto the target line.
-const AXIS = 45;
-const RADIUS = 31;
-const BLADE_HEIGHT = 9.6;
-const SLOT_HALF = 1.6;
-const SLOT_FLOOR = 21;
-const HOLE_RADIUS = 4.3;
+// Slotted wheels and a dial, out of line at rest; once aligned, a traced blade drops in.
+const [AXIS, RADIUS, BLADE_HEIGHT] = [45, 31, 9.6];
+const [SLOT_HALF, SLOT_FLOOR, HOLE_RADIUS] = [0.9, 21, 4.3]; // slits: the blade has no depth
 const DISKS = [50, 140, -100];
-const BOUNDS = [-56, -40, -12, 16, 32];
-const BLADE_FROM = -46;
-const BLADE_TO = 22;
-const BLADE_UP = AXIS + RADIUS + 1;
-const BLADE_DOWN = AXIS + SLOT_FLOOR + 0.3;
-const TURN_MS = 450;
-const BLADE_MS = 1600;
+const BOUNDS = [-56, -40, -12, 16, 46, 54];
+const [BLADE_FROM, BLADE_TO] = [-46, 22];
+const [BLADE_UP, BLADE_DOWN] = [AXIS + RADIUS + 1, AXIS + SLOT_FLOOR + 0.3];
+const [TURN_MS, BLADE_MS] = [450, 1600];
 // The blade tween's phases in ms: dashed trace, solid trace, then the drop.
 const TRACE = [0, 450];
 const SOLID = [500, 950];
@@ -760,13 +753,15 @@ const DISK = arc(RADIUS, OPEN, Math.PI * 2 - OPEN, 72).concat([
 ]);
 const HOLE = arc(HOLE_RADIUS, 0, Math.PI * 2, 24);
 const HUB = arc(HOLE_RADIUS + 1.6, 0, Math.PI * 2, 24);
+const DIAL = arc(16, 0, Math.PI * 2, 48);
 // Wheel ticks inside the rim, long every quarter turn, none at the keyway (angle 0).
-const wheel = (count) =>
+const wheel = (count, rim) =>
   Array.from({ length: count - 1 }, (_, i) => {
-    const [t, r0] = [((i + 1) / count) * 2 * Math.PI, (i + 1) % (count / 4) ? 28 : 25];
-    return [r0, 29.5].map((r) => [r * Math.sin(t), r * Math.cos(t)]);
+    const [t, r0] = [((i + 1) / count) * 2 * Math.PI, (i + 1) % (count / 4) ? rim - 3 : rim - 6];
+    return [r0, rim - 1.5].map((r) => [r * Math.sin(t), r * Math.cos(t)]);
   });
-const TICKS = [wheel(8), wheel(12), wheel(16)]; // back to front: finer on nearer disks
+// Back to front, finer on nearer disks; the dial carries the finest scale.
+const TICKS = [4, 8, 16].map((count) => wheel(count, RADIUS)).concat([wheel(16, 16)]);
 
 function project(P, x, angle, point) {
   const a = HL.rad(angle);
@@ -807,19 +802,20 @@ function outline(P, part) {
   return part > 0 ? HL.open(points) : '';
 }
 
-function makePlate(svg, P, x, angle, ticks) {
+function makePlate(svg, P, x, angle, shape, ticks) {
   const face = HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, svg);
   const detail = HL.mk('path', { class: 'nf lo' }, svg);
-  return { x, face, detail, ticks, outline: [face], center: P(x, 0, AXIS)[0], angle, drawn: NaN };
+  return { x, face, detail, shape, ticks, outline: [face], center: P(x, 0, AXIS)[0], angle };
 }
 
 function drawPlate(state, plate, angle) {
   if (angle === plate.drawn) return;
   plate.drawn = angle;
   const at = project.bind(null, state.P, plate.x, angle);
-  plate.face.setAttribute('d', HL.poly(DISK.map(at)) + HL.poly(HOLE.map(at)));
+  plate.face.setAttribute('d', HL.poly(plate.shape.map(at)) + HL.poly(HOLE.map(at)));
+  if (plate.mark) plate.mark.setAttribute('d', HL.seg(at([0, 8]), at([0, 13])));
   const ticks = plate.ticks.map(([a, b]) => HL.seg(at(a), at(b))).join('');
-  plate.detail.setAttribute('d', ticks + HL.poly(HUB.map(at)));
+  plate.detail.setAttribute('d', ticks + (plate.mark ? '' : HL.poly(HUB.map(at)))); // no dial hub
 }
 
 function tick(state, _dt, now) {
@@ -828,6 +824,7 @@ function tick(state, _dt, now) {
     drawPlate(state, disk, HL.tval(disk.angle, now));
     if (!HL.tdone(disk.angle, now)) moving = true;
   }
+  drawPlate(state, state.dial, HL.tval(state.disks[2].angle, now));
   const blade = HL.tval(state.pin, now);
   if (blade !== state.pinDrawn) {
     state.pinDrawn = blade;
@@ -866,7 +863,7 @@ function select(state, active) {
 // Rest centres along one row: the nearest x answers, and turning never moves it.
 function move(state, point) {
   const gap = (part) => Math.abs(part.center - point[0]);
-  const nearest = state.disks.reduce((a, b) => (gap(b) < gap(a) ? b : a));
+  const nearest = state.targets.reduce((a, b) => (gap(b) < gap(a) ? b : a));
   if (!state.bladeLit) highlight(state, nearest.outline);
   select(state, true);
 }
@@ -883,24 +880,27 @@ function mount({ stage, svg, read }, step) {
     [BLADE_TO, -31, BLADE_UP + BLADE_HEIGHT],
     [BLADE_TO, 31, 14],
   ];
-  HL.fit(C, bounds, 200, 177);
+  HL.fit(C, bounds, 186, 177);
   const P = HL.proj(C);
   const target = HL.seg(P(BLADE_FROM, 0, AXIS + RADIUS), P(BLADE_TO, 0, AXIS + RADIUS));
   HL.mk('path', { d: target, class: 'nf lo dash' }, svg);
   const [disks, blades, edges] = [[], [], []];
+  let dial = null;
   for (let index = 0; index < BOUNDS.length - 1; index++) {
     const [from, to] = [BOUNDS[index], BOUNDS[index + 1]];
     HL.mk('path', { d: HL.seg(P(from, 0, AXIS), P(to, 0, AXIS)), class: 'nf lo dash' }, svg);
     const [bladeFrom, bladeTo] = [Math.max(from, BLADE_FROM), Math.min(to, BLADE_TO)];
     if (bladeFrom < bladeTo) blades.push(makeBlade(svg, P, bladeFrom, bladeTo, edges));
-    if (index < DISKS.length)
-      disks.push(makePlate(svg, P, to, HL.tween(DISKS[index], TURN_MS), TICKS[index]));
+    const turn = index < DISKS.length && HL.tween(DISKS[index], TURN_MS);
+    if (index < DISKS.length) disks.push(makePlate(svg, P, to, turn, DISK, TICKS[index]));
+    else if (index === DISKS.length) dial = makePlate(svg, P, to, null, DIAL, TICKS[index]);
   }
+  dial.outline.push((dial.mark = HL.mk('path', { class: 'nf sil' }, svg)));
   const whole = makeBlade(svg, P, BLADE_FROM, BLADE_TO, edges);
   const dashed = HL.mk('path', { class: 'nf lo dash' }, svg);
   const solid = HL.mk('path', { class: 'nf sil' }, svg);
   const state = { P, read, disks, blades, whole, dashed, solid, step, highlight: [] };
-  Object.assign(state, { pin: HL.tween(0, BLADE_MS), pinDrawn: NaN });
+  Object.assign(state, { dial, targets: [...disks, dial], pin: HL.tween(0, BLADE_MS) });
   state.bladeOutline = [solid, ...edges];
   state.loop = HL.register(stage, tick.bind(null, state));
   leave(state);

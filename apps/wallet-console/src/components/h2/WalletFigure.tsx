@@ -1,10 +1,10 @@
 import React from 'react';
 import { locale, t } from '@/marketing/i18n/browser';
 import { figureCatalog } from '@/marketing/i18n/catalog';
-import keychain from '../../../showcase/motion/credentials/index.html?raw';
-import interlock from '../../../showcase/motion/interlock/index.html?raw';
-import devices from '../../../showcase/motion/delegation/index.html?raw';
-import infrastructure from '../../../showcase/motion/infrastructure-array/index.html?raw';
+import keychain from '../../../showcase/motion/credentials-abstract/index.html?raw';
+import interlock from '../../../showcase/motion/interlock-abstract/index.html?raw';
+import devices from '../../../showcase/motion/delegation-abstract/index.html?raw';
+import infrastructure from '../../../showcase/motion/infrastructure-abstract/index.html?raw';
 import signing from '../../../showcase/motion/threshold-signing/index.html?raw';
 import embed from './hairline/embed.js?raw';
 
@@ -32,14 +32,6 @@ function figureDocument(html: string, pointerX: number, pointerY: number, play: 
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }
 #stage { width: 100%; height: 100%; touch-action: pan-y; --hairline-stroke: 0.65; }
 #stage svg { display: block; width: 100%; height: 100%; transform: scale(1.22); transform-origin: center; }
-#stage[data-hairline="scoped-credentials"] svg,
-#stage[data-hairline="abstract-keychain"] svg { transform: translateX(5%) scale(1.22); }
-#stage[data-hairline="interlock"] svg,
-#stage[data-hairline="abstract-interlock"] svg { transform: translateX(2%) scale(1.22); }
-#stage[data-hairline="device-linking"] svg,
-#stage[data-hairline="abstract-devices"] svg,
-#stage[data-hairline="infrastructure-array"] svg,
-#stage[data-hairline="abstract-infrastructure"] svg { transform: translateY(5%) scale(1.22); }
 #stage[data-hairline="threshold-signing"] svg { transform: translateX(2.5%) scale(1.44); }
 @media (max-width: 480px) {
   #stage[data-hairline="threshold-signing"] svg { transform: translateX(1.5%); }
@@ -56,24 +48,25 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 </body></html>`;
 }
 
-// The keychain and the racks answer to where the pointer is, so their plays
-// sweep across each key and each cabinet; the lock, the phones and the
-// signing diagram run their whole sequence from a single point.
+// The keychain and the block answer to where the pointer is, so their plays
+// sweep across each key and up the block's cells; the lock, the phones and
+// the signing diagram run their whole sequence from a single point.
 const keychainPlay: PlayPath = [
-  [210, 245, 0],
-  [210, 245, 450],
-  [140, 225, 750],
-  [140, 225, 1200],
-  [70, 195, 1500],
-  [70, 195, 1950],
-  [60, 140, 2250],
+  [264, 211, 0],
+  [264, 211, 450],
+  [205, 198, 750],
+  [205, 198, 1200],
+  [157, 174, 1500],
+  [157, 174, 1950],
+  [129, 142, 2250],
 ];
 const infrastructurePlay: PlayPath = [
-  [145, 100, 0],
-  [150, 195, 1000],
-  [190, 170, 1500],
-  [190, 170, 1900],
-  [255, 195, 2400],
+  [135, 186, 0],
+  [135, 186, 700],
+  [165, 164, 1100],
+  [165, 164, 1800],
+  [195, 142, 2200],
+  [195, 142, 2900],
 ];
 
 function figureEntry(
@@ -93,10 +86,10 @@ function figureEntry(
 }
 
 const figures = {
-  keychain: figureEntry(t('keysControl'), keychain, 150, 180, keychainPlay),
+  keychain: figureEntry(t('keysControl'), keychain, 205, 198, keychainPlay),
   interlock: figureEntry(t('scopedPermissions'), interlock, 200, 160, [[200, 160, 0]]),
   devices: figureEntry(t('linkedDevices'), devices, 200, 160, [[200, 160, 0]]),
-  infrastructure: figureEntry(t('noLockIn'), infrastructure, 205, 157, infrastructurePlay),
+  infrastructure: figureEntry(t('noLockIn'), infrastructure, 165, 164, infrastructurePlay),
   signing: figureEntry(t('signingFigure'), signing, 200, 160, [[200, 160, 0]]),
 };
 

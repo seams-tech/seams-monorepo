@@ -69,12 +69,12 @@ function guides(svg, P) {
   const middle = keyHeight((COUNT - 1) / 2);
   const sweep = [];
   for (let step = 0; step <= 48; step++) {
-    const angle = HL.rad(-64 + (112 * step) / 48);
+    const angle = HL.rad(-60 + (96 * step) / 48);
     sweep.push(P(-TIP_Y * Math.sin(angle), TIP_Y * Math.cos(angle), middle));
   }
   let d = HL.open(sweep);
-  d += HL.seg(P(0, 0, -26), P(0, 0, RING_Z + RING_RADIUS + 14));
-  d += HL.seg(P(0, -2 * RING_RADIUS - 14, RING_Z), P(0, 26, RING_Z));
+  d += HL.seg(P(0, 0, -18), P(0, 0, RING_Z + RING_RADIUS + 10));
+  d += HL.seg(P(0, -2 * RING_RADIUS - 8, RING_Z), P(0, 20, RING_Z));
   HL.mk('path', { d, class: 'nf lo dash' }, svg);
 }
 
@@ -93,6 +93,24 @@ function ring(svg, P, minimum, maximum) {
     if (height >= minimum && height < maximum) d += HL.seg(ringPoint(P, a), ringPoint(P, b));
   }
   HL.mk('path', { d, class: 'nf sil' }, svg);
+}
+
+// The ring, and each key's head and tip at rest and fanned out as far as the
+// slider allows, so the fit holds the most extreme pose (rule 03).
+function extremes() {
+  const world = (x, y, z) => [x, y, z];
+  const points = [
+    [0, -RING_RADIUS, RING_Z - RING_RADIUS],
+    [0, -2 * RING_RADIUS, RING_Z],
+    [0, -RING_RADIUS, RING_Z + RING_RADIUS],
+  ];
+  for (let index = 0; index < COUNT; index++) {
+    for (const angle of [restAngle(index), restAngle(index) - 14]) {
+      const at = projectKey.bind(null, world, angle, keyHeight(index));
+      points.push(at([0, TIP_Y]), at([BOW_RADIUS, BOW_Y]), at([-BOW_RADIUS, BOW_Y]), at([0, -7]));
+    }
+  }
+  return points;
 }
 
 function tick(state, _dt, now) {
@@ -151,12 +169,7 @@ function set(state, fanAngle) {
 
 function mount({ stage, svg, read }, fanAngle) {
   const C = HL.Cam(45, 0.5, 1.85);
-  const bounds = [
-    [-110, -44, 0],
-    [100, 125, 0],
-    [0, -22, 30],
-  ];
-  HL.fit(C, bounds, 200, 166);
+  HL.fit(C, extremes(), 200, 160);
   const P = HL.proj(C);
   guides(svg, P);
   ring(svg, P, -Infinity, keyHeight(0));

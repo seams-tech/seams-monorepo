@@ -3,10 +3,10 @@ import { createRoot } from 'react-dom/client';
 import '@seams/wallet/react/styles';
 import '@/app.css';
 import '@/styles/h2.css';
-import abstractKeychain from '../../../showcase/motion/credentials-abstract/index.html?raw';
-import abstractInterlock from '../../../showcase/motion/interlock-abstract/index.html?raw';
-import abstractDevices from '../../../showcase/motion/delegation-abstract/index.html?raw';
-import abstractInfrastructure from '../../../showcase/motion/infrastructure-abstract/index.html?raw';
+import previousKeychain from '../../../showcase/motion/credentials/index.html?raw';
+import previousInterlock from '../../../showcase/motion/interlock/index.html?raw';
+import previousDevices from '../../../showcase/motion/delegation/index.html?raw';
+import previousInfrastructure from '../../../showcase/motion/infrastructure-array/index.html?raw';
 import { H2Security } from './sections';
 import {
   candidateFigureDocument,
@@ -16,17 +16,17 @@ import {
 } from './WalletFigure';
 
 /* Dev-only page (/figure-review/ on the dev server, not in the build): each
-   custody figure beside its abstract candidate at the page's cell size, then
-   the real custody section with every candidate in its figure's place. */
+   live custody figure beside the detailed figure it replaced, at the page's
+   cell size, then the real custody section as it ships. */
 
 const reviews: readonly { figure: WalletFigureName; label: string; html: string }[] = [
-  { figure: 'keychain', label: 'Keys you control', html: abstractKeychain },
-  { figure: 'interlock', label: 'Scoped permissions', html: abstractInterlock },
-  { figure: 'devices', label: 'Linked devices', html: abstractDevices },
-  { figure: 'infrastructure', label: 'No lock-in', html: abstractInfrastructure },
+  { figure: 'keychain', label: 'Keys you control', html: previousKeychain },
+  { figure: 'interlock', label: 'Scoped permissions', html: previousInterlock },
+  { figure: 'devices', label: 'Linked devices', html: previousDevices },
+  { figure: 'infrastructure', label: 'No lock-in', html: previousInfrastructure },
 ];
 
-const candidates: Partial<Record<WalletFigureName, string>> = Object.fromEntries(
+const previous: Partial<Record<WalletFigureName, string>> = Object.fromEntries(
   reviews.map(({ figure, html }) => [figure, candidateFigureDocument(figure, html)]),
 );
 
@@ -46,12 +46,12 @@ function ReviewPair({
         <div className="h2-security__view h2-security__grid is-active" style={{ marginTop: 0 }}>
           <div className="h2-security__cell">
             <WalletFigure figure={figure} playing={playing} />
-            <span>Current</span>
+            <span>Live</span>
           </div>
-          <WalletFigureCandidates.Provider value={candidates}>
+          <WalletFigureCandidates.Provider value={previous}>
             <div className="h2-security__cell">
               <WalletFigure figure={figure} playing={playing} />
-              <span>Abstract</span>
+              <span>Previous</span>
             </div>
           </WalletFigureCandidates.Provider>
         </div>
@@ -91,9 +91,7 @@ function FigureReview(): React.JSX.Element {
             </div>
           </div>
         </section>
-        <WalletFigureCandidates.Provider value={candidates}>
-          <H2Security />
-        </WalletFigureCandidates.Provider>
+        <H2Security />
       </div>
     </div>
   );

@@ -12,6 +12,23 @@ This is a staging-only artifact. It was not published to npm. The private packag
 pins remain `0.15.6`. A normal frontend deployment from those pins replaces the
 candidate. No backend deployment or production frontend deployment was performed.
 
+## D1 latency follow-up — October 22, 2026
+
+The later [D1 investigation](d1-write-path-diagnosis-20261022.json) reproduced
+selective waits outside reported SQL execution on both Deriver databases.
+Recorded calls took 888 ms on B and 754 ms on A, with less than 0.5 ms of SQL each.
+Independent client measurements confirmed real waits while the other database
+responded and the caller continued sending heartbeats. The exact internal cause
+remains unresolved. The fixed five-second phase prediction failed its prospective test.
+
+These separate probes identify a remaining storage latency risk. They do not
+attribute this comparison's registration variation entirely to D1.
+The [future PostgreSQL and Hyperdrive plan](../future-plan-wallet-postgresql-preparation.md#potential-latency-upgrade-postgresql-through-hyperdrive)
+describes a potential upgrade using RDS or Google Cloud SQL while keeping Workers
+on Cloudflare. It records the required storage ports, disabled query caching,
+transaction guarantees, and hosted comparison. No latency improvement from that
+upgrade is established.
+
 ## Results
 
 Each version has 20 fresh-context registrations in two blocks. All 40 registrations

@@ -13,6 +13,7 @@ import {
 import type {
   ConsoleSponsorshipSpendCapReservation,
   ConsoleSponsorshipSpendCapReservationOutcome,
+  ConsoleSponsorshipSpendCapReserveOutcome,
   ConsoleSponsorshipSpendCapWindowUsage,
   GetConsoleSponsorshipSpendCapWindowUsageRequest,
   ReleaseConsoleSponsorshipSpendCapRequest,
@@ -41,7 +42,7 @@ export interface ConsoleSponsorshipSpendCapService {
   reserve(
     ctx: ConsoleSponsorshipSpendCapContext,
     request: ReserveConsoleSponsorshipSpendCapRequest,
-  ): Promise<ConsoleSponsorshipSpendCapReservationOutcome>;
+  ): Promise<ConsoleSponsorshipSpendCapReserveOutcome>;
   settle(
     ctx: ConsoleSponsorshipSpendCapContext,
     request: SettleConsoleSponsorshipSpendCapRequest,
@@ -167,7 +168,7 @@ export function createInMemoryConsoleSponsorshipSpendCapService(
       );
       if (existingReservationId) {
         const existing = store.reservationsById.get(existingReservationId);
-        if (existing) return buildOutcome(store, existing);
+        if (existing) return { ...buildOutcome(store, existing), disposition: 'replayed' };
       }
 
       const usageKey = buildConsoleSponsorshipSpendCapWindowKey(normalized);
@@ -231,7 +232,7 @@ export function createInMemoryConsoleSponsorshipSpendCapService(
       };
       store.reservationsById.set(reservation.id, reservation);
       store.reservationIdsBySourceEventId.set(reservation.sourceEventId, reservation.id);
-      return buildOutcome(store, reservation);
+      return { ...buildOutcome(store, reservation), disposition: 'created' };
     },
 
     async settle(ctx, request) {

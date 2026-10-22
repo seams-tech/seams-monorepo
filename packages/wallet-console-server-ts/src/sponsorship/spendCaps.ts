@@ -199,6 +199,13 @@ export async function reserveSponsoredSpendCap(input: {
     spendCap: input.spendCap,
     chainId,
   });
+  if (input.chainFamily === 'evm' && configured.mode === 'WALLET_CHAIN_TOTAL') {
+    throw new SponsorshipSpendCapEnforcementError(
+      'sponsorship_wallet_cap_unverifiable',
+      409,
+      'Sponsored EVM calls cannot use a per-wallet cap without a verified wallet identity',
+    );
+  }
   const estimated = await input.pricing.estimateSponsoredExecutionSpend({
     chainFamily: input.chainFamily,
     intentKind: input.intentKind,
@@ -211,7 +218,7 @@ export async function reserveSponsoredSpendCap(input: {
     requestDetails: input.requestDetails,
   });
   try {
-    await input.spendCaps.reserve(input.ctx, {
+    const reservation = await input.spendCaps.reserve(input.ctx, {
       sourceEventId: input.sourceEventId,
       environmentId: input.environmentId,
       policyId: input.policyId,
@@ -222,6 +229,13 @@ export async function reserveSponsoredSpendCap(input: {
       capMinor: configured.capMinor,
       estimatedSpendMinor: toNonNegativeInteger(estimated.spendMinor, 'estimated spendMinor'),
     });
+    if (reservation.disposition === 'replayed') {
+      throw new SponsorshipSpendCapEnforcementError(
+        'execution_pending',
+        409,
+        'This sponsored execution already has a spend-cap reservation',
+      );
+    }
   } catch (error: unknown) {
     mapReservationError(error);
   }

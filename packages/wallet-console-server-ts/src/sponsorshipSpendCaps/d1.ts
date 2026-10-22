@@ -1,7 +1,6 @@
 import { secureRandomBase36 } from '@seams/wallet-server/cloud-host';
 import {
   d1Integer as toNumber,
-  d1ChangedRows,
   formatD1ExecStatement,
   queryD1One,
   type D1Row,
@@ -26,6 +25,7 @@ import type {
   ConsoleSponsorshipSpendCapPeriod,
   ConsoleSponsorshipSpendCapReservation,
   ConsoleSponsorshipSpendCapReservationOutcome,
+  ConsoleSponsorshipSpendCapReserveOutcome,
   ConsoleSponsorshipSpendCapReservationStatus,
   ConsoleSponsorshipSpendCapWindowUsage,
 } from './types';
@@ -732,7 +732,7 @@ class D1ConsoleSponsorshipSpendCapServiceImpl implements ConsoleSponsorshipSpend
   async reserve(
     ctx: ConsoleSponsorshipSpendCapContext,
     request: Parameters<ConsoleSponsorshipSpendCapService['reserve']>[1],
-  ): Promise<ConsoleSponsorshipSpendCapReservationOutcome> {
+  ): Promise<ConsoleSponsorshipSpendCapReserveOutcome> {
     const currentNow = this.state.now();
     const createdAtMs = nowMs(currentNow);
     const normalized = normalizeReserveRequest(request, currentNow);
@@ -742,13 +742,16 @@ class D1ConsoleSponsorshipSpendCapServiceImpl implements ConsoleSponsorshipSpend
       sourceEventId: normalized.sourceEventId,
     });
     if (existing) {
-      return buildOutcome({
-        reservation: existing,
-        usage: await loadUsageForReservation(this.state.database, {
-          namespace: this.state.namespace,
+      return {
+        ...buildOutcome({
           reservation: existing,
+          usage: await loadUsageForReservation(this.state.database, {
+            namespace: this.state.namespace,
+            reservation: existing,
+          }),
         }),
-      });
+        disposition: 'replayed',
+      };
     }
     try {
       await this.state.database
@@ -802,13 +805,16 @@ class D1ConsoleSponsorshipSpendCapServiceImpl implements ConsoleSponsorshipSpend
         sourceEventId: normalized.sourceEventId,
       });
       if (existingAfterConflict) {
-        return buildOutcome({
-          reservation: existingAfterConflict,
-          usage: await loadUsageForReservation(this.state.database, {
-            namespace: this.state.namespace,
+        return {
+          ...buildOutcome({
             reservation: existingAfterConflict,
+            usage: await loadUsageForReservation(this.state.database, {
+              namespace: this.state.namespace,
+              reservation: existingAfterConflict,
+            }),
           }),
-        });
+          disposition: 'replayed',
+        };
       }
       if (isSpendCapExceededError(error) || isD1ConstraintError(error)) {
         await throwSpendCapExceededFromBucket({
@@ -842,13 +848,16 @@ class D1ConsoleSponsorshipSpendCapServiceImpl implements ConsoleSponsorshipSpend
         'Failed to create sponsorship spend-cap reservation',
       );
     }
-    return buildOutcome({
-      reservation,
-      usage: await loadUsageForReservation(this.state.database, {
-        namespace: this.state.namespace,
+    return {
+      ...buildOutcome({
         reservation,
+        usage: await loadUsageForReservation(this.state.database, {
+          namespace: this.state.namespace,
+          reservation,
+        }),
       }),
-    });
+      disposition: 'created',
+    };
   }
 
   async settle(
@@ -897,7 +906,8 @@ class D1ConsoleSponsorshipSpendCapServiceImpl implements ConsoleSponsorshipSpend
             WHERE namespace = ?
               AND org_id = ?
               AND id = ?
-              AND status = 'RESERVED'`,
+              AND status = 'RESERVED'
+          RETURNING id`,
         )
         .bind(
           normalized.settledSpendMinor,
@@ -907,8 +917,8 @@ class D1ConsoleSponsorshipSpendCapServiceImpl implements ConsoleSponsorshipSpend
           ctx.orgId,
           reservation.id,
         )
-        .run();
-      if (d1ChangedRows(result) !== 1) {
+        .first<{ id: string }>();
+      if (result?.id !== reservation.id) {
         throw new Error(`Failed to update spend-cap reservation ${reservation.id}`);
       }
     } catch (error: unknown) {
@@ -975,11 +985,12 @@ class D1ConsoleSponsorshipSpendCapServiceImpl implements ConsoleSponsorshipSpend
             WHERE namespace = ?
               AND org_id = ?
               AND id = ?
-              AND status = 'RESERVED'`,
+              AND status = 'RESERVED'
+          RETURNING id`,
         )
         .bind(updatedAtMs, this.state.namespace, ctx.orgId, reservation.id)
-        .run();
-      if (d1ChangedRows(result) !== 1) {
+        .first<{ id: string }>();
+      if (result?.id !== reservation.id) {
         throw new Error(`Failed to update spend-cap reservation ${reservation.id}`);
       }
     } catch (error: unknown) {

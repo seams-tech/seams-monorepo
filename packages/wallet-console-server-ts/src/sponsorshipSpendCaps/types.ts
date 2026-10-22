@@ -3,10 +3,7 @@ import type {
   ConsoleGasSponsorshipSpendCapPeriod,
 } from '../gasSponsorship/types';
 
-export type ConsoleSponsorshipSpendCapMode = Exclude<
-  ConsoleGasSponsorshipSpendCapMode,
-  'NONE'
->;
+export type ConsoleSponsorshipSpendCapMode = Exclude<ConsoleGasSponsorshipSpendCapMode, 'NONE'>;
 export type ConsoleSponsorshipSpendCapPeriod = ConsoleGasSponsorshipSpendCapPeriod;
 export type ConsoleSponsorshipSpendCapReservationStatus = 'RESERVED' | 'SETTLED' | 'RELEASED';
 
@@ -84,3 +81,8 @@ export interface ConsoleSponsorshipSpendCapReservationOutcome {
   reservation: ConsoleSponsorshipSpendCapReservation;
   usage: ConsoleSponsorshipSpendCapWindowUsage;
 }
+
+export type ConsoleSponsorshipSpendCapReserveOutcome =
+  ConsoleSponsorshipSpendCapReservationOutcome & {
+    readonly disposition: 'created' | 'replayed';
+  };

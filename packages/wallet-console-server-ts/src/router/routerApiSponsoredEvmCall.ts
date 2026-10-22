@@ -162,11 +162,6 @@ function normalizeOrigin(value: unknown): string {
   }
 }
 
-// Sponsored spend-cap accounting still binds to the hosted-NEAR account ref.
-function buildHostedNearAccountRef(walletId: string): string {
-  return `near:${walletId}`;
-}
-
 function buildTargetRef(chainId: number, to: `0x${string}`): string {
   return `evm:${chainId}:${to.toLowerCase()}`;
 }
@@ -608,7 +603,7 @@ export async function handleRouterApiSponsoredEvmCall(
       return assertNever(sponsorshipDispatch);
   }
   const { matchedPolicy: matched, adapter } = sponsorshipDispatch.matched;
-  const accountRef = buildHostedNearAccountRef(parsedBody.walletId);
+  const accountRef = `api_key:${sponsorshipRuntime.principal.principal.apiKeyId}`;
   const targetRef = buildTargetRef(parsedBody.chainId, parsedBody.call.to);
   const sponsorRef = buildSponsorRef(parsedBody.chainId, adapter.meta.sponsorAddress);
   const spendCapSourceEventId = buildSponsoredSpendCapSourceEventId({

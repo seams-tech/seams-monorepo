@@ -54,7 +54,9 @@ async function reserve(
   });
 }
 
-test('a sponsored request replay preserves the original D1 spend-cap hold', async (_fixtures, testInfo) => {
+test('a sponsored request replay preserves the original D1 spend-cap hold', async ({
+  request: _request,
+}, testInfo) => {
   const worker = new Miniflare({
     modules: true,
     script: 'export default { fetch() { return new Response("replay fixture"); } };',

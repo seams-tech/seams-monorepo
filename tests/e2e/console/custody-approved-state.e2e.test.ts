@@ -63,7 +63,9 @@ function shouldNotBuild(): TenantRootOperationRecordResultV1 {
   throw new Error('A reused operation must not build another record');
 }
 
-test('custody retries preserve the stored target and recipient pair', async (_fixtures, testInfo) => {
+test('custody retries preserve the stored target and recipient pair', async ({
+  request: _request,
+}, testInfo) => {
   const worker = new Miniflare({
     modules: true,
     script: 'export default { fetch() { return new Response("custody fixture"); } };',

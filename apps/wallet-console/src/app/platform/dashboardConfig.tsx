@@ -1,6 +1,7 @@
 import { AccountSettingsPage } from '@core/dashboard/routes/account-settings/page';
 import { TeamMembersPage } from '@core/dashboard/routes/team-members/page';
 import { BillingAccountPage } from '@core/dashboard/routes/billing/page';
+import { PlanStartPage } from '@core/dashboard/routes/billing/PlanStartPage';
 import { InvoicesPage } from '@core/dashboard/routes/invoices/page';
 import { PlatformBillingPage } from '@core/dashboard/routes/platform-billing/page';
 import { DashboardOnboardingPage } from '@core/dashboard/routes/onboarding/page';
@@ -48,6 +49,14 @@ const groups: SidebarGroup[] = [
     key: 'billing',
     label: 'Billing',
     items: [
+      {
+        key: 'billing-plan',
+        label: 'Plan',
+        path: '/dashboard/billing/plan',
+        icon: WalletCardsIcon,
+        component: PlanStartPage,
+        context: 'account',
+      },
       {
         key: 'billing-account',
         label: 'Billing account',

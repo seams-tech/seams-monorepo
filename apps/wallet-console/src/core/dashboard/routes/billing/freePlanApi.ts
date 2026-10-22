@@ -29,9 +29,13 @@ export type DashboardPaymentCard =
       readonly expYear: number;
     };
 
+/** The paid plans that an owner starts from the Console with a verified card. */
+export type DashboardSelfServePlan = 'growth' | 'pro';
+
 export interface DashboardBillingPlan {
-  readonly plan: 'free' | 'growth' | 'enterprise';
+  readonly plan: 'free' | DashboardSelfServePlan | 'enterprise';
   readonly cardDeadlineAt: string | null;
+  readonly planStartedAt: string | null;
   readonly productionState: 'active' | 'card_required' | 'free_limit_reached';
   readonly card: DashboardPaymentCard;
   readonly usage: {
@@ -44,6 +48,19 @@ export interface DashboardBillingPlan {
     };
   };
   readonly banners: readonly DashboardFreePlanBanner[];
+}
+
+export function dashboardPlanName(plan: DashboardBillingPlan['plan']): string {
+  switch (plan) {
+    case 'free':
+      return 'Free';
+    case 'growth':
+      return 'Growth';
+    case 'pro':
+      return 'Pro';
+    case 'enterprise':
+      return 'Enterprise';
+  }
 }
 
 export class DashboardFreePlanApiError extends Error {
@@ -136,7 +153,7 @@ export function decodeDashboardBillingPlan(raw: unknown): DashboardBillingPlan |
   const activeUserLimit = count(limits.productionActiveUsers);
   const signatureLimit = count(limits.productionSignatures);
   if (
-    (plan !== 'free' && plan !== 'growth' && plan !== 'enterprise') ||
+    (plan !== 'free' && plan !== 'growth' && plan !== 'pro' && plan !== 'enterprise') ||
     (productionState !== 'active' &&
       productionState !== 'card_required' &&
       productionState !== 'free_limit_reached') ||
@@ -158,6 +175,7 @@ export function decodeDashboardBillingPlan(raw: unknown): DashboardBillingPlan |
   return {
     plan,
     cardDeadlineAt: text(value.cardDeadlineAt),
+    planStartedAt: text(value.planStartedAt),
     productionState,
     card,
     usage: {
@@ -204,11 +222,14 @@ export async function getDashboardBillingPlan(): Promise<DashboardBillingPlan | 
   }
 }
 
-export async function startDashboardCardSetup(): Promise<string> {
+/** With `startPlan`, the card that Stripe verifies also starts that plan. */
+export async function startDashboardCardSetup(
+  startPlan: DashboardSelfServePlan | null = null,
+): Promise<string> {
   const body = await request('/console/billing/card-setup', {
     method: 'POST',
     headers: buildConsoleJsonHeaders(),
-    body: JSON.stringify({}),
+    body: JSON.stringify(startPlan ? { startPlan } : {}),
   });
   const url = text(record(body.cardSetup)?.url);
   if (!url) throw new Error('Card setup response was invalid');
@@ -224,4 +245,18 @@ export async function reconcileDashboardCardSetup(
     body: JSON.stringify({ checkoutSessionId }),
   });
   return { verified: body.verified === true, plan: decodeDashboardBillingPlan(body.plan) };
+}
+
+/** Starts a paid plan with the usable card on file. */
+export async function startDashboardPlan(
+  plan: DashboardSelfServePlan,
+): Promise<DashboardBillingPlan> {
+  const body = await request('/console/billing/plan/start', {
+    method: 'POST',
+    headers: buildConsoleJsonHeaders(),
+    body: JSON.stringify({ plan }),
+  });
+  const started = decodeDashboardBillingPlan(body.plan);
+  if (!started) throw new Error('Plan start response was invalid');
+  return started;
 }

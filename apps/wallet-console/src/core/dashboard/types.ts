@@ -9,6 +9,7 @@ export type DashboardRoute =
   | '/dashboard/overview'
   | '/dashboard/observability'
   | '/dashboard/billing/account'
+  | '/dashboard/billing/plan'
   | '/dashboard/invoices'
   | '/platform/billing'
   | '/dashboard/team-members'

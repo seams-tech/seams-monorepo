@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  dashboardPlanName,
   getDashboardBillingPlan,
   reconcileDashboardCardSetup,
   startDashboardCardSetup,
@@ -53,7 +54,7 @@ function planSummary(plan: DashboardBillingPlan): string {
     plan.card.kind === 'none'
       ? 'no card on file'
       : `${plan.card.brand} ending ${plan.card.last4}${plan.card.kind === 'usable' ? '' : ` (${plan.card.kind})`}`;
-  const name = plan.plan === 'free' ? 'Free' : plan.plan === 'growth' ? 'Growth' : 'Enterprise';
+  const name = dashboardPlanName(plan.plan);
   return `${name} plan, ${card}. Production this month: ${usage.productionActiveUsers.toLocaleString('en-US')} of ${usage.limits.productionActiveUsers.toLocaleString('en-US')} monthly active users, ${usage.productionSignatures.toLocaleString('en-US')} of ${usage.limits.productionSignatures.toLocaleString('en-US')} signatures.`;
 }
 

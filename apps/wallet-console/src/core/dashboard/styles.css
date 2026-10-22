@@ -9229,3 +9229,70 @@ select.dashboard-input {
     --dashboard-text-title: var(--dashboard-text-title-compact);
   }
 }
+
+/* Plan page: one card per self-serve plan, with the current plan marked. */
+.dashboard-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.dashboard-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius-xl);
+  background: var(--dashboard-surface);
+}
+
+.dashboard-plan-card--current {
+  background: var(--dashboard-alpha-50);
+}
+
+.dashboard-plan-card--chosen {
+  border-color: var(--dashboard-ink);
+}
+
+.dashboard-plan-card__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dashboard-ink);
+}
+
+.dashboard-plan-card__price {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 500;
+  color: var(--dashboard-ink);
+}
+
+.dashboard-plan-card__users,
+.dashboard-plan-card__detail,
+.dashboard-plan-card__note {
+  margin: 0;
+  font-size: var(--dashboard-text-compact);
+  line-height: 1.45;
+  color: var(--dashboard-ink-soft);
+}
+
+.dashboard-plan-card__users {
+  color: var(--dashboard-ink);
+}
+
+.dashboard-plan-card__action {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.dashboard-plan-card__badge {
+  font-size: var(--dashboard-text-compact);
+  font-weight: 600;
+  color: var(--dashboard-ink);
+}

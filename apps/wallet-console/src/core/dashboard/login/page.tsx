@@ -19,6 +19,13 @@ import { consumeDashboardConsoleSignOut, fetchDashboardConsoleSession } from '..
 import { readUnscopedConsoleSession } from '../routes/onboarding/initialOrganizationApi';
 import { consoleSessionHref, rememberConsoleContext } from '../consoleNavigation';
 import { readPendingDashboardInvitation } from '../routes/invitations/invitation';
+import {
+  captureDashboardPlanIntentLink,
+  clearPendingDashboardPlanIntent,
+  prepareDashboardAccountForPlan,
+  readPendingDashboardPlanIntent,
+  type DashboardPlanChoice,
+} from '../routes/billing/planIntent';
 import '../styles.css';
 
 function normalizeBaseUrl(input: unknown): string {
@@ -33,6 +40,22 @@ function loginDestination(pathname: '/dashboard' | '/dashboard/onboarding'): str
   }
   return consoleSessionHref(pathname);
 }
+
+/** The login text for a visitor who picked a plan on the pricing page. */
+const PLAN_LOGIN_TEXT: Record<DashboardPlanChoice, { title: string; description: string }> = {
+  free: {
+    title: 'Start on the Free plan',
+    description: 'Sign in to create your account. The Free plan covers 300 active users.',
+  },
+  growth: {
+    title: 'Start Growth',
+    description: 'Sign in, then add a card. Growth is $99 a month with 5,000 users included.',
+  },
+  pro: {
+    title: 'Start Pro',
+    description: 'Sign in, then add a card. Pro is $399 a month with 100,000 users included.',
+  },
+};
 
 type DashboardLoginExchangeResponse =
   | { readonly ok: true; readonly kind: 'console_identity_v1' | 'console_session_v1' }
@@ -156,8 +179,38 @@ export function DashboardLoginPage(): React.JSX.Element {
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [googleConfigured, setGoogleConfigured] = React.useState<boolean>(false);
   const [signedOut, setSignedOut] = React.useState<boolean>(false);
+  // A pending invitation wins over a plan picked on the pricing page.
+  const [planIntent] = React.useState(() =>
+    import.meta.env.MODE === 'platform' ? captureDashboardPlanIntentLink() : null,
+  );
+  const [preparingPlan, setPreparingPlan] = React.useState<boolean>(false);
 
   React.useEffect(rememberConsoleContext, []);
+
+  /* After sign-in, a visitor with a plan intent gets an organization and a first project
+     with default names, then the plan page. Everyone else continues as before. */
+  const continueSignedIn = React.useCallback(
+    async (pathname: '/dashboard' | '/dashboard/onboarding') => {
+      const intent = readPendingDashboardPlanIntent();
+      if (readPendingDashboardInvitation()) clearPendingDashboardPlanIntent();
+      else if (intent) {
+        setPreparingPlan(true);
+        try {
+          await prepareDashboardAccountForPlan(intent, relayerBaseUrl);
+          await fetchDashboardConsoleSession();
+          go('/dashboard/billing/plan');
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          setErrorMessage(`Account setup failed: ${message}. Reload the page to try again.`);
+        } finally {
+          setPreparingPlan(false);
+        }
+        return;
+      }
+      go(loginDestination(pathname));
+    },
+    [go, relayerBaseUrl],
+  );
 
   React.useEffect(() => {
     let cancelled = false;
@@ -174,12 +227,12 @@ export function DashboardLoginPage(): React.JSX.Element {
     fetchDashboardConsoleSession()
       .then(() => {
         if (cancelled) return;
-        go(loginDestination('/dashboard'));
+        void continueSignedIn('/dashboard');
       })
       .catch(async () => {
         if (import.meta.env.MODE === 'wallet') return;
         if (await readUnscopedConsoleSession(relayerBaseUrl).catch(() => false)) {
-          if (!cancelled) go(loginDestination('/dashboard/onboarding'));
+          if (!cancelled) void continueSignedIn('/dashboard/onboarding');
         }
       })
       .finally(() => {
@@ -189,7 +242,7 @@ export function DashboardLoginPage(): React.JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [go, relayerBaseUrl]);
+  }, [continueSignedIn, relayerBaseUrl]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -248,11 +301,11 @@ export function DashboardLoginPage(): React.JSX.Element {
       .then(async (kind) => {
         if (cancelled) return;
         if (kind === 'console_identity_v1') {
-          go(loginDestination('/dashboard/onboarding'));
+          await continueSignedIn('/dashboard/onboarding');
           return;
         }
         await fetchDashboardConsoleSession();
-        if (!cancelled) go(loginDestination('/dashboard'));
+        if (!cancelled) await continueSignedIn('/dashboard');
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -265,7 +318,7 @@ export function DashboardLoginPage(): React.JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [go, relayerBaseUrl]);
+  }, [continueSignedIn, relayerBaseUrl]);
 
   const onGoogleSignIn = React.useCallback(async () => {
     if (loadingProvider) return;
@@ -288,18 +341,18 @@ export function DashboardLoginPage(): React.JSX.Element {
 
       const kind = await exchangeDashboardSession(relayerBaseUrl, { kind: 'google', idToken });
       if (kind === 'console_identity_v1') {
-        go(loginDestination('/dashboard/onboarding'));
+        await continueSignedIn('/dashboard/onboarding');
         return;
       }
 
       await fetchDashboardConsoleSession();
-      go(loginDestination('/dashboard'));
+      await continueSignedIn('/dashboard');
     } catch (error: unknown) {
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setLoadingProvider(null);
     }
-  }, [go, googleClientId, googleConfigured, loadingProvider, relayerBaseUrl]);
+  }, [continueSignedIn, googleClientId, googleConfigured, loadingProvider, relayerBaseUrl]);
 
   const googleLabel = initializing
     ? 'Checking existing session...'
@@ -324,7 +377,7 @@ export function DashboardLoginPage(): React.JSX.Element {
       : githubOptions.configured
         ? 'Continue with GitHub'
         : 'GitHub sign-in unavailable';
-  const authBusy = initializing || loadingProvider !== null;
+  const authBusy = initializing || preparingPlan || loadingProvider !== null;
   const providers: readonly DashboardAuthProvider[] = [
     {
       id: 'google',
@@ -372,11 +425,23 @@ export function DashboardLoginPage(): React.JSX.Element {
               error: 'dashboard-login__form-error',
             }}
             titleId="dashboard-login-title"
-            title={signedOut ? 'Signed out' : 'Welcome back'}
+            title={
+              preparingPlan
+                ? 'Setting up your account'
+                : signedOut
+                  ? 'Signed out'
+                  : planIntent
+                    ? PLAN_LOGIN_TEXT[planIntent.plan].title
+                    : 'Welcome back'
+            }
             description={
-              signedOut
-                ? 'You have been signed out of the Seams console.'
-                : 'Sign in to the Seams console'
+              preparingPlan
+                ? 'Creating your organization and first project...'
+                : signedOut
+                  ? 'You have been signed out of the Seams console.'
+                  : planIntent
+                    ? PLAN_LOGIN_TEXT[planIntent.plan].description
+                    : 'Sign in to the Seams console'
             }
             providers={providers}
             note={footerNote}

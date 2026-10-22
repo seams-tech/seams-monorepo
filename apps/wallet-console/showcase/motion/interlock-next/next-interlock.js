@@ -4,8 +4,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /* global HL, hairline */
-// Three flat disks, keyways visibly out of line at rest. Once they align, a blade traces
-// itself in dashes, then solid, then drops onto the dashed target line, 6 units past.
+// Slotted wheels, out of line at rest; once aligned, a traced blade drops onto the target line.
 const AXIS = 45;
 const RADIUS = 31;
 const BLADE_HEIGHT = 9.6;
@@ -40,6 +39,14 @@ const DISK = arc(RADIUS, OPEN, Math.PI * 2 - OPEN, 72).concat([
   [SLOT_HALF, SLOT_FLOOR],
 ]);
 const HOLE = arc(HOLE_RADIUS, 0, Math.PI * 2, 24);
+const HUB = arc(HOLE_RADIUS + 1.6, 0, Math.PI * 2, 24);
+// Wheel ticks inside the rim, long every quarter turn, none at the keyway (angle 0).
+const wheel = (count) =>
+  Array.from({ length: count - 1 }, (_, i) => {
+    const [t, r0] = [((i + 1) / count) * 2 * Math.PI, (i + 1) % (count / 4) ? 28 : 25];
+    return [r0, 29.5].map((r) => [r * Math.sin(t), r * Math.cos(t)]);
+  });
+const TICKS = [wheel(8), wheel(12), wheel(16)]; // back to front: finer on nearer disks
 
 function project(P, x, angle, point) {
   const a = HL.rad(angle);
@@ -48,8 +55,7 @@ function project(P, x, angle, point) {
   return P(x, y, AXIS + z);
 }
 
-// One blade section from x0 to x1, base at z. Only the blade's true ends draw
-// edges, so the disks divide it with no seams.
+// A blade section from x0 to x1, base at z; only true ends draw edges, so no seams.
 function makeBlade(svg, P, x0, x1, edges) {
   const face = HL.mk('path', { class: 'fo' }, svg);
   const edge = HL.mk('path', { class: 'nf sil' }, svg);
@@ -81,16 +87,19 @@ function outline(P, part) {
   return part > 0 ? HL.open(points) : '';
 }
 
-function makePlate(svg, P, x, angle, shape) {
+function makePlate(svg, P, x, angle, ticks) {
   const face = HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, svg);
-  return { x, face, shape, outline: [face], center: P(x, 0, AXIS)[0], angle, drawn: NaN };
+  const detail = HL.mk('path', { class: 'nf lo' }, svg);
+  return { x, face, detail, ticks, outline: [face], center: P(x, 0, AXIS)[0], angle, drawn: NaN };
 }
 
 function drawPlate(state, plate, angle) {
   if (angle === plate.drawn) return;
   plate.drawn = angle;
   const at = project.bind(null, state.P, plate.x, angle);
-  plate.face.setAttribute('d', HL.poly(plate.shape.map(at)) + HL.poly(HOLE.map(at)));
+  plate.face.setAttribute('d', HL.poly(DISK.map(at)) + HL.poly(HOLE.map(at)));
+  const ticks = plate.ticks.map(([a, b]) => HL.seg(at(a), at(b))).join('');
+  plate.detail.setAttribute('d', ticks + HL.poly(HUB.map(at)));
 }
 
 function tick(state, _dt, now) {
@@ -108,7 +117,6 @@ function tick(state, _dt, now) {
     state.whole(above && solid === 1 ? z : null);
     state.dashed.setAttribute('d', solid < 1 ? outline(state.P, phase(blade, TRACE)) : '');
     state.solid.setAttribute('d', solid < 1 ? outline(state.P, solid) : '');
-    // The blade takes the accent once its solid line starts.
     state.bladeLit = state.active && solid > 0;
     if (state.bladeLit) highlight(state, state.bladeOutline);
   }
@@ -118,7 +126,6 @@ function tick(state, _dt, now) {
 }
 
 function highlight(state, outline) {
-  if (state.highlight === outline) return;
   for (const edge of state.highlight) edge.classList.remove('hi');
   for (const edge of outline) edge.classList.add('hi');
   state.highlight = outline;
@@ -127,8 +134,7 @@ function highlight(state, outline) {
 function select(state, active) {
   if (state.active === active) return;
   state.active = active;
-  const now = performance.now();
-  const last = DISKS.length - 1;
+  const [now, last] = [performance.now(), DISKS.length - 1];
   for (const [index, disk] of state.disks.entries()) {
     const delay = (last - index) * state.step;
     HL.tset(disk.angle, active ? 0 : DISKS[index], now, active ? delay : BLADE_MS + delay);
@@ -139,10 +145,8 @@ function select(state, active) {
 
 // Rest centres along one row: the nearest x answers, and turning never moves it.
 function move(state, point) {
-  const distance = (part) => Math.abs(part.center - point[0]);
-  const nearest = state.targets.reduce((best, part) =>
-    distance(part) < distance(best) ? part : best,
-  );
+  const gap = (part) => Math.abs(part.center - point[0]);
+  const nearest = state.disks.reduce((a, b) => (gap(b) < gap(a) ? b : a));
   if (!state.bladeLit) highlight(state, nearest.outline);
   select(state, true);
 }
@@ -155,7 +159,6 @@ function leave(state) {
 function mount({ stage, svg, read }, step) {
   const C = HL.Cam(45, 0.5, 2.57);
   const bounds = [
-    [BLADE_FROM, -31, 14],
     [BLADE_FROM, 31, BLADE_UP + BLADE_HEIGHT],
     [BLADE_TO, -31, BLADE_UP + BLADE_HEIGHT],
     [BLADE_TO, 31, 14],
@@ -168,21 +171,19 @@ function mount({ stage, svg, read }, step) {
   for (let index = 0; index < BOUNDS.length - 1; index++) {
     const [from, to] = [BOUNDS[index], BOUNDS[index + 1]];
     HL.mk('path', { d: HL.seg(P(from, 0, AXIS), P(to, 0, AXIS)), class: 'nf lo dash' }, svg);
-    const bladeFrom = Math.max(from, BLADE_FROM);
-    const bladeTo = Math.min(to, BLADE_TO);
+    const [bladeFrom, bladeTo] = [Math.max(from, BLADE_FROM), Math.min(to, BLADE_TO)];
     if (bladeFrom < bladeTo) blades.push(makeBlade(svg, P, bladeFrom, bladeTo, edges));
     if (index < DISKS.length)
-      disks.push(makePlate(svg, P, to, HL.tween(DISKS[index], TURN_MS), DISK));
+      disks.push(makePlate(svg, P, to, HL.tween(DISKS[index], TURN_MS), TICKS[index]));
   }
   const whole = makeBlade(svg, P, BLADE_FROM, BLADE_TO, edges);
   const dashed = HL.mk('path', { class: 'nf lo dash' }, svg);
   const solid = HL.mk('path', { class: 'nf sil' }, svg);
   const state = { P, read, disks, blades, whole, dashed, solid, step, highlight: [] };
-  Object.assign(state, { targets: disks, pin: HL.tween(0, BLADE_MS), pinDrawn: NaN });
+  Object.assign(state, { pin: HL.tween(0, BLADE_MS), pinDrawn: NaN });
   state.bladeOutline = [solid, ...edges];
   state.loop = HL.register(stage, tick.bind(null, state));
-  highlight(state, disks[DISKS.length - 1].outline);
-  select(state, false);
+  leave(state);
   const bag = HL.disposer();
   bag.add(state.loop.unregister);
   bag.add(HL.pointer(stage, { move: move.bind(null, state), leave: leave.bind(null, state) }));
@@ -192,8 +193,7 @@ function mount({ stage, svg, read }, step) {
 
 hairline({
   name: 'next-interlock',
-  means:
-    'Three slotted disks, keyways out of line. Hover to align them; a blade traces itself and drops in.',
+  means: 'Slotted wheels, keyways out of line. Hover: they align and a traced blade drops in.',
   rules: [1, 2, 4, 6, 8],
   range: [30, 45, 60],
   mount,

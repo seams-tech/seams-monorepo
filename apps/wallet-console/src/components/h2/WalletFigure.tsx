@@ -31,7 +31,7 @@ function figureDocument(html: string, pointerX: number, pointerY: number, play: 
 :root { color-scheme: light; --muted: #777169; }
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }
 #stage { width: 100%; height: 100%; touch-action: pan-y; --hairline-stroke: 0.65; }
-#stage svg { display: block; width: 100%; height: 100%; transform: scale(1.22); transform-origin: center; }
+#stage svg { display: block; width: 100%; height: 100%; transform: scale(1.1); transform-origin: center; }
 #stage[data-hairline="threshold-signing"] svg { transform: translateX(2.5%) scale(1.44); }
 @media (max-width: 480px) {
   #stage[data-hairline="threshold-signing"] svg { transform: translateX(1.5%); }

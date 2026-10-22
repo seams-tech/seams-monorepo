@@ -4,6 +4,7 @@ import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { walletConsoleOverviewHref } from '../../consoleNavigation';
 import { canDashboardManageBilling, useDashboardConsoleSession } from '../../consoleSession';
 import { useDashboardSelectedContext } from '../../selectedContext';
+import { getDashboardOnboardingState } from '../onboarding/consoleOnboardingApi';
 import {
   dashboardPlanName,
   getDashboardBillingPlan,
@@ -98,6 +99,21 @@ function currentPlanSummary(plan: DashboardBillingPlan): string {
   return `Your organization is on ${dashboardPlanName(plan.plan)}${since}.`;
 }
 
+/* The Wallet Console overview for the organization's first project, as onboarding ends.
+   A session issued before the project existed names no project, so read it here. */
+async function readDashboardOverviewHref(): Promise<string | null> {
+  try {
+    const state = await getDashboardOnboardingState();
+    if (state.currentStep !== 'complete') return null;
+    return walletConsoleOverviewHref({
+      organization: state.orgId,
+      project: state.selectedProjectId,
+    });
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The plan page. A visitor who picked Growth or Pro on the pricing page goes straight on
  * to Stripe from here; Stripe returns here, and the verified card starts the plan.
@@ -120,9 +136,21 @@ export function PlanStartPage(): React.JSX.Element {
   const [starting, setStarting] = React.useState<DashboardSelfServePlan | null>(null);
   const reconciledRef = React.useRef('');
   const intentHandledRef = React.useRef(false);
+  const [workspaceOverviewHref, setWorkspaceOverviewHref] = React.useState<string | null>(null);
+  const overviewHref =
+    workspaceOverviewHref ??
+    walletConsoleOverviewHref({
+      organization: session.claims?.orgId || selectedContext.organization,
+      project: session.claims?.projectId || selectedContext.project,
+    });
+  const overviewHrefRef = React.useRef(overviewHref);
+  overviewHrefRef.current = overviewHref;
 
   React.useEffect(() => {
     let cancelled = false;
+    void readDashboardOverviewHref().then((href) => {
+      if (!cancelled) setWorkspaceOverviewHref(href);
+    });
     void getDashboardBillingPlan()
       .then((next) => {
         if (!cancelled) setPlan(next);
@@ -148,21 +176,27 @@ export function PlanStartPage(): React.JSX.Element {
     reconciledRef.current = checkoutSessionId;
     setMessage('Verifying your card...');
     void reconcileDashboardCardSetup(checkoutSessionId)
-      .then((result) => {
+      .then(async (result) => {
         if (result.plan) setPlan(result.plan);
         if (!result.verified) {
           setMessage('Stripe has not confirmed the card yet. Refresh in a moment.');
           return;
         }
         clearPendingDashboardPlanIntent();
-        setMessage(
-          result.plan && result.plan.plan !== 'free'
-            ? startedMessage(result.plan)
-            : 'Your card is verified.',
-        );
+        if (!result.plan || result.plan.plan === 'free') {
+          setMessage('Your card is verified.');
+          return;
+        }
+        // A visitor from the pricing page ends the funnel on the dashboard.
+        if (intent) {
+          setMessage(`${startedMessage(result.plan)} Opening your dashboard...`);
+          window.location.assign((await readDashboardOverviewHref()) ?? overviewHrefRef.current);
+          return;
+        }
+        setMessage(startedMessage(result.plan));
       })
       .catch(() => setMessage('Card verification is still pending. Refresh in a moment.'));
-  }, [cardSetupStatus, checkoutSessionId]);
+  }, [cardSetupStatus, checkoutSessionId, intent]);
 
   const startPlan = React.useCallback(
     async (target: DashboardSelfServePlan) => {
@@ -198,11 +232,6 @@ export function PlanStartPage(): React.JSX.Element {
     }
     if (plan.card.kind !== 'usable') void startPlan(intent.plan);
   }, [canManageBilling, cardSetupStatus, intent, loaded, plan, session.loading, startPlan]);
-
-  const overviewHref = walletConsoleOverviewHref({
-    organization: session.claims?.orgId || selectedContext.organization,
-    project: selectedContext.project,
-  });
 
   const currentOffer = PLAN_OFFERS.find((offer) => offer.plan === plan?.plan) ?? null;
 

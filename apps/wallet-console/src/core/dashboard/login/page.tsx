@@ -15,10 +15,15 @@ import {
   fetchGithubOAuthOptions,
   type GithubOAuthOptions,
 } from '@core/auth/githubOAuth';
-import { consumeDashboardConsoleSignOut, fetchDashboardConsoleSession } from '../consoleSession';
+import {
+  canDashboardManageBilling,
+  consumeDashboardConsoleSignOut,
+  fetchDashboardConsoleSession,
+} from '../consoleSession';
 import { readUnscopedConsoleSession } from '../routes/onboarding/initialOrganizationApi';
 import { consoleSessionHref, rememberConsoleContext } from '../consoleNavigation';
 import { readPendingDashboardInvitation } from '../routes/invitations/invitation';
+import { getDashboardBillingPlan, startDashboardCardSetup } from '../routes/billing/freePlanApi';
 import {
   captureDashboardPlanIntentLink,
   clearPendingDashboardPlanIntent,
@@ -183,28 +188,37 @@ export function DashboardLoginPage(): React.JSX.Element {
   const [planIntent] = React.useState(() =>
     import.meta.env.MODE === 'platform' ? captureDashboardPlanIntentLink() : null,
   );
-  const [preparingPlan, setPreparingPlan] = React.useState<boolean>(false);
+  const [preparingPlan, setPreparingPlan] = React.useState<'setup' | 'stripe' | null>(null);
 
   React.useEffect(rememberConsoleContext, []);
 
   /* After sign-in, a visitor with a plan intent gets an organization and a first project
-     with default names, then the plan page. Everyone else continues as before. */
+     with default names. A Growth or Pro intent on a Free organization without a card goes
+     straight to Stripe; every other intent opens the plan page. Everyone else continues
+     as before. */
   const continueSignedIn = React.useCallback(
     async (pathname: '/dashboard' | '/dashboard/onboarding') => {
       const intent = readPendingDashboardPlanIntent();
       if (readPendingDashboardInvitation()) clearPendingDashboardPlanIntent();
       else if (intent) {
-        setPreparingPlan(true);
+        setPreparingPlan('setup');
         try {
           await prepareDashboardAccountForPlan(intent, relayerBaseUrl);
-          await fetchDashboardConsoleSession();
+          const claims = await fetchDashboardConsoleSession();
+          if (intent.plan !== 'free' && canDashboardManageBilling(claims)) {
+            const plan = await getDashboardBillingPlan();
+            if (plan?.plan === 'free' && plan.card.kind !== 'usable') {
+              setPreparingPlan('stripe');
+              window.location.assign(await startDashboardCardSetup(intent.plan));
+              return;
+            }
+          }
           go('/dashboard/billing/plan');
         } catch (error: unknown) {
           const message = error instanceof Error ? error.message : String(error);
           setErrorMessage(`Account setup failed: ${message}. Reload the page to try again.`);
-        } finally {
-          setPreparingPlan(false);
         }
+        setPreparingPlan(null);
         return;
       }
       go(loginDestination(pathname));
@@ -377,7 +391,7 @@ export function DashboardLoginPage(): React.JSX.Element {
       : githubOptions.configured
         ? 'Continue with GitHub'
         : 'GitHub sign-in unavailable';
-  const authBusy = initializing || preparingPlan || loadingProvider !== null;
+  const authBusy = initializing || preparingPlan !== null || loadingProvider !== null;
   const providers: readonly DashboardAuthProvider[] = [
     {
       id: 'google',
@@ -435,13 +449,15 @@ export function DashboardLoginPage(): React.JSX.Element {
                     : 'Welcome back'
             }
             description={
-              preparingPlan
-                ? 'Creating your organization and first project...'
-                : signedOut
-                  ? 'You have been signed out of the Seams console.'
-                  : planIntent
-                    ? PLAN_LOGIN_TEXT[planIntent.plan].description
-                    : 'Sign in to the Seams console'
+              preparingPlan === 'stripe'
+                ? 'Opening Stripe to add your card...'
+                : preparingPlan === 'setup'
+                  ? 'Creating your organization and first project...'
+                  : signedOut
+                    ? 'You have been signed out of the Seams console.'
+                    : planIntent
+                      ? PLAN_LOGIN_TEXT[planIntent.plan].description
+                      : 'Sign in to the Seams console'
             }
             providers={providers}
             note={footerNote}

@@ -291,6 +291,64 @@ async function touchCollection(input: {
     .run();
 }
 
+async function reconcileStaleCreatingCollection(input: {
+  readonly database: D1DatabaseLike;
+  readonly namespace: string;
+  readonly orgId: string;
+  readonly monthUtc: string;
+  readonly nowMs: number;
+  readonly stripe: StripeBillingProviderAdapter;
+  readonly collectible: CollectiblePlanBaseCharge;
+  readonly collection: Extract<PlanBaseCollection, { readonly kind: 'creating' }>;
+}): Promise<PlanBaseCollection> {
+  const matches = await input.stripe.findPlanBaseInvoices({
+    customerRef: input.collectible.customerRef,
+    chargeKey: input.collectible.chargeKey,
+  });
+  if (matches.length > 1) {
+    throw new ConsoleBillingError(
+      'plan_collection_conflict',
+      409,
+      'Stripe has multiple invoices for this base charge',
+    );
+  }
+  const found = matches[0];
+  if (found) {
+    assertInvoiceMatchesCharge(found, input.collectible);
+    await rememberInvoice({
+      database: input.database,
+      namespace: input.namespace,
+      orgId: input.orgId,
+      monthUtc: input.monthUtc,
+      invoiceId: found.id,
+      nowMs: input.nowMs,
+    });
+    return await loadCollection(input);
+  }
+
+  const nextKey = secureRandomBase36(24, 'plan invoice idempotency key');
+  await input.database
+    .prepare(
+      `UPDATE billing_plan_base_collections
+          SET idempotency_key = ?, created_at_ms = ?, checked_at_ms = ?
+        WHERE namespace = ? AND org_id = ? AND month_utc = ?
+          AND status = 'creating' AND provider_invoice_ref IS NULL
+          AND idempotency_key = ? AND created_at_ms = ?`,
+    )
+    .bind(
+      nextKey,
+      input.nowMs,
+      input.nowMs,
+      input.namespace,
+      input.orgId,
+      input.monthUtc,
+      input.collection.idempotencyKey,
+      input.collection.createdAtMs,
+    )
+    .run();
+  return await loadCollection(input);
+}
+
 export async function collectPlanBaseCharge(input: {
   readonly database: D1DatabaseLike;
   readonly namespace: string;
@@ -323,14 +381,23 @@ export async function collectPlanBaseCharge(input: {
     )
     .run();
   try {
-    const collection = await loadCollection(input);
+    let collection = await loadCollection(input);
     let invoice: StripePlanBaseInvoice;
     if (collection.kind === 'creating') {
       if (input.nowMs - collection.createdAtMs >= STRIPE_IDEMPOTENCY_WINDOW_MS) {
+        collection = await reconcileStaleCreatingCollection({
+          ...input,
+          collectible,
+          collection,
+        });
+      }
+    }
+    if (collection.kind === 'creating') {
+      if (input.nowMs - collection.createdAtMs >= STRIPE_IDEMPOTENCY_WINDOW_MS) {
         throw new ConsoleBillingError(
-          'plan_collection_reconcile_required',
-          409,
-          'Stripe invoice creation needs manual reconciliation before another attempt',
+          'plan_collection_reconcile_incomplete',
+          503,
+          'Stripe invoice reconciliation did not advance the collection',
         );
       }
       invoice = await input.stripe.createPlanBaseInvoice({
@@ -428,7 +495,7 @@ export async function listDuePlanBaseCollectionTasks(input: {
           AND collection.org_id = charge.org_id
           AND collection.month_utc = charge.month_utc
         WHERE charge.namespace = ? AND charge.period_end_ms <= ?
-          AND (collection.status IS NULL OR collection.status IN ('creating', 'draft', 'open'))
+          AND (collection.status IS NULL OR collection.status <> 'paid')
        UNION ALL
        SELECT plan.org_id, ?, 0
          FROM billing_account_plans AS plan

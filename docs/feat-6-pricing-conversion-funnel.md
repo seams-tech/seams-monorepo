@@ -44,7 +44,11 @@ Built on October 22, 2026, with a Pro plan added (decision 7). Not deployed.
   charges. It creates one automatic-collection Stripe invoice with one base-fee
   line for each organization and UTC month. D1 stores the Stripe invoice ID and
   collection status. A retry checks the same invoice before taking another
-  action. An open invoice stays pending until Stripe reports payment. Migrations
+  action. If an unlinked attempt passes Stripe's idempotency window, the job
+  lists that customer's invoices and matches the exact charge key. It links one
+  valid invoice or creates a new one only after a complete search finds none.
+  An open invoice stays pending until Stripe reports payment. Void and
+  uncollectible invoices remain visible to each monthly-close pass. Migrations
   0015 and 0108 add the collection table.
 - **Not built:** the Free plan summary on the overview, the contact prefill,
   measurement events, the day-1 email, and the acceptance browser test.

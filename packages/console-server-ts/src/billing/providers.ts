@@ -149,6 +149,11 @@ export interface StripePlanBaseInvoiceItemInput {
   readonly idempotencyKey: string;
 }
 
+export interface StripePlanBaseInvoiceLookupInput {
+  readonly customerRef: string;
+  readonly chargeKey: string;
+}
+
 export interface StripeBillingProviderAdapter {
   createCustomer(input: StripeCustomerProviderInput): Promise<string> | string;
   createCardSetupSession(
@@ -164,6 +169,9 @@ export interface StripeBillingProviderAdapter {
     input: StripePlanBaseInvoiceCreateInput,
   ): Promise<StripePlanBaseInvoice> | StripePlanBaseInvoice;
   getPlanBaseInvoice(invoiceId: string): Promise<StripePlanBaseInvoice> | StripePlanBaseInvoice;
+  findPlanBaseInvoices(
+    input: StripePlanBaseInvoiceLookupInput,
+  ): Promise<readonly StripePlanBaseInvoice[]> | readonly StripePlanBaseInvoice[];
   addPlanBaseInvoiceItem(input: StripePlanBaseInvoiceItemInput): Promise<void> | void;
   finalizePlanBaseInvoice(
     invoiceId: string,
@@ -285,6 +293,15 @@ export function createSimulatedBillingProviderAdapters(
         if (!invoice) throw new Error(`Stripe plan invoice ${invoiceId} was not found`);
         return invoice;
       },
+      findPlanBaseInvoices(input: StripePlanBaseInvoiceLookupInput): StripePlanBaseInvoice[] {
+        const matches: StripePlanBaseInvoice[] = [];
+        for (const invoice of planInvoices.values()) {
+          if (invoice.customerRef === input.customerRef && invoice.chargeKey === input.chargeKey) {
+            matches.push(invoice);
+          }
+        }
+        return matches;
+      },
       addPlanBaseInvoiceItem(input: StripePlanBaseInvoiceItemInput): void {
         const invoice = planInvoices.get(input.invoiceId);
         if (!invoice || invoice.status !== 'draft') {
@@ -402,6 +419,10 @@ export class UnavailableStripeBillingProvider implements StripeBillingProviderAd
   }
 
   getPlanBaseInvoice(): never {
+    return this.requireAvailable();
+  }
+
+  findPlanBaseInvoices(): never {
     return this.requireAvailable();
   }
 

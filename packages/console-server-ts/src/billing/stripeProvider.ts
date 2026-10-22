@@ -10,6 +10,7 @@ import type {
   StripePlanBaseInvoice,
   StripePlanBaseInvoiceCreateInput,
   StripePlanBaseInvoiceItemInput,
+  StripePlanBaseInvoiceLookupInput,
   StripeVerifiedCardV1,
   StripeCheckoutSessionLookupProviderInput,
   StripeCheckoutSessionLookupProviderOutput,
@@ -492,6 +493,44 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
     const id = normalizeString(invoiceId);
     if (!id) throw new Error('Stripe plan invoice id is required');
     return parseStripePlanBaseInvoice(await this.getJson(`/v1/invoices/${encodeURIComponent(id)}`));
+  }
+
+  async findPlanBaseInvoices(
+    input: StripePlanBaseInvoiceLookupInput,
+  ): Promise<readonly StripePlanBaseInvoice[]> {
+    const customerRef = normalizeString(input.customerRef);
+    const chargeKey = normalizeString(input.chargeKey);
+    if (!customerRef || !chargeKey) throw new Error('Stripe plan invoice lookup is incomplete');
+
+    const invoices: StripePlanBaseInvoice[] = [];
+    const seenIds = new Set<string>();
+    let startingAfter: string | null = null;
+    for (let page = 0; page < 100; page += 1) {
+      const query = new URLSearchParams({ customer: customerRef, limit: '100' });
+      if (startingAfter) query.set('starting_after', startingAfter);
+      const response = await this.getJson(`/v1/invoices?${query.toString()}`);
+      if (!Array.isArray(response.data) || typeof response.has_more !== 'boolean') {
+        throw new Error('Stripe invoice list returned an invalid page');
+      }
+      for (const rawInvoice of response.data) {
+        const invoice = toUnknownRecord(rawInvoice);
+        const id = normalizeString(invoice.id);
+        if (!id || seenIds.has(id) || normalizeString(invoice.customer) !== customerRef) {
+          throw new Error('Stripe invoice list returned an invalid invoice');
+        }
+        seenIds.add(id);
+        startingAfter = id;
+        const metadata = toUnknownRecord(invoice.metadata);
+        if (normalizeString(metadata.plan_base_charge_key) === chargeKey) {
+          invoices.push(parseStripePlanBaseInvoice(invoice));
+        }
+      }
+      if (!response.has_more) return invoices;
+      if (response.data.length === 0) {
+        throw new Error('Stripe invoice list did not advance its cursor');
+      }
+    }
+    throw new Error('Stripe invoice list exceeded the reconciliation page limit');
   }
 
   async addPlanBaseInvoiceItem(input: StripePlanBaseInvoiceItemInput): Promise<void> {

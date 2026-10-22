@@ -8,7 +8,10 @@ import { Miniflare } from 'miniflare';
 import { unstable_splitSqlQuery } from 'wrangler';
 import { isD1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { PlatformPlanUsageEventV1 } from '../../../packages/console-shared-ts/src/accountPlatform';
-import { createSimulatedBillingProviderAdapters } from '../../../packages/console-server-ts/src/billing/providers';
+import {
+  createSimulatedBillingProviderAdapters,
+  type BillingProviderAdapters,
+} from '../../../packages/console-server-ts/src/billing/providers';
 import { parseStripeCardSetupWebhookEvent } from '../../../packages/console-server-ts/src/billing/stripeWebhook';
 import { ConsoleBillingError } from '../../../packages/console-server-ts/src/billing/errors';
 import { runD1ConsoleBillingMonthlyFinalization } from '../../../packages/console-server-ts/src/billing/d1';
@@ -335,12 +338,16 @@ async function planBaseCharges(database: D1DatabaseLike, orgId: string) {
 async function planBaseCollections(database: D1DatabaseLike, orgId: string) {
   return await queryD1All(
     database,
-    `SELECT month_utc, status, provider_invoice_ref
+    `SELECT month_utc, status, provider_invoice_ref, idempotency_key
        FROM billing_plan_base_collections
       WHERE namespace = ? AND org_id = ?
       ORDER BY month_utc`,
     [namespace, orgId],
   );
+}
+
+function failPlanInvoiceCreate(): never {
+  throw new Error('Simulated transport failure before Stripe received the invoice request');
 }
 
 test('Free plan: card clock, production-only counts, notices, hard stop, and the move to Growth', async () => {
@@ -734,6 +741,80 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
     expect(replayedClose.failures).toEqual([]);
     expect(await planBaseCollections(database, pro.orgId)).toEqual(proCollections);
     expect(await planBaseCollections(database, growth.orgId)).toEqual(growthCollections);
+
+    const failedProviders: BillingProviderAdapters = {
+      stripe: {
+        ...services.billingProviders.stripe,
+        createPlanBaseInvoice: failPlanInvoiceCreate,
+      },
+    };
+    const failedClose = await runD1ConsoleBillingMonthlyFinalization({
+      database,
+      namespace,
+      orgIds: [pro.orgId, growth.orgId],
+      periodMonthUtc: '2026-10',
+      now: clock.now.bind(clock),
+      providers: failedProviders,
+    });
+    expect(failedClose.failures).toHaveLength(2);
+    const stalledPro = (await planBaseCollections(database, pro.orgId)).find(
+      (row) => row.month_utc === '2026-10',
+    );
+    const stalledGrowth = (await planBaseCollections(database, growth.orgId)).find(
+      (row) => row.month_utc === '2026-10',
+    );
+    expect(stalledPro?.status).toBe('creating');
+    expect(stalledGrowth?.status).toBe('creating');
+    const growthCustomer = await queryD1One(
+      database,
+      `SELECT customer_ref FROM billing_payment_customers
+        WHERE namespace = ? AND org_id = ?`,
+      [namespace, growth.orgId],
+    );
+    const growthCustomerRef = String(growthCustomer?.customer_ref || '').trim();
+    const growthInitialKey = String(stalledGrowth?.idempotency_key || '').trim();
+    const proInitialKey = String(stalledPro?.idempotency_key || '').trim();
+    if (!growthCustomerRef || !growthInitialKey || !proInitialKey) {
+      throw new Error('Base collection recovery fixture is incomplete');
+    }
+    const lostResponseInvoice = await services.billingProviders.stripe.createPlanBaseInvoice({
+      customerRef: growthCustomerRef,
+      chargeKey: `${namespace}:${growth.orgId}:2026-10`,
+      orgId: growth.orgId,
+      monthUtc: '2026-10',
+      plan: 'growth',
+      priceVersion: 'wallet-growth-v1',
+      idempotencyKey: growthInitialKey,
+    });
+
+    clock.ms += DAY_MS + 1;
+    const recoveredClose = await runD1ConsoleBillingMonthlyFinalization({
+      database,
+      namespace,
+      orgIds: [pro.orgId, growth.orgId],
+      periodMonthUtc: '2026-10',
+      now: clock.now.bind(clock),
+      providers: services.billingProviders,
+    });
+    expect(recoveredClose.failures).toEqual([]);
+    expect(recoveredClose.paidCount).toBe(2);
+    const recoveredPro = (await planBaseCollections(database, pro.orgId)).find(
+      (row) => row.month_utc === '2026-10',
+    );
+    const recoveredGrowth = (await planBaseCollections(database, growth.orgId)).find(
+      (row) => row.month_utc === '2026-10',
+    );
+    expect(recoveredPro?.status).toBe('paid');
+    expect(recoveredGrowth?.status).toBe('paid');
+    expect(recoveredPro?.idempotency_key).not.toBe(proInitialKey);
+    expect(recoveredGrowth?.idempotency_key).toBe(growthInitialKey);
+    expect(recoveredGrowth?.provider_invoice_ref).toBe(lostResponseInvoice.id);
+    expect(
+      await services.billingProviders.stripe.findPlanBaseInvoices({
+        customerRef: growthCustomerRef,
+        chargeKey: `${namespace}:${growth.orgId}:2026-10`,
+      }),
+    ).toHaveLength(1);
     const finalProCharges = await planBaseCharges(database, pro.orgId);
     const finalGrowthCharges = await planBaseCharges(database, growth.orgId);
     expect(finalProCharges).toHaveLength(3);
@@ -750,6 +831,9 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
           growthCharges: finalGrowthCharges,
           proCollections,
           growthCollections,
+          recoveredPro,
+          recoveredGrowth,
+          lostResponseInvoiceId: lostResponseInvoice.id,
           unbilledPlanRejected: true,
           replayKeptOneFirstMonthCharge: true,
           monthlyAccrualIdempotent: true,

@@ -8,6 +8,7 @@ import previousInterlock from '../../../showcase/motion/interlock/index.html?raw
 import previousDevices from '../../../showcase/motion/delegation/index.html?raw';
 import previousInfrastructure from '../../../showcase/motion/infrastructure-array/index.html?raw';
 import bladeInterlock from '../../../showcase/motion/interlock-blade/index.html?raw';
+import planeDevices from '../../../showcase/motion/delegation-planes/index.html?raw';
 import { H2Security } from './sections';
 import {
   candidateFigureDocument,
@@ -25,6 +26,7 @@ type Review = { figure: WalletFigureName; label: string; html: string };
 
 const candidates: readonly Review[] = [
   { figure: 'interlock', label: 'Scoped permissions: flat blade', html: bladeInterlock },
+  { figure: 'devices', label: 'Linked devices: projected rings', html: planeDevices },
 ];
 
 const reviews: readonly Review[] = [

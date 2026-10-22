@@ -5,8 +5,9 @@
    Photo fields contain cubic B-spline control points, encoded as base64,
    with rows top to bottom. Reference fits exclude text, logos and line art.
    Copper Mist fits a curved fold in its copper and blue palette.
-   Onyx Slate is drawn, not fitted: a slate fold across near-black, with a
-   cold rim of light in the top-right corner.
+   Onyx Slate is drawn, not fitted: three slate and indigo folds across
+   near-black that converge on the right, the lit one with a chrome edge, and
+   a cold rim of light in the top-right corner.
    Custom fields use white, near-black and one or two accents. Preview them
    on the gradient lab page: /gradients/ on the dev server. */
 
@@ -64,7 +65,7 @@ const PHOTO_FIELDS = {
   'coral-tide':
     'AGShAGOcAG2iRoOtnpGqy5qh4KOW67CO8baH8reE+LqD/8SNAGqhAGmdAHencI+zypip1p2e46aW7rGR76uF7aiB9rF+6Jx3AGyeAHOlOIWuoZOw0Jqm2qCb46SR5KCH5Z2B7KN98at+zGpXAHKlC3qqcY2wu5Kqypig2pyV3JiK25F/55yA5Zh02n5jtUtEAnOmKYSuko6wv5en1p6g3JqN2pSD4ZV/4pR41HxmzGdUrUZEBHepUomvr5OtxZij1JWY2JWO25KE24x414Nuz3Je0WdPpkNGE4OwiY6vrJKrw5KhzpGU0oyG2Ip+1YNx2X9k0Xhh0ltMeDU9Oomyk42tpI6oxZCgy42R1IuF14R50X9t1nRfyW9ZxExHdDlASYeviYyuq42mxI2YyIaLzIB8znhszHRg0WxgyW5S0FpLizpASImvj4yssYyjwYiVxoCFzX13znpo0nNf1XNcx2dMyElHZzU8bIyxk4mnp4WeuX+Qw3uAz31y1HtnzWpVvlVFrT5BmTU8RTI4io6xlYmoo4Setn6PxHl5znJjzmdSvVFFpDg/iS5AYzM6LDMy',
   'onyx-slate':
-    'BwgKBwgKBwgKBwgKCAkLCQoNDA4SEhYbHCIqLDRCTltvf4yhBwgKBwgKBwgKBwgKCAoMDA4REhYcHSMsMjtJW2h9gI2igI2iBwgKBwgKBwgLCQoNDQ8TFhohIik0PklZY3CFgI2igI2igI2iBwgKBwgLCQsNDxIWGh8oLDRCS1dqYG2CZXKHWmd8TltuQk1eBwkLCgsOERQZHiQuOkRUUl90Ul5zQUxdLDVCIikzHSMsGR4mCgwPEhUbISgyQk1fU2B0RE9hJi46HCEqFRkfExcdGBwkGyEpEhYcIik0RVBiTlpuND5NHiQuFBceExcdGB0kGyEpHCIrGyEqIik0QUxeRVFjJi46GB0kERQaFxwjGyApGyAoGB0lFRkfEhUaOkRUOUNTISgyFBgeFBgeGh8nGiAoFxsiEhUbDhEVCw0RCgsOLDVCHCIrERQZFRkfGh8nFxwjEhUaDQ8TCgsOCAoMCAkLBwgLGR4mDxEWFBgfGB0kFBgeDhAUCgsOCAkMBwgLBwgKBwgKBwgKDRAUFBcdFhohERQZCw0RCAoMBwgLBwgKBwgKBwgKBwgKBwgK',
+    'BgcKBgcKBgcKBgcKBgcLCAoODxEXHSArMzhJU1x0eoepna3YBgcKBgcKBgcKBwgMDA4TFhkhHiIuJSo4MzlKUlt0g4+2tMT4BgcKBgcKCAoODxEXFBcfFRggFxskKzFBVF97gpG7obHjpbToBgcKCQoODQ8VDhAWDRAVGR4nP0pga3ygeoqzbHqfWmWFUFp7BwkMCgsQCQsPDA4UISk1U2SAboGnWmmJPklgMTlPNj5bRk53BwgMCAkNDQ8VKTNCXXGRYHOUPkphKTFCJSxBMzpaPUNqMTdWBwkMDhAWLjpLXXWVT2B9LjdJICc2JCpBMzpbMThYICY6ERYgDhEWLjxMWHGPQlJqJi09HCIxJSpDMDZWJStDFBonDBMaChEWKjhGTWV/N0VaISc1Gh4tJipDKi9MGyAxDhQcChIYCxQaCxYcPVJnLDdIHCEtFxspJChAJChAExckCxAWChIXCxYcDBkgDRwjISk2FhokExciICM5HiE0DhEaCQ0RCQ8UChQaDBkgDh4mDyEpERUcDxIbGh0uGBoqCw0UBwoOCAwQCRAVCxYbDRwjDyEpECQt',
 } as const;
 
 export type GrainFieldName = keyof typeof PHOTO_FIELDS;

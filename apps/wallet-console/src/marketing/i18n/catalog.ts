@@ -126,8 +126,8 @@ export const catalog = {
   resumeCycling: { en: 'Resume automatic cycling', ja: '自動切り替えを再開' },
   pauseCycling: { en: 'Pause automatic cycling', ja: '自動切り替えを停止' },
   overview: { en: 'Overview', ja: '概要' },
-  observability: { en: 'Observability', ja: '稼働状況' },
-  failureAlerts: { en: 'Failing services flagged as they happen', ja: 'サービスの障害をすぐに検知' },
+  auditLogs: { en: 'Audit logs', ja: '監査ログ' },
+  csvExport: { en: 'Export to CSV in one click', ja: 'ワンクリックでCSVに出力' },
   passkeySignup: { en: 'Passkey sign-up', ja: 'パスキーで登録' },
   signupDescription: {
     en: 'A non-custodial wallet in one call',

@@ -3058,10 +3058,10 @@ body:has(.h2-page) {
   transition-delay: 350ms;
 }
 
-/* beside the observability page's Service health heading */
-.h2-consoleband__callout--observability {
-  inset-inline-start: 31%;
-  top: 26.5%;
+/* just below the audit page's Export button */
+.h2-consoleband__callout--audit {
+  inset-inline-end: 2.7%;
+  top: 23.5%;
 }
 
 @media (prefers-reduced-motion: reduce) {

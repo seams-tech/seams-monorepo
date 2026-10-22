@@ -1261,13 +1261,13 @@ const CONSOLE_SCREENS = [
     id: 'overview' as const,
     label: 'Overview',
     blurb: 'Wallets, approvals, and team activity at a glance',
-    src: '/wallet-preview/wallet-console-dashboard.png?v=2',
+    src: '/wallet-preview/wallet-console-dashboard.png?v=3',
   },
   {
     id: 'audit' as const,
     label: 'Audit logs',
     blurb: 'Every action attributed, timestamped, and exportable',
-    src: '/wallet-preview/wallet-console-audit.png?v=2',
+    src: '/wallet-preview/wallet-console-audit.png?v=3',
   },
 ];
 

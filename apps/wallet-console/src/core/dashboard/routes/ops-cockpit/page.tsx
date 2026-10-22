@@ -1,7 +1,7 @@
 import React from 'react';
 import { toast } from 'sonner';
 import { useSiteRouter } from '@core/router/useSiteRouter';
-import { GrainField } from '@seams-internal/grain-field';
+import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { formatDashboardTimestamp } from '../../utils/timestamps';
 import { KeyRoundIcon } from '../../icons/SidebarIcons';
 import type { SidebarIconComponent } from '../../types';
@@ -67,7 +67,7 @@ const CORE_OVERVIEW_HERO_ACTIONS: readonly OpsCockpitQuickAction[] = [
     description: 'Manage credentials for this environment.',
     path: '/dashboard/api-keys',
     icon: KeyRoundIcon,
-    tone: 'peach',
+    field: 'azure-coral',
   },
 ] as const;
 
@@ -76,7 +76,8 @@ export type OpsCockpitQuickAction = {
   description: string;
   path: string;
   icon: SidebarIconComponent;
-  tone: 'peach' | 'teal' | 'blue';
+  /* one of the front-page product fields, behind the white glyph */
+  field: GrainFieldName;
 };
 
 export type OpsCockpitApprovalActions = {
@@ -312,10 +313,8 @@ export function OpsCockpitPage({
                   href={navProps.href}
                   onClick={navProps.onClick}
                 >
-                  <span
-                    className={`dashboard-hero__card-icon dashboard-hero__card-icon--${action.tone}`}
-                    aria-hidden="true"
-                  >
+                  <span className="dashboard-hero__card-icon" aria-hidden="true">
+                    <GrainField field={action.field} playing={false} />
                     <ActionIcon size={20} />
                   </span>
                   <span className="dashboard-hero__card-title">{action.title}</span>

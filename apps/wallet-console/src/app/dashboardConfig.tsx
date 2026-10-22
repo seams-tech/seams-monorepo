@@ -222,14 +222,14 @@ const walletOpsCockpitQuickActions: readonly OpsCockpitQuickAction[] = [
     description: 'Set signing rules and spend caps for your wallets.',
     path: '/dashboard/policy-engine',
     icon: ScaleIcon,
-    tone: 'teal',
+    field: 'teal-peach',
   },
   {
     title: 'Gas sponsorship',
     description: 'Cover transaction fees for your users.',
     path: '/dashboard/gas-sponsorship',
     icon: FuelIcon,
-    tone: 'blue',
+    field: 'mauve-ember',
   },
 ];
 

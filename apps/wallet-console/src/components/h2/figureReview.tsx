@@ -26,17 +26,7 @@ import {
 type Review = { figure: WalletFigureName; label: string; html: string };
 
 const candidates: readonly Review[] = [
-  { figure: 'keychain', label: 'Keys you control: wave blades', html: nextKeys },
-  {
-    figure: 'keychain',
-    label: 'Keys you control: shaped tips',
-    html: nextKeys.replace("const BLADE = 'wave'", "const BLADE = 'tip'"),
-  },
-  {
-    figure: 'keychain',
-    label: 'Keys you control: plain blades',
-    html: nextKeys.replace("const BLADE = 'wave'", "const BLADE = 'plain'"),
-  },
+  { figure: 'keychain', label: 'Keys you control: two cuts', html: nextKeys },
   {
     figure: 'interlock',
     label: 'Scoped permissions: visible keyways, no dial',

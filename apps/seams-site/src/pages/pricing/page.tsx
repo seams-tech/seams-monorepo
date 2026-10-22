@@ -73,7 +73,7 @@ function getPlans(t: Translate): readonly Plan[] {
     },
     {
       id: 'enterprise',
-      field: 'onyx-slate',
+      field: 'onyx-dusk',
       name: 'Enterprise',
       price: t('custom'),
       unit: t('committedVolume'),

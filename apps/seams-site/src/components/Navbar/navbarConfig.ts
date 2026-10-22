@@ -133,7 +133,7 @@ function pricingDropdownPane(t: Translate): DropdownPane {
       title: 'Enterprise',
       description: t('enterpriseNav'),
       to: '/pricing/#enterprise',
-      field: 'onyx-slate',
+      field: 'onyx-dusk',
     },
     footerLinks: [
       { label: t('comparePlans'), to: '/pricing/' },

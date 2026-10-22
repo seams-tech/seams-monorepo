@@ -5,9 +5,9 @@
    Photo fields contain cubic B-spline control points, encoded as base64,
    with rows top to bottom. Reference fits exclude text, logos and line art.
    Copper Mist fits a curved fold in its copper and blue palette.
-   Onyx Slate is drawn, not fitted: three slate and indigo folds across
-   near-black that converge on the right, the lit one with a chrome edge, and
-   a cold rim of light in the top-right corner.
+   Onyx Dusk is drawn, not fitted: three folds across near-black that converge
+   on the right, with dusk hints. The lit edge runs from warm sand to slate
+   blue, the lower fold is burnt orange, and an ember warms one corner.
    Custom fields use white, near-black and one or two accents. Preview them
    on the gradient lab page: /gradients/ on the dev server. */
 
@@ -64,8 +64,8 @@ const PHOTO_FIELDS = {
     'EkuIE1aQElWREE+LD0qHEEmIEkuMFU6QFlGMFE1xEj9YDjJGDEmHCkqHC0eECUqECUl/C0iBCUZ9BUZ/A0RxDDNAHhghFxYgCUyJB0aDCEWCC0qHDEqHB0iECEl/DkmJEURvESYvGxEUEA4LCk2LC0uKCkuJB0yJCEqHEEmJEEaHAEiHClF9QT47ijk1WzcvCFGPCFCPCU+ODE6NDUqKAU6KB2SNV4qVvamR7rJ6/5FXmEA7BVaUB1ORCVORBE6NAFuROIKZyauX/8KV/8eM8qNvsklAJig1AFyVAVeTAFWSAGGWUImc8bST/8iT+saM8rl/z2JEWiw2HicyAFyZAFyXAGCWP4Wg6aua+8SR88OM9L6F631ThDk9Ny4yGCY2AGOYAGSaGXuhxp2g97OR7sCK97F34nRQfDI4JSs2IBMaByExAGacDHKeh5Oj66mZ9LeL9qdzzmdSZzA5HCQvFxghCAUTCCs+AGuiPYKh0aCf6KSN6ad93n9Vgjg7IiszHBUdCwsaCA8cCzdKAHingJak5qea756C2IRjpVI+UCQsGxooEQ8fBxAgCR8vCjlN',
   'coral-tide':
     'AGShAGOcAG2iRoOtnpGqy5qh4KOW67CO8baH8reE+LqD/8SNAGqhAGmdAHencI+zypip1p2e46aW7rGR76uF7aiB9rF+6Jx3AGyeAHOlOIWuoZOw0Jqm2qCb46SR5KCH5Z2B7KN98at+zGpXAHKlC3qqcY2wu5Kqypig2pyV3JiK25F/55yA5Zh02n5jtUtEAnOmKYSuko6wv5en1p6g3JqN2pSD4ZV/4pR41HxmzGdUrUZEBHepUomvr5OtxZij1JWY2JWO25KE24x414Nuz3Je0WdPpkNGE4OwiY6vrJKrw5KhzpGU0oyG2Ip+1YNx2X9k0Xhh0ltMeDU9Oomyk42tpI6oxZCgy42R1IuF14R50X9t1nRfyW9ZxExHdDlASYeviYyuq42mxI2YyIaLzIB8znhszHRg0WxgyW5S0FpLizpASImvj4yssYyjwYiVxoCFzX13znpo0nNf1XNcx2dMyElHZzU8bIyxk4mnp4WeuX+Qw3uAz31y1HtnzWpVvlVFrT5BmTU8RTI4io6xlYmoo4Setn6PxHl5znJjzmdSvVFFpDg/iS5AYzM6LDMy',
-  'onyx-slate':
-    'BgcKBgcKBgcKBgcKBgcLCAoODxEXHSArMzhJU1x0eoepna3YBgcKBgcKBgcKBwgMDA4TFhkhHiIuJSo4MzlKUlt0g4+2tMT4BgcKBgcKCAoODxEXFBcfFRggFxskKzFBVF97gpG7obHjpbToBgcKCQoODQ8VDhAWDRAVGR4nP0pga3ygeoqzbHqfWmWFUFp7BwkMCgsQCQsPDA4UISk1U2SAboGnWmmJPklgMTlPNj5bRk53BwgMCAkNDQ8VKTNCXXGRYHOUPkphKTFCJSxBMzpaPUNqMTdWBwkMDhAWLjpLXXWVT2B9LjdJICc2JCpBMzpbMThYICY6ERYgDhEWLjxMWHGPQlJqJi09HCIxJSpDMDZWJStDFBonDBMaChEWKjhGTWV/N0VaISc1Gh4tJipDKi9MGyAxDhQcChIYCxQaCxYcPVJnLDdIHCEtFxspJChAJChAExckCxAWChIXCxYcDBkgDRwjISk2FhokExciICM5HiE0DhEaCQ0RCQ8UChQaDBkgDh4mDyEpERUcDxIbGh0uGBoqCw0UBwoOCAwQCRAVCxYbDRwjDyEpECQt',
+  'onyx-dusk':
+    'CQgJCQgJCQgJCQgJCQgJCwsMEhIWHiEoNDpGVF9xe4ylnrPTCQgJCQgJCQgJCgkLDw8SGBofICMrJyszNTpEVV1rhZKpscboCQgJCQgJCwsMERIVFhgdFxgdGxsfMjI2XWBpipKjo7DKpLPQCQgJDAsNEBATEBEUERASIB4gTktOfn2Eh4qVdHeFYmJtY1dbCgoLDQwODAwNEA8QLSopbGZmh4OGamdtSEVKPzU2VjozfUs5CgkKCwoLEhAROzUzgHZxe3R0S0dKMy0vOyklYDgpeEItYjclCgkLExESRj04iHpxaWFfODQ2LCQkQiggaDkmaDcjRiYZJxcRFBESSkA4iHdqWlFPLiosKh8eSSkeZjYiUisbMhsTJBQOIRINRzwzfmtcTURCKCQmKBwaTCodWzAePSEVJxUPJBMOKRUOLRcPaVdJPjc0Ih4gJRoXSSgbTSgaLBgRHhENIxMNLRcPNhoQPB0RLyknGxgaIBYUQSQYPiEWHxIOFw4LHRAMKRUONhoQQh8SSSITFhQVGhIQNB0VMBsTFg4MEAsKFg0LIBENLRcPPB0RSSITUSUV',
 } as const;
 
 export type GrainFieldName = keyof typeof PHOTO_FIELDS;

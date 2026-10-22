@@ -18,12 +18,16 @@ Built on October 22, 2026, with a Pro plan added (decision 7). Not deployed.
   buttons. A pending invitation wins and drops the intent.
 - **Automatic setup.** After sign-in with an intent, the login page creates the
   organization ("My organization") and the first project ("My first app") with the
-  intent's project id, then opens the plan page. New identities create their
+  intent's project id. A Growth or Pro intent on a Free organization without a card
+  then goes straight to Stripe; every other intent opens the plan page. New identities create their
   organization through `POST /console/account/organizations`, not through
   `POST /console/onboarding/organization`, so `planIntent` is not sent to the server yet.
 - **Plan page.** `/dashboard/billing/plan` on the Platform Console shows Free, Growth
-  and Pro with the current plan. A Growth or Pro intent with no card goes straight to
-  Stripe; with a usable card the owner confirms the start. Stripe returns here.
+  and Pro with the current plan and this month's usage. With a usable card the owner
+  confirms the start. Stripe returns here; after a verified start from the pricing
+  page, the page opens the Wallet Console overview of the first project.
+- **Local runs.** Without `STRIPE_API_SK`, the local router uses simulated Stripe: the
+  card setup returns at once with a verified test card, so no Stripe page shows.
 - **Plan start on the server.** `POST /console/billing/card-setup` accepts
   `{ startPlan: 'growth' | 'pro' }` (the plan's `purpose` above). The setup session
   stores `start_plan`, and the verified card starts the plan in the same D1 batch.

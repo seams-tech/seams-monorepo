@@ -5,8 +5,7 @@ use std::num::NonZeroUsize;
 use std::time::Duration;
 
 use crate::domain::{
-    AudioFrame, CalibrationId, CaptureSessionId, CaptureTime, IdentityMatch, InputError, ModelId,
-    TimeRange,
+    AudioFrame, CalibrationId, CaptureSessionId, IdentityMatch, InputError, ModelId, TimeRange,
 };
 
 /// Unique utterance within one uninterrupted capture session.
@@ -43,23 +42,6 @@ impl UtteranceSpan {
     pub fn captured(self) -> TimeRange {
         self.captured
     }
-}
-
-/// Runtime lifecycle description. Only closed utterances have a final interval.
-pub enum UtteranceState {
-    /// Speech is still being collected; no command can be finalized.
-    Collecting {
-        /// First source sample; together with `sequence` this identifies the utterance.
-        started_at: CaptureTime,
-        /// Utterance sequence within the start time's capture session.
-        sequence: u64,
-    },
-    /// Capture ended and bounded stage work may still be pending.
-    Finalizing(UtteranceSpan),
-    /// Decoder finalized; attribution and consumer policy remain separate.
-    Complete(TranscriptOutcome),
-    /// Terminal cancellation; late stage outputs must be discarded.
-    Cancelled(UtteranceId),
 }
 
 /// Owned mono PCM for one bounded model window or incremental chunk.
@@ -224,15 +206,4 @@ pub enum SpeakerVerdict {
     InsufficientSpeech,
     /// More than one simultaneous speaker was detected.
     OverlappingSpeech,
-}
-
-/// Presentation-attack assessment from an independently calibrated gate.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PresentationVerdict {
-    /// Current input passed this specific gate; this is no general liveness proof.
-    Passed,
-    /// Current input failed this gate.
-    SuspectedAttack,
-    /// Current input cannot support a qualified assessment.
-    InsufficientEvidence,
 }

@@ -1,9 +1,9 @@
 //! Current-utterance attribution from voice, visual, and spatial observations.
 //! Produces attribution outcomes without executing commands or wallet operations.
 
-use crate::domain::{CalibrationId, EnrollmentRef, ModelId, ProfileId, TimeRange};
+use crate::domain::{CalibrationId, EnrollmentRef, IdentityMatch, ModelId, ProfileId, TimeRange};
 use crate::presence::{RecentPresence, VisualObservation};
-use crate::utterance::UtteranceSpan;
+use crate::utterance::{Assessment, SpeakerVerdict, UtteranceSpan};
 
 /// Exact independently calibrated voice gate that supported attribution.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -35,8 +35,8 @@ pub enum PresenceSupport {
     },
 }
 
-/// Successful perception result. Construction is reserved for the future attribution
-/// coordinator; there is no public success constructor or executable command here.
+/// Successful perception result from the runtime's current speaker assessment.
+/// There is no public success constructor or executable command here.
 ///
 /// ```compile_fail
 /// use voiceid_engine::attribution::{AttributedUtterance, PresenceSupport, SupportingGate};
@@ -45,7 +45,7 @@ pub enum PresenceSupport {
 /// fn fabricate(utterance: UtteranceSpan, identity: EnrollmentRef, profile: ProfileId,
 ///     gate: SupportingGate, validity: TimeRange) -> AttributedUtterance {
 ///     AttributedUtterance {
-///         utterance, identity, profile, speaker: gate, presentation_attack: gate,
+///         utterance, identity, profile, speaker: gate,
 ///         presence: PresenceSupport::AudioOnly, validity,
 ///     }
 /// }
@@ -56,7 +56,6 @@ pub struct AttributedUtterance {
     identity: EnrollmentRef,
     profile: ProfileId,
     speaker: SupportingGate,
-    presentation_attack: SupportingGate,
     presence: PresenceSupport,
     validity: TimeRange,
 }
@@ -78,10 +77,6 @@ impl AttributedUtterance {
     pub fn speaker(&self) -> SupportingGate {
         self.speaker
     }
-    /// Independent current-utterance presentation-attack gate.
-    pub fn presentation_attack(&self) -> SupportingGate {
-        self.presentation_attack
-    }
     /// Visual or explicitly audio-only support.
     pub fn presence(&self) -> PresenceSupport {
         self.presence
@@ -97,8 +92,6 @@ impl AttributedUtterance {
 pub enum RejectionReason {
     /// Current speaker did not match the enrolled owner.
     UnknownSpeaker,
-    /// Current evidence suggests playback or another presentation attack.
-    SuspectedAttack,
     /// Visual/spatial evidence contradicts the proposed speaker.
     ContradictoryPresence,
     /// The source is the robot's own speech or is clearly background audio.
@@ -139,4 +132,45 @@ pub enum AttributionOutcome {
         /// Domain reason; missing checks never become a success.
         reason: InsufficientReason,
     },
+}
+
+/// Associate one validated current-window assessment with the configured owner.
+/// The runtime checks source/model correlation and freshness before calling this function.
+pub(crate) fn attribute_audio(
+    assessment: Assessment<SpeakerVerdict>,
+    owner: EnrollmentRef,
+    profile: ProfileId,
+    validity: TimeRange,
+) -> AttributionOutcome {
+    let utterance = assessment.source;
+    match assessment.verdict {
+        SpeakerVerdict::Identity(IdentityMatch::Matched(identity)) if identity == owner => {
+            AttributionOutcome::Attributed(Box::new(AttributedUtterance {
+                utterance,
+                identity,
+                profile,
+                speaker: SupportingGate {
+                    model: assessment.model,
+                    calibration: assessment.calibration,
+                },
+                presence: PresenceSupport::AudioOnly,
+                validity,
+            }))
+        }
+        SpeakerVerdict::Identity(IdentityMatch::Matched(_)) => AttributionOutcome::Insufficient {
+            utterance,
+            reason: InsufficientReason::InvalidatedEvidence,
+        },
+        SpeakerVerdict::Identity(IdentityMatch::Unknown) => AttributionOutcome::Rejected {
+            utterance,
+            reason: RejectionReason::UnknownSpeaker,
+        },
+        SpeakerVerdict::Identity(IdentityMatch::Ambiguous) | SpeakerVerdict::OverlappingSpeech => {
+            AttributionOutcome::Ambiguous { utterance }
+        }
+        SpeakerVerdict::InsufficientSpeech => AttributionOutcome::Insufficient {
+            utterance,
+            reason: InsufficientReason::MissingEvidence,
+        },
+    }
 }

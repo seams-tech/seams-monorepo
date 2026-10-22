@@ -1,12 +1,13 @@
 # Local VoiceID architecture and implementation plan
 
 Date: 2026-09-14
-Updated: 2026-10-21
+Updated: 2026-10-22
 Status: structure decisions, private Rust modules, domain types, and adapter
 contracts are in place, with boundary and compile-fail tests.
-The production runtime, host API, model adapters, and acceptance gates remain
-unimplemented. The retained Python incremental Moonshine adapter is evaluation
-code.
+The audio runtime shell now coordinates injected transcription and speaker
+adapters with a repeatable lifecycle journey. Concrete native model/capture/storage
+adapters, the host API, and product acceptance gates remain unimplemented.
+The retained Python incremental Moonshine adapter is evaluation code.
 
 Related plans:
 
@@ -198,15 +199,35 @@ Scaffolding steps 1 and 2, plus the domain/adapter contracts in step 3, are comp
   domain values and adapter traits are exposed for private Rust composition/tests.
   Capture/utterance identity, bounded media, partial/final text, explicit missing
   capability/identity/presence states, and atomic template replacement have contracts.
-  There is no exported host API, placeholder identity success, runtime coordinator,
-  concrete adapter, or wallet integration.
+  The audio runtime coordinator was added on 2026-10-22. There is no exported host
+  API, production placeholder identity success, concrete adapter, or wallet integration.
 
 The [engine contract checkpoint](../engine/README.md#domain-and-adapter-contracts--step-3)
 documents typed boundaries, ownership, limits, cancellation, and native host
-responsibilities. Twelve boundary tests and seven compile-fail tests cover the
-implemented value/type invariants. Step 4 adds runtime wiring and lifecycle tests;
-real adapter implementations and concrete C exports follow. This progress does
-not complete the hardware, model, calibration, or release gates in L0-L7.
+responsibilities. Twelve boundary tests and eight compile-fail tests cover the
+implemented value/type invariants. Step 4 now supplies the audio runtime and a
+lifecycle journey with generated PCM and model doubles. Real adapter implementations
+and concrete C exports follow. This progress does not complete the hardware,
+model, calibration, or release gates in L0-L7.
+
+### Next implementation checkpoints — 2026-10-22
+
+1. Audio runtime: implemented. One active decoder, bounded PCM/text, fixed
+   deadlines, current-utterance/model correlation, audio-only attribution, single
+   result consumption, cancellation, enrollment invalidation, and fresh-epoch restart.
+   The integration journey regenerates `engine/target/runtime-lifecycle.e2e.json`.
+2. Native models: implement Rust Moonshine streaming against real fixture PCM.
+   Select the native speaker backend and compare its outputs with the Python baseline.
+   Verify model assets and measure startup, per-utterance cost, and cleanup.
+3. Local host: add microphone acquisition, speech endpoint detection, protected
+   enrollment storage, deletion, and a callable native host binding. Document one
+   local invocation and an offline smoke procedure.
+4. Wallet W0-W1: consume existing device/session authority, present one exact
+   operation, and bind its spoken approval/cancellation to that attempt. Exercise
+   the real path on testnet with a repeatable outcome report.
+
+Checkpoint 1 uses explicit test doubles. It supplies no model implementation,
+live microphone capture, wallet authorization, or spoof-resistance claim.
 
 ## Repository, package, and release boundaries
 
@@ -467,9 +488,8 @@ Build on the retained adapters from the completed source cutover.
       attribution, enrollment, adapters, and consumers modules. Isolate native
       bindings from the portable module build.
 - [ ] Define capture, utterance, enrollment, stage-result, and command states.
-- [ ] Remove the mandatory PAD supporting gate from the scaffold's attribution
-      result before runtime implementation. Do not manufacture a passing PAD result
-      or add a spoof-detection bypass flag for the MVP.
+- [x] Remove the mandatory PAD supporting gate and unused production PAD contracts.
+      Keep the Python research adapter without a runtime bypass or passing placeholder.
 - [ ] Decouple retained PCM adapters from HTTP and old enrollment/phrase DTOs.
 - [ ] Preserve adapter, quality, aggregation, timeout, and cleanup tests.
 - [ ] Add a deterministic timestamped event-replay test input without making it
@@ -479,8 +499,8 @@ Build on the retained adapters from the completed source cutover.
 - [ ] Define engine/platform/consumer boundaries and coordinate the public
       wallet provider contract with W0. Keep wallet protocol types outside the
       perception core; wallet implementation does not block the robot slice.
-- [ ] Establish compiled-engine tests against retained evaluation scenarios and
-      select which Python helpers remain useful reference tooling.
+- [x] Exercise the compiled runtime lifecycle with deterministic adapter doubles and
+      a repeatable report. Real-model evaluation remains the native-model checkpoint.
 
 Exit: model work and state tests run without the old TS application.
 

@@ -91,6 +91,22 @@
   }
 }
 
+/* Enterprise's field is near-black, so its button stays white when lit. */
+.pricing-plan--enterprise.pricing-plan--selected,
+.pricing-plan--enterprise:focus-within {
+  --pricing-plan-button: #ffffff;
+  --pricing-plan-button-text: var(--h2-ink);
+  --pricing-plan-button-pressed: #ebe8e4;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pricing-plan--enterprise:hover {
+    --pricing-plan-button: #ffffff;
+    --pricing-plan-button-text: var(--h2-ink);
+    --pricing-plan-button-pressed: #ebe8e4;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pricing-plan__gradient {
     transition: none;
@@ -183,12 +199,12 @@
 
 /* Enterprise spans the row below the self-serve cards: who it is for and the price on the
    left, the terms in two columns, and the button on the right. */
-.pricing-plan--band {
+.pricing-plan--enterprise {
   grid-column: 1 / -1;
 }
 
 @media (min-width: 901px) {
-  .pricing-plan--band {
+  .pricing-plan--enterprise {
     display: grid;
     grid-template-columns: minmax(0, 4fr) minmax(0, 6fr) auto;
     grid-template-rows: auto auto 1fr;
@@ -200,20 +216,20 @@
     align-items: start;
   }
 
-  .pricing-plan--band .pricing-plan__name {
+  .pricing-plan--enterprise .pricing-plan__name {
     grid-area: name;
   }
 
-  .pricing-plan--band .pricing-plan__summary {
+  .pricing-plan--enterprise .pricing-plan__summary {
     grid-area: summary;
   }
 
-  .pricing-plan--band .pricing-plan__price {
+  .pricing-plan--enterprise .pricing-plan__price {
     grid-area: price;
     margin: 4px 0 0;
   }
 
-  .pricing-plan--band .pricing-plan__features {
+  .pricing-plan--enterprise .pricing-plan__features {
     grid-area: features;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px 28px;
@@ -224,7 +240,7 @@
     border-left: 1px dashed var(--pricing-plan-rule);
   }
 
-  .pricing-plan--band .pricing-plan__cta {
+  .pricing-plan--enterprise .pricing-plan__cta {
     grid-area: cta;
     align-self: center;
     margin-top: 0;
@@ -667,6 +683,19 @@
   .pricing-banner__card:hover .pricing-banner__card-cta {
     background: #000000;
     color: #ffffff;
+  }
+}
+
+/* as on its plan card, Enterprise's near-black field keeps the white button */
+.pricing-banner__card--enterprise:focus-visible .pricing-banner__card-cta {
+  background: #ffffff;
+  color: var(--h2-ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pricing-banner__card--enterprise:hover .pricing-banner__card-cta {
+    background: #ffffff;
+    color: var(--h2-ink);
   }
 }
 

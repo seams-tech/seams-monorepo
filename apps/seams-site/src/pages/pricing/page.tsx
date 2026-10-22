@@ -72,7 +72,7 @@ function getPlans(t: Translate): readonly Plan[] {
     },
     {
       id: 'enterprise',
-      field: 'slate-amber',
+      field: 'onyx-slate',
       name: 'Enterprise',
       price: t('custom'),
       unit: t('committedVolume'),
@@ -114,7 +114,11 @@ function BannerPlanCard({ plan }: { plan: Plan }): React.JSX.Element {
   const [lit, setLit] = React.useState(false);
   return (
     <a
-      className="pricing-banner__card"
+      className={
+        plan.id === 'enterprise'
+          ? 'pricing-banner__card pricing-banner__card--enterprise'
+          : 'pricing-banner__card'
+      }
       href={ctaProps.href}
       onClick={ctaProps.onClick}
       onPointerEnter={() => setLit(true)}
@@ -174,7 +178,7 @@ function PlanCard({ plan, selected }: { plan: Plan; selected: boolean }): React.
   const ctaProps = linkProps(plan.cta.to);
   const className = [
     'pricing-plan',
-    plan.id === 'enterprise' ? 'pricing-plan--band' : null,
+    plan.id === 'enterprise' ? 'pricing-plan--enterprise' : null,
     selected ? 'pricing-plan--selected' : null,
   ]
     .filter(Boolean)

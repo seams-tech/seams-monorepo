@@ -73,7 +73,16 @@ import {
   parseRefreshConsoleWalletBalancesRequest,
 } from '@seams-internal/wallet-console-server/wallets/balances';
 import type { ConsolePolicyService } from '@seams-internal/wallet-console-server/policies/service';
+import type {
+  ConsoleGasSponsorshipPolicyRules,
+  ConsolePolicy,
+  ConsolePolicyAssignment,
+} from '@seams-internal/wallet-console-server/policies/types';
 import { isConsolePolicyError } from '@seams-internal/wallet-console-server/policies/errors';
+import {
+  isConsoleGasSponsorshipPolicyRules,
+  parseConsolePolicyRulesInput,
+} from '@seams-internal/wallet-console-server/policies/rules';
 import {
   parseCreateConsolePolicyRequest,
   parseListConsolePoliciesRequest,
@@ -112,8 +121,9 @@ import {
 } from '@seams-internal/wallet-console-server/runtimeSnapshots/requests';
 import type { ConsoleOrganizationAccessService } from '@seams-internal/console-server/teamRbac/index';
 import type {
+  ApproveConsoleApprovalRequest,
   CreateConsoleApprovalRequest,
-  ConsoleApprovalOperationType,
+  ConsoleApprovalRequestRecord,
 } from '@seams-internal/wallet-console-server/approvals/types';
 import type { ConsoleApprovalService } from '@seams-internal/wallet-console-server/approvals/service';
 import { isConsoleApprovalsError } from '@seams-internal/wallet-console-server/approvals/errors';
@@ -185,6 +195,12 @@ import {
 } from './tenantStorageRoute';
 import type { TenantStorageRouteDiagnostic } from '@seams/wallet-server/cloud-host';
 import { parseOrgId } from '@seams/wallet-server/cloud-host';
+import { assertNever } from '@seams-internal/console-shared/accountPlatform/boundary';
+import {
+  verifyFreshStepUpForRequestV1,
+  type TenantRootStepUpReaderV1,
+} from '../../tenantRootSecurity/routeGuard';
+import type { TenantRootStepUpProofV1 } from '../../tenantRootSecurity/stepUp';
 
 export interface CloudflareConsoleContext extends Omit<AccountConsoleContext, 'authorizeTenant'> {
   authorizeTenant: AccountConsoleContext['authorizeTenant'];
@@ -213,6 +229,7 @@ export interface CloudflareConsoleContext extends Omit<AccountConsoleContext, 'a
   runtimeSnapshots: ConsoleRuntimeSnapshotService | null;
   organizationAccess: ConsoleOrganizationAccessService | null;
   approvals: ConsoleApprovalService | null;
+  stepUp: TenantRootStepUpReaderV1 | null;
   audit: ConsoleAuditService | null;
   auditExports: ConsoleAuditExportsService | null;
   enterpriseIsolation: ConsoleEnterpriseIsolationService | null;
@@ -890,6 +907,61 @@ function toAuditContext(claims: ConsoleAuditActorScope): {
   };
 }
 
+async function memberCanAccessApproval(
+  ctx: CloudflareConsoleContext,
+  claims: ConsoleAuthClaims,
+  approval: Pick<
+    ConsoleApprovalRequestRecord,
+    'operationType' | 'projectId' | 'environmentId' | 'resourceType' | 'resourceId'
+  >,
+  level: 'viewer' | 'editor',
+): Promise<boolean> {
+  const projectId = approval.projectId;
+  if (!projectId || !hasConsoleProjectAccess(claims, projectId, level)) return false;
+  if (approval.environmentId) {
+    if (!ctx.walletEnvironments) return false;
+    const environments = await ctx.walletEnvironments.listEnvironments(
+      toWalletEnvironmentContext(claims),
+      { projectId },
+    );
+    if (!environments.some((environment) => environment.id === approval.environmentId)) {
+      return false;
+    }
+  }
+  switch (approval.operationType) {
+    case 'POLICY_PUBLISH': {
+      if (approval.resourceType !== 'policy' || !approval.resourceId || !ctx.policies) {
+        return false;
+      }
+      const failure = await requireMemberPolicyAccess(
+        ctx,
+        claims,
+        ctx.policies,
+        approval.resourceId,
+        level,
+      );
+      return failure === null;
+    }
+    case 'KEY_EXPORT': {
+      if (approval.resourceType !== 'key_export' || !approval.resourceId || !ctx.keyExports) {
+        return false;
+      }
+      const exports = await visibleConsoleKeyExports(ctx, claims, ctx.keyExports, {}, level);
+      if (exports instanceof Response) return false;
+      const target = exports.find((entry) => entry.id === approval.resourceId);
+      if (!target || !ctx.walletEnvironments) return false;
+      if (approval.environmentId && approval.environmentId !== target.environmentId) return false;
+      const environments = await ctx.walletEnvironments.listEnvironments(
+        toWalletEnvironmentContext(claims),
+        { projectId },
+      );
+      return environments.some((environment) => environment.id === target.environmentId);
+    }
+    default:
+      return assertNever(approval.operationType);
+  }
+}
+
 async function projectApprovalResponse(
   ctx: CloudflareConsoleContext,
   claims: ConsoleAuthClaims,
@@ -1032,17 +1104,56 @@ function readApprovalIdFromBody(body: unknown): string {
   return String((body as Record<string, unknown>).approvalId || '').trim();
 }
 
+async function requireFreshConsoleStepUp(
+  ctx: CloudflareConsoleContext,
+  claims: ConsoleAuthClaims,
+): Promise<
+  | { readonly ok: true; readonly proof: TenantRootStepUpProofV1 }
+  | { readonly ok: false; readonly response: Response }
+> {
+  if (!ctx.stepUp) {
+    return {
+      ok: false,
+      response: json(
+        { ok: false, code: 'step_up_unavailable', message: 'Console step-up is unavailable' },
+        { status: 503 },
+      ),
+    };
+  }
+  const result = await verifyFreshStepUpForRequestV1({
+    stepUp: ctx.stepUp,
+    request: ctx.request,
+    claims,
+    nowMs: Date.now(),
+  });
+  if (!result.ok) {
+    return {
+      ok: false,
+      response: json(
+        { ok: false, code: 'step_up_required', message: 'Fresh step-up is required' },
+        { status: 403 },
+      ),
+    };
+  }
+  return { ok: true, proof: result.proof };
+}
+
 async function requireApprovedOperationApproval(
   ctx: CloudflareConsoleContext,
   claims: ConsoleAuthClaims,
-  input: {
-    operationType: ConsoleApprovalOperationType;
-    approvalIdRaw: unknown;
-    projectId?: string;
-    environmentId?: string;
-    resourceType?: string;
-    resourceId?: string;
-  },
+  input:
+    | {
+        readonly operationType: 'POLICY_PUBLISH';
+        readonly approvalIdRaw: unknown;
+        readonly resourceType: 'policy';
+        readonly resourceId: string;
+      }
+    | {
+        readonly operationType: 'KEY_EXPORT';
+        readonly approvalIdRaw: unknown;
+        readonly resourceType: 'key_export';
+        readonly resourceId: string;
+      },
 ): Promise<Response | null> {
   if (!ctx.approvals) return null;
 
@@ -1098,32 +1209,17 @@ async function requireApprovedOperationApproval(
     );
   }
 
-  const projectId = String(input.projectId || '').trim();
-  if (projectId && approval.projectId && approval.projectId !== projectId) {
+  if (
+    claims.role === 'MEMBER' &&
+    !(await memberCanAccessApproval(ctx, claims, approval, 'editor'))
+  ) {
     return json(
-      {
-        ok: false,
-        code: 'approval_scope_mismatch',
-        message: `Approval request ${approvalId} project scope does not match request`,
-      },
-      { status: 409 },
+      { ok: false, code: 'approval_not_found', message: 'Approval request was not found' },
+      { status: 404 },
     );
   }
 
-  const environmentId = String(input.environmentId || '').trim();
-  if (environmentId && approval.environmentId && approval.environmentId !== environmentId) {
-    return json(
-      {
-        ok: false,
-        code: 'approval_scope_mismatch',
-        message: `Approval request ${approvalId} environment scope does not match request`,
-      },
-      { status: 409 },
-    );
-  }
-
-  const resourceType = String(input.resourceType || '').trim();
-  if (resourceType && approval.resourceType && approval.resourceType !== resourceType) {
+  if (approval.resourceType !== input.resourceType) {
     return json(
       {
         ok: false,
@@ -1134,8 +1230,7 @@ async function requireApprovedOperationApproval(
     );
   }
 
-  const resourceId = String(input.resourceId || '').trim();
-  if (resourceId && approval.resourceId && approval.resourceId !== resourceId) {
+  if (approval.resourceId !== input.resourceId) {
     return json(
       {
         ok: false,
@@ -1512,12 +1607,13 @@ async function handleConsoleKeyExports(ctx: CloudflareConsoleContext): Promise<R
         resourceId: exportId,
       });
       if (approvalRequired) return approvalRequired;
-      const request = parseApproveConsoleKeyExportRequest(rawBody);
-      const keyExport = await keyExports.approveKeyExport(
-        toBillingContext(auth.claims),
-        exportId,
-        request,
-      );
+      const requestBody = parseApproveConsoleKeyExportRequest(rawBody);
+      const stepUp = await requireFreshConsoleStepUp(ctx, auth.claims);
+      if (!stepUp.ok) return stepUp.response;
+      const keyExport = await keyExports.approveKeyExport(toBillingContext(auth.claims), exportId, {
+        reason: requestBody.reason,
+        stepUp: stepUp.proof,
+      });
       if (!keyExport) {
         return json(
           {
@@ -1928,8 +2024,14 @@ async function handleConsoleEnvironments(ctx: CloudflareConsoleContext): Promise
         status: ctx.url.searchParams.get('status') || undefined,
       });
       const environments = await walletEnvironments.listEnvironments(environmentContext, request);
+      const visibleEnvironments =
+        auth.claims.role === 'MEMBER'
+          ? environments.filter((environment) =>
+              hasConsoleProjectAccess(auth.claims, environment.projectId, 'viewer'),
+            )
+          : environments;
       return json(
-        { ok: true, environments: environments.map(serializeWalletEnvironment) },
+        { ok: true, environments: visibleEnvironments.map(serializeWalletEnvironment) },
         { status: 200 },
       );
     }
@@ -2037,8 +2139,17 @@ async function handleConsoleApprovals(ctx: CloudflareConsoleContext): Promise<Re
         environmentId: ctx.url.searchParams.get('environmentId') || undefined,
       });
       const rows = await approvals.listApprovalRequests(approvalCtx, request);
+      const visibleRows: ConsoleApprovalRequestRecord[] = [];
+      for (const row of rows) {
+        if (
+          auth.claims.role !== 'MEMBER' ||
+          (await memberCanAccessApproval(ctx, auth.claims, row, 'viewer'))
+        ) {
+          visibleRows.push(row);
+        }
+      }
       return json(
-        { ok: true, approvals: await projectApprovalResponses(ctx, auth.claims, rows) },
+        { ok: true, approvals: await projectApprovalResponses(ctx, auth.claims, visibleRows) },
         { status: 200 },
       );
     }
@@ -2056,6 +2167,15 @@ async function handleConsoleApprovals(ctx: CloudflareConsoleContext): Promise<Re
           { status: 404 },
         );
       }
+      if (
+        auth.claims.role === 'MEMBER' &&
+        !(await memberCanAccessApproval(ctx, auth.claims, row, 'viewer'))
+      ) {
+        return json(
+          { ok: false, code: 'approval_not_found', message: 'Approval request was not found' },
+          { status: 404 },
+        );
+      }
       return json(
         { ok: true, approval: await projectApprovalResponse(ctx, auth.claims, row) },
         { status: 200 },
@@ -2066,6 +2186,21 @@ async function handleConsoleApprovals(ctx: CloudflareConsoleContext): Promise<Re
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const parsedRequest = parseCreateConsoleApprovalRequest(await readJson(ctx.request));
+      if (auth.claims.role === 'MEMBER') {
+        const target = {
+          operationType: parsedRequest.operationType,
+          projectId: parsedRequest.projectId ?? null,
+          environmentId: parsedRequest.environmentId ?? null,
+          resourceType: parsedRequest.resourceType ?? null,
+          resourceId: parsedRequest.resourceId ?? null,
+        };
+        if (!(await memberCanAccessApproval(ctx, auth.claims, target, 'editor'))) {
+          return json(
+            { ok: false, code: 'forbidden', message: 'Approval target is unavailable' },
+            { status: 403 },
+          );
+        }
+      }
       const request = await enrichPolicyApprovalCreateRequest(ctx, auth.claims, parsedRequest);
       const row = await approvals.createApprovalRequest(approvalCtx, request);
       const approvalPolicy = projectConsolePolicyPresentation({
@@ -2125,7 +2260,26 @@ async function handleConsoleApprovals(ctx: CloudflareConsoleContext): Promise<Re
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const approvalId = decodePathPart(approvalApprovePathMatch[1]);
-      const request = parseApproveConsoleApprovalRequest(await readJson(ctx.request));
+      const target = await approvals.getApprovalRequest(approvalCtx, approvalId);
+      if (
+        !target ||
+        (auth.claims.role === 'MEMBER' &&
+          !(await memberCanAccessApproval(ctx, auth.claims, target, 'editor')))
+      ) {
+        return json(
+          { ok: false, code: 'approval_not_found', message: 'Approval request was not found' },
+          { status: 404 },
+        );
+      }
+      const requestBody = parseApproveConsoleApprovalRequest(await readJson(ctx.request));
+      let request: ApproveConsoleApprovalRequest;
+      if (target.requireMfa) {
+        const stepUp = await requireFreshConsoleStepUp(ctx, auth.claims);
+        if (!stepUp.ok) return stepUp.response;
+        request = { kind: 'with_step_up', reason: requestBody.reason, stepUp: stepUp.proof };
+      } else {
+        request = { kind: 'without_step_up', reason: requestBody.reason };
+      }
       const row = await approvals.approveApprovalRequest(approvalCtx, approvalId, request);
       if (!row) {
         return json(
@@ -2186,6 +2340,15 @@ async function handleConsoleApprovals(ctx: CloudflareConsoleContext): Promise<Re
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const approvalId = decodePathPart(approvalRejectPathMatch[1]);
+      if (auth.claims.role === 'MEMBER') {
+        const target = await approvals.getApprovalRequest(approvalCtx, approvalId);
+        if (!target || !(await memberCanAccessApproval(ctx, auth.claims, target, 'editor'))) {
+          return json(
+            { ok: false, code: 'approval_not_found', message: 'Approval request was not found' },
+            { status: 404 },
+          );
+        }
+      }
       const request = parseRejectConsoleApprovalRequest(await readJson(ctx.request));
       const row = await approvals.rejectApprovalRequest(approvalCtx, approvalId, request);
       if (!row) {
@@ -2469,6 +2632,124 @@ async function handleConsoleWallets(ctx: CloudflareConsoleContext): Promise<Resp
   return new Response('Not Found', { status: 404 });
 }
 
+interface MemberPolicyAccessState {
+  readonly assignments: readonly ConsolePolicyAssignment[];
+  readonly projectByEnvironment: ReadonlyMap<string, string>;
+}
+
+async function loadMemberPolicyAccessState(
+  ctx: CloudflareConsoleContext,
+  claims: ConsoleAuthClaims,
+  policies: ConsolePolicyService,
+): Promise<MemberPolicyAccessState> {
+  const assignments = await policies.listAssignments(toBillingContext(claims));
+  const projectByEnvironment = new Map<string, string>();
+  if (ctx.walletEnvironments) {
+    const environments = await ctx.walletEnvironments.listEnvironments(
+      toWalletEnvironmentContext(claims),
+    );
+    for (const environment of environments) {
+      projectByEnvironment.set(environment.id, environment.projectId);
+    }
+  }
+  return { assignments, projectByEnvironment };
+}
+
+async function memberCanAccessPolicyAssignment(
+  ctx: CloudflareConsoleContext,
+  claims: ConsoleAuthClaims,
+  state: MemberPolicyAccessState,
+  assignment: Pick<ConsolePolicyAssignment, 'scopeType' | 'scopeId'>,
+  level: 'viewer' | 'editor',
+): Promise<boolean> {
+  switch (assignment.scopeType) {
+    case 'ORG':
+      return level === 'viewer' && assignment.scopeId === claims.orgId;
+    case 'PROJECT':
+      return hasConsoleProjectAccess(claims, assignment.scopeId, level);
+    case 'ENVIRONMENT': {
+      const projectId = state.projectByEnvironment.get(assignment.scopeId);
+      return projectId !== undefined && hasConsoleProjectAccess(claims, projectId, level);
+    }
+    case 'WALLET': {
+      if (level === 'editor' || !ctx.wallets || !claims.projectId || !claims.environmentId) {
+        return false;
+      }
+      const wallet = await ctx.wallets.getWallet(toWalletContext(claims), {
+        id: assignment.scopeId,
+        projectId: claims.projectId,
+        environmentId: claims.environmentId,
+      });
+      return wallet !== null && hasConsoleProjectAccess(claims, wallet.projectId, level);
+    }
+    default:
+      return assertNever(assignment.scopeType);
+  }
+}
+
+function memberCanAccessGasRules(
+  claims: ConsoleAuthClaims,
+  state: MemberPolicyAccessState,
+  rules: ConsoleGasSponsorshipPolicyRules,
+  level: 'viewer' | 'editor',
+): boolean {
+  if (rules.scopeType === 'ORG') return level === 'viewer';
+  const environmentProjectId = rules.environmentId
+    ? state.projectByEnvironment.get(rules.environmentId)
+    : undefined;
+  if (rules.environmentId && !environmentProjectId) return false;
+  if (rules.projectId && environmentProjectId && rules.projectId !== environmentProjectId) {
+    return false;
+  }
+  const projectId = rules.projectId || environmentProjectId;
+  return projectId ? hasConsoleProjectAccess(claims, projectId, level) : false;
+}
+
+async function memberCanAccessPolicy(
+  ctx: CloudflareConsoleContext,
+  claims: ConsoleAuthClaims,
+  state: MemberPolicyAccessState,
+  policy: ConsolePolicy,
+  level: 'viewer' | 'editor',
+): Promise<boolean> {
+  if (policy.kind === 'GAS_SPONSORSHIP') {
+    if (!isConsoleGasSponsorshipPolicyRules(policy.rules)) return false;
+    return memberCanAccessGasRules(claims, state, policy.rules, level);
+  }
+  let assigned = false;
+  let visible = policy.isSystemDefault && level === 'viewer';
+  for (const assignment of state.assignments) {
+    if (assignment.policyId !== policy.id) continue;
+    assigned = true;
+    const accessible = await memberCanAccessPolicyAssignment(ctx, claims, state, assignment, level);
+    if (level === 'editor' && !accessible) return false;
+    if (accessible) visible = true;
+  }
+  return level === 'viewer' ? visible : assigned;
+}
+
+function policyResourceNotFound(): Response {
+  return json(
+    { ok: false, code: 'policy_not_found', message: 'Policy was not found' },
+    { status: 404 },
+  );
+}
+
+async function requireMemberPolicyAccess(
+  ctx: CloudflareConsoleContext,
+  claims: ConsoleAuthClaims,
+  policies: ConsolePolicyService,
+  policyId: string,
+  level: 'viewer' | 'editor',
+): Promise<Response | null> {
+  if (claims.role !== 'MEMBER') return null;
+  const policy = await policies.getPolicy(toBillingContext(claims), policyId);
+  if (!policy) return policyResourceNotFound();
+  const state = await loadMemberPolicyAccessState(ctx, claims, policies);
+  if (await memberCanAccessPolicy(ctx, claims, state, policy, level)) return null;
+  return policyResourceNotFound();
+}
+
 async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Response | null> {
   if (!isConsolePolicyPath(ctx.pathname)) return null;
 
@@ -2493,7 +2774,17 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
         kind: ctx.url.searchParams.get('kind') || undefined,
       });
       const out = await policies.listPolicies(policyCtx, request);
-      return json({ ok: true, policies: out }, { status: 200 });
+      if (auth.claims.role !== 'MEMBER') {
+        return json({ ok: true, policies: out }, { status: 200 });
+      }
+      const state = await loadMemberPolicyAccessState(ctx, auth.claims, policies);
+      const visiblePolicies: ConsolePolicy[] = [];
+      for (const policy of out) {
+        if (await memberCanAccessPolicy(ctx, auth.claims, state, policy, 'viewer')) {
+          visiblePolicies.push(policy);
+        }
+      }
+      return json({ ok: true, policies: visiblePolicies }, { status: 200 });
     }
 
     if (ctx.method === 'GET' && ctx.pathname === '/console/policies/assignments') {
@@ -2502,11 +2793,29 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
         scopeId: ctx.url.searchParams.get('scopeId') || undefined,
       });
       const assignments = await policies.listAssignments(policyCtx, request);
-      return json({ ok: true, assignments }, { status: 200 });
+      if (auth.claims.role !== 'MEMBER') {
+        return json({ ok: true, assignments }, { status: 200 });
+      }
+      const state = await loadMemberPolicyAccessState(ctx, auth.claims, policies);
+      const visibleAssignments: ConsolePolicyAssignment[] = [];
+      for (const assignment of assignments) {
+        if (await memberCanAccessPolicyAssignment(ctx, auth.claims, state, assignment, 'viewer')) {
+          visibleAssignments.push(assignment);
+        }
+      }
+      return json({ ok: true, assignments: visibleAssignments }, { status: 200 });
     }
 
     if (ctx.method === 'GET' && policyVersionsMatch) {
       const policyId = decodePathPart(policyVersionsMatch[1]);
+      const accessFailure = await requireMemberPolicyAccess(
+        ctx,
+        auth.claims,
+        policies,
+        policyId,
+        'viewer',
+      );
+      if (accessFailure) return accessFailure;
       const versions = await policies.listPolicyVersions(policyCtx, policyId);
       if (!versions) {
         return json(
@@ -2521,6 +2830,35 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const request = parseCreateConsolePolicyRequest(await readJson(ctx.request));
+      if (auth.claims.role === 'MEMBER') {
+        const state = await loadMemberPolicyAccessState(ctx, auth.claims, policies);
+        if (request.kind === 'GAS_SPONSORSHIP') {
+          const rules = parseConsolePolicyRulesInput(request.rules, 'GAS_SPONSORSHIP');
+          if (
+            !isConsoleGasSponsorshipPolicyRules(rules) ||
+            !memberCanAccessGasRules(auth.claims, state, rules, 'editor')
+          ) {
+            return json(
+              { ok: false, code: 'forbidden', message: 'Policy scope is unavailable' },
+              { status: 403 },
+            );
+          }
+        } else if (
+          !request.assignment ||
+          !(await memberCanAccessPolicyAssignment(
+            ctx,
+            auth.claims,
+            state,
+            request.assignment,
+            'editor',
+          ))
+        ) {
+          return json(
+            { ok: false, code: 'forbidden', message: 'Policy scope is unavailable' },
+            { status: 403 },
+          );
+        }
+      }
       const policy = await policies.createPolicy(policyCtx, request);
       const auditEvent = buildConsolePolicyAuditEvent({
         action: 'policy.create',
@@ -2542,6 +2880,30 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const request = parseUpsertConsolePolicyAssignmentRequest(await readJson(ctx.request));
+      if (auth.claims.role === 'MEMBER') {
+        const state = await loadMemberPolicyAccessState(ctx, auth.claims, policies);
+        const targetAllowed = await memberCanAccessPolicyAssignment(
+          ctx,
+          auth.claims,
+          state,
+          request,
+          'editor',
+        );
+        if (!targetAllowed) {
+          return json(
+            { ok: false, code: 'forbidden', message: 'Assignment scope is unavailable' },
+            { status: 403 },
+          );
+        }
+        const policyAccessFailure = await requireMemberPolicyAccess(
+          ctx,
+          auth.claims,
+          policies,
+          request.policyId,
+          'editor',
+        );
+        if (policyAccessFailure) return policyAccessFailure;
+      }
       const assignment = await policies.upsertAssignment(policyCtx, request);
       const policy = await policies.getPolicy(policyCtx, assignment.policyId);
       const auditEvent = buildConsolePolicyAssignmentAuditEvent({
@@ -2564,6 +2926,19 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const assignmentId = decodePathPart(assignmentDeleteMatch[1]);
+      if (auth.claims.role === 'MEMBER') {
+        const state = await loadMemberPolicyAccessState(ctx, auth.claims, policies);
+        const target = state.assignments.find((assignment) => assignment.id === assignmentId);
+        if (
+          !target ||
+          !(await memberCanAccessPolicyAssignment(ctx, auth.claims, state, target, 'editor'))
+        ) {
+          return json(
+            { ok: false, code: 'assignment_not_found', message: 'Assignment was not found' },
+            { status: 404 },
+          );
+        }
+      }
       const out = await policies.deleteAssignment(policyCtx, assignmentId);
       if (!out.removed || !out.assignment) {
         return json(
@@ -2597,6 +2972,31 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
       if (routePolicy) return routePolicy;
       const policyId = decodePathPart(policyPatchMatch[1]);
       const request = parseUpdateConsolePolicyRequest(await readJson(ctx.request));
+      const accessFailure = await requireMemberPolicyAccess(
+        ctx,
+        auth.claims,
+        policies,
+        policyId,
+        'editor',
+      );
+      if (accessFailure) return accessFailure;
+      if (auth.claims.role === 'MEMBER' && request.rules) {
+        const current = await policies.getPolicy(policyCtx, policyId);
+        if (!current) return policyResourceNotFound();
+        if (current.kind === 'GAS_SPONSORSHIP') {
+          const rules = parseConsolePolicyRulesInput(request.rules, current.kind);
+          const state = await loadMemberPolicyAccessState(ctx, auth.claims, policies);
+          if (
+            !isConsoleGasSponsorshipPolicyRules(rules) ||
+            !memberCanAccessGasRules(auth.claims, state, rules, 'editor')
+          ) {
+            return json(
+              { ok: false, code: 'forbidden', message: 'Policy scope is unavailable' },
+              { status: 403 },
+            );
+          }
+        }
+      }
       const policy = await policies.updatePolicy(policyCtx, policyId, request);
       if (!policy) {
         return json(
@@ -2627,6 +3027,14 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const policyId = decodePathPart(policyDeleteMatch[1]);
+      const accessFailure = await requireMemberPolicyAccess(
+        ctx,
+        auth.claims,
+        policies,
+        policyId,
+        'editor',
+      );
+      if (accessFailure) return accessFailure;
       const result = await policies.deletePolicy(policyCtx, policyId);
       if (!result.removed || !result.policy) {
         return json(
@@ -2657,6 +3065,14 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const policyId = decodePathPart(policyPublishMatch[1]);
+      const accessFailure = await requireMemberPolicyAccess(
+        ctx,
+        auth.claims,
+        policies,
+        policyId,
+        'editor',
+      );
+      if (accessFailure) return accessFailure;
       const rawBody = await readJson(ctx.request);
       const approvalIdForFailure = readApprovalIdFromBody(rawBody);
       const approvalRequired = await requireApprovedOperationApproval(ctx, auth.claims, {
@@ -2710,6 +3126,14 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const policyId = decodePathPart(policySimulateMatch[1]);
+      const accessFailure = await requireMemberPolicyAccess(
+        ctx,
+        auth.claims,
+        policies,
+        policyId,
+        'viewer',
+      );
+      if (accessFailure) return accessFailure;
       const request = parseSimulateConsolePolicyRequest(await readJson(ctx.request));
       const simulation = await policies.simulatePolicy(policyCtx, policyId, request);
       if (!simulation) {
@@ -3272,6 +3696,7 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
       runtimeSnapshots,
       organizationAccess,
       approvals,
+      stepUp: opts.stepUp ?? null,
       audit,
       auditExports,
       enterpriseIsolation,

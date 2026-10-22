@@ -192,8 +192,6 @@ export async function createDashboardApproval(input: {
   id?: string;
   operationType: DashboardConsoleApprovalOperationType;
   reason: string;
-  requiredApprovals?: number;
-  requireMfa?: boolean;
   projectId?: string;
   environmentId?: string;
   resourceType?: string;
@@ -228,7 +226,6 @@ export async function createDashboardApproval(input: {
 export async function approveDashboardApproval(input: {
   approvalId: string;
   reason: string;
-  mfaVerified: boolean;
 }): Promise<DashboardConsoleApprovalRequest> {
   const approvalId = normalizeString(input.approvalId);
   if (!approvalId) throw new Error('Approval request id is required');
@@ -243,7 +240,6 @@ export async function approveDashboardApproval(input: {
       cache: 'no-store',
       body: JSON.stringify({
         reason: input.reason,
-        mfaVerified: input.mfaVerified,
       }),
     },
     {

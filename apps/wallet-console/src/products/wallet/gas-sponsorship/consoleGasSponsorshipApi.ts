@@ -296,8 +296,6 @@ async function publishGasSponsorshipPolicy(
   const approval = await createDashboardApproval({
     operationType: 'POLICY_PUBLISH',
     reason: `Publish gas sponsorship policy ${policy.name || policy.id}.`,
-    requiredApprovals: 1,
-    requireMfa: false,
     ...(projectId ? { projectId } : {}),
     ...(environmentId ? { environmentId } : {}),
     resourceType: 'policy',
@@ -307,7 +305,6 @@ async function publishGasSponsorshipPolicy(
   const approved = await approveDashboardApproval({
     approvalId: approval.id,
     reason: 'Approved from Gas Sponsorship settings.',
-    mfaVerified: false,
   });
   if (approved.status !== 'APPROVED') {
     throw new Error(`Approval request ${approved.id} is ${approved.status}; expected APPROVED`);

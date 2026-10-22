@@ -7,7 +7,6 @@ import {
   requireQueryObject,
 } from '@seams-internal/console-server/shared/requestParse';
 import type {
-  ApproveConsoleKeyExportRequest,
   ConsoleKeyExportConstraints,
   ConsoleKeyExportMode,
   ConsoleKeyExportStatus,
@@ -58,15 +57,6 @@ function parseStatus(raw: unknown): ConsoleKeyExportStatus | undefined {
   return value;
 }
 
-function parsePositiveInteger(raw: unknown, field: string): number | undefined {
-  if (raw === undefined || raw === null || raw === '') return undefined;
-  const value = typeof raw === 'number' ? raw : Number(raw);
-  if (!Number.isInteger(value) || value <= 0) {
-    throw createError('invalid_body', 400, `Field ${field} must be a positive integer`);
-  }
-  return value;
-}
-
 function parseStringArray(raw: unknown, field: string): string[] {
   if (!Array.isArray(raw)) {
     throw createError('invalid_body', 400, `Field ${field} must be an array`);
@@ -103,16 +93,6 @@ function parseConstraints(raw: unknown): Partial<ConsoleKeyExportConstraints> | 
   return Object.keys(constraints).length > 0 ? constraints : {};
 }
 
-function parseMfaVerified(raw: unknown): boolean {
-  if (typeof raw === 'boolean') return raw;
-  const value = String(raw || '')
-    .trim()
-    .toLowerCase();
-  if (value === 'true' || value === '1') return true;
-  if (value === 'false' || value === '0') return false;
-  throw createError('invalid_body', 400, 'Field mfaVerified must be a boolean');
-}
-
 export function parseListConsoleKeyExportsRequest(query: unknown): ListConsoleKeyExportsRequest {
   const obj = requireQueryObject(query, createError);
   const status = parseStatus(readOptionalQueryString(obj, 'status'));
@@ -126,6 +106,9 @@ export function parseListConsoleKeyExportsRequest(query: unknown): ListConsoleKe
 
 export function parseCreateConsoleKeyExportRequest(body: unknown): CreateConsoleKeyExportRequest {
   const obj = requireObject(body, createError);
+  if ('requiredApprovals' in obj) {
+    throw createError('invalid_body', 400, 'Required approvals are set by the server');
+  }
   const mode = parseMode(obj.mode);
   return {
     ...(readOptionalString(obj, 'id') ? { id: readOptionalString(obj, 'id') } : {}),
@@ -135,19 +118,18 @@ export function parseCreateConsoleKeyExportRequest(body: unknown): CreateConsole
       : {}),
     ...(mode ? { mode } : {}),
     reason: readRequiredString(obj, 'reason', createError),
-    ...(parsePositiveInteger(obj.requiredApprovals, 'requiredApprovals') !== undefined
-      ? { requiredApprovals: parsePositiveInteger(obj.requiredApprovals, 'requiredApprovals') }
-      : {}),
     ...(parseConstraints(obj.constraints) !== undefined
       ? { constraints: parseConstraints(obj.constraints) }
       : {}),
   };
 }
 
-export function parseApproveConsoleKeyExportRequest(body: unknown): ApproveConsoleKeyExportRequest {
+export function parseApproveConsoleKeyExportRequest(body: unknown): { readonly reason: string } {
   const obj = requireObject(body, createError);
+  if ('mfaVerified' in obj) {
+    throw createError('invalid_body', 400, 'MFA must be verified by the server');
+  }
   return {
     reason: readRequiredString(obj, 'reason', createError),
-    mfaVerified: parseMfaVerified(obj.mfaVerified),
   };
 }

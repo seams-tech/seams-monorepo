@@ -25,6 +25,7 @@ import type { ConsoleWebhookService } from '@seams-internal/console-server/webho
 import type { SessionAdapter } from '@seams-internal/console-server/boundary/index';
 import type { ConsoleRouterOptions } from './console';
 import type { ConsoleAuthAdapter } from '@seams-internal/console-server/router/consoleAuth';
+import type { TenantRootStepUpReaderV1 } from '../tenantRootSecurity/routeGuard';
 import { createCloudflareConsoleRouter } from './cloudflare/createCloudflareConsoleRouter';
 import type { TenantStorageRouteResolver } from './cloudflare/tenantStorageRoute';
 
@@ -67,6 +68,7 @@ export interface ConsoleOnlyRouterComposition {
   readonly core: ConsoleCoreRouterServices;
   readonly walletConsole: WalletConsoleRouterServices;
   readonly auth: ConsoleAuthAdapter;
+  readonly stepUp: TenantRootStepUpReaderV1;
   readonly session: SessionAdapter;
   readonly readyCheck: () => Promise<void> | void;
   readonly billingStripeWebhookSigningSecret: string;
@@ -82,6 +84,7 @@ export interface HostedConsoleRouterComposition {
     readonly namespace: string;
   };
   readonly auth: ConsoleAuthAdapter;
+  readonly stepUp: TenantRootStepUpReaderV1;
   readonly session: SessionAdapter;
   readonly corsOrigins: Array<string | undefined>;
   readonly readyCheck: () => Promise<void> | void;
@@ -144,6 +147,7 @@ export function composeConsoleOnlyRouterOptions(
     healthz: true,
     readyz: true,
     auth: input.auth,
+    stepUp: input.stepUp,
     session: input.session,
     readyCheck: input.readyCheck,
     corsOrigins: input.corsOrigins,
@@ -164,6 +168,7 @@ export function composeHostedConsoleRouterOptions(
     readyz: true,
     corsOrigins: input.corsOrigins,
     auth: input.auth,
+    stepUp: input.stepUp,
     session: input.session,
     readyCheck: input.readyCheck,
     billingStripeWebhookSigningSecret: input.billingStripeWebhookSigningSecret,

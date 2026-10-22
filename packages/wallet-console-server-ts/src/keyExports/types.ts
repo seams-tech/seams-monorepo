@@ -48,11 +48,11 @@ export interface CreateConsoleKeyExportRequest {
   walletId?: string;
   mode?: ConsoleKeyExportMode;
   reason: string;
-  requiredApprovals?: number;
   constraints?: Partial<ConsoleKeyExportConstraints>;
 }
 
 export interface ApproveConsoleKeyExportRequest {
-  reason: string;
-  mfaVerified: boolean;
+  readonly reason: string;
+  readonly stepUp: TenantRootStepUpProofV1;
 }
+import type { TenantRootStepUpProofV1 } from '../tenantRootSecurity/stepUp';

@@ -732,6 +732,7 @@ async function createConsoleHandler(
       walletProvisioning: bundle.walletProvisioning,
       satyrProvisioning,
       auth,
+      stepUp: tenantRootStepUp,
       session,
       readyCheck: async () => {
         await createConsoleReadyCheck(env)();

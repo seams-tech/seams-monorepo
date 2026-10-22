@@ -260,7 +260,7 @@ function parseRecordRow(row: D1Row): ConsoleKeyExportRequestRecord {
     status: parseStatus(row.status),
     reason: String(row.reason || ''),
     requestedByUserId: String(row.requested_by_user_id || ''),
-    requiredApprovals: Math.max(1, toNumber(row.required_approvals, 1)),
+    requiredApprovals: Math.max(2, toNumber(row.required_approvals, 2)),
     approvals: parseApprovals(row.approvals_json),
     constraints: parseConstraints(row.constraints_json),
     createdAt: toIso(toNumber(row.created_at_ms)),
@@ -309,11 +309,18 @@ function ensureApprovalAllowed(input: {
       `Key export request ${input.exportId} is not pending approval`,
     );
   }
-  if (!input.request.mfaVerified) {
+  if (input.request.stepUp.actorUserId !== input.actorUserId) {
     throw new ConsoleKeyExportError(
       'mfa_required',
-      400,
-      'MFA is required to approve key export requests',
+      403,
+      'Fresh step-up must belong to the approver',
+    );
+  }
+  if (input.record.requestedByUserId === input.actorUserId) {
+    throw new ConsoleKeyExportError(
+      'self_approval_forbidden',
+      403,
+      'A key export requester cannot approve the same request',
     );
   }
   if (input.record.approvals.some((entry) => entry.approverUserId === input.actorUserId)) {
@@ -376,7 +383,7 @@ class D1ConsoleKeyExportServiceImpl implements ConsoleKeyExportD1Service {
       walletId: normalizeString(request.walletId),
       mode: request.mode || 'APPROVAL_REQUIRED',
       reason: normalizeRequiredString(request.reason, 'reason'),
-      requiredApprovals: Math.max(1, Math.floor(toNumber(request.requiredApprovals, 2))),
+      requiredApprovals: 2,
       constraints: normalizeConstraints(request.constraints),
     };
     try {

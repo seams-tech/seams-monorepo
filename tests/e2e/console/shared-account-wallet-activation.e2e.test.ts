@@ -41,6 +41,10 @@ import { WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION } from '../../../packa
 import { createD1ConsoleRuntimeSnapshotService } from '../../../packages/wallet-console-server-ts/src/runtimeSnapshots/d1';
 import { createD1ConsoleWalletService } from '../../../packages/wallet-console-server-ts/src/wallets/d1';
 import { createD1ConsoleKeyExportService } from '../../../packages/wallet-console-server-ts/src/keyExports/d1';
+import { createD1ConsolePolicyService } from '../../../packages/wallet-console-server-ts/src/policies/d1';
+import { createD1ConsoleApprovalService } from '../../../packages/wallet-console-server-ts/src/approvals/d1';
+import { createD1TenantRootStepUpStoreV1 } from '../../../packages/wallet-console-server-ts/src/tenantRootSecurity/stepUpStore';
+import { tenantRootRequestSessionIdV1 } from '../../../packages/wallet-console-server-ts/src/tenantRootSecurity/routeGuard';
 import {
   createRouterApiKeyAuthAdapter,
   createRouterApiPublishableKeyAuthAdapter,
@@ -1596,8 +1600,26 @@ async function consoleApiKeyIds(response: Response): Promise<string[]> {
   });
 }
 
+async function consoleResourceIds(response: Response, field: string): Promise<string[]> {
+  expect(response.status).toBe(200);
+  const payload: unknown = await response.json();
+  if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('Console resource response was not an object');
+  }
+  const rows: unknown = Reflect.get(payload, field);
+  if (!Array.isArray(rows)) throw new Error(`Console response omitted ${field}`);
+  return rows.map((row: unknown) => {
+    if (row === null || typeof row !== 'object' || Array.isArray(row)) {
+      throw new Error(`Console ${field} contained an invalid record`);
+    }
+    const id: unknown = Reflect.get(row, 'id');
+    if (typeof id !== 'string') throw new Error(`Console ${field} contained an invalid ID`);
+    return id;
+  });
+}
+
 test('project members see only assigned project resources while owners govern the organization', async () => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const testInfo = test.info();
   const worker = runtime(testInfo.outputPath('api-key-project-state'));
   try {
@@ -1669,6 +1691,43 @@ test('project members see only assigned project resources while owners govern th
       environmentId: environmentB.id,
       reason: 'Project B export request',
     });
+    const policies = await createD1ConsolePolicyService({
+      database,
+      namespace,
+      ensureSchema: true,
+      now,
+    });
+    const policyA = await policies.createPolicy(owner, {
+      name: 'Project A transaction policy',
+      assignment: { scopeType: 'PROJECT', scopeId: projectA },
+    });
+    const policyB = await policies.createPolicy(owner, {
+      name: 'Project B transaction policy',
+      assignment: { scopeType: 'PROJECT', scopeId: projectB },
+    });
+    const approvals = await createD1ConsoleApprovalService({
+      database,
+      namespace,
+      ensureSchema: true,
+      now,
+    });
+    const approvalA = await approvals.createApprovalRequest(owner, {
+      operationType: 'POLICY_PUBLISH',
+      reason: 'Publish Project A policy',
+      projectId: projectA,
+      environmentId: environmentA.id,
+      resourceType: 'policy',
+      resourceId: policyA.id,
+    });
+    const approvalB = await approvals.createApprovalRequest(owner, {
+      operationType: 'POLICY_PUBLISH',
+      reason: 'Publish Project B policy',
+      projectId: projectB,
+      environmentId: environmentB.id,
+      resourceType: 'policy',
+      resourceId: policyB.id,
+    });
+    const stepUp = createD1TenantRootStepUpStoreV1({ database, namespace });
     await wallets.upsertWallet(owner, {
       id: 'member-scope-wallet-b',
       projectId: projectB,
@@ -1734,6 +1793,16 @@ test('project members see only assigned project resources while owners govern th
       editor.invitation.id,
       { token: editor.token },
     );
+    const secondEditor = await product.core.organizationAccess.invite(owner, {
+      email: 'second-editor@activation.invalid',
+      role: 'MEMBER',
+      projectAccess: [{ projectId: projectA, accessLevel: 'editor' }],
+    });
+    await product.core.organizationAccess.acceptInvitation(
+      { userId: 'credential-second-editor', verifiedEmail: 'second-editor@activation.invalid' },
+      secondEditor.invitation.id,
+      { token: secondEditor.token },
+    );
     const viewer = await product.core.organizationAccess.invite(owner, {
       email: 'viewer@activation.invalid',
       role: 'MEMBER',
@@ -1764,6 +1833,9 @@ test('project members see only assigned project resources while owners govern th
       webhooks,
       runtimeSnapshots,
       keyExports,
+      policies,
+      approvals,
+      stepUp,
       walletProvisioning: product.delivery,
       satyrProvisioning: null,
       corsOrigins: [origin],
@@ -1778,11 +1850,100 @@ test('project members see only assigned project resources while owners govern th
       orgId: owner.orgId,
       projectId: projectA,
     });
+    const secondEditorToken = await product.session.signJwt('credential-second-editor', {
+      kind: 'console_session_v1',
+      orgId: owner.orgId,
+      projectId: projectA,
+    });
     const viewerToken = await product.session.signJwt('credential-viewer', {
       kind: 'console_session_v1',
       orgId: owner.orgId,
       projectId: projectA,
     });
+
+    const memberEnvironmentIds = await consoleResourceIds(
+      await consoleRequest(router, editorToken, projectA, 'GET', '/console/environments'),
+      'environments',
+    );
+    expect(memberEnvironmentIds.sort()).toEqual(environmentsA.map((entry) => entry.id).sort());
+    const ownerEnvironmentIds = await consoleResourceIds(
+      await consoleRequest(router, ownerToken, projectA, 'GET', '/console/environments'),
+      'environments',
+    );
+    expect(ownerEnvironmentIds).toContain(environmentB.id);
+    const memberPolicyIds = await consoleResourceIds(
+      await consoleRequest(router, editorToken, projectA, 'GET', '/console/policies'),
+      'policies',
+    );
+    expect(memberPolicyIds).toContain(policyA.id);
+    expect(memberPolicyIds).not.toContain(policyB.id);
+    const ownerPolicyIds = await consoleResourceIds(
+      await consoleRequest(router, ownerToken, projectA, 'GET', '/console/policies'),
+      'policies',
+    );
+    expect(ownerPolicyIds).toEqual(expect.arrayContaining([policyA.id, policyB.id]));
+    const memberApprovalIds = await consoleResourceIds(
+      await consoleRequest(router, editorToken, projectA, 'GET', '/console/approvals'),
+      'approvals',
+    );
+    expect(memberApprovalIds).toContain(approvalA.id);
+    expect(memberApprovalIds).not.toContain(approvalB.id);
+    const ownerApprovalIds = await consoleResourceIds(
+      await consoleRequest(router, ownerToken, projectA, 'GET', '/console/approvals'),
+      'approvals',
+    );
+    expect(ownerApprovalIds).toEqual(expect.arrayContaining([approvalA.id, approvalB.id]));
+    const foreignPolicyChange = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'PATCH',
+      `/console/policies/${policyB.id}`,
+      { name: 'Unauthorized policy change' },
+    );
+    expect(foreignPolicyChange.status).toBe(404);
+    const foreignAssignment = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'PUT',
+      '/console/policies/assignments',
+      { scopeType: 'PROJECT', scopeId: projectB, policyId: policyA.id },
+    );
+    expect(foreignAssignment.status).toBe(403);
+    const foreignApprovalDecision = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      `/console/approvals/${approvalB.id}/reject`,
+      { reason: 'Unauthorized rejection' },
+    );
+    expect(foreignApprovalDecision.status).toBe(404);
+    expect((await approvals.getApprovalRequest(owner, approvalB.id))?.status).toBe('PENDING');
+    expect((await policies.getPolicy(owner, policyB.id))?.name).toBe(
+      'Project B transaction policy',
+    );
+    const ownApprovalDecision = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      `/console/approvals/${approvalA.id}/approve`,
+      { reason: 'Project A policy reviewed' },
+    );
+    expect(ownApprovalDecision.status).toBe(200);
+    expect((await approvals.getApprovalRequest(owner, approvalA.id))?.status).toBe('APPROVED');
+    const ownPolicyPublish = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      `/console/policies/${policyA.id}/publish`,
+      { approvalId: approvalA.id },
+    );
+    expect(ownPolicyPublish.status).toBe(200);
+    expect((await policies.getPolicy(owner, policyA.id))?.status).toBe('PUBLISHED');
 
     const ownerIds = await consoleApiKeyIds(
       await consoleRequest(router, ownerToken, projectA, 'GET', '/console/api-keys'),
@@ -1861,6 +2022,148 @@ test('project members see only assigned project resources while owners govern th
       { environmentId: environmentB.id, reason: 'Unauthorized export request' },
     );
     expect(foreignExportCreate.status).toBe(403);
+    const weakenedApproval = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      '/console/approvals',
+      {
+        operationType: 'KEY_EXPORT',
+        reason: 'Lower the key export quorum',
+        projectId: projectA,
+        environmentId: environmentA.id,
+        resourceType: 'key_export',
+        resourceId: exportA.id,
+        requiredApprovals: 1,
+        requireMfa: false,
+      },
+    );
+    expect(weakenedApproval.status).toBe(400);
+    const weakenedKeyExport = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      '/console/key-exports',
+      { environmentId: environmentA.id, reason: 'Lower the export quorum', requiredApprovals: 1 },
+    );
+    expect(weakenedKeyExport.status).toBe(400);
+    const keyApproval = await approvals.createApprovalRequest(owner, {
+      operationType: 'KEY_EXPORT',
+      reason: 'Review Project A export',
+      projectId: projectA,
+      environmentId: environmentA.id,
+      resourceType: 'key_export',
+      resourceId: exportA.id,
+    });
+    expect(keyApproval.requiredApprovals).toBe(2);
+    expect(keyApproval.requireMfa).toBe(true);
+    expect(exportA.requiredApprovals).toBe(2);
+    const ownerRequest = new Request(`${origin}/console/approvals`, {
+      headers: { Authorization: `Bearer ${ownerToken}` },
+    });
+    await stepUp.recordStepUp({
+      orgId: owner.orgId,
+      actorUserId: owner.actorUserId,
+      sessionId: await tenantRootRequestSessionIdV1(ownerRequest, undefined),
+      method: 'webauthn_platform_v1',
+      verifiedAtMs: Date.now(),
+    });
+    const selfApproval = await consoleRequest(
+      router,
+      ownerToken,
+      projectA,
+      'POST',
+      `/console/approvals/${keyApproval.id}/approve`,
+      { reason: 'Requester tries to approve' },
+    );
+    expect(selfApproval.status).toBe(403);
+    const forgedMfa = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      `/console/approvals/${keyApproval.id}/approve`,
+      { reason: 'Claim MFA without proof', mfaVerified: true },
+    );
+    expect(forgedMfa.status).toBe(400);
+    const noStepUp = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      `/console/approvals/${keyApproval.id}/approve`,
+      { reason: 'Approve without step-up' },
+    );
+    expect(noStepUp.status).toBe(403);
+    for (const [actorUserId, token] of [
+      ['credential-editor', editorToken],
+      ['credential-second-editor', secondEditorToken],
+    ] as const) {
+      const request = new Request(`${origin}/console/approvals`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      await stepUp.recordStepUp({
+        orgId: owner.orgId,
+        actorUserId,
+        sessionId: await tenantRootRequestSessionIdV1(request, undefined),
+        method: 'webauthn_platform_v1',
+        verifiedAtMs: Date.now(),
+      });
+    }
+    const firstKeyApproval = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      `/console/approvals/${keyApproval.id}/approve`,
+      { reason: 'First verified approver' },
+    );
+    expect(firstKeyApproval.status).toBe(200);
+    expect((await approvals.getApprovalRequest(owner, keyApproval.id))?.status).toBe('PENDING');
+    const secondKeyApproval = await consoleRequest(
+      router,
+      secondEditorToken,
+      projectA,
+      'POST',
+      `/console/approvals/${keyApproval.id}/approve`,
+      { reason: 'Second verified approver' },
+    );
+    expect(secondKeyApproval.status).toBe(200);
+    expect((await approvals.getApprovalRequest(owner, keyApproval.id))?.status).toBe('APPROVED');
+    const selfExportApproval = await consoleRequest(
+      router,
+      ownerToken,
+      projectA,
+      'POST',
+      `/console/key-exports/${exportA.id}/approve`,
+      { approvalId: keyApproval.id, reason: 'Requester tries to approve export' },
+    );
+    expect(selfExportApproval.status).toBe(403);
+    const firstExportApproval = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      `/console/key-exports/${exportA.id}/approve`,
+      { approvalId: keyApproval.id, reason: 'First verified export approver' },
+    );
+    expect(firstExportApproval.status).toBe(200);
+    const secondExportApproval = await consoleRequest(
+      router,
+      secondEditorToken,
+      projectA,
+      'POST',
+      `/console/key-exports/${exportA.id}/approve`,
+      { approvalId: keyApproval.id, reason: 'Second verified export approver' },
+    );
+    expect(secondExportApproval.status).toBe(200);
+    const completedExport = (await keyExports.listKeyExports(owner)).find(
+      (entry) => entry.id === exportA.id,
+    );
+    expect(completedExport?.status).toBe('APPROVED');
+    expect(completedExport?.approvals).toHaveLength(2);
 
     const deniedB = [
       await consoleRequest(
@@ -2074,6 +2377,24 @@ test('project members see only assigned project resources while owners govern th
       evidencePath,
       `${JSON.stringify(
         {
+          memberEnvironmentIds,
+          ownerEnvironmentIds,
+          memberPolicyIds,
+          ownerPolicyIds,
+          memberApprovalIds,
+          ownerApprovalIds,
+          foreignPolicyChangeStatus: foreignPolicyChange.status,
+          foreignAssignmentStatus: foreignAssignment.status,
+          foreignApprovalDecisionStatus: foreignApprovalDecision.status,
+          ownPolicyPublishStatus: ownPolicyPublish.status,
+          weakenedApprovalStatus: weakenedApproval.status,
+          weakenedKeyExportStatus: weakenedKeyExport.status,
+          forgedMfaStatus: forgedMfa.status,
+          noStepUpStatus: noStepUp.status,
+          selfApprovalStatus: selfApproval.status,
+          selfExportApprovalStatus: selfExportApproval.status,
+          approvedKeyExportStatus: completedExport?.status,
+          approvedKeyExportActors: completedExport?.approvals.map((entry) => entry.approverUserId),
           ownerVisibleKeyIds: ownerIds,
           memberVisibleWalletIds: ['member-scope-wallet-a'],
           ownerVisibleWalletCount: 2,

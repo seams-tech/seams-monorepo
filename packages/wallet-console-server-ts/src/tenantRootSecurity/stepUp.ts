@@ -4,9 +4,8 @@ import type { TenantRootOperationKindV1 } from '@seams-internal/wallet-console-s
  * Server-issued proof that one console actor completed high-assurance step-up.
  *
  * The proof has no public constructor and a private brand, so a request body
- * cannot produce one structurally. This is what replaces the caller-supplied
- * `mfaVerified` boolean the generic approval service accepts: a core service
- * takes this type or it takes nothing.
+ * cannot produce one structurally. Approval and key-export services require
+ * this proof when an operation needs fresh step-up.
  *
  * A proof is bound to the console session it was recorded in. Step-up proves
  * presence at a keyboard; a different session presenting the same actor's

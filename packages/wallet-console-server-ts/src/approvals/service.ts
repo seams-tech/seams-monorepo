@@ -169,8 +169,8 @@ export function createInMemoryConsoleApprovalService(
         status: 'PENDING',
         reason: request.reason,
         requestedByUserId: ctx.actorUserId,
-        requiredApprovals: Math.max(1, request.requiredApprovals || defaults.requiredApprovals),
-        requireMfa: request.requireMfa === undefined ? defaults.requireMfa : request.requireMfa,
+        requiredApprovals: defaults.requiredApprovals,
+        requireMfa: defaults.requireMfa,
         projectId: normalizeString(request.projectId),
         environmentId: normalizeString(request.environmentId),
         resourceType: normalizeString(request.resourceType),
@@ -215,12 +215,22 @@ export function createInMemoryConsoleApprovalService(
           `Approval request ${approvalId} is not pending`,
         );
       }
-      if (row.requireMfa && !request.mfaVerified) {
+      if (row.operationType === 'KEY_EXPORT' && row.requestedByUserId === ctx.actorUserId) {
+        throw new ConsoleApprovalsError(
+          'self_approval_forbidden',
+          403,
+          'A key export requester cannot approve the same request',
+        );
+      }
+      if (row.requireMfa && request.kind !== 'with_step_up') {
         throw new ConsoleApprovalsError(
           'mfa_required',
-          400,
-          'MFA is required to approve this request',
+          403,
+          'Fresh step-up is required to approve this request',
         );
+      }
+      if (request.kind === 'with_step_up' && request.stepUp.actorUserId !== ctx.actorUserId) {
+        throw new ConsoleApprovalsError('mfa_required', 403, 'Step-up actor does not match');
       }
       if (row.decisions.some((entry) => entry.actorUserId === ctx.actorUserId)) {
         throw new ConsoleApprovalsError(
@@ -234,7 +244,7 @@ export function createInMemoryConsoleApprovalService(
         decision: 'APPROVE',
         actorUserId: ctx.actorUserId,
         reason: request.reason,
-        mfaVerified: request.mfaVerified,
+        mfaVerified: request.kind === 'with_step_up',
         decidedAt: toIso(now()),
       });
       if (countApprovalDecisions(row) >= row.requiredApprovals) {

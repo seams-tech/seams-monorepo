@@ -1439,7 +1439,6 @@ export function PolicyEnginePage(): React.JSX.Element {
         const updated = await approveDashboardApproval({
           approvalId: approval.id,
           reason: String(approvalDecisionReason || '').trim() || 'Approved in policy engine.',
-          mfaVerified: false,
         });
         if (updated.status === 'APPROVED') setSelectedApprovalId(updated.id);
         toast.success(`Approval request ${updated.id} is now ${updated.status}.`);

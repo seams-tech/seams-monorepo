@@ -134,7 +134,7 @@ export function createInMemoryConsoleKeyExportService(
         status: 'PENDING_APPROVAL',
         reason: request.reason,
         requestedByUserId: ctx.actorUserId,
-        requiredApprovals: Math.max(1, request.requiredApprovals || 2),
+        requiredApprovals: 2,
         approvals: [],
         constraints: normalizeConstraints(request.constraints),
         createdAt: iso,
@@ -165,11 +165,18 @@ export function createInMemoryConsoleKeyExportService(
           `Key export request ${exportId} is not pending approval`,
         );
       }
-      if (!request.mfaVerified) {
+      if (request.stepUp.actorUserId !== ctx.actorUserId) {
         throw new ConsoleKeyExportError(
           'mfa_required',
-          400,
-          'MFA is required to approve key export requests',
+          403,
+          'Fresh step-up must belong to the approver',
+        );
+      }
+      if (current.requestedByUserId === ctx.actorUserId) {
+        throw new ConsoleKeyExportError(
+          'self_approval_forbidden',
+          403,
+          'A key export requester cannot approve the same request',
         );
       }
       if (current.approvals.some((entry) => entry.approverUserId === ctx.actorUserId)) {
@@ -184,7 +191,7 @@ export function createInMemoryConsoleKeyExportService(
         approverUserId: ctx.actorUserId,
         approvedAt: toIso(now()),
         reason: request.reason,
-        mfaVerified: request.mfaVerified,
+        mfaVerified: true,
       });
       if (current.approvals.length >= current.requiredApprovals) {
         current.status = 'APPROVED';

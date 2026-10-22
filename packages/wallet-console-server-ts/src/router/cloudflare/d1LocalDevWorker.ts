@@ -1085,6 +1085,10 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     organizationAccess: bundle.organizationAccess,
   });
   const auth = sessionAuth;
+  const localTenantStepUpStore = createD1TenantRootStepUpStoreV1({
+    database: env.CONSOLE_DB,
+    namespace: localTenantStorageNamespace(env),
+  });
   const handler = routeLocalConsole.bind(null, env, bundle.serviceAccess, {
     core: consoleCoreServicesFromBundle(bundle),
     walletConsole: walletConsoleServicesFromBundle(bundle),
@@ -1096,6 +1100,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     },
     corsOrigins: [...LOCAL_ROUTER_API_CORS_ORIGINS],
     auth,
+    stepUp: localTenantStepUpStore,
     session,
     readyCheck: createLocalReadyCheck(env),
     billingStripeWebhookSigningSecret: String(env.STRIPE_WEBHOOK_SECRET || '').trim() || undefined,
@@ -1135,10 +1140,6 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     ),
   };
   const tenantRootCreationRoute = createTenantRootCreationConsoleRouteV1(tenantRootCreation);
-  const localTenantStepUpStore = createD1TenantRootStepUpStoreV1({
-    database: env.CONSOLE_DB,
-    namespace: localTenantStorageNamespace(env),
-  });
   // Rotation and the ceremony that unlocks it are mounted together. The
   // refresh route refuses without fresh step-up, so mounting it alone would
   // make rotation undemonstrable locally.

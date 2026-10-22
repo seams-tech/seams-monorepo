@@ -7,7 +7,6 @@ import {
 } from '@seams-internal/console-server/shared/requestParse';
 import { ConsoleApprovalsError } from './errors';
 import type {
-  ApproveConsoleApprovalRequest,
   ConsoleApprovalOperationType,
   ConsoleApprovalStatus,
   CreateConsoleApprovalRequest,
@@ -56,24 +55,6 @@ function parseStatus(raw: unknown): ConsoleApprovalStatus | undefined {
   return value;
 }
 
-function parseRequiredApprovals(raw: unknown): number | undefined {
-  if (raw === undefined || raw === null || raw === '') return undefined;
-  const value = typeof raw === 'number' ? raw : Number(raw);
-  if (!Number.isInteger(value) || value <= 0) {
-    throw createError('invalid_body', 400, 'Field requiredApprovals must be a positive integer');
-  }
-  return value;
-}
-
-function parseOptionalBoolean(raw: unknown, field: string): boolean | undefined {
-  if (raw === undefined || raw === null || raw === '') return undefined;
-  if (typeof raw === 'boolean') return raw;
-  const value = String(raw).trim().toLowerCase();
-  if (value === 'true' || value === '1') return true;
-  if (value === 'false' || value === '0') return false;
-  throw createError('invalid_body', 400, `Field ${field} must be a boolean`);
-}
-
 function parseMetadata(raw: unknown): Record<string, unknown> | undefined {
   if (raw === undefined || raw === null) return undefined;
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
@@ -104,36 +85,55 @@ export function parseCreateConsoleApprovalRequest(body: unknown): CreateConsoleA
   if (!operationType) {
     throw createError('invalid_body', 400, 'Missing required field: operationType');
   }
-  const requiredApprovals = parseRequiredApprovals(obj.requiredApprovals);
-  const requireMfa = parseOptionalBoolean(obj.requireMfa, 'requireMfa');
+  if ('requiredApprovals' in obj || 'requireMfa' in obj) {
+    throw createError('invalid_body', 400, 'Approval safeguards are set by the server');
+  }
+  const resourceType = readRequiredString(obj, 'resourceType', createError).toLowerCase();
+  const resourceId = readRequiredString(obj, 'resourceId', createError);
+  const expectedResourceType = operationType === 'POLICY_PUBLISH' ? 'policy' : 'key_export';
+  if (resourceType !== expectedResourceType) {
+    throw createError('invalid_body', 400, `Field resourceType must be ${expectedResourceType}`);
+  }
   const metadata = parseMetadata(obj.metadata);
-  return {
-    ...(readOptionalString(obj, 'id') ? { id: readOptionalString(obj, 'id') } : {}),
-    operationType,
-    reason: readRequiredString(obj, 'reason', createError),
-    ...(requiredApprovals !== undefined ? { requiredApprovals } : {}),
-    ...(requireMfa !== undefined ? { requireMfa } : {}),
-    ...(readOptionalString(obj, 'projectId')
-      ? { projectId: readOptionalString(obj, 'projectId') }
-      : {}),
-    ...(readOptionalString(obj, 'environmentId')
-      ? { environmentId: readOptionalString(obj, 'environmentId') }
-      : {}),
-    ...(readOptionalString(obj, 'resourceType')
-      ? { resourceType: readOptionalString(obj, 'resourceType') }
-      : {}),
-    ...(readOptionalString(obj, 'resourceId')
-      ? { resourceId: readOptionalString(obj, 'resourceId') }
-      : {}),
-    ...(metadata ? { metadata } : {}),
-  };
+  const id = readOptionalString(obj, 'id');
+  const reason = readRequiredString(obj, 'reason', createError);
+  const projectId = readOptionalString(obj, 'projectId');
+  const environmentId = readOptionalString(obj, 'environmentId');
+  switch (operationType) {
+    case 'POLICY_PUBLISH':
+      return {
+        operationType,
+        resourceType: 'policy',
+        resourceId,
+        reason,
+        ...(id ? { id } : {}),
+        ...(projectId ? { projectId } : {}),
+        ...(environmentId ? { environmentId } : {}),
+        ...(metadata ? { metadata } : {}),
+      };
+    case 'KEY_EXPORT':
+      return {
+        operationType,
+        resourceType: 'key_export',
+        resourceId,
+        reason,
+        ...(id ? { id } : {}),
+        ...(projectId ? { projectId } : {}),
+        ...(environmentId ? { environmentId } : {}),
+        ...(metadata ? { metadata } : {}),
+      };
+    default:
+      throw createError('invalid_body', 400, 'Unsupported approval operation');
+  }
 }
 
-export function parseApproveConsoleApprovalRequest(body: unknown): ApproveConsoleApprovalRequest {
+export function parseApproveConsoleApprovalRequest(body: unknown): { readonly reason: string } {
   const obj = requireObject(body, createError);
+  if ('mfaVerified' in obj) {
+    throw createError('invalid_body', 400, 'MFA must be verified by the server');
+  }
   return {
     reason: readRequiredString(obj, 'reason', createError),
-    mfaVerified: parseOptionalBoolean(obj.mfaVerified, 'mfaVerified') === true,
   };
 }
 

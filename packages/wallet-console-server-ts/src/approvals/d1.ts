@@ -245,15 +245,17 @@ function parseBooleanFlag(raw: unknown): boolean {
 }
 
 function parseRecordRow(row: D1Row): ConsoleApprovalRequestRecord {
+  const operationType = parseOperationType(row.operation_type);
+  const defaults = OPERATION_DEFAULTS[operationType];
   return {
     id: normalizeString(row.id),
     orgId: normalizeString(row.org_id),
-    operationType: parseOperationType(row.operation_type),
+    operationType,
     status: parseStatus(row.status),
     reason: normalizeString(row.reason),
     requestedByUserId: normalizeString(row.requested_by_user_id),
-    requiredApprovals: Math.max(1, toNumber(row.required_approvals, 1)),
-    requireMfa: parseBooleanFlag(row.require_mfa),
+    requiredApprovals: Math.max(defaults.requiredApprovals, toNumber(row.required_approvals, 1)),
+    requireMfa: defaults.requireMfa || parseBooleanFlag(row.require_mfa),
     projectId: toNullableString(row.project_id),
     environmentId: toNullableString(row.environment_id),
     resourceType: toNullableString(row.resource_type),
@@ -334,6 +336,16 @@ function ensurePendingDecisionAllowed(input: {
       `User ${input.actorUserId} has already decided request ${input.approvalId}`,
     );
   }
+  if (
+    input.record.operationType === 'KEY_EXPORT' &&
+    input.record.requestedByUserId === input.actorUserId
+  ) {
+    throw new ConsoleApprovalsError(
+      'self_approval_forbidden',
+      403,
+      'A key export requester cannot approve the same request',
+    );
+  }
 }
 
 function buildApproveTransition(input: {
@@ -342,14 +354,24 @@ function buildApproveTransition(input: {
   readonly request: ApproveConsoleApprovalRequest;
   readonly decidedAtMs: number;
 }): ApprovalTransition {
-  if (input.record.requireMfa && !input.request.mfaVerified) {
-    throw new ConsoleApprovalsError('mfa_required', 400, 'MFA is required to approve this request');
+  if (input.record.requireMfa && input.request.kind !== 'with_step_up') {
+    throw new ConsoleApprovalsError(
+      'mfa_required',
+      403,
+      'Fresh step-up is required to approve this request',
+    );
+  }
+  if (
+    input.request.kind === 'with_step_up' &&
+    input.request.stepUp.actorUserId !== input.actorUserId
+  ) {
+    throw new ConsoleApprovalsError('mfa_required', 403, 'Step-up actor does not match');
   }
   const decision: ConsoleApprovalDecisionRecord = {
     decision: 'APPROVE',
     actorUserId: input.actorUserId,
     reason: input.request.reason,
-    mfaVerified: input.request.mfaVerified,
+    mfaVerified: input.request.kind === 'with_step_up',
     decidedAt: toIso(input.decidedAtMs),
   };
   const nextDecisions = [...input.record.decisions, decision];
@@ -433,12 +455,8 @@ class D1ConsoleApprovalServiceImpl implements ConsoleApprovalService {
     const createdAtMs = nowMs(now);
     const defaults = OPERATION_DEFAULTS[request.operationType];
     const id = toNullableString(request.id) || makeId('apr', now);
-    const requiredApprovals = Math.max(
-      1,
-      Math.floor(toNumber(request.requiredApprovals, defaults.requiredApprovals)),
-    );
-    const requireMfa =
-      request.requireMfa === undefined ? defaults.requireMfa : request.requireMfa === true;
+    const requiredApprovals = defaults.requiredApprovals;
+    const requireMfa = defaults.requireMfa;
     try {
       await this.state.database
         .prepare(

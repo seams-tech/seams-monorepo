@@ -27,6 +27,7 @@ import type {
 } from '@seams-internal/console-server/observability/index';
 import type { SessionAdapter } from '@seams-internal/console-server/boundary/index';
 import type { ConsoleAuthAdapter } from '@seams-internal/console-server/router/consoleAuth';
+import type { TenantRootStepUpReaderV1 } from '../tenantRootSecurity/routeGuard';
 import type { TenantStorageRouteResolver } from './cloudflare/tenantStorageRoute';
 
 export type {
@@ -60,6 +61,7 @@ export interface ConsoleRouterBaseOptions {
   corsOrigins?: Array<string | undefined>;
   // Optional auth adapter for console/admin endpoints.
   auth?: ConsoleAuthAdapter | null;
+  stepUp?: TenantRootStepUpReaderV1 | null;
   // Optional readiness probe hook for console infra dependencies.
   readyCheck?: (() => Promise<void> | void) | null;
   // Optional billing adapter for console billing endpoints.

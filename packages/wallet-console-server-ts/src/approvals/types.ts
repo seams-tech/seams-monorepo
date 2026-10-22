@@ -39,24 +39,38 @@ export interface ListConsoleApprovalsRequest {
   environmentId?: string;
 }
 
-export interface CreateConsoleApprovalRequest {
+interface CreateConsoleApprovalRequestBase {
   id?: string;
-  operationType: ConsoleApprovalOperationType;
   reason: string;
-  requiredApprovals?: number;
-  requireMfa?: boolean;
   projectId?: string;
   environmentId?: string;
-  resourceType?: string;
-  resourceId?: string;
+  resourceId: string;
   metadata?: Record<string, unknown>;
 }
 
-export interface ApproveConsoleApprovalRequest {
-  reason: string;
-  mfaVerified: boolean;
-}
+export type CreateConsoleApprovalRequest =
+  | (CreateConsoleApprovalRequestBase & {
+      readonly operationType: 'POLICY_PUBLISH';
+      readonly resourceType: 'policy';
+    })
+  | (CreateConsoleApprovalRequestBase & {
+      readonly operationType: 'KEY_EXPORT';
+      readonly resourceType: 'key_export';
+    });
+
+export type ApproveConsoleApprovalRequest =
+  | {
+      readonly kind: 'without_step_up';
+      readonly reason: string;
+      readonly stepUp?: never;
+    }
+  | {
+      readonly kind: 'with_step_up';
+      readonly reason: string;
+      readonly stepUp: TenantRootStepUpProofV1;
+    };
 
 export interface RejectConsoleApprovalRequest {
   reason: string;
 }
+import type { TenantRootStepUpProofV1 } from '../tenantRootSecurity/stepUp';

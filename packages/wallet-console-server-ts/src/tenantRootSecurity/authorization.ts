@@ -16,11 +16,9 @@ import {
 /**
  * Authorization for tenant derivation-root console operations.
  *
- * The generic console approval service cannot be reused here: it accepts a
- * caller-provided `mfaVerified` boolean, lets a requester approve their own
- * request, and leaves an approved record reusable. This module replaces those
- * behaviours for the tenant-root operation union without widening the generic
- * KEY_EXPORT operation.
+ * Generic Console approvals remain reusable records tied to a resource ID.
+ * Tenant-root custody changes require one-time approval for an exact operation
+ * digest. This module enforces that stronger custody rule.
  */
 
 /** How long an approval stays valid for its exact operation. */

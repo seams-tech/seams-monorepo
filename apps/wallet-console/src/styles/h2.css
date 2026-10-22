@@ -3049,7 +3049,7 @@ body:has(.h2-page) {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #3ecf8e;
+  background: #2e9fc6;
 }
 
 .h2-consoleband__screen.is-active .h2-consoleband__callout {
@@ -3058,10 +3058,10 @@ body:has(.h2-page) {
   transition-delay: 350ms;
 }
 
-/* just below the audit page's Export button */
-.h2-consoleband__callout--audit {
-  inset-inline-end: 2.7%;
-  top: 23.5%;
+/* beside the observability page's Service health heading */
+.h2-consoleband__callout--observability {
+  inset-inline-start: 31%;
+  top: 26.5%;
 }
 
 @media (prefers-reduced-motion: reduce) {

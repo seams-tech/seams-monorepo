@@ -127,7 +127,7 @@ export const catalog = {
   pauseCycling: { en: 'Pause automatic cycling', ja: '自動切り替えを停止' },
   overview: { en: 'Overview', ja: '概要' },
   observability: { en: 'Observability', ja: '稼働状況' },
-  csvExport: { en: 'Export to CSV in one click', ja: 'ワンクリックでCSVに出力' },
+  failureAlerts: { en: 'Failing services flagged as they happen', ja: 'サービスの障害をすぐに検知' },
   passkeySignup: { en: 'Passkey sign-up', ja: 'パスキーで登録' },
   signupDescription: {
     en: 'A non-custodial wallet in one call',

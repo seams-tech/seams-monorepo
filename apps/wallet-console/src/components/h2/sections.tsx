@@ -485,10 +485,10 @@ const CONSOLE_SCREENS = [
     src: '/wallet-preview/wallet-console-dashboard.png?v=2',
   },
   {
-    id: 'audit' as const,
+    id: 'observability' as const,
     label: t('observability'),
-    src: '/wallet-preview/wallet-console-audit.png?v=2',
-    callout: t('csvExport'),
+    src: '/wallet-preview/wallet-console-observability.png?v=1',
+    callout: t('failureAlerts'),
   },
 ];
 

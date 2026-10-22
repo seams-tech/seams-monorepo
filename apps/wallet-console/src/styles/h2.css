@@ -2274,6 +2274,18 @@ body:has(.h2-page) {
     transform: none;
     margin-block: 0;
   }
+
+  /* The open account menu is 420px wide and grows left from the button, so a
+     slot pinned to the right ran it off the screen. Spanning the card lets the
+     menu cap at the card width; the closed button stays at the right edge. */
+  .h2-page--wallet .h2-hero__demo .passkey-demo__profile-button-slot {
+    left: 0;
+    right: 0;
+  }
+
+  .h2-hero__demo .passkey-demo__profile-button-slot .seams-profile-button-morphable {
+    margin-left: auto;
+  }
 }
 
 .h2-eco__title {

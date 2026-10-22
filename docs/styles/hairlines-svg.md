@@ -314,9 +314,9 @@ On 2026-10-22 the user asked to keep the existing figures but make them simpler 
 
 Each figure keeps the subject and interaction of the figure it replaced:
 
-- `credentials-abstract/abstract-keychain.js`: four keys on one ring. Each key is a 16-unit opaque head with an even-odd ring hole, a straight blade, and two short cuts. The ring is one 22-unit circle, drawn in height sections between the keys, so it passes through each hole. Hover fans the key under the pointer.
-- `interlock-abstract/abstract-interlock.js`: three slotted discs and a dial on a dashed axle. The locking bar is an opaque rod with a 2.7-unit radius. It is drawn in sections between the discs, with no seams at the cuts. Hover turns the discs until the slots align, then the rod drops into the slots.
-- `delegation-planes/plane-devices.js`: two plain portrait planes. One carries four nested rings that share their lowest point, like the ElevenLabs provenance drawing. Hover turns the planes face to face, dashed corner and tangent guides project the rings across, and the same rings draw on the second plane one after another, from the outside in.
+- `keys-edge/edge-keys.js`: three keys on one pivot, on an 8-unit module. Each key is an opaque round head with a hole, a straight blade, and two sharp teeth set back from the tip; the tooth nearer the handle is the larger one, and each key has its own tooth code. A small ring passes through the holes in sections between the keys. Hover traces the key's new place in dashes, then in a solid line, then turns the key there.
+- `interlock-blade/blade-interlock.js`: three flat slotted disks and a dial on a dashed axle. Hover turns the disks until the keyways align. A flat blade with no depth then appears: its outline traces in dashes, a solid line traces over it, and the blade drops into the keyways, its top level with the rims and its ends 6 units past the outer disks.
+- `devices-edge/edge-devices.js`: two phone planes with 7-unit, phone-like corners, standing at a right angle at rest. One carries four evenly stepped rings that share their lowest point. Hover turns the scanner face to face with the code plane; dashed corner lines grow, then the rings trace on the scanner in dashes and then solid, from the outside in.
 - `lockin-boundary/open-boundary.js`: two flat rounded-square platforms on the ground whose openings face each other. A coin with four nested rings stands on the first. Hover traces a dashed path from platform to platform, then the coin rolls across and settles on the second, leaving a dashed echo where it stood.
 
 All four meet one spec, measured with every stroke except the dashed guides:
@@ -327,6 +327,8 @@ All four meet one spec, measured with every stroke except the dashed guides:
 - The line ink (`sil`, `lo`, and `hi`) is 1,400–2,000 units. The dashed ink is 250–500 units.
 - Silhouettes use `sil`, inner detail uses `lo`, guides use `nf lo dash` and are appended first, and exactly one `hi` marks the rest pose. There are no decorative fills.
 
-The frontpage plays the keychain along each key's blade. The interlock, the phones and the platforms run from one point. Recompute these play paths in `WalletFigure.tsx` after any change to a figure's camera or geometry.
+The keys, the interlock and the phones also follow the edge language of 2026-10-22: planes and straight lines with small corner radii (the phones excepted, which keep phone-like corners), sizes from one module, a dashed construction layer, and one signature motion — a dashed trace, a solid trace over it, then the move. The phones are smaller at rest (32k) than the area range, because their linked pose needs the height.
+
+The frontpage plays the keychain along each key's blade, at (282, 205), (194, 183) and (134, 141). The interlock, the phones and the platforms run from one point. Recompute these play paths in `WalletFigure.tsx` after any change to a figure's camera or geometry.
 
 Edit a figure's `.js`, then rebuild its `index.html` with `build.mjs`. The dev-only page `apps/wallet-console/figure-review/` shows each live figure beside the detailed figure it replaced, then the real custody section. Open it at `http://localhost:4001/wallet-static/figure-review/`. The page is not in the build. `WalletFigureCandidates` in `WalletFigure.tsx` swaps the drawing only on that page. Delete the page and `WalletFigureCandidates` when the comparison is no longer needed.

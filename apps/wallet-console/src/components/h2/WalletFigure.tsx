@@ -1,9 +1,9 @@
 import React from 'react';
 import { locale, t } from '@/marketing/i18n/browser';
 import { figureCatalog } from '@/marketing/i18n/catalog';
-import keychain from '../../../showcase/motion/credentials-abstract/index.html?raw';
-import interlock from '../../../showcase/motion/interlock-abstract/index.html?raw';
-import devices from '../../../showcase/motion/delegation-planes/index.html?raw';
+import keychain from '../../../showcase/motion/keys-edge/index.html?raw';
+import interlock from '../../../showcase/motion/interlock-blade/index.html?raw';
+import devices from '../../../showcase/motion/devices-edge/index.html?raw';
 import infrastructure from '../../../showcase/motion/lockin-boundary/index.html?raw';
 import signing from '../../../showcase/motion/threshold-signing/index.html?raw';
 import embed from './hairline/embed.js?raw';
@@ -52,13 +52,12 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 // key; the lock, the phones, the platforms and the signing diagram run their
 // whole sequence from a single point.
 const keychainPlay: PlayPath = [
-  [264, 211, 0],
-  [264, 211, 450],
-  [205, 198, 750],
-  [205, 198, 1200],
-  [157, 174, 1500],
-  [157, 174, 1950],
-  [129, 142, 2250],
+  [282, 205, 0],
+  [282, 205, 450],
+  [194, 183, 750],
+  [194, 183, 1200],
+  [134, 141, 1500],
+  [134, 141, 1950],
 ];
 
 function figureEntry(
@@ -78,7 +77,7 @@ function figureEntry(
 }
 
 const figures = {
-  keychain: figureEntry(t('keysControl'), keychain, 205, 198, keychainPlay),
+  keychain: figureEntry(t('keysControl'), keychain, 194, 183, keychainPlay),
   interlock: figureEntry(t('scopedPermissions'), interlock, 200, 160, [[200, 160, 0]]),
   devices: figureEntry(t('linkedDevices'), devices, 200, 160, [[200, 160, 0]]),
   infrastructure: figureEntry(t('noLockIn'), infrastructure, 200, 160, [[200, 160, 0]]),

@@ -737,16 +737,14 @@ const TRACE_MS = 1300;
 const DASH = [0, 380];
 const SOLID = [420, 800];
 const TURN = [850, 1300];
-// Each key's code at three places 1.5 units apart: 'dots' marks a place with a
-// solid or an open dot, 'teeth' cuts a sharp tooth where the code has a 1.
-const BIT = 'dots';
+// Each key's code at three places 1.5 units apart: a sharp tooth on one edge of
+// the blade where the code has a 1.
 const CODES = ['101', '110', '011'];
-const PLACES = [84, 96, 108];
+const PLACES = [70, 82, 94];
 
 const HOLE = HL.circ(5, 40).map((p) => [p.u, p.v]);
 const DISC = HL.circ(HEAD, 64).map((p) => [p.u, p.v + HEAD_Y]);
 const CREASE = HL.circ(8.5, 48).map((p) => [p.u, p.v]);
-const RIM = HL.circ(2.6, 20).map((p) => [p.u, p.v]);
 
 function phase(progress, [start, end]) {
   const [a, b] = [start, end].map((ms) => HL.EASE_LIFT(ms / TRACE_MS));
@@ -755,12 +753,18 @@ function phase(progress, [start, end]) {
 
 const keyHeight = (index) => 3 + index * 3;
 const pt = (u, v) => [u, v];
-const coded = (index, digit) => PLACES.filter((_, place) => CODES[index][place] === digit);
+const teethOf = (index) => PLACES.filter((_, place) => CODES[index][place] === '1');
 
 // The blade as one line from the head to the tip, with any teeth on one edge.
 function blade(index) {
-  const teeth = BIT === 'teeth' ? coded(index, '1') : [];
-  const edge = teeth.flatMap((v) => [pt(0, v - 4), pt(0.75 * UNIT, v), pt(0, v + 4)]);
+  const teeth = teethOf(index);
+  // The tooth nearer the handle is the larger one.
+  const size = (i) => (i === 0 ? [5, UNIT] : [3.5, 0.6 * UNIT]);
+  const edge = teeth.flatMap((v, i) => [
+    pt(0, v - size(i)[0]),
+    pt(size(i)[1], v),
+    pt(0, v + size(i)[0]),
+  ]);
   return [pt(0, HEAD_Y + HEAD), ...edge, pt(0, TIP)];
 }
 
@@ -787,8 +791,6 @@ function makeKey(svg, ghosts, index) {
     index,
     shape: blade(index),
     blade: HL.mk('path', { class: 'nf sil' }, group),
-    full: HL.mk('path', { class: 'dot m' }, group),
-    open: HL.mk('path', { class: 'lo' }, group),
     head: HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, group),
     crease: HL.mk('path', { class: 'nf lo' }, group),
     dashed: HL.mk('path', { class: 'nf lo dash' }, ghosts),
@@ -809,11 +811,6 @@ function drawKey(state, key, now) {
   const at = onPlane(state.P, angle, keyHeight(key.index));
   key.head.setAttribute('d', HL.poly(DISC.map(at)) + HL.poly(HOLE.map(at)));
   key.blade.setAttribute('d', HL.open(key.shape.map(at)));
-  // The dot code: one dot on the blade line for each place whose digit matches.
-  const bead = (v) => HL.poly(RIM.map(([u, w]) => at([u, w + v])));
-  const dots = (digit) => (BIT === 'dots' ? coded(key.index, digit).map(bead).join('') : '');
-  key.full.setAttribute('d', dots('1'));
-  key.open.setAttribute('d', dots('0'));
   key.crease.setAttribute('d', HL.poly(CREASE.map(at)));
   // The ghost shows where the key will go until the key has arrived.
   const ghost = onPlane(state.P, target, keyHeight(key.index));

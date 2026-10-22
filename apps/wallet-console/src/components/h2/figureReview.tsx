@@ -7,10 +7,6 @@ import previousKeychain from '../../../showcase/motion/credentials/index.html?ra
 import previousInterlock from '../../../showcase/motion/interlock/index.html?raw';
 import previousDevices from '../../../showcase/motion/delegation/index.html?raw';
 import previousInfrastructure from '../../../showcase/motion/infrastructure-array/index.html?raw';
-import bladeInterlock from '../../../showcase/motion/interlock-blade/index.html?raw';
-import edgeKeys from '../../../showcase/motion/keys-edge/index.html?raw';
-import edgeInterlock from '../../../showcase/motion/interlock-edge/index.html?raw';
-import edgeDevices from '../../../showcase/motion/devices-edge/index.html?raw';
 import edgePlatforms from '../../../showcase/motion/lockin-edge/index.html?raw';
 import { H2Security } from './sections';
 import {
@@ -28,15 +24,6 @@ import {
 type Review = { figure: WalletFigureName; label: string; html: string };
 
 const candidates: readonly Review[] = [
-  { figure: 'keychain', label: 'Keys you control: edge, dot code', html: edgeKeys },
-  {
-    figure: 'keychain',
-    label: 'Keys you control: edge, teeth',
-    html: edgeKeys.replace("const BIT = 'dots'", "const BIT = 'teeth'"),
-  },
-  { figure: 'interlock', label: 'Scoped permissions: flat blade', html: bladeInterlock },
-  { figure: 'interlock', label: 'Scoped permissions: edge', html: edgeInterlock },
-  { figure: 'devices', label: 'Linked devices: edge', html: edgeDevices },
   { figure: 'infrastructure', label: 'No lock-in: edge', html: edgePlatforms },
 ];
 

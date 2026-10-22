@@ -730,8 +730,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 const UNIT = 6;
 const DURATION = 2200;
 const [W, H] = [8 * UNIT, 14 * UNIT];
-const FACE = HL.rrect(-W / 2, 0, W / 2, H, 1.2, 4);
-const CORNERS = [-W / 2, 0, W / 2, 0, W / 2, H, -W / 2, H];
+// Phone-like corners, about 15% of the width; corner lines leave each rounded
+// corner at its 45° point.
+const RADIUS = 7;
+const FACE = HL.rrect(-W / 2, 0, W / 2, H, RADIUS, 10);
+const IN = RADIUS * (1 - Math.SQRT1_2);
+const CORNERS = [-W / 2 + IN, IN, W / 2 - IN, IN, W / 2 - IN, H - IN, -W / 2 + IN, H - IN];
 // Four rings, one quarter of a ring apart, sharing their lowest point.
 const RINGS = [4, 3, 2, 1].map((step) => step * 0.75 * UNIT);
 const BASE = H / 2 - RINGS[0];

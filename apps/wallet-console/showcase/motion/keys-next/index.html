@@ -724,22 +724,21 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /* global HL, hairline */
-// Three keys on one small ring; key n has n rings round its hole and a tooth code.
+// Three keys on one small ring; key n has n rings round its hole and its own blade.
 // Hover opens the fan: each key traces its new place (dashes, then solid), then turns.
 const UNIT = 8;
-const [HEAD, HEAD_Y, TIP] = [1.5 * UNIT, 7.5, 14 * UNIT];
+const [HEAD, HEAD_Y, TIP] = [2 * UNIT, 9, 14 * UNIT];
 const [RING, RING_Z] = [7, 8];
 const REST = [-34, -8, 18];
 // Open, the outer keys swing out; the key nearest the pointer turns half the fan further.
 const OPEN = [-10, 0, 10];
 const [TRACE_MS, TURN_AT, TURN_MS, STAGGER] = [800, 850, 450, 80];
-const RINGS = [6.5, 9.5, 12.5];
-// Tooth codes: a sharp tooth at each place, 1.5 units apart, whose digit is 1.
-const CODES = ['101', '110', '011'];
-const PLACES = [70, 82, 94];
-const HOLE = HL.circ(3.5, 40).map((p) => [p.u, p.v]);
+const RINGS = [8, 11, 14];
+// 'wave' cuts each blade's outer third into a sine of 1, 1.5 or 2 periods; 'tip'
+// ends it in a triangle, a diamond or a circle; 'plain' leaves it straight.
+const BLADE = 'wave';
+const HOLE = HL.circ(5, 40).map((p) => [p.u, p.v]);
 const DISC = HL.circ(HEAD, 64).map((p) => [p.u, p.v + HEAD_Y]);
-
 function phase(progress, [start, end]) {
   const [a, b] = [start, end].map((ms) => HL.EASE_LIFT(ms / TRACE_MS));
   return HL.clamp((progress - a) / (b - a), 0, 1);
@@ -754,24 +753,27 @@ const inHead = (p) => Math.hypot(p.u, p.v - HEAD_Y) < HEAD - 0.6;
 const ringsOf = (index) =>
   RINGS.slice(0, index + 1).map((r) => HL.run(HL.circ(r, 64), inHead).map((p) => [p.u, p.v]));
 const pt = (u, v) => [u, v];
-const teethOf = (index) => PLACES.filter((_, place) => CODES[index][place] === '1');
-
-// The blade as one line from the head to the tip, with any teeth on one edge.
+// The blade as one line from the head to the tip.
 function blade(index) {
-  const teeth = teethOf(index);
-  // The tooth nearer the handle is the larger one.
-  const edge = teeth.flatMap((v, i) => {
-    const [half, height] = i === 0 ? [5, UNIT] : [3.5, 0.6 * UNIT];
-    return [pt(0, v - half), pt(height, v), pt(0, v + half)];
-  });
-  return [pt(0, HEAD_Y + HEAD), ...edge, pt(0, TIP)];
+  const [start, from] = [HEAD_Y + HEAD, TIP - (TIP - HEAD_Y - HEAD) / 3];
+  if (BLADE !== 'wave') return [pt(0, start), pt(0, TIP)];
+  const wave = Array.from({ length: 25 }, (_, step) =>
+    pt(0.5 * UNIT * Math.sin(Math.PI * (2 + index) * (step / 24)), HL.lerp(from, TIP, step / 24)),
+  );
+  return [pt(0, start), ...wave];
 }
-
+// The 'tip' shape past the blade's end, one module across: 3, 4 or many corners.
+function tipOf(index) {
+  const corners = BLADE === 'tip' ? [3, 4, 32][index] : 0;
+  const [r, angle] = [UNIT / 2, (k) => (k / corners) * Math.PI * 2];
+  return Array.from({ length: corners }, (_, k) =>
+    pt(r * Math.sin(angle(k)), TIP + r - r * Math.cos(angle(k))),
+  );
+}
 function onPlane(P, angle, z) {
   const [s, c] = [Math.sin(HL.rad(angle)), Math.cos(HL.rad(angle))];
   return ([u, v]) => P(u * c - v * s, u * s + v * c, z);
 }
-
 // The open polyline as far as part of its length (the trace).
 function partial(points, part) {
   const len = (i) => Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
@@ -783,7 +785,6 @@ function partial(points, part) {
   }
   return out;
 }
-
 function makeKey(svg, ghosts, index) {
   const group = HL.mk('g', {}, svg);
   return {
@@ -791,15 +792,16 @@ function makeKey(svg, ghosts, index) {
     shape: blade(index),
     marks: ringsOf(index),
     blade: HL.mk('path', { class: 'nf sil' }, group),
+    tipShape: tipOf(index),
     head: HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, group),
     rings: HL.mk('path', { class: 'nf lo' }, group),
+    tip: HL.mk('path', { class: 'sil' }, group),
     dashed: HL.mk('path', { class: 'nf lo dash' }, ghosts),
     solid: HL.mk('path', { class: 'nf sil' }, ghosts),
     angle: HL.tween(REST[index], TURN_MS),
     trace: HL.tween(0, TRACE_MS),
   };
 }
-
 function drawKey(state, key, now) {
   const [angle, progress] = [HL.tval(key.angle, now), HL.tval(key.trace, now)];
   const signature = `${angle}|${progress}|${key.goal}`;
@@ -809,6 +811,7 @@ function drawKey(state, key, now) {
   key.head.setAttribute('d', HL.poly(DISC.map(at)) + HL.poly(HOLE.map(at)));
   key.rings.setAttribute('d', key.marks.map((mark) => HL.open(mark.map(at))).join(''));
   key.blade.setAttribute('d', HL.open(key.shape.map(at)));
+  key.tip.setAttribute('d', key.tipShape.length ? HL.poly(key.tipShape.map(at)) : '');
   // The ghost traces where the key will go, until the key has arrived there.
   const ghost = onPlane(state.P, key.goal, keyHeight(key.index));
   const trace = (part) =>
@@ -816,7 +819,6 @@ function drawKey(state, key, now) {
   key.dashed.setAttribute('d', trace(phase(progress, [0, 380])));
   key.solid.setAttribute('d', trace(phase(progress, [420, 800])));
 }
-
 function guides(svg, P) {
   let d = '';
   for (const angle of REST)
@@ -825,7 +827,6 @@ function guides(svg, P) {
   const arc = Array.from({ length: 25 }, (_, step) => tip(step)([0, TIP + 4]));
   HL.mk('path', { d: d + HL.open(arc), class: 'nf lo dash' }, svg);
 }
-
 // The ring between two key heights, painted between them: it passes each hole.
 function ring(svg, P, minimum, maximum) {
   const ringPoint = (a) => P(0, RING * Math.cos(a) - RING, RING_Z + RING * Math.sin(a));
@@ -837,7 +838,6 @@ function ring(svg, P, minimum, maximum) {
   }
   HL.mk('path', { d, class: 'nf lo' }, svg);
 }
-
 function tick(state, _dt, now) {
   for (const key of state.keys) drawKey(state, key, now);
   return state.keys.some((key) => !HL.tdone(key.trace, now) || !HL.tdone(key.angle, now));
@@ -851,7 +851,7 @@ function select(state, index, force) {
   const now = performance.now();
   for (const key of state.keys) {
     const lit = key.index === index || (index < 0 && key.index === REST.length - 1);
-    for (const el of [key.head, key.blade]) el.classList.toggle('hi', lit);
+    for (const el of [key.head, key.blade, key.tip]) el.classList.toggle('hi', lit);
     const place = goal(state, key.index);
     if (place === key.goal) continue;
     const delay = Math.abs(key.index - from) * STAGGER;
@@ -879,16 +879,17 @@ function move(state, point) {
 }
 
 function mount({ stage, svg, read }, fan) {
-  const C = HL.Cam(45, 0.5, 2.38);
+  const C = HL.Cam(45, 0.5, 2.32);
   const [world, bounds] = [(x, y, z) => [x, y, z], []];
   // Fit the rest pose and the fan fully open at the slider's far end (rule 03).
   for (const [index, rest] of REST.entries()) {
     for (const angle of [rest, rest + OPEN[index] + away(index) * 9]) {
       const at = onPlane(world, angle, keyHeight(index));
-      bounds.push(...blade(index).map(at), at([HEAD, HEAD_Y]), at([-HEAD, HEAD_Y]), at([0, -5]));
+      bounds.push(...blade(index).map(at), ...tipOf(index).map(at), at([HEAD, HEAD_Y]));
+      bounds.push(at([-HEAD, HEAD_Y]), at([0, HEAD_Y - HEAD]));
     }
   }
-  HL.fit(C, bounds, 200, 160);
+  HL.fit(C, bounds, 194, 160);
   const P = HL.proj(C);
   guides(svg, P);
   ring(svg, P, -Infinity, keyHeight(0));
@@ -912,8 +913,7 @@ function mount({ stage, svg, read }, fan) {
 
 hairline({
   name: 'next-keys',
-  means:
-    'Three keys on one small ring. Hover: the fan opens; each key traces its place, then turns.',
+  means: 'Three keys on one ring. Hover: the fan opens; each key traces its place, then turns.',
   rules: [1, 2, 4, 8],
   range: [10, 14, 18],
   mount,

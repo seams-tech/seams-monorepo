@@ -4,26 +4,27 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /* global HL, hairline */
-// "No lock-in" as flat geometry: a square boundary on the ground with one side
-// open, and a coin standing inside it. Hover traces a dashed path out through
-// the gap; the coin rolls along it and comes to rest outside.
-const HALF = 46;
-const INSET = 6;
-const CORNER = 10;
-const GAP = 14;
-const COIN = 26;
-const RINGS = [26, 19.5, 13, 6.5];
+// "No lock-in" as flat geometry: two square platforms on the ground whose open
+// sides face each other, and a coin standing on the first. Hover traces a
+// dashed path out of one opening and into the other; the coin rolls along it
+// and settles on the second platform.
+const HALF = 30;
+const INSET = 5;
+const CORNER = 8;
+const GAP = 13;
+// The platforms' centres sit at x = ∓APART on the coin's line, y = 0.
+const APART = 48;
+const COIN = 22;
+const RINGS = [22, 16.5, 11, 5.5];
 // The rings share one rim point, so the coin's roll shows as they turn.
 const SHARED = HL.rad(-90);
-const REST_X = -10;
-const OUT_X = HALF + COIN + 4;
-const DURATION = 2000;
-const TRACE = [0, 500];
-const ROLL = [550, 1900];
+// Phases as fractions of the tween: the dashed trace, then the roll.
+const TRACE = [0, 0.25];
+const ROLL = [0.28, 0.95];
 const ROLL_EASE = HL.bezier(0.65, 0, 0.35, 1);
 
 function phase(progress, [start, end]) {
-  const [a, b] = [start, end].map((ms) => HL.EASE_LIFT(ms / DURATION));
+  const [a, b] = [start, end].map((fraction) => HL.EASE_LIFT(fraction));
   return HL.clamp((progress - a) / (b - a), 0, 1);
 }
 
@@ -35,7 +36,7 @@ function quarter(cx, cy, r, from) {
 }
 
 // A rounded square outline open at x = half, |y| < GAP, split where it crosses
-// y = 0 at the far side: the half in front of the coin's plane and the half
+// y = 0 on the far side: the half in front of the coin's plane, and the half
 // behind it.
 function frame(half, r) {
   const c = half - r;
@@ -61,22 +62,27 @@ function coinAt(P, x, angle) {
   return ([u, v]) => P(x + u * c - v * s, 0, COIN + u * s + v * c);
 }
 
-function ground(P, points) {
-  return HL.open(points.map(([x, y]) => P(x, y, 0)));
+// Platform A opens towards +x and platform B, its mirror, towards -x.
+function platforms(P, part) {
+  const place = (points, side) => points.map(([x, y]) => P(side * (x - APART), y, 0));
+  return [frame(HALF, CORNER), frame(HALF - INSET, CORNER - INSET)]
+    .map((outline) => [-1, 1].map((side) => HL.open(place(outline[part], -side))).join(''))
+    .map((d, index) => ({ d, class: index === 0 ? 'nf sil' : 'nf lo' }));
 }
 
 function draw(state, t) {
   const { P } = state;
+  const [from, to] = [-APART, APART];
   const trace = phase(t, TRACE);
-  const roll = ROLL_EASE(phase(t, ROLL));
-  const x = HL.lerp(REST_X, OUT_X, roll);
-  const end = HL.lerp(REST_X, OUT_X, trace);
-  state.path.setAttribute('d', trace > 0 ? HL.seg(P(REST_X, 0, 0), P(end, 0, 0)) : '');
+  const x = HL.lerp(from, to, ROLL_EASE(phase(t, ROLL)));
+  const reach = HL.lerp(from, to, trace);
+  state.path.setAttribute('d', trace > 0 ? HL.seg(P(from, 0, 0), P(reach, 0, 0)) : '');
   // Where the coin stood, its outline traces in dashes as it rolls away.
-  const echo = COIN_RINGS[0].slice(0, Math.round(roll * COIN_RINGS[0].length));
-  const rest = coinAt(P, REST_X, 0);
-  state.echo.setAttribute('d', echo.length > 1 ? HL.open(echo.map(rest)) : '');
-  const at = coinAt(P, x, -(x - REST_X) / COIN);
+  const left = (x - from) / (to - from);
+  const echo = COIN_RINGS[0].slice(0, Math.round(left * COIN_RINGS[0].length));
+  const start = coinAt(P, from, 0);
+  state.echo.setAttribute('d', echo.length > 1 ? HL.open(echo.map(start)) : '');
+  const at = coinAt(P, x, -(x - from) / COIN);
   state.face.setAttribute('d', HL.poly(COIN_RINGS[0].map(at)));
   state.rings.setAttribute(
     'd',
@@ -84,6 +90,7 @@ function draw(state, t) {
       .map((r) => HL.poly(r.map(at)))
       .join(''),
   );
+  state.moved = x === to;
 }
 
 function tick(state, _dt, now) {
@@ -92,7 +99,7 @@ function tick(state, _dt, now) {
     state.drawn = t;
     draw(state, t);
   }
-  state.read.textContent = t === 1 ? 'outside' : state.active && t > 0 ? 'leaving' : 'rest';
+  state.read.textContent = state.moved ? 'moved' : state.active && t > 0 ? 'leaving' : 'rest';
   return !HL.tdone(state.motion, now);
 }
 
@@ -103,35 +110,47 @@ function select(state, active) {
   state.loop.wake();
 }
 
-function mount({ stage, svg, read }) {
-  const C = HL.Cam(45, 0.5, 2.07);
-  const bounds = [
-    [-HALF, -HALF, 0],
-    [HALF, HALF, 0],
-    [-HALF, HALF, 0],
-    [HALF, -HALF, 0],
-    [REST_X, 0, 2 * COIN],
-    [OUT_X + COIN, 0, 0],
-    [OUT_X, 0, 2 * COIN],
-  ];
-  HL.fit(C, bounds, 207, 166);
+// The slider sets how long the whole move takes, from where it is now.
+function set(state, duration) {
+  const now = performance.now();
+  state.motion = HL.tween(HL.tval(state.motion, now), duration);
+  HL.tset(state.motion, Number(state.active), now, 0);
+  state.loop.wake();
+}
+
+function mount({ stage, svg, read }, duration) {
+  const C = HL.Cam(45, 0.5, 1.77);
+  const bounds = [];
+  for (const cx of [-APART, APART]) {
+    for (const [dx, dy] of [
+      [-1, -1],
+      [-1, 1],
+      [1, -1],
+      [1, 1],
+    ]) {
+      bounds.push([cx + dx * HALF, dy * HALF, 0]);
+    }
+    bounds.push([cx, 0, 2 * COIN]);
+  }
+  HL.fit(C, bounds, 200, 160);
   const P = HL.proj(C);
-  // Construction first (rule 06): the axis across the gap's side and the gap.
-  let guides = HL.seg(P(0, -HALF - 18, 0), P(0, HALF + 18, 0));
-  guides += HL.seg(P(HALF, -GAP, 0), P(HALF, GAP, 0));
+  // Construction first (rule 06): an axis across each platform, and the gaps.
+  let guides = '';
+  for (const side of [-1, 1]) {
+    const [cx, edge] = [side * APART, side * (APART - HALF)];
+    guides += HL.seg(P(cx, -HALF - 10, 0), P(cx, HALF + 10, 0));
+    guides += HL.seg(P(edge, -GAP, 0), P(edge, GAP, 0));
+  }
   HL.mk('path', { d: guides, class: 'nf lo dash' }, svg);
   const path = HL.mk('path', { class: 'nf lo dash' }, svg);
   const echo = HL.mk('path', { class: 'nf lo dash' }, svg);
-  const [outer, inner] = [frame(HALF, CORNER), frame(HALF - INSET, CORNER - INSET)];
   // The far halves sit behind the coin's plane, the near halves in front of it.
-  HL.mk('path', { d: ground(P, outer.back), class: 'nf sil' }, svg);
-  HL.mk('path', { d: ground(P, inner.back), class: 'nf lo' }, svg);
+  for (const attrs of platforms(P, 'back')) HL.mk('path', attrs, svg);
   const face = HL.mk('path', { class: 'sil hi' }, svg);
   const rings = HL.mk('path', { class: 'nf lo' }, svg);
-  HL.mk('path', { d: ground(P, outer.front), class: 'nf sil' }, svg);
-  HL.mk('path', { d: ground(P, inner.front), class: 'nf lo' }, svg);
-  const state = { P, read, path, echo, face, rings, motion: HL.tween(0, DURATION) };
-  Object.assign(state, { drawn: NaN, active: false, loop: null });
+  for (const attrs of platforms(P, 'front')) HL.mk('path', attrs, svg);
+  const state = { P, read, path, echo, face, rings, motion: HL.tween(0, duration) };
+  Object.assign(state, { drawn: NaN, active: false, moved: false, loop: null });
   state.loop = HL.register(stage, tick.bind(null, state));
   draw(state, 0);
   state.read.textContent = 'rest';
@@ -140,14 +159,13 @@ function mount({ stage, svg, read }) {
   const pointer = { move: select.bind(null, state, true), leave: select.bind(null, state, false) };
   bag.add(HL.pointer(stage, pointer));
   bag.add(svg.replaceChildren.bind(svg));
-  return { set: () => {}, destroy: bag.dispose };
+  return { set: set.bind(null, state), destroy: bag.dispose };
 }
 
 hairline({
   name: 'open-boundary',
-  means:
-    'A coin inside a square boundary with one open side. Hover to roll it out through the gap.',
+  means: 'Two open platforms and a coin. Hover to roll the coin out of one and into the other.',
   rules: [4, 5, 6, 8],
-  range: [0, 0.5, 1],
+  range: [2600, 2000, 1500],
   mount,
 });

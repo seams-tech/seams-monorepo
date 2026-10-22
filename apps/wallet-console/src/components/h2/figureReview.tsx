@@ -8,9 +8,7 @@ import previousInterlock from '../../../showcase/motion/interlock/index.html?raw
 import previousDevices from '../../../showcase/motion/delegation/index.html?raw';
 import previousInfrastructure from '../../../showcase/motion/infrastructure-array/index.html?raw';
 import bladeInterlock from '../../../showcase/motion/interlock-blade/index.html?raw';
-import unlinkRings from '../../../showcase/motion/lockin-links/index.html?raw';
 import openBoundary from '../../../showcase/motion/lockin-boundary/index.html?raw';
-import openPadlock from '../../../showcase/motion/lockin-padlock/index.html?raw';
 import { H2Security } from './sections';
 import {
   candidateFigureDocument,
@@ -28,9 +26,7 @@ type Review = { figure: WalletFigureName; label: string; html: string };
 
 const candidates: readonly Review[] = [
   { figure: 'interlock', label: 'Scoped permissions: flat blade', html: bladeInterlock },
-  { figure: 'infrastructure', label: 'No lock-in: unlinking rings', html: unlinkRings },
-  { figure: 'infrastructure', label: 'No lock-in: open boundary', html: openBoundary },
-  { figure: 'infrastructure', label: 'No lock-in: opening padlock', html: openPadlock },
+  { figure: 'infrastructure', label: 'No lock-in: platform to platform', html: openBoundary },
 ];
 
 const reviews: readonly Review[] = [

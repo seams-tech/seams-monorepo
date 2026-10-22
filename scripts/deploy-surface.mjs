@@ -398,6 +398,8 @@ export function buildFrontendEnvironment(site, frontendOrigin, sourceEnvironment
     VITE_COMPANY_SITE_ORIGIN: site.origin,
     VITE_WALLET_SITE_ORIGIN: site.walletSiteOrigin,
     VITE_DOCS_ORIGIN: `${site.docsOrigin}/`,
+    // The pricing page's plan cards open sign-up on the Platform Console.
+    VITE_PLATFORM_CONSOLE_ORIGIN: readConsoleFrontendSite(site.id).platformOrigin,
   };
   for (const lane of site.lanes) {
     const prefix = site.id === 'production' ? `VITE_${lane.network.toUpperCase()}_` : 'VITE_';

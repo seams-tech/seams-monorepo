@@ -10,6 +10,7 @@ import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { startSiteAnchorScroll, subscribeToSiteNavigation } from '@/app/router/siteRouting';
 import { EnterpriseCalculator } from './EnterpriseCalculator';
 import { estimate, lowestSelfServePlan } from './estimate';
+import { planSignupHref } from './planSignup';
 import '@/styles/h2.css';
 import './styles.css';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
@@ -43,7 +44,7 @@ function getPlans(t: Translate): readonly Plan[] {
         t('oneFree'),
         t('cardAfter30'),
       ],
-      cta: { label: t('startBuilding'), to: '/docs/concepts/' },
+      cta: { label: t('startBuilding'), to: planSignupHref('free') },
     },
     {
       id: 'growth',
@@ -58,7 +59,7 @@ function getPlans(t: Translate): readonly Plan[] {
         t('pooledSignatures'),
         t('signatureOverage'),
       ],
-      cta: { label: t('startBuilding'), to: '/docs/concepts/' },
+      cta: { label: t('startBuilding'), to: planSignupHref('growth') },
     },
     {
       id: 'pro',
@@ -68,7 +69,7 @@ function getPlans(t: Translate): readonly Plan[] {
       unit: t('perMonth'),
       summary: t('proSummary'),
       features: [t('proUsers'), t('proOverage'), t('proSignatureOverage'), t('proSupport')],
-      cta: { label: t('startBuilding'), to: '/docs/concepts/' },
+      cta: { label: t('startBuilding'), to: planSignupHref('pro') },
     },
     {
       id: 'enterprise',

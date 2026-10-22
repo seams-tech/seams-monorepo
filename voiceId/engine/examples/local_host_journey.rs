@@ -211,7 +211,9 @@ mod journey {
         store.destroy_empty(&clock.work()).map_err(store_error)?;
         evidence
             .push(json!({"case":"keychain-cleanup", "outcome":"owner_and_device_items_deleted"}));
-        result
+        let mut report = result?;
+        report["cAbi"] = run_c_journey(models, output, service)?;
+        Ok(report)
     }
 
     fn run_journey(
@@ -491,9 +493,13 @@ mod journey {
             .status()
             .map_err(error_text)?;
         require(status.success(), "macOS speech generation failed")?;
+        decode_synthetic_pcm(&audio, rate)
+    }
+
+    fn decode_synthetic_pcm(audio: &Path, rate: u32) -> Result<Vec<f32>, String> {
         let decoded = Command::new("ffmpeg")
             .args(["-v", "error", "-i"])
-            .arg(&audio)
+            .arg(audio)
             .args([
                 "-ac",
                 "1",
@@ -517,6 +523,90 @@ mod journey {
         }
         samples.resize(samples.len() + rate as usize, 0.0);
         Ok(samples)
+    }
+
+    fn run_c_journey(
+        models: &Path,
+        output: &Path,
+        service: &str,
+    ) -> Result<serde_json::Value, String> {
+        let executable = std::env::current_exe().map_err(error_text)?;
+        let library_directory = executable
+            .parent()
+            .and_then(Path::parent)
+            .ok_or("missing native build directory")?;
+        let engine = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let program = output.with_extension("c-journey");
+        let built = Command::new("/usr/bin/clang")
+            .args(["-std=c11", "-Wall", "-Wextra", "-Werror", "-Wpedantic"])
+            .arg("-I")
+            .arg(engine.join("include"))
+            .arg(engine.join("examples/native_host_journey.c"))
+            .arg("-L")
+            .arg(library_directory)
+            .arg("-lvoiceid_engine")
+            .args(["-Xlinker", "-rpath", "-Xlinker"])
+            .arg(library_directory)
+            .arg("-o")
+            .arg(&program)
+            .status()
+            .map_err(error_text)?;
+        require(
+            built.success(),
+            "C ABI caller compilation failed; build the release library first",
+        )?;
+        let media = output.with_extension("media");
+        let mut inputs = Vec::new();
+        for name in [
+            "enroll-1",
+            "enroll-2",
+            "enroll-3",
+            "approve-48k",
+            "cancel-44k1",
+            "different-speaker",
+            "extra-words",
+        ] {
+            let mut samples =
+                decode_synthetic_pcm(&media.join(name).with_extension("aiff"), 16000)?;
+            samples.resize(samples.len().next_multiple_of(160), 0.0);
+            let mut bytes = Vec::with_capacity(samples.len() * 4);
+            for sample in samples {
+                bytes.extend_from_slice(&sample.to_le_bytes());
+            }
+            let path = media.join(name).with_extension("canonical.f32");
+            fs::write(&path, bytes).map_err(error_text)?;
+            inputs.push(path);
+        }
+        let evidence = output.with_extension("c-abi.json");
+        let executed = Command::new(&program)
+            .arg(models)
+            .arg(format!("{service}.c"))
+            .args(inputs)
+            .arg(&evidence)
+            .status()
+            .map_err(error_text)?;
+        require(
+            executed.success(),
+            &format!("C ABI journey failed; evidence: {}", evidence.display()),
+        )?;
+        let bytes = fs::read(&evidence).map_err(error_text)?;
+        require(bytes.len() <= 65536, "C ABI evidence exceeds its bound")?;
+        let mut report: serde_json::Value = serde_json::from_slice(&bytes).map_err(error_text)?;
+        require(
+            report["status"] == "passed",
+            "C ABI report does not confirm success",
+        )?;
+        report["librarySha256"] = json!(
+            Sha256::digest(
+                fs::read(library_directory.join("libvoiceid_engine.dylib")).map_err(error_text)?
+            )
+            .to_vec()
+        );
+        report["headerSha256"] = json!(
+            Sha256::digest(fs::read(engine.join("include/voiceid.h")).map_err(error_text)?)
+                .to_vec()
+        );
+        Ok(report)
     }
 
     fn verify_capture_failures(clock: &ReplayClock) -> Result<(), String> {

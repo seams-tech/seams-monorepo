@@ -1,12 +1,13 @@
 # Private VoiceID engine
 
-Local host checkpoint as of 2026-10-22. The portable engine coordinates one
+C host checkpoint as of 2026-10-23. The portable engine coordinates one
 bounded utterance through transcription and speaker adapters. It checks
 continuity, deadlines, output correlation, enrollment changes, and result consumption.
 Native Moonshine Tiny and ECAPA adapters process local fixture PCM.
 The macOS development host adds capture, enrollment collection, Keychain storage,
-deletion, and command checks. Live microphone qualification, robot actions, wallet
-integration, and a callable C host API remain open.
+deletion, and command checks. ABI 1 exposes those engine lifecycles to a native
+C caller. Live microphone qualification, robot actions, and wallet integration
+remain open.
 
 The first MVP assumes a user-controlled, authorized device. It uses speaker
 matching and local approval of one exact wallet operation under existing authority.
@@ -31,9 +32,9 @@ and assurance-aware admission remain unimplemented contract work.
 | Browser direction | Compile the portable engine for `wasm32-unknown-unknown`. Browser capture, storage, model execution, and host bindings are separately qualified adapters. |
 | Package boundary | One unpublished private crate in `seams-monorepo/voiceId/engine`; the public wallet extension and private wallet provider remain outside this crate. |
 
-The shared-library artifact currently has no VoiceID entry points. Its successful
-build establishes packaging structure only. The Rust contracts are available to
-private composition/tests; they are neither C ABI layouts nor a public Wallet API.
+The shared library exports the macOS [C API](include/voiceid.h).
+Its native C journey links only the compiled library and this header.
+The Rust contracts remain separate from C layouts and the public Wallet API.
 
 The real-model journey replaces the earlier link/load probe. Python provisions
 assets, exports ECAPA, and prepares reference inputs. The Rust executable loads
@@ -155,26 +156,49 @@ in the user's encrypted login Keychain. It disables iCloud synchronization.
 Its random local device identifier is storage metadata. Wallet-authorized device
 binding remains W0 work. The prototype makes no hardware-attestation claim.
 
-### Native host boundary ownership
+### Native C boundary ownership
 
-The future C binding owns an opaque engine/session handle and bounded request/result
-handles. Its minimum responsibilities are session creation/closure, local capture
-submission, polling owned results, cancellation, and explicit local enrollment
-operations. Native capture adapters and host-supplied media enter the same validated
-capture boundary; there is no second perception path.
+The macOS [header](include/voiceid.h) defines ABI 1. Call `voiceid_abi_version()`
+before opening a session. The API owns model/session/request state behind numeric
+handles. The registry accepts four sessions per OS thread. A handle works only
+on its creating thread. Closing invalidates all requests owned by that session.
+Handle allocation uses a random initial value and never wraps or reuses values
+during the library lifetime.
 
-Host input pointers are borrowed only during a submission call. The binding checks
-lengths before allocation and copies accepted input into engine-owned buffers before
-returning. Output memory remains engine-owned until an explicit release call; a host
-may copy permitted output before release. Rust `Vec`, `String`, trait objects, and
-enum layouts never cross C directly. Handles are scoped to one engine instance;
-destroying it invalidates them and drains native readers before releasing buffers.
+`voiceid_open_v1` verifies model metadata and acquires the enrollment namespace's
+exclusive process lease. It opens no microphone. The consumer supplies canonical
+mono 16 kHz PCM. The CLI's CoreAudio path and C submissions use the same runtime,
+transcriber, speaker matcher, enrollment gates, and protected store.
 
-These are ownership/API responsibilities, with **no exported functions or fixed wire
-layout in this checkpoint**. Concrete C declarations, enum tags, handle validation,
-and panic/error translation follow the runtime shell so the binding exposes real
-lifecycle operations. Browser bindings are separately implemented against the same
-portable values. Wallet requests and wallet secrets stay outside both boundaries.
+Begin an attempt before acquiring its first sample. Map source timestamps to
+`voiceid_now_v1`'s monotonic epoch. Submit contiguous chunks of at most 1,600 samples,
+then finish and take once. Timeout is 250–30,000 ms. The cumulative limit is
+160,000 samples. Cancellation, expiry, deletion, close, and discontinuity prevent
+result reuse. A stopped capture requires closing and reopening the session.
+
+The host owns every input and output buffer. The boundary checks lengths and
+alignment before copying accepted input. The caller must supply valid allocations
+for those lengths. A result uses 24 caller-owned bytes. It contains the request
+identity, expiry, speaker outcome, and exact command. It exports no transcript,
+template, embedding, Rust allocation, or borrowed pointer. Failures clear outputs.
+An invalid output pointer cannot consume a pending result.
+
+Deliberate enrollment has one request handle and three non-overlapping captures.
+Each capture passes the same speech collector and native embedding gate.
+The third consistent capture commits the template. Setup expires after 90 seconds.
+Cancellation discards partial setup. Deletion first invalidates pending work.
+Empty-namespace cleanup consumes its session and removes only empty device metadata.
+
+All calls are synchronous. Use one dedicated native thread and send cancellation
+between work calls. Native calls retain inputs until their readers finish.
+The consumer must recheck its own cancellation before using a returned result.
+Contained Rust panics clear the current thread's registry and return an error.
+Close every session before unloading the library.
+
+These results describe perception. The wallet consumer owns the exact presented
+operation, existing authority, and operation-bound approval lifecycle. Native result
+delivery alone grants no signing permission. Browser origin/transport integration
+remains a separate boundary.
 
 ## Checks
 
@@ -334,7 +358,7 @@ inside the trusted-device assumption.
 Run from `seams-wallet`, with the variables above:
 
 ```sh
-cargo build --offline --locked --release --example local_host_journey \
+cargo build --offline --locked --release --lib --example local_host_journey \
   --manifest-path "$voiceid_repo/voiceId/engine/Cargo.toml"
 /usr/bin/sandbox-exec -p '(version 1) (allow default) (deny network*)' \
   "$voiceid_repo/voiceId/engine/target/release/examples/local_host_journey" \
@@ -349,7 +373,14 @@ rejection, a different speaker, single result consumption, advancing/stale versi
 cancelled/expired mutations, deletion, capture gaps, and callback bounds.
 It removes its Keychain items and preserves completed cases when a later step fails.
 
-The [dated host report](../verifier-spike/reports/local-host-2026-10-22.json)
+The same command compiles a C11 caller with strict compiler warnings, links the
+release library, and replays the synthetic media with real elapsed time.
+Its ten named scenarios cover C layout, bounds, thread/namespace ownership,
+enrollment, cancellation, approve/cancel recognition, speaker/extra-word rejection,
+expiry, single consumption, capture gaps, close/reopen, and deletion.
+The combined report records library/header hashes and the C caller's outcomes.
+
+The [dated host report](../verifier-spike/reports/local-host-2026-10-23.json)
 contains outcomes, model identities, and synthetic PCM hashes. It contains no
 media, embeddings, or transcript text. Synthetic replay does not establish live
 microphone timing, human recognition accuracy, or spoof resistance.
@@ -361,10 +392,10 @@ This supports the selected phrase. It does not establish a population accuracy r
 
 ## Next checkpoint
 
-The runtime, native models, and local host flows are implemented.
+The runtime, native models, local host flows, and C boundary are implemented.
 Next, complete a deliberate live user journey and measure capture timing, endpoint
-behavior, and command recognition. Then expose the C host boundary and complete
-wallet W0-W1 composition under existing device/session authority.
+behavior, and command recognition. Wallet W0 must select the native-consumer bridge
+before W1 gates signing under existing device/session authority.
 
 Keep unimplemented capabilities unavailable. Test doubles stay inside the
 integration test; no production adapter returns placeholder identity success.

@@ -1,15 +1,15 @@
 # Local VoiceID architecture and implementation plan
 
 Date: 2026-09-14
-Updated: 2026-10-22
+Updated: 2026-10-23
 Status: structure decisions, private Rust modules, domain types, and adapter
 contracts are in place, with boundary and compile-fail tests.
 The audio runtime shell now coordinates injected transcription and speaker
 adapters with a repeatable lifecycle journey. Native Moonshine Tiny and ECAPA
 adapters pass a real-fixture reference-agreement journey. The macOS host implements
 microphone acquisition, three-capture enrollment, Keychain storage/deletion, and
-exact command checks. Live qualification, the C host API, and product acceptance
-gates remain open.
+exact command checks. The macOS C ABI and compiled-caller journey are implemented.
+Live qualification and product acceptance gates remain open.
 The retained Python incremental Moonshine adapter is evaluation code.
 
 Related plans:
@@ -229,7 +229,10 @@ model, calibration, or release gates in L0-L7.
    resampling, bounded endpoint collection, deliberate three-capture enrollment,
    serialized Keychain storage, and deletion. The synthetic host journey covers
    real models/storage and exact first-person approve/cancel commands.
-   Live microphone qualification and the callable C host binding remain open.
+   ABI 1 now exposes session, capture, result consumption, cancellation, and
+   enrollment operations. A compiled C caller checks real-time synthetic delivery,
+   expiry, stale handles, thread ownership, and protected enrollment lifecycle.
+   Live microphone qualification remains open.
 4. Wallet W0-W1: consume existing device/session authority, present one exact
    operation, and bind its spoken approval/cancellation to that attempt. Exercise
    the real path on testnet with a repeatable outcome report.

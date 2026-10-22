@@ -1,7 +1,7 @@
 # Local VoiceID extension for MPC wallet signing
 
 Date: 2026-09-14
-Updated: 2026-10-21
+Updated: 2026-10-23
 Status: proposed extension; no VoiceID wallet factor or signing integration is
 implemented by this plan. Local gating and standalone remote admission are
 separate delivery stages.
@@ -323,6 +323,35 @@ actual method recorded accurately. The first MVP requires no PAD result.
 ## Implementation milestones
 
 ### W0 — Define one narrow integration contract
+
+The private native boundary now exists. ABI 1 exposes bounded session, capture,
+enrollment, cancellation, and single-use perception results. Its compiled C journey
+passes with real models, protected storage, and real elapsed-time expiry.
+This completes the engine/host seam. It adds no wallet signing gate.
+
+Repository inspection on 2026-10-23 established these integration boundaries:
+
+| Concern | Existing owner | Integration requirement |
+| --- | --- | --- |
+| Signing orchestration | `seams-wallet/packages/wallet/src/core/runtime` | The current `RuntimePortsKind` supports `browser`. Select the native bridge before adding a consumer. |
+| Operation identity | `SigningOperationId` and `SigningOperationFingerprint` in `core/signingEngine/session/operationState/types.ts` | Reuse validated operation identities and require a frozen fingerprint at the voice boundary. The existing context permits an absent fingerprint. |
+| Existing authority | Selected lane identity, `WalletSessionRef`, quota, and threshold-session types | Voice success cannot construct or replace those values. |
+| Presentation lifecycle | `TransactionReviewWire` and `TransactionReviewAdmission` | Preserve connection/request/surface/generation identity, activation, expiry, cancellation, and the signing boundary. |
+| Local voice result | Private native ABI 1 request/result handles | Consume once within the same pending wallet operation. Reject another operation, generation, session, or host lifetime. |
+| Native wallet orchestration | No embedded wallet SDK crate exists in this checkout | The runtime README's embedded-SDK statement is stale. A standalone native wallet needs orchestration work beyond the C perception interface. |
+
+The host choice remains open between the existing browser wallet with a local
+native bridge and a standalone native wallet host. Browser integration must keep
+provider admission inside the wallet origin and validate the bridge's caller,
+version, operation binding, cancellation, and lifecycle. A generic application
+callback is insufficient for that boundary.
+
+After selecting the host, implement one NEAR testnet transfer profile. Use the
+existing canonical transaction, intent/display digest, and session authorization.
+Present that frozen operation before collecting **“I approve this operation”** or
+**“I cancel this operation.”** Revalidate all bindings before MPC participation.
+Then exercise changed operations, late replies, another speaker, cancellation,
+duplicate delivery, and uncertain signing outcomes through the real integration.
 
 - [ ] Choose the native host, wallet lane/protocol, test network, initial asset
       and transaction allowlist. Keep the first real signing exercise on testnet.

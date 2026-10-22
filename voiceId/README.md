@@ -29,7 +29,8 @@ Its first target is an embedded native shared library on Apple Silicon macOS.
 Native Moonshine Tiny and ECAPA adapters process real local fixture PCM.
 A macOS development host adds microphone acquisition, deliberate three-capture
 enrollment, local Keychain storage, deletion, and exact spoken-command checks.
-Live microphone qualification, C host exports, and wallet integration remain open.
+The macOS shared library exports ABI 1 for native consumers. A compiled C caller
+verifies its lifecycle. Live microphone qualification and wallet integration remain open.
 Engine results carry no robot or signing authority.
 
 The first MVP assumes a user-controlled, authorized device. It checks the enrolled
@@ -94,8 +95,8 @@ provisioned, checksum-verified model assets. Inference must not silently downloa
 a model or use a remote fallback.
 
 Use the [macOS local host](engine/README.md#macos-local-host) for deliberate enrollment
-and voice checks. The next step is a live user journey, concrete C host exports,
-and wallet W0-W1 composition. Native fixture replay and a synthetic host journey
+and voice checks. The next step is a live user journey and wallet W0-W1 composition.
+Native fixture replay, synthetic host composition, and a compiled C caller
 have repeatable reports. Live recognition quality and resource budgets remain open.
 L0 owns the MVP
 microphone profile and measured resource/error budgets. L1 coordinates the minimal

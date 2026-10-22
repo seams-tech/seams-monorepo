@@ -17,6 +17,8 @@ mod capture;
 #[cfg(target_os = "macos")]
 pub mod local_host;
 #[cfg(target_os = "macos")]
+pub(crate) mod session;
+#[cfg(target_os = "macos")]
 pub use capture::{CaptureNormalizer, Microphone, PreparedMicrophone};
 
 pub use artifacts::{VerifiedFile, VerifiedModelDirectory};

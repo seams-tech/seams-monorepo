@@ -108,7 +108,7 @@ function pricingDropdownPane(t: Translate): DropdownPane {
         description: t('freeUsers'),
         to: '/pricing/#free',
         icon: Sprout,
-        meta: '$0',
+        meta: t('freePrice'),
         field: 'sky-sand',
       },
       {
@@ -116,7 +116,7 @@ function pricingDropdownPane(t: Translate): DropdownPane {
         description: t('growthNav'),
         to: '/pricing/#growth',
         icon: TrendingUp,
-        meta: t('monthly99'),
+        meta: t('growthMonthlyPrice'),
         field: 'azure-coral',
       },
       {

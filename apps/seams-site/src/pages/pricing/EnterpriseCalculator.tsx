@@ -1,5 +1,6 @@
 import { useTranslation, useLocale } from '@/i18n/browser';
 import type { Translate } from '@/i18n/catalog';
+import { formatPrice, PRICING_USD } from '@/i18n/pricing';
 import React from 'react';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
@@ -9,13 +10,8 @@ import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
    negotiated, so the estimate applies only its published floors. */
 const FREE_USERS = 300;
 const FREE_SIGNATURES = 30_000;
-const GROWTH_BASE = 99;
 const GROWTH_INCLUDED_USERS = 5_000;
-const GROWTH_PER_USER = 0.004;
-const ENTERPRISE_PER_USER = 0.003;
 const POOL_PER_USER = 300;
-const GROWTH_PER_1000_SIGNATURES = 0.05;
-const ENTERPRISE_PER_1000_SIGNATURES = 0.03;
 const DAYS_PER_MONTH = 30;
 
 // A log-like scale from the Free plan's users: each slider step is one of these counts.
@@ -58,25 +54,15 @@ function estimate(users: number, perDay: number, perUser: number, per1000: numbe
   const overage = (overageSignatures / 1_000) * per1000;
   return {
     signatures,
-    base: GROWTH_BASE,
+    base: PRICING_USD.growthBase,
     users: userCost,
     overageSignatures,
     overage,
-    total: GROWTH_BASE + userCost + overage,
+    total: PRICING_USD.growthBase + userCost + overage,
   };
 }
 
 const wholeNumber = new Intl.NumberFormat('en-US');
-const dollars = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 0,
-});
-
-function formatDollars(value: number): string {
-  return dollars.format(Math.round(value));
-}
-
 function signaturePoolNote(t: Translate, free: boolean, overage: number): string {
   if (free) return t('insideFree');
   if (overage > 0) return t('abovePool').replace('{count}', wholeNumber.format(overage));
@@ -143,8 +129,18 @@ export function EnterpriseCalculator(): React.JSX.Element {
   const usersId = React.useId();
   const perDayId = React.useId();
   const users = USER_STEPS[userStep];
-  const growth = estimate(users, perDay, GROWTH_PER_USER, GROWTH_PER_1000_SIGNATURES);
-  const enterprise = estimate(users, perDay, ENTERPRISE_PER_USER, ENTERPRISE_PER_1000_SIGNATURES);
+  const growth = estimate(
+    users,
+    perDay,
+    PRICING_USD.growthPerUser,
+    PRICING_USD.growthPer1000Signatures,
+  );
+  const enterprise = estimate(
+    users,
+    perDay,
+    PRICING_USD.enterprisePerUser,
+    PRICING_USD.enterprisePer1000Signatures,
+  );
   const free = growth.total === 0;
 
   return (
@@ -195,25 +191,25 @@ export function EnterpriseCalculator(): React.JSX.Element {
             <dl className="pricing-calc__lines">
               <div>
                 <dt>{t('growthBase')}</dt>
-                <dd>{formatDollars(growth.base)}</dd>
+                <dd>{formatPrice(locale, growth.base)}</dd>
               </div>
               <div>
                 <dt>{t('usersLine')}</dt>
-                <dd>{formatDollars(growth.users)}</dd>
+                <dd>{formatPrice(locale, growth.users)}</dd>
               </div>
               <div>
                 <dt>{t('signaturesLine')}</dt>
-                <dd>{formatDollars(growth.overage)}</dd>
+                <dd>{formatPrice(locale, growth.overage)}</dd>
               </div>
             </dl>
             <p className="pricing-calc__total">
               <span>{free ? t('freeMonthly') : t('growthMonthly')}</span>
-              <strong>{formatDollars(growth.total)}</strong>
+              <strong>{formatPrice(locale, growth.total)}</strong>
             </p>
             {free ? null : (
               <p className="pricing-calc__total pricing-calc__total--enterprise">
                 <span>{t('enterpriseFrom')}</span>
-                <strong>{formatDollars(enterprise.total)}</strong>
+                <strong>{formatPrice(locale, enterprise.total)}</strong>
               </p>
             )}
             <p className="pricing-calc__fine">{t('enterpriseFine')}</p>

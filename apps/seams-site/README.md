@@ -96,6 +96,12 @@ The build emits separate HTML files with language, title, description, canonical
 and reciprocal alternate links. The sitemap lists both languages for each page.
 Deployment smoke checks include these routes and the sitemap.
 
+Japanese pricing shows Growth at ¥15,500 per month. All other displayed prices
+use the same fixed ratio to the $99 English price. Monthly amounts round to whole
+yen. Japanese usage rates show approximate amounts to two decimal places, while
+the calculator uses the full ratio before rounding. These are display prices.
+Billing currency remains unchanged.
+
 ## Dashboard inline modal scrolling
 
 Keep one scroll host active while an inline modal is open. The backdrop owns

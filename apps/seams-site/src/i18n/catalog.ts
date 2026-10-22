@@ -1,4 +1,5 @@
 import type { Locale } from './locale';
+import { formatPricingMessage } from './pricing';
 
 export const messages = {
   companyName: { en: 'Company', ja: '会社名' },
@@ -21,6 +22,8 @@ export const messages = {
     ja: 'Seamsは、ユーザー向けのパスキーウォレットと、AIエージェント向けの権限を限定した認証情報を提供します。すべての操作を実行前にポリシーで確認します。',
   },
   free: { en: 'Free', ja: 'Free' },
+  freePrice: { en: '{zero}', ja: '{zero}' },
+  growthPrice: { en: '{growthBase}', ja: '{growthBase}' },
   perMonth: { en: 'per month', ja: '月額' },
   freeSummary: {
     en: 'For launches and small apps, in production.',
@@ -47,16 +50,16 @@ export const messages = {
     ja: '月間アクティブユーザー5,000人を含む',
   },
   growthOverage: {
-    en: '$0.004 per active user above 5,000',
-    ja: '5,000人を超えるアクティブユーザーは1人あたり$0.004',
+    en: '{growthPerUser} per active user above 5,000',
+    ja: '5,000人を超えるアクティブユーザーは1人あたり約{growthPerUser}',
   },
   pooledSignatures: {
     en: '300 signatures per user each month, pooled',
     ja: 'ユーザー1人あたり月300回の署名をアプリ全体で共有',
   },
   signatureOverage: {
-    en: '$0.05 per 1,000 signatures above the pool',
-    ja: '共有枠を超える署名は1,000回あたり$0.05',
+    en: '{growthPer1000Signatures} per 1,000 signatures above the pool',
+    ja: '共有枠を超える署名は1,000回あたり約{growthPer1000Signatures}',
   },
   custom: { en: 'Custom', ja: '個別見積もり' },
   committedVolume: { en: 'committed volume', ja: '利用量の確約に応じて' },
@@ -66,10 +69,13 @@ export const messages = {
   },
   volumePricing: { en: 'Volume pricing on committed usage', ja: '確約した利用量に応じた料金' },
   enterpriseUsers: {
-    en: 'From $0.003 per active user above 5,000',
-    ja: '5,000人を超えるアクティブユーザーは1人あたり$0.003から',
+    en: 'From {enterprisePerUser} per active user above 5,000',
+    ja: '5,000人を超えるアクティブユーザーは1人あたり約{enterprisePerUser}から',
   },
-  enterpriseSignatures: { en: 'Signatures from $0.03 per 1,000', ja: '署名1,000回あたり$0.03から' },
+  enterpriseSignatures: {
+    en: 'Signatures from {enterprisePer1000Signatures} per 1,000',
+    ja: '署名1,000回あたり約{enterprisePer1000Signatures}から',
+  },
   rollout: { en: 'Rollout planning with our team', ja: '導入計画をチームが支援' },
   contactSales: { en: 'Contact sales', ja: '営業に相談' },
   freeTeaser: { en: 'Up to 300 active users', ja: 'アクティブユーザー300人まで' },
@@ -82,8 +88,8 @@ export const messages = {
   },
   startPlan: { en: 'Start with a plan', ja: 'プランを選んで始める' },
   poolNote: {
-    en: '300 monthly signatures per active user, pooled across your app. Extra signatures: $0.05 per 1,000.',
-    ja: 'アクティブユーザー1人につき月300回の署名をアプリ全体で共有。超過分は1,000回あたり$0.05。',
+    en: '300 monthly signatures per active user, pooled across your app. Extra signatures: {growthPer1000Signatures} per 1,000.',
+    ja: 'アクティブユーザー1人につき月300回の署名をアプリ全体で共有。超過分は1,000回あたり約{growthPer1000Signatures}。',
   },
   sdkNote: {
     en: 'Full SDK on every plan. Free development. Gas and chain fees at cost, with no markup.',
@@ -121,17 +127,20 @@ export const messages = {
     en: 'Growth base, 5,000 users included',
     ja: 'Growth基本料金、5,000ユーザーを含む',
   },
-  usersLine: { en: 'Users above 5,000 at $0.004', ja: '5,000人を超えるユーザー、1人あたり$0.004' },
+  usersLine: {
+    en: 'Users above 5,000 at {growthPerUser}',
+    ja: '5,000人を超えるユーザー、1人あたり約{growthPerUser}',
+  },
   signaturesLine: {
-    en: 'Signatures above the pool at $0.05 per 1,000',
-    ja: '共有枠を超える署名、1,000回あたり$0.05',
+    en: 'Signatures above the pool at {growthPer1000Signatures} per 1,000',
+    ja: '共有枠を超える署名、1,000回あたり約{growthPer1000Signatures}',
   },
   freeMonthly: { en: 'Free plan, per month', ja: 'Freeプラン、月額' },
   growthMonthly: { en: 'Growth, per month', ja: 'Growth、月額' },
   enterpriseFrom: { en: 'Enterprise, from', ja: 'Enterpriseの目安' },
   enterpriseFine: {
-    en: 'Enterprise starts at $0.003 per active user above 5,000 and $0.03 per 1,000 signatures above the pool. Volume pricing on committed usage is quoted by our team.',
-    ja: 'Enterpriseは5,000人を超えるアクティブユーザー1人あたり$0.003から、共有枠を超える署名1,000回あたり$0.03からです。確約する利用量に応じてチームがお見積もりします。',
+    en: 'Enterprise starts at {enterprisePerUser} per active user above 5,000 and {enterprisePer1000Signatures} per 1,000 signatures above the pool. Volume pricing on committed usage is quoted by our team.',
+    ja: 'Enterpriseは5,000人を超えるアクティブユーザー1人あたり約{enterprisePerUser}から、共有枠を超える署名1,000回あたり約{enterprisePer1000Signatures}からです。確約する利用量に応じてチームがお見積もりします。',
   },
   embeddedWallet: { en: 'Embedded Wallet', ja: '組み込みウォレット' },
   embeddedCopy: {
@@ -261,14 +270,14 @@ export const messages = {
   releases: { en: 'Releases', ja: 'リリース' },
   plans: { en: 'Plans', ja: 'プラン' },
   growthNav: {
-    en: '5,000 users included, then $0.004 per user',
-    ja: '5,000ユーザーを含み、超過分は1人あたり$0.004',
+    en: '5,000 users included, then {growthPerUser} per user',
+    ja: '5,000ユーザーを含み、超過分は1人あたり約{growthPerUser}',
   },
   enterpriseNav: {
-    en: 'From $0.003 per user on committed volume',
-    ja: '確約した利用量に応じて1人あたり$0.003から',
+    en: 'From {enterprisePerUser} per user on committed volume',
+    ja: '確約した利用量に応じて1人あたり約{enterprisePerUser}から',
   },
-  monthly99: { en: '$99 / mo', ja: '$99 / 月' },
+  growthMonthlyPrice: { en: '{growthBase} / mo', ja: '{growthBase} / 月' },
   estimatePrice: { en: 'Estimate your price', ja: '料金を試算' },
   estimateNav: {
     en: 'Set your users and see the monthly total',
@@ -325,8 +334,8 @@ export const messages = {
     ja: 'ユーザーが1日に10回以上署名する場合は？',
   },
   faqPoolA: {
-    en: 'Signatures are pooled across your app: 300 for each active user each month. Busy users are covered while the average stays inside the pool. Signatures above the pool cost $0.05 per 1,000.',
-    ja: 'アクティブユーザー1人あたり月300回の署名を、アプリ全体で共有します。平均が共有枠内なら、一部のユーザーの署名が多くても追加料金はありません。共有枠を超えた分は1,000回あたり$0.05です。',
+    en: 'Signatures are pooled across your app: 300 for each active user each month. Busy users are covered while the average stays inside the pool. Signatures above the pool cost {growthPer1000Signatures} per 1,000.',
+    ja: 'アクティブユーザー1人あたり月300回の署名を、アプリ全体で共有します。平均が共有枠内なら、一部のユーザーの署名が多くても追加料金はありません。共有枠を超えた分は1,000回あたり約{growthPer1000Signatures}です。',
   },
   faqDevQ: { en: 'Do development environments count?', ja: '開発環境の利用も課金対象ですか？' },
   faqDevA: {
@@ -343,8 +352,8 @@ export const messages = {
     ja: '無料枠を超えるとどうなりますか？',
   },
   faqGrowthA: {
-    en: 'We warn you at 80% of a free limit: 300 active users or 30,000 signatures in a month. With a card on file, your app moves to Growth at the limit, with no pause: $99 a month, with 5,000 users included. Without a card, production sign-ups and signing pause at the limit until you add one. Recovery and key export stay open, with rate limits, so your users keep access to their funds.',
-    ja: '無料枠は月300アクティブユーザーまたは30,000回の署名で、上限の80%に達すると通知します。カード登録済みなら、上限でGrowthへ移行し、サービスは継続します。月額$99で5,000ユーザーを含みます。カード未登録なら、登録するまで本番の新規登録と署名を一時停止します。復旧と鍵のエクスポートはレート制限付きで利用でき、ユーザーは資金へのアクセスを維持できます。',
+    en: 'We warn you at 80% of a free limit: 300 active users or 30,000 signatures in a month. With a card on file, your app moves to Growth at the limit, with no pause: {growthBase} a month, with 5,000 users included. Without a card, production sign-ups and signing pause at the limit until you add one. Recovery and key export stay open, with rate limits, so your users keep access to their funds.',
+    ja: '無料枠は月300アクティブユーザーまたは30,000回の署名で、上限の80%に達すると通知します。カード登録済みなら、上限でGrowthへ移行し、サービスは継続します。月額{growthBase}で5,000ユーザーを含みます。カード未登録なら、登録するまで本番の新規登録と署名を一時停止します。復旧と鍵のエクスポートはレート制限付きで利用でき、ユーザーは資金へのアクセスを維持できます。',
   },
   faqCardQ: {
     en: 'Do I need a card for the free plan?',
@@ -365,5 +374,5 @@ export type MessageKey = keyof typeof messages;
 export type Translate = (key: MessageKey) => string;
 
 export function translate(locale: Locale, key: MessageKey): string {
-  return messages[key][locale];
+  return formatPricingMessage(locale, messages[key][locale]);
 }

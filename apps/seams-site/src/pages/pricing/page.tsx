@@ -1,5 +1,6 @@
-import { useTranslation } from '@/i18n/browser';
+import { useLocale, useTranslation } from '@/i18n/browser';
 import type { Translate } from '@/i18n/catalog';
+import { formatPrice } from '@/i18n/pricing';
 import React from 'react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { H2Faq, H2Footer } from '@/components/h2/sections';
@@ -31,7 +32,7 @@ function getPlans(t: Translate): readonly Plan[] {
       id: 'free',
       field: 'sky-sand',
       name: t('free'),
-      price: '$0',
+      price: t('freePrice'),
       unit: t('perMonth'),
       summary: t('freeSummary'),
       features: [
@@ -47,7 +48,7 @@ function getPlans(t: Translate): readonly Plan[] {
       id: 'growth',
       field: 'azure-coral',
       name: 'Growth',
-      price: '$99',
+      price: t('growthPrice'),
       unit: t('perMonth'),
       summary: t('growthSummary'),
       features: [
@@ -72,11 +73,11 @@ function getPlans(t: Translate): readonly Plan[] {
 }
 
 // At 10 signatures per user per day, every app stays inside its pool.
-const examples: readonly { users: string; price: string }[] = [
-  { users: '1,000', price: '$99' },
-  { users: '10,000', price: '$119' },
-  { users: '100,000', price: '$479' },
-  { users: '1,000,000', price: '$4,079' },
+const examples: readonly { users: string; priceUsd: number }[] = [
+  { users: '1,000', priceUsd: 99 },
+  { users: '10,000', priceUsd: 119 },
+  { users: '100,000', priceUsd: 479 },
+  { users: '1,000,000', priceUsd: 4_079 },
 ];
 
 /* Short summaries for the closing banner's plan cards. */
@@ -197,6 +198,7 @@ function readSelectedPlanId(): PlanId {
 
 export function PricingPage(): React.JSX.Element {
   const t = useTranslation();
+  const locale = useLocale();
   const plans = getPlans(t);
   React.useEffect(startSiteAnchorScroll, []);
   const selectedPlanId = React.useSyncExternalStore(subscribeToSiteNavigation, readSelectedPlanId);
@@ -254,7 +256,7 @@ export function PricingPage(): React.JSX.Element {
                   {examples.map((row) => (
                     <tr key={row.users}>
                       <td>{row.users}</td>
-                      <td>{row.price}</td>
+                      <td>{formatPrice(locale, row.priceUsd)}</td>
                     </tr>
                   ))}
                 </tbody>

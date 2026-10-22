@@ -11,11 +11,11 @@ const DISKS = [50, 140, -100];
 const BOUNDS = [-56, -40, -12, 16, 46, 54];
 const [BLADE_FROM, BLADE_TO] = [-46, 22];
 const [BLADE_UP, BLADE_DOWN] = [AXIS + RADIUS + 1, AXIS + SLOT_FLOOR + 0.3];
-const [TURN_MS, BLADE_MS] = [450, 1600];
-// The blade tween's phases in ms: dashed trace, solid trace, then the drop.
-const TRACE = [0, 450];
-const SOLID = [500, 950];
-const DROP = [1050, 1600];
+const [TURN_MS, BLADE_MS] = [450, 1200];
+// Blade phases in ms, starting as the disks turn: traces while they align, then the drop.
+const TRACE = [0, 330];
+const SOLID = [360, 650];
+const DROP = [700, 1200];
 
 function phase(progress, [start, end]) {
   const [a, b] = [start, end].map((ms) => HL.EASE_LIFT(ms / BLADE_MS));
@@ -136,7 +136,7 @@ function select(state, active) {
     const delay = (last - index) * state.step;
     HL.tset(disk.angle, active ? 0 : DISKS[index], now, active ? delay : BLADE_MS + delay);
   }
-  HL.tset(state.pin, active ? 1 : 0, now, active ? TURN_MS + last * state.step : 0);
+  HL.tset(state.pin, active ? 1 : 0, now, active ? state.step : 0);
   state.loop.wake();
 }
 

@@ -487,7 +487,7 @@ const CONSOLE_SCREENS = [
   {
     id: 'audit' as const,
     label: t('auditLogs'),
-    src: '/wallet-preview/wallet-console-audit.png?v=3',
+    src: '/wallet-preview/wallet-console-audit.png?v=4',
     callout: t('csvExport'),
   },
 ];

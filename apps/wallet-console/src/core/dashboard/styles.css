@@ -9230,69 +9230,323 @@ select.dashboard-input {
   }
 }
 
-/* Plan page: one card per self-serve plan, with the current plan marked. */
+/* Plan page: the current plan with this month's usage, one card per self-serve plan,
+   and the Enterprise band. Cards follow the overview's hero cards. */
+.dashboard-plan-view {
+  display: grid;
+  gap: 16px;
+  width: min(100%, 1040px);
+}
+
+.dashboard-plan-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--dashboard-success) 22%, transparent);
+  border-radius: var(--dashboard-radius-xl);
+  background: var(--dashboard-success-soft);
+  color: color-mix(in srgb, var(--dashboard-success) 80%, var(--dashboard-ink) 20%);
+  font-size: var(--dashboard-text-compact);
+  line-height: 1.45;
+}
+
+.dashboard-plan-notice svg {
+  flex: none;
+}
+
+/* A GrainField tile behind a white glyph, as on the overview's hero cards. */
+.dashboard-plan-icon {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 11px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(15, 15, 16, 0.12);
+  background: var(--dashboard-surface-soft);
+  color: #ffffff;
+}
+
+.dashboard-plan-icon svg {
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.28));
+}
+
+.dashboard-plan-current {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius-2xl);
+  background: var(--dashboard-surface);
+}
+
+.dashboard-plan-current__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dashboard-plan-current__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.dashboard-plan-current__eyebrow {
+  font-size: var(--dashboard-text-caption);
+  font-weight: 500;
+  color: var(--dashboard-ash);
+}
+
+.dashboard-plan-current__name {
+  margin: 0;
+  font-size: var(--dashboard-text-heading);
+  font-weight: 600;
+  color: var(--dashboard-ink);
+}
+
+.dashboard-plan-current__summary {
+  margin: 0;
+  font-size: var(--dashboard-text-compact);
+  color: var(--dashboard-ink-soft);
+}
+
+.dashboard-plan-current__cta {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: 40px;
+  padding: 0 18px;
+  text-decoration: none;
+}
+
+.dashboard-plan-current__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--dashboard-line);
+}
+
+.dashboard-plan-current__stats > div {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.dashboard-plan-current__stats dt {
+  font-size: var(--dashboard-text-caption);
+  color: var(--dashboard-ash);
+}
+
+.dashboard-plan-current__stats dd {
+  margin: 0;
+  font-size: var(--dashboard-text-body);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--dashboard-ink);
+}
+
+.dashboard-plan-current__stats dd span {
+  font-weight: 400;
+  color: var(--dashboard-ink-soft);
+}
+
+.dashboard-plan-meter {
+  width: 100%;
+  height: 6px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--dashboard-alpha-100);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.dashboard-plan-meter::-webkit-meter-bar {
+  height: 6px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--dashboard-alpha-100);
+}
+
+.dashboard-plan-meter::-webkit-meter-optimum-value {
+  border-radius: 9999px;
+  background: var(--dashboard-ink);
+}
+
+.dashboard-plan-meter::-moz-meter-bar {
+  border-radius: 9999px;
+  background: var(--dashboard-ink);
+}
+
 .dashboard-plan-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin: 12px 0;
 }
 
 .dashboard-plan-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 16px;
+  gap: 10px;
+  padding: 20px;
   border: 1px solid var(--dashboard-border);
-  border-radius: var(--dashboard-radius-xl);
+  border-radius: var(--dashboard-radius-2xl);
   background: var(--dashboard-surface);
 }
 
 .dashboard-plan-card--current {
-  background: var(--dashboard-alpha-50);
+  background: var(--dashboard-surface-soft);
 }
 
 .dashboard-plan-card--chosen {
   border-color: var(--dashboard-ink);
+  box-shadow: 0 0 0 1px var(--dashboard-ink);
 }
 
 .dashboard-plan-card__name {
-  margin: 0;
-  font-size: 1rem;
+  margin: 4px 0 0;
+  font-size: var(--dashboard-text-body);
   font-weight: 600;
   color: var(--dashboard-ink);
 }
 
 .dashboard-plan-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   margin: 0;
-  font-size: 1.375rem;
-  font-weight: 500;
-  color: var(--dashboard-ink);
-}
-
-.dashboard-plan-card__users,
-.dashboard-plan-card__detail,
-.dashboard-plan-card__note {
-  margin: 0;
-  font-size: var(--dashboard-text-compact);
-  line-height: 1.45;
   color: var(--dashboard-ink-soft);
+  font-size: var(--dashboard-text-supporting);
 }
 
-.dashboard-plan-card__users {
+.dashboard-plan-card__price strong {
+  font-size: var(--dashboard-text-title-compact);
+  font-weight: 500;
+  letter-spacing: -0.02em;
   color: var(--dashboard-ink);
+}
+
+.dashboard-plan-card__features {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--dashboard-line);
+  list-style: none;
+}
+
+.dashboard-plan-card__features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--dashboard-text-supporting);
+  line-height: 1.45;
+  color: var(--dashboard-ink);
+}
+
+.dashboard-plan-card__features svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--dashboard-ink-soft);
 }
 
 .dashboard-plan-card__action {
   display: grid;
   gap: 8px;
-  justify-items: start;
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 12px;
+}
+
+.dashboard-plan-card__action .dashboard-pagination-button {
+  width: 100%;
+  min-height: 40px;
 }
 
 .dashboard-plan-card__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  border-radius: var(--dashboard-radius-lg);
+  background: var(--dashboard-alpha-100);
   font-size: var(--dashboard-text-compact);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--dashboard-ink);
+}
+
+.dashboard-plan-card__note {
+  margin: 0;
+  font-size: var(--dashboard-text-caption);
+  line-height: 1.45;
+  color: var(--dashboard-ink-soft);
+}
+
+/* The Enterprise band sits on the dark onyx-dusk field with light copy. */
+.dashboard-plan-enterprise {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  border-radius: var(--dashboard-radius-2xl);
+  background: #0f0f10;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.dashboard-plan-enterprise:hover {
+  color: #ffffff;
+}
+
+.dashboard-plan-enterprise__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dashboard-plan-enterprise__title {
+  font-size: var(--dashboard-text-body);
+  font-weight: 600;
+}
+
+.dashboard-plan-enterprise__description {
+  font-size: var(--dashboard-text-compact);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.dashboard-plan-enterprise .dashboard-pagination-button {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: 40px;
+  padding: 0 18px;
+  border-color: #ffffff;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .dashboard-plan-grid,
+  .dashboard-plan-current__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-plan-current__head,
+  .dashboard-plan-enterprise {
+    flex-wrap: wrap;
+  }
 }

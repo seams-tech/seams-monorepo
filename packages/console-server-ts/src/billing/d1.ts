@@ -2,6 +2,7 @@ import { secureRandomBase36 } from '../boundary';
 import { ensureBillingFundsD1Schema } from '../billingPrepaidReservations/schema';
 import { ensureBillingUsageD1Schema } from './usageSchema';
 import { ensureFreePlanD1Schema } from './freePlanSchema';
+import { accruePlanBaseChargeForMonth } from './planBaseCharges';
 import { WALLET_MONTHLY_ACTIVE_RESOURCE_PRICE_V1 } from './pricing';
 import { listD1BillingUsageCharges } from './attribution';
 import {
@@ -2316,6 +2317,13 @@ async function generateMonthlyInvoiceD1(input: {
   periodMonthUtc: string;
 }): Promise<GenerateMonthlyInvoiceResult> {
   const createdAtMs = nowMs(input.state.now());
+  await accruePlanBaseChargeForMonth({
+    database: input.state.database,
+    namespace: input.state.namespace,
+    orgId: input.ctx.orgId,
+    monthUtc: input.periodMonthUtc,
+    nowMs: createdAtMs,
+  });
   const monthlyActiveResources = await countMonthlyActiveResources({
     database: input.state.database,
     namespace: input.state.namespace,

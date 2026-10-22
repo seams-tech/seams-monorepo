@@ -11,6 +11,7 @@ import { PlatformPlanUsageEventV1 } from '../../../packages/console-shared-ts/sr
 import { createSimulatedBillingProviderAdapters } from '../../../packages/console-server-ts/src/billing/providers';
 import { parseStripeCardSetupWebhookEvent } from '../../../packages/console-server-ts/src/billing/stripeWebhook';
 import { ConsoleBillingError } from '../../../packages/console-server-ts/src/billing/errors';
+import { runD1ConsoleBillingMonthlyFinalization } from '../../../packages/console-server-ts/src/billing/d1';
 import {
   queryD1All,
   queryD1One,
@@ -319,6 +320,17 @@ async function addCard(services: Product, org: Organization) {
   return await services.core.freePlan.reconcileCardSetup(ctx, setup.checkoutSessionId);
 }
 
+async function planBaseCharges(database: D1DatabaseLike, orgId: string) {
+  return await queryD1All(
+    database,
+    `SELECT month_utc, plan, price_version, period_start_ms, period_end_ms, amount_minor
+       FROM billing_plan_base_charges
+      WHERE namespace = ? AND org_id = ?
+      ORDER BY month_utc`,
+    [namespace, orgId],
+  );
+}
+
 test('Free plan: card clock, production-only counts, notices, hard stop, and the move to Growth', async () => {
   test.setTimeout(240_000);
   await rm(output, { recursive: true, force: true });
@@ -393,6 +405,9 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
     );
     expect(pinned?.price_version).toBe('wallet-growth-v1');
     expect(Number(pinned?.plan_started_at_ms)).toBe(clock.ms);
+    expect(await planBaseCharges(database, stopOrg.orgId)).toMatchObject([
+      { plan: 'growth', price_version: 'wallet-growth-v1', period_start_ms: clock.ms },
+    ]);
     expect((await register(database, stopOrg, 'prod', 'after-growth')).ok).toBe(true);
     await pass(services);
     expect(await noticeEmails(database, stopOrg)).toEqual([
@@ -411,6 +426,9 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
     await pass(services);
     const cardedPlan = await services.core.freePlan.getPlan({ orgId: carded.orgId });
     expect(cardedPlan).toMatchObject({ plan: 'growth', productionState: 'active' });
+    expect(await planBaseCharges(database, carded.orgId)).toMatchObject([
+      { plan: 'growth', price_version: 'wallet-growth-v1', period_start_ms: clock.ms },
+    ]);
     expect(await noticeEmails(database, carded)).toEqual([
       'free_limit_warning:card',
       'growth_move',
@@ -538,7 +556,7 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
 test('Plan start: a verified card starts Growth or Pro once, and only from Free', async () => {
   test.setTimeout(240_000);
   await rm(path.join(output, 'plan-start'), { recursive: true, force: true });
-  const clock = new Clock(Date.now());
+  const clock = new Clock(Date.parse('2026-10-22T12:00:00.000Z'));
   const worker = runtime('plan-start');
   try {
     const database = await migratedDatabase(worker);
@@ -564,7 +582,16 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
       plan: { plan: 'pro', priceVersion: 'wallet-pro-v1', productionState: 'active' },
     });
     const startedAt = verified.plan.planStartedAt;
-    expect(startedAt).toBeTruthy();
+    if (!startedAt) throw new Error('Pro plan start time was missing');
+    const proStartCharges = await planBaseCharges(database, pro.orgId);
+    expect(proStartCharges).toHaveLength(1);
+    expect(proStartCharges[0]).toMatchObject({
+      month_utc: '2026-10',
+      plan: 'pro',
+      price_version: 'wallet-pro-v1',
+      period_start_ms: Date.parse(startedAt),
+    });
+    expect(Number(proStartCharges[0]?.amount_minor)).toBe(12_228);
 
     // A replayed return or webhook does not start the plan again or move its start date.
     clock.ms += DAY_MS;
@@ -591,6 +618,7 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
       plan: 'pro',
       planStartedAt: startedAt,
     });
+    expect(await planBaseCharges(database, pro.orgId)).toEqual(proStartCharges);
 
     // Only a Free organization starts a plan.
     await expect(services.core.freePlan.startCardSetup(context(pro), 'pro')).rejects.toMatchObject({
@@ -610,6 +638,14 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
       priceVersion: 'wallet-growth-v1',
       productionState: 'active',
     });
+    const growthStartCharges = await planBaseCharges(database, growth.orgId);
+    expect(growthStartCharges).toHaveLength(1);
+    expect(growthStartCharges[0]).toMatchObject({
+      month_utc: '2026-10',
+      plan: 'growth',
+      price_version: 'wallet-growth-v1',
+    });
+    expect(Number(growthStartCharges[0]?.amount_minor)).toBe(2_715);
     await expect(services.core.freePlan.startPlan(context(growth), 'growth')).rejects.toMatchObject(
       { code: 'plan_already_active' } satisfies Partial<ConsoleBillingError>,
     );
@@ -628,6 +664,69 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
     ).rejects.toMatchObject({
       code: 'plan_change_unsupported',
     } satisfies Partial<ConsoleBillingError>);
+
+    const unbilled = organization('start-without-base-charge');
+    await createOrganization(database, services, unbilled);
+    await expect(
+      database
+        .prepare(
+          `UPDATE billing_account_plans SET plan = 'growth', plan_started_at_ms = ?,
+             price_version = 'wallet-growth-v1', production_state = 'active'
+           WHERE namespace = ? AND org_id = ?`,
+        )
+        .bind(clock.ms, namespace, unbilled.orgId)
+        .run(),
+    ).rejects.toThrow('paid_plan_base_charge_required');
+    expect((await services.core.freePlan.getPlan({ orgId: unbilled.orgId })).plan).toBe('free');
+    expect(await planBaseCharges(database, unbilled.orgId)).toHaveLength(0);
+
+    clock.ms = Date.parse('2026-11-02T12:00:00.000Z');
+    await services.core.freePlan.runScheduledPass({ limit: 50 });
+    const proCharges = await planBaseCharges(database, pro.orgId);
+    const growthCharges = await planBaseCharges(database, growth.orgId);
+    expect(proCharges).toHaveLength(2);
+    expect(growthCharges).toHaveLength(2);
+    expect(proCharges[1]).toMatchObject({ month_utc: '2026-11', amount_minor: 39_900 });
+    expect(growthCharges[1]).toMatchObject({ month_utc: '2026-11', amount_minor: 9_900 });
+    await services.core.freePlan.runScheduledPass({ limit: 50 });
+    expect(await planBaseCharges(database, pro.orgId)).toEqual(proCharges);
+    expect(await planBaseCharges(database, growth.orgId)).toEqual(growthCharges);
+
+    clock.ms = Date.parse('2027-01-02T12:00:00.000Z');
+    const monthlyClose = await runD1ConsoleBillingMonthlyFinalization({
+      database,
+      namespace,
+      orgIds: [pro.orgId, growth.orgId],
+      periodMonthUtc: '2026-12',
+      now: clock.now.bind(clock),
+    });
+    expect(monthlyClose.failures).toEqual([]);
+    const finalProCharges = await planBaseCharges(database, pro.orgId);
+    const finalGrowthCharges = await planBaseCharges(database, growth.orgId);
+    expect(finalProCharges).toHaveLength(3);
+    expect(finalGrowthCharges).toHaveLength(3);
+    expect(finalProCharges[2]).toMatchObject({ month_utc: '2026-12', amount_minor: 39_900 });
+    expect(finalGrowthCharges[2]).toMatchObject({ month_utc: '2026-12', amount_minor: 9_900 });
+
+    const evidencePath = path.join(output, 'plan-base-charges.json');
+    await writeFile(
+      evidencePath,
+      `${JSON.stringify(
+        {
+          proCharges: finalProCharges,
+          growthCharges: finalGrowthCharges,
+          unbilledPlanRejected: true,
+          replayKeptOneFirstMonthCharge: true,
+          monthlyAccrualIdempotent: true,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    await test.info().attach('plan-base-charges', {
+      path: evidencePath,
+      contentType: 'application/json',
+    });
   } finally {
     await worker.dispose();
   }

@@ -261,6 +261,7 @@ Tables:
 - `billing_ledger_accounts`
 - `billing_ledger_entries`
 - `billing_ledger_postings`
+- `billing_plan_base_charges`
 - `usage_meter_events` (append-only)
 - `usage_rollups_daily`
 - `usage_rollups_monthly`
@@ -271,6 +272,9 @@ Tables:
 
 Billing support:
 
+- Growth and Pro record a prorated first-month base charge before activation.
+  One accrual row records each later UTC month. Payment collection remains
+  pending in the monthly-close work.
 - Active-wallet usage: `Monthly Active Wallets (MAW)` definition + monthly rollup.
   - `MAW` is the count of distinct `wallet_id` per organization per calendar month (`UTC`) with at least one successful billable action.
   - Billable actions: `transfer`, `swap`, `approve`, `contract_call`.

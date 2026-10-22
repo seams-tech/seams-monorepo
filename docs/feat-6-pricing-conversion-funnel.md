@@ -31,6 +31,11 @@ Built on October 22, 2026, with a Pro plan added (decision 7). Not deployed.
   start only from `free`, need `billing.manage`, and never start twice. An explicit
   start queues no notice email. Migrations 0013 (Console core) and 0105 (Wallet
   Console) add `pro` and the `start_plan` column.
+- **Base-fee accounting.** A Growth or Pro start records the first UTC month's
+  prorated base charge in the same D1 transaction as plan activation. Later
+  months accrue once through the scheduled plan pass or monthly finalization.
+  The charge uses the plan's pinned price version. Collection remains part of
+  the future monthly-close work. Migrations 0014 and 0107 add the accrual table.
 - **Not built:** the Free plan summary on the overview, the contact prefill,
   measurement events, the day-1 email, and the acceptance browser test.
 
@@ -494,8 +499,7 @@ Recorded October 21, 2026:
 
 ## Open decisions
 
-1. **Growth before the feat-3 close.** Until the monthly close exists, a Growth
-   account accrues $99 a month that nothing collects. Open the Growth funnel only
-   after the close ships, or accept unbilled Growth months until then.
+1. **Monthly collection.** Base fees accrue durably. The monthly close must
+   collect them before the paid funnel is deployed.
 2. **Default organization name.** The email domain and the display name are a
    proposal.

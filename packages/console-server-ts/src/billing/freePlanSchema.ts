@@ -1,9 +1,11 @@
 import { formatD1ExecStatement, type D1DatabaseLike } from '../boundary/d1';
+import { PLAN_BASE_CHARGE_D1_SCHEMA_SQL } from './planBaseCharges';
 
 /**
  * Plan state, the card clock, verified payment methods, production usage counts,
- * and sent notices, per billing account. Migrations 0010, 0011 and 0013 (Console core)
- * and 0101, 0103 and 0105 (Wallet Console) create the same objects on deployed databases.
+ * sent notices, and base charges per billing account. Console-core migrations
+ * 0010, 0011, 0013, 0014 and Wallet Console migrations 0101, 0103, 0105, 0107
+ * create these objects.
  */
 export const FREE_PLAN_D1_SCHEMA_SQL = Object.freeze([
   `CREATE TABLE IF NOT EXISTS billing_free_plan_release (
@@ -169,6 +171,7 @@ export const FREE_PLAN_D1_SCHEMA_SQL = Object.freeze([
     PRIMARY KEY (namespace, org_id, notice_key),
     FOREIGN KEY (namespace, org_id) REFERENCES billing_account_plans(namespace, org_id)
   )`,
+  ...PLAN_BASE_CHARGE_D1_SCHEMA_SQL,
 ]);
 
 export async function ensureFreePlanD1Schema(database: D1DatabaseLike): Promise<void> {

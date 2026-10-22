@@ -189,8 +189,9 @@ decision:
   not read the state.
 - **Notices and banners.** One `FREE_PLAN_NOTICE` email family, each notice keyed
   once per account; banners on the billing page and the dashboard.
-- **Growth move.** One statement changes the plan and records `wallet-growth-v1`; the
-  move notice is queued only if that statement commits.
+- **Growth move.** One D1 batch records the prorated first-month base charge,
+  changes the plan, and pins `wallet-growth-v1`. The move notice queues only
+  when the plan change commits.
 - **No price lock.** Migrations `0011` (Console core) and `0103` (Wallet Console)
   remove the 12-month lock date, its check, and its trigger. The lock was never a
   pricing decision.

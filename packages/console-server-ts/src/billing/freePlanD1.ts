@@ -38,6 +38,7 @@ import {
   type SelfServePlanKindV1,
 } from './freePlan';
 import { ensureFreePlanD1Schema } from './freePlanSchema';
+import { accruePlanBaseChargeForMonth, planStartBaseChargeStatement } from './planBaseCharges';
 import {
   resolveBillingProviderAdapters,
   assertBillingProviderAvailable,
@@ -332,11 +333,22 @@ export class D1FreePlanService {
     if (snapshot.card.kind !== 'usable') {
       throw new ConsoleBillingError('card_required', 409, `Add a card to start ${plan}`);
     }
-    const [started] = await this.database.batch<D1ResultLike>([
-      this.startPlanStatement(ctx.orgId, plan, nowMs),
-    ]);
+    const results = await this.database.batch<D1ResultLike>(
+      this.startPlanStatements(ctx.orgId, plan, nowMs),
+    );
+    const started = results.at(-1);
     if (!started || d1ChangedRows(started) !== 1) {
       const current = await this.loadSnapshot(ctx.orgId, nowMs);
+      if (current?.plan.kind === 'free') {
+        if (current.card.kind !== 'usable') {
+          throw new ConsoleBillingError('card_required', 409, `Add a card to start ${plan}`);
+        }
+        throw new ConsoleBillingError(
+          'base_charge_required',
+          409,
+          'The paid plan cannot start without a recorded base charge',
+        );
+      }
       refusePlanStart(current?.plan.kind ?? 'free', plan);
     }
     await this.evaluate(ctx.orgId);
@@ -566,37 +578,57 @@ export class D1FreePlanService {
           this.namespace,
           orgId,
         ),
-      ...(startPlan ? [this.startPlanStatement(orgId, startPlan, nowMs)] : []),
+      ...(startPlan ? this.startPlanStatements(orgId, startPlan, nowMs) : []),
     ]);
+    if (startPlan) {
+      const current = await this.loadSnapshot(orgId, nowMs);
+      if (current?.plan.kind === 'free') {
+        throw new ConsoleBillingError(
+          'base_charge_required',
+          409,
+          'The paid plan cannot start without a recorded base charge',
+        );
+      }
+    }
     await this.evaluate(orgId);
     return true;
   }
 
-  /** Plan, pinned price version, and production state change in one statement. */
-  private startPlanStatement(
+  /** The first base charge and paid plan activate in one D1 transaction. */
+  private startPlanStatements(
     orgId: string,
     plan: SelfServePlanKindV1,
     nowMs: number,
-  ): D1PreparedStatementLike {
-    return this.database
-      .prepare(
-        `UPDATE billing_account_plans SET plan = ?, plan_started_at_ms = ?, price_version = ?,
+  ): D1PreparedStatementLike[] {
+    return [
+      planStartBaseChargeStatement({
+        database: this.database,
+        namespace: this.namespace,
+        orgId,
+        plan,
+        startedAtMs: nowMs,
+        cardMonthIndex: currentCardMonthIndex(nowMs),
+      }),
+      this.database
+        .prepare(
+          `UPDATE billing_account_plans SET plan = ?, plan_started_at_ms = ?, price_version = ?,
            production_state = 'active',
            production_state_changed_at_ms = CASE WHEN production_state = 'active'
              THEN production_state_changed_at_ms ELSE ? END,
            evaluation_due_at_ms = 0, updated_at_ms = ?
          WHERE namespace = ? AND org_id = ? AND plan = 'free' AND ${USABLE_CARD_SQL}`,
-      )
-      .bind(
-        plan,
-        nowMs,
-        SELF_SERVE_PLAN_PRICES_V1[plan].version,
-        nowMs,
-        nowMs,
-        this.namespace,
-        orgId,
-        currentCardMonthIndex(nowMs),
-      );
+        )
+        .bind(
+          plan,
+          nowMs,
+          SELF_SERVE_PLAN_PRICES_V1[plan].version,
+          nowMs,
+          nowMs,
+          this.namespace,
+          orgId,
+          currentCardMonthIndex(nowMs),
+        ),
+    ];
   }
 
   private async loadSnapshot(orgId: string, nowMs: number): Promise<AccountSnapshot | null> {
@@ -655,11 +687,30 @@ export class D1FreePlanService {
     const nowMs = this.clock().getTime();
     const snapshot = await this.loadSnapshot(orgId, nowMs);
     if (!snapshot) return 'missing';
+    if (snapshot.plan.kind === 'growth' || snapshot.plan.kind === 'pro') {
+      await accruePlanBaseChargeForMonth({
+        database: this.database,
+        namespace: this.namespace,
+        orgId,
+        monthUtc: monthUtcOf(nowMs),
+        nowMs,
+      });
+    }
     const evaluation = evaluateFreePlan({ ...snapshot, nowMs });
     const recipients = await this.loadRecipients(orgId);
     const statements: D1PreparedStatementLike[] = [];
     if (evaluation.kind === 'move_to_growth') {
-      // Plan, pinned price version, and production state change in one statement.
+      statements.push(
+        planStartBaseChargeStatement({
+          database: this.database,
+          namespace: this.namespace,
+          orgId,
+          plan: 'growth',
+          startedAtMs: nowMs,
+          cardMonthIndex: currentCardMonthIndex(nowMs),
+        }),
+      );
+      // The charge and plan change share one transaction.
       statements.push(
         this.database
           .prepare(
@@ -714,7 +765,7 @@ export class D1FreePlanService {
     }
     const results = await this.database.batch<D1ResultLike>(statements);
     if (evaluation.kind === 'move_to_growth') {
-      const moved = results[0];
+      const moved = results[1];
       return moved && d1ChangedRows(moved) === 1 ? 'moved_to_growth' : 'stayed';
     }
     return 'stayed';

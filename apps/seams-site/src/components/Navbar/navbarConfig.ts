@@ -4,6 +4,7 @@ import {
   Bot,
   Building2,
   Fingerprint,
+  Gauge,
   LifeBuoy,
   ListChecks,
   PenLine,
@@ -118,6 +119,14 @@ function pricingDropdownPane(t: Translate): DropdownPane {
         icon: TrendingUp,
         meta: t('growthMonthlyPrice'),
         field: 'azure-coral',
+      },
+      {
+        title: 'Pro',
+        description: t('proNav'),
+        to: '/pricing/#pro',
+        icon: Gauge,
+        meta: t('proMonthlyPrice'),
+        field: 'vermilion-sky',
       },
       {
         title: 'Enterprise',

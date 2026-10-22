@@ -1,18 +1,11 @@
 import { useTranslation, useLocale } from '@/i18n/browser';
-import type { Translate } from '@/i18n/catalog';
-import { formatPrice, PRICING_USD } from '@/i18n/pricing';
+import type { MessageKey, Translate } from '@/i18n/catalog';
+import { formatPrice } from '@/i18n/pricing';
 import React from 'react';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
-
-/* Published rates from docs/wallet-saas/pricing.md. Enterprise prices are
-   negotiated, so the estimate applies only its published floors. */
-const FREE_USERS = 300;
-const FREE_SIGNATURES = 30_000;
-const GROWTH_INCLUDED_USERS = 5_000;
-const POOL_PER_USER = 300;
-const DAYS_PER_MONTH = 30;
+import { estimate, FREE_USERS, lowestSelfServePlan, type SelfServePlanId } from './estimate';
 
 // A log-like scale from the Free plan's users: each slider step is one of these counts.
 const USER_STEPS = [
@@ -35,32 +28,24 @@ const USER_STEPS = [
 const MIN_PER_DAY = 1;
 const MAX_PER_DAY = 50;
 
-type Estimate = {
-  signatures: number;
-  base: number;
-  users: number;
-  overageSignatures: number;
-  overage: number;
-  total: number;
+/* The price breakdown names the plan, its included users, and its rates. */
+const SELF_SERVE_LABELS: Record<
+  SelfServePlanId,
+  Record<'base' | 'users' | 'signatures' | 'total', MessageKey>
+> = {
+  growth: {
+    base: 'growthBase',
+    users: 'usersLine',
+    signatures: 'signaturesLine',
+    total: 'growthMonthly',
+  },
+  pro: {
+    base: 'proBaseLine',
+    users: 'proUsersLine',
+    signatures: 'proSignaturesLine',
+    total: 'proMonthly',
+  },
 };
-
-function estimate(users: number, perDay: number, perUser: number, per1000: number): Estimate {
-  const signatures = users * perDay * DAYS_PER_MONTH;
-  if (users <= FREE_USERS && signatures <= FREE_SIGNATURES) {
-    return { signatures, base: 0, users: 0, overageSignatures: 0, overage: 0, total: 0 };
-  }
-  const userCost = Math.max(0, users - GROWTH_INCLUDED_USERS) * perUser;
-  const overageSignatures = Math.max(0, signatures - users * POOL_PER_USER);
-  const overage = (overageSignatures / 1_000) * per1000;
-  return {
-    signatures,
-    base: PRICING_USD.growthBase,
-    users: userCost,
-    overageSignatures,
-    overage,
-    total: PRICING_USD.growthBase + userCost + overage,
-  };
-}
 
 const wholeNumber = new Intl.NumberFormat('en-US');
 function signaturePoolNote(t: Translate, free: boolean, overage: number): string {
@@ -129,19 +114,15 @@ export function EnterpriseCalculator(): React.JSX.Element {
   const usersId = React.useId();
   const perDayId = React.useId();
   const users = USER_STEPS[userStep];
-  const growth = estimate(
-    users,
-    perDay,
-    PRICING_USD.growthPerUser,
-    PRICING_USD.growthPer1000Signatures,
-  );
-  const enterprise = estimate(
-    users,
-    perDay,
-    PRICING_USD.enterprisePerUser,
-    PRICING_USD.enterprisePer1000Signatures,
-  );
-  const free = growth.total === 0;
+  const selfServe = {
+    growth: estimate('growth', users, perDay),
+    pro: estimate('pro', users, perDay),
+  };
+  const enterprise = estimate('enterprise', users, perDay);
+  const lowestPlan = lowestSelfServePlan(users, perDay);
+  const lowest = selfServe[lowestPlan];
+  const labels = SELF_SERVE_LABELS[lowestPlan];
+  const free = lowest.total === 0;
 
   return (
     <section
@@ -183,34 +164,58 @@ export function EnterpriseCalculator(): React.JSX.Element {
               onChange={setPerDay}
             />
             <p className="pricing-calc__note">
-              {t('monthlySignatures').replace('{count}', wholeNumber.format(growth.signatures))}{' '}
-              {signaturePoolNote(t, free, growth.overageSignatures)}
+              {t('monthlySignatures').replace('{count}', wholeNumber.format(lowest.signatures))}{' '}
+              {signaturePoolNote(t, free, lowest.overageSignatures)}
             </p>
           </div>
           <div className="pricing-calc__result" aria-live="polite">
             <dl className="pricing-calc__lines">
               <div>
-                <dt>{t('growthBase')}</dt>
-                <dd>{formatPrice(locale, growth.base)}</dd>
+                <dt>{t(labels.base)}</dt>
+                <dd>{formatPrice(locale, lowest.base)}</dd>
               </div>
               <div>
-                <dt>{t('usersLine')}</dt>
-                <dd>{formatPrice(locale, growth.users)}</dd>
+                <dt>{t(labels.users)}</dt>
+                <dd>{formatPrice(locale, lowest.users)}</dd>
               </div>
               <div>
-                <dt>{t('signaturesLine')}</dt>
-                <dd>{formatPrice(locale, growth.overage)}</dd>
+                <dt>{t(labels.signatures)}</dt>
+                <dd>{formatPrice(locale, lowest.overage)}</dd>
               </div>
             </dl>
-            <p className="pricing-calc__total">
-              <span>{free ? t('freeMonthly') : t('growthMonthly')}</span>
-              <strong>{formatPrice(locale, growth.total)}</strong>
-            </p>
-            {free ? null : (
-              <p className="pricing-calc__total pricing-calc__total--enterprise">
-                <span>{t('enterpriseFrom')}</span>
-                <strong>{formatPrice(locale, enterprise.total)}</strong>
+            {free ? (
+              <p className="pricing-calc__total pricing-calc__total--lowest">
+                <span>{t('freeMonthly')}</span>
+                <strong>{formatPrice(locale, 0)}</strong>
               </p>
+            ) : (
+              <>
+                {(['growth', 'pro'] as const).map((plan) => (
+                  <p
+                    key={plan}
+                    className={
+                      plan === lowestPlan
+                        ? 'pricing-calc__total pricing-calc__total--lowest'
+                        : 'pricing-calc__total pricing-calc__total--other'
+                    }
+                  >
+                    <span>
+                      {t(SELF_SERVE_LABELS[plan].total)}
+                      {plan === lowestPlan ? (
+                        <>
+                          {' '}
+                          <span className="pricing-calc__badge">{t('lowestSelfServe')}</span>
+                        </>
+                      ) : null}
+                    </span>
+                    <strong>{formatPrice(locale, selfServe[plan].total)}</strong>
+                  </p>
+                ))}
+                <p className="pricing-calc__total pricing-calc__total--other">
+                  <span>{t('enterpriseFrom')}</span>
+                  <strong>{formatPrice(locale, enterprise.total)}</strong>
+                </p>
+              </>
             )}
             <p className="pricing-calc__fine">{t('enterpriseFine')}</p>
             <a

@@ -24,6 +24,7 @@ export const messages = {
   free: { en: 'Free', ja: 'Free' },
   freePrice: { en: '{zero}', ja: '{zero}' },
   growthPrice: { en: '{growthBase}', ja: '{growthBase}' },
+  proPrice: { en: '{proBase}', ja: '{proBase}' },
   perMonth: { en: 'per month', ja: '月額' },
   freeSummary: {
     en: 'For launches and small apps, in production.',
@@ -61,6 +62,23 @@ export const messages = {
     en: '{growthPer1000Signatures} per 1,000 signatures above the pool',
     ja: '共有枠を超える署名は1,000回あたり約{growthPer1000Signatures}',
   },
+  proSummary: {
+    en: 'For apps at scale that need an SLA.',
+    ja: '利用者が多く、稼働保証が必要なアプリに。',
+  },
+  proUsers: {
+    en: '100,000 monthly active users included',
+    ja: '月間アクティブユーザー100,000人を含む',
+  },
+  proOverage: {
+    en: '{proPerUser} per active user above 100,000',
+    ja: '100,000人を超えるアクティブユーザーは1人あたり約{proPerUser}',
+  },
+  proSignatureOverage: {
+    en: '{proPer1000Signatures} per 1,000 signatures above the pool',
+    ja: '共有枠を超える署名は1,000回あたり約{proPer1000Signatures}',
+  },
+  proSupport: { en: 'Uptime SLA and priority support', ja: '稼働率SLAと優先サポート' },
   custom: { en: 'Custom', ja: '個別見積もり' },
   committedVolume: { en: 'committed volume', ja: '利用量の確約に応じて' },
   enterpriseSummary: {
@@ -80,6 +98,7 @@ export const messages = {
   contactSales: { en: 'Contact sales', ja: '営業に相談' },
   freeTeaser: { en: 'Up to 300 active users', ja: 'アクティブユーザー300人まで' },
   growthTeaser: { en: '5,000 users included', ja: '5,000ユーザーを含む' },
+  proTeaser: { en: '100,000 users included', ja: '100,000ユーザーを含む' },
   enterpriseTeaser: { en: 'Committed volume', ja: '確約した利用量に応じて' },
   buildSdk: { en: 'Build with the Seams SDK', ja: 'Seams SDKで開発を始める' },
   bannerCopy: {
@@ -88,8 +107,8 @@ export const messages = {
   },
   startPlan: { en: 'Start with a plan', ja: 'プランを選んで始める' },
   poolNote: {
-    en: '300 monthly signatures per active user, pooled across your app. Extra signatures: {growthPer1000Signatures} per 1,000.',
-    ja: 'アクティブユーザー1人につき月300回の署名をアプリ全体で共有。超過分は1,000回あたり約{growthPer1000Signatures}。',
+    en: 'Paid plans include 300 monthly signatures per active user, pooled across your app.',
+    ja: '有料プランでは、アクティブユーザー1人につき月300回の署名をアプリ全体で共有できます。',
   },
   sdkNote: {
     en: 'Full SDK on every plan. Free development. Gas and chain fees at cost, with no markup.',
@@ -97,10 +116,11 @@ export const messages = {
   },
   exampleTitle: { en: 'What a month costs as you grow', ja: 'ユーザー数に応じた月額料金の例' },
   exampleCopy: {
-    en: 'An app where each user signs 10 times a day. Every user includes 300 signatures a month, so you pay for active users only.',
-    ja: 'ユーザー1人が1日10回署名するアプリの例です。各ユーザーに月300回の署名を含むため、アクティブユーザー数に応じた料金だけがかかります。',
+    en: 'An app where each user signs 10 times a day. Every user includes 300 signatures a month, so you pay for active users only. Each row shows the plan with the lowest price.',
+    ja: 'ユーザー1人が1日10回署名するアプリの例です。各ユーザーに月300回の署名を含むため、アクティブユーザー数に応じた料金だけがかかります。各行には最も安いプランを示します。',
   },
   monthlyUsers: { en: 'Monthly active users', ja: '月間アクティブユーザー数' },
+  plan: { en: 'Plan', ja: 'プラン' },
   monthlyPrice: { en: 'Price per month', ja: '月額料金' },
   estimateTitle: { en: 'Estimate your monthly price', ja: '月額料金を試算する' },
   estimateCopy: {
@@ -135,8 +155,22 @@ export const messages = {
     en: 'Signatures above the pool at {growthPer1000Signatures} per 1,000',
     ja: '共有枠を超える署名、1,000回あたり約{growthPer1000Signatures}',
   },
+  proBaseLine: {
+    en: 'Pro base, 100,000 users included',
+    ja: 'Pro基本料金、100,000ユーザーを含む',
+  },
+  proUsersLine: {
+    en: 'Users above 100,000 at {proPerUser}',
+    ja: '100,000人を超えるユーザー、1人あたり約{proPerUser}',
+  },
+  proSignaturesLine: {
+    en: 'Signatures above the pool at {proPer1000Signatures} per 1,000',
+    ja: '共有枠を超える署名、1,000回あたり約{proPer1000Signatures}',
+  },
   freeMonthly: { en: 'Free plan, per month', ja: 'Freeプラン、月額' },
   growthMonthly: { en: 'Growth, per month', ja: 'Growth、月額' },
+  proMonthly: { en: 'Pro, per month', ja: 'Pro、月額' },
+  lowestSelfServe: { en: 'Lowest self-serve price', ja: 'セルフサービスで最安' },
   enterpriseFrom: { en: 'Enterprise, from', ja: 'Enterpriseの目安' },
   enterpriseFine: {
     en: 'Enterprise starts at {enterprisePerUser} per active user above 5,000 and {enterprisePer1000Signatures} per 1,000 signatures above the pool. Volume pricing on committed usage is quoted by our team.',
@@ -273,11 +307,16 @@ export const messages = {
     en: '5,000 users included, then {growthPerUser} per user',
     ja: '5,000ユーザーを含み、超過分は1人あたり約{growthPerUser}',
   },
+  proNav: {
+    en: '100,000 users included, then {proPerUser} per user',
+    ja: '100,000ユーザーを含み、超過分は1人あたり約{proPerUser}',
+  },
   enterpriseNav: {
     en: 'From {enterprisePerUser} per user on committed volume',
     ja: '確約した利用量に応じて1人あたり約{enterprisePerUser}から',
   },
   growthMonthlyPrice: { en: '{growthBase} / mo', ja: '{growthBase} / 月' },
+  proMonthlyPrice: { en: '{proBase} / mo', ja: '{proBase} / 月' },
   estimatePrice: { en: 'Estimate your price', ja: '料金を試算' },
   estimateNav: {
     en: 'Set your users and see the monthly total',

@@ -23,8 +23,6 @@ export type MenuHighlight = {
   to: string;
   /** The moving gradient behind the card. */
   field: GrainFieldName;
-  /** Sets the icon in white in the card's top-left corner. */
-  icon?: MenuRow['icon'];
 };
 
 export type MenuFooterLink = {
@@ -546,7 +544,6 @@ export function SiteNavbar({
     const paneClassName = `navbar-static__access-pane ${paneVisualClass(pane.id, openDropdown)}`;
 
     const highlightProps = pane.highlight ? getMenuItemProps(pane.highlight.to) : null;
-    const HighlightIcon = pane.highlight?.icon;
 
     return (
       <div
@@ -611,11 +608,6 @@ export function SiteNavbar({
                   tabIndex={isActive ? undefined : -1}
                 >
                   <GrainField field={pane.highlight.field} playing={isActive} />
-                  {HighlightIcon ? (
-                    <span className="navbar-static__menu-highlight-icon" aria-hidden>
-                      <HighlightIcon size={18} strokeWidth={1.7} />
-                    </span>
-                  ) : null}
                   <span className="navbar-static__menu-highlight-title">
                     {pane.highlight.title}
                   </span>

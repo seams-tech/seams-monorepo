@@ -484,13 +484,6 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   color: #ffffff;
 }
 
-.navbar-static__menu-highlight-icon {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  display: flex;
-}
-
 .navbar-static__menu-highlight-title {
   font-size: 13px;
   font-weight: 600;

@@ -3,7 +3,6 @@ import type { Locale } from '@/i18n/locale';
 import {
   Bot,
   Building2,
-  Crown,
   Fingerprint,
   LifeBuoy,
   ListChecks,
@@ -135,7 +134,6 @@ function pricingDropdownPane(t: Translate): DropdownPane {
       description: t('enterpriseNav'),
       to: '/pricing/#enterprise',
       field: 'onyx-slate',
-      icon: Crown,
     },
     footerLinks: [
       { label: t('comparePlans'), to: '/pricing/' },

@@ -724,9 +724,8 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /* global HL, hairline */
-// interlock/combination-interlock.js as flat disks, a dial and a blade. Once the
-// keyways align, the blade traces itself in dashes, then in a solid line, then
-// drops in: its top level with the rims, its ends 6 units past the outer disks.
+// Flat disks, a dial and a blade. Once the keyways align, the blade traces itself
+// in dashes, then solid, then drops in: top level with the rims, ends 6 units out.
 const AXIS = 45;
 const RADIUS = 31;
 const BLADE_HEIGHT = 9.6;
@@ -739,12 +738,12 @@ const BLADE_FROM = -46;
 const BLADE_TO = 22;
 const BLADE_UP = AXIS + RADIUS + 3;
 const BLADE_DOWN = AXIS + SLOT_FLOOR + 0.3;
-const TURN_MS = 700;
-const BLADE_MS = 2100;
+const TURN_MS = 450;
+const BLADE_MS = 1600;
 // The blade tween's phases in ms: dashed trace, solid trace, then the drop.
-const TRACE = [0, 600];
-const SOLID = [650, 1250];
-const DROP = [1350, 2100];
+const TRACE = [0, 450];
+const SOLID = [500, 950];
+const DROP = [1050, 1600];
 
 function phase(progress, [start, end]) {
   const [a, b] = [start, end].map((ms) => HL.EASE_LIFT(ms / BLADE_MS));
@@ -890,7 +889,8 @@ function mount({ stage, svg, read }, step) {
     const bladeFrom = Math.max(from, BLADE_FROM);
     const bladeTo = Math.min(to, BLADE_TO);
     if (bladeFrom < bladeTo) blades.push(makeBlade(svg, P, bladeFrom, bladeTo));
-    if (index < DISKS.length) disks.push(makePlate(svg, P, to, HL.tween(DISKS[index]), DISK));
+    if (index < DISKS.length)
+      disks.push(makePlate(svg, P, to, HL.tween(DISKS[index], TURN_MS), DISK));
     else if (index === DISKS.length) dial = makePlate(svg, P, to, null, DIAL);
   }
   dial.mark = HL.mk('path', { class: 'nf sil' }, svg);

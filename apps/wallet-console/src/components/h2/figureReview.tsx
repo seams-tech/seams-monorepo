@@ -10,6 +10,7 @@ import previousInfrastructure from '../../../showcase/motion/infrastructure-arra
 import edgePlatforms from '../../../showcase/motion/lockin-edge/index.html?raw';
 import splitKeys from '../../../showcase/motion/keys-split/index.html?raw';
 import mazeInterlock from '../../../showcase/motion/interlock-maze/index.html?raw';
+import layersInterlock from '../../../showcase/motion/interlock-layers/index.html?raw';
 import { H2Security } from './sections';
 import {
   candidateFigureDocument,
@@ -28,6 +29,7 @@ type Review = { figure: WalletFigureName; label: string; html: string };
 const candidates: readonly Review[] = [
   { figure: 'keychain', label: 'Keys you control: two halves, one block', html: splitKeys },
   { figure: 'interlock', label: 'Scoped permissions: maze rings', html: mazeInterlock },
+  { figure: 'interlock', label: 'Scoped permissions: policy layers', html: layersInterlock },
   { figure: 'infrastructure', label: 'No lock-in: edge', html: edgePlatforms },
 ];
 

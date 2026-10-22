@@ -337,6 +337,10 @@ Notes:
 Project members can read audit events, evidence, and activity only for a project
 they can view. An omitted project filter uses the member's selected project.
 Organization-scoped activity does not enter a member's project count.
+The same project boundary applies to observability events, summary, timeseries,
+and service health. An omitted project filter uses the member's selected project.
+An environment filter must name an environment in that project. Owners and
+administrators can read observability across their organization.
 Custody retries reuse the stored operation subject and target. A recipient-pair
 write succeeds only while the staged fingerprints match the approved pair.
 

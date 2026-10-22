@@ -1413,6 +1413,7 @@ async function handleConsoleObservability(ctx: CloudflareConsoleContext): Promis
     requireConsoleAuth,
     requireConsoleRoutePolicy,
     requireObservabilityService,
+    requireWalletEnvironmentService,
     toAuditContext,
     sendObservabilityError,
   });

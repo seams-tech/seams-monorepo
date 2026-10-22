@@ -43,6 +43,11 @@ import { createD1ConsoleWalletService } from '../../../packages/wallet-console-s
 import { createD1ConsoleKeyExportService } from '../../../packages/wallet-console-server-ts/src/keyExports/d1';
 import { createD1ConsolePolicyService } from '../../../packages/wallet-console-server-ts/src/policies/d1';
 import { createD1ConsoleApprovalService } from '../../../packages/wallet-console-server-ts/src/approvals/d1';
+import {
+  createD1ConsoleObservabilityIngestionService,
+  createD1ConsoleObservabilityService,
+} from '../../../packages/console-server-ts/src/observability/d1';
+import { buildConsoleObservabilityEventEnvelope } from '../../../packages/console-server-ts/src/observability/adapters';
 import { createD1TenantRootStepUpStoreV1 } from '../../../packages/wallet-console-server-ts/src/tenantRootSecurity/stepUpStore';
 import { tenantRootRequestSessionIdV1 } from '../../../packages/wallet-console-server-ts/src/tenantRootSecurity/routeGuard';
 import {
@@ -1782,6 +1787,69 @@ test('project members see only assigned project resources while owners govern th
       outcome: 'SUCCESS',
       summary: 'Organization-wide audit event',
     });
+    const observability = await createD1ConsoleObservabilityService({
+      database,
+      namespace,
+      ensureSchema: true,
+    });
+    const observabilityIngestion = await createD1ConsoleObservabilityIngestionService({
+      database,
+      namespace,
+      ensureSchema: true,
+    });
+    const observationTimestamp = new Date().toISOString();
+    await observabilityIngestion.appendEvents(owner, [
+      buildConsoleObservabilityEventEnvelope({
+        eventIdPrefix: 'member-scope',
+        eventId: 'observation-project-a',
+        orgId: owner.orgId,
+        projectId: projectA,
+        environmentId: environmentA.id,
+        timestamp: observationTimestamp,
+        source: 'WEBHOOK',
+        service: 'scope-project-a',
+        component: 'delivery',
+        level: 'INFO',
+        eventType: 'scope.project_a',
+        message: 'Project A event',
+        metadata: {},
+      }),
+      buildConsoleObservabilityEventEnvelope({
+        eventIdPrefix: 'member-scope',
+        eventId: 'observation-project-b',
+        orgId: owner.orgId,
+        projectId: projectB,
+        environmentId: environmentB.id,
+        timestamp: observationTimestamp,
+        source: 'WEBHOOK',
+        service: 'scope-project-b',
+        component: 'delivery',
+        level: 'ERROR',
+        eventType: 'webhook.delivery.dead_letter',
+        message: 'Project B dead letter',
+        metadata: {},
+      }),
+    ]);
+    await observabilityIngestion.observeRequestMetric(owner, {
+      orgId: owner.orgId,
+      projectId: projectA,
+      environmentId: environmentA.id,
+      route: '/console/billing/project-a',
+      method: 'POST',
+      statusCode: 200,
+      latencyMs: 75,
+      timestamp: observationTimestamp,
+    });
+    await observabilityIngestion.observeRequestMetric(owner, {
+      orgId: owner.orgId,
+      projectId: projectB,
+      environmentId: environmentB.id,
+      route: '/console/billing/project-b',
+      method: 'POST',
+      statusCode: 500,
+      latencyMs: 375,
+      timestamp: observationTimestamp,
+    });
 
     const editor = await product.core.organizationAccess.invite(owner, {
       email: 'editor@activation.invalid',
@@ -1813,6 +1881,16 @@ test('project members see only assigned project resources while owners govern th
       viewer.invitation.id,
       { token: viewer.token },
     );
+    const administrator = await product.core.organizationAccess.invite(owner, {
+      email: 'administrator@activation.invalid',
+      role: 'ADMIN',
+      adminPermissions: [],
+    });
+    await product.core.organizationAccess.acceptInvitation(
+      { userId: 'credential-administrator', verifiedEmail: 'administrator@activation.invalid' },
+      administrator.invitation.id,
+      { token: administrator.token },
+    );
 
     const router = createCloudflareConsoleRouter({
       auth: createConsoleSessionAuthAdapter({
@@ -1827,6 +1905,7 @@ test('project members see only assigned project resources while owners govern th
       onboarding: product.core.onboarding,
       billing: product.core.billing,
       audit: product.core.audit,
+      observability,
       walletEnvironments: product.environments,
       apiKeys: product.apiKeys,
       wallets,
@@ -1856,6 +1935,11 @@ test('project members see only assigned project resources while owners govern th
       projectId: projectA,
     });
     const viewerToken = await product.session.signJwt('credential-viewer', {
+      kind: 'console_session_v1',
+      orgId: owner.orgId,
+      projectId: projectA,
+    });
+    const administratorToken = await product.session.signJwt('credential-administrator', {
       kind: 'console_session_v1',
       orgId: owner.orgId,
       projectId: projectA,
@@ -2294,6 +2378,175 @@ test('project members see only assigned project resources while owners govern th
     const ownerActivity = await consoleRequest(router, ownerToken, projectA, 'GET', activityQuery);
     expect(ownerActivity.status).toBe(200);
     expect(await ownerActivity.json()).toMatchObject({ bins: [{ total: 3 }] });
+
+    const memberObservabilityEvents = await consoleResourceIds(
+      await consoleRequest(router, editorToken, projectA, 'GET', '/console/observability/events'),
+      'events',
+    );
+    expect(memberObservabilityEvents).toEqual(['observation-project-a']);
+    const ownerObservabilityEvents = await consoleResourceIds(
+      await consoleRequest(router, ownerToken, projectA, 'GET', '/console/observability/events'),
+      'events',
+    );
+    expect(ownerObservabilityEvents).toEqual(
+      expect.arrayContaining(['observation-project-a', 'observation-project-b']),
+    );
+    const administratorObservabilityEvents = await consoleResourceIds(
+      await consoleRequest(
+        router,
+        administratorToken,
+        projectA,
+        'GET',
+        '/console/observability/events',
+      ),
+      'events',
+    );
+    expect(administratorObservabilityEvents).toEqual(
+      expect.arrayContaining(['observation-project-a', 'observation-project-b']),
+    );
+    const memberObservabilitySummary = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      '/console/observability/summary',
+    );
+    expect(memberObservabilitySummary.status).toBe(200);
+    expect(await memberObservabilitySummary.json()).toMatchObject({
+      summary: { errorRate: 0, deadLetterCount: 0, failingServices: 0 },
+    });
+    const ownerObservabilitySummary = await consoleRequest(
+      router,
+      ownerToken,
+      projectA,
+      'GET',
+      '/console/observability/summary',
+    );
+    expect(ownerObservabilitySummary.status).toBe(200);
+    expect(await ownerObservabilitySummary.json()).toMatchObject({
+      summary: { errorRate: 0.5, deadLetterCount: 1 },
+    });
+    const memberObservabilityTimeseries = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      '/console/observability/timeseries',
+    );
+    expect(memberObservabilityTimeseries.status).toBe(200);
+    expect(await memberObservabilityTimeseries.json()).toMatchObject({
+      buckets: expect.arrayContaining([
+        expect.objectContaining({ requestCount: 1, errorCount: 0 }),
+      ]),
+    });
+    const ownerObservabilityTimeseries = await consoleRequest(
+      router,
+      ownerToken,
+      projectA,
+      'GET',
+      '/console/observability/timeseries',
+    );
+    expect(ownerObservabilityTimeseries.status).toBe(200);
+    expect(await ownerObservabilityTimeseries.json()).toMatchObject({
+      buckets: expect.arrayContaining([
+        expect.objectContaining({ requestCount: 2, errorCount: 1 }),
+      ]),
+    });
+    const memberObservabilityServices = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      '/console/observability/services',
+    );
+    expect(memberObservabilityServices.status).toBe(200);
+    expect(await memberObservabilityServices.json()).toMatchObject({
+      services: [{ service: 'billing', recentFailureCount: 0 }, { service: 'scope-project-a' }],
+    });
+    const ownerObservabilityServices = await consoleRequest(
+      router,
+      ownerToken,
+      projectA,
+      'GET',
+      '/console/observability/services',
+    );
+    expect(ownerObservabilityServices.status).toBe(200);
+    expect(await ownerObservabilityServices.json()).toMatchObject({
+      services: expect.arrayContaining([expect.objectContaining({ service: 'scope-project-b' })]),
+    });
+    const foreignObservabilityProject = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      `/console/observability/events?projectId=${projectB}`,
+    );
+    expect(foreignObservabilityProject.status).toBe(403);
+    const foreignObservabilityEnvironment = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'GET',
+      `/console/observability/events?environmentId=${environmentB.id}`,
+    );
+    expect(foreignObservabilityEnvironment.status).toBe(404);
+    const ownObservabilityEnvironmentEvents = await consoleResourceIds(
+      await consoleRequest(
+        router,
+        editorToken,
+        projectA,
+        'GET',
+        `/console/observability/events?environmentId=${environmentA.id}`,
+      ),
+      'events',
+    );
+    expect(ownObservabilityEnvironmentEvents).toEqual(['observation-project-a']);
+    const mismatchedObservabilityEnvironment = await consoleRequest(
+      router,
+      ownerToken,
+      projectA,
+      'GET',
+      `/console/observability/events?projectId=${projectA}&environmentId=${environmentB.id}`,
+    );
+    expect(mismatchedObservabilityEnvironment.status).toBe(404);
+    const ownerProjectBObservabilityEvents = await consoleResourceIds(
+      await consoleRequest(
+        router,
+        ownerToken,
+        projectA,
+        'GET',
+        `/console/observability/events?environmentId=${environmentB.id}`,
+      ),
+      'events',
+    );
+    expect(ownerProjectBObservabilityEvents).toEqual(['observation-project-b']);
+    const observabilityEvidencePath = testInfo.outputPath('observability-project-access.json');
+    await writeFile(
+      observabilityEvidencePath,
+      `${JSON.stringify(
+        {
+          memberObservabilityEvents,
+          ownerObservabilityEvents,
+          administratorObservabilityEvents,
+          ownerProjectBObservabilityEvents,
+          ownObservabilityEnvironmentEvents,
+          memberSummary: { errorRate: 0, deadLetterCount: 0, failingServices: 0 },
+          ownerSummary: { errorRate: 0.5, deadLetterCount: 1 },
+          memberTimeseriesRequestCount: 1,
+          ownerTimeseriesRequestCount: 2,
+          memberServices: ['billing', 'scope-project-a'],
+          foreignProjectStatus: foreignObservabilityProject.status,
+          foreignEnvironmentStatus: foreignObservabilityEnvironment.status,
+          mismatchedEnvironmentStatus: mismatchedObservabilityEnvironment.status,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    await testInfo.attach('observability-project-access', {
+      path: observabilityEvidencePath,
+      contentType: 'application/json',
+    });
 
     const foreignSnapshot = await consoleRequest(
       router,

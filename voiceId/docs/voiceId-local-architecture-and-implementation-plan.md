@@ -187,14 +187,13 @@ Scaffolding steps 1 and 2, plus the domain/adapter contracts in step 3, are comp
 - `aarch64-apple-darwin` is the first native development target. This selects a
   build/integration host; the actual robot, array, camera, and environment still
   require L0 qualification.
-- The first deliverable is an embedded shared library (`cdylib`), with `rlib`
-  output for Rust composition/testing. Step 3 specifies host API responsibilities
-  and memory ownership; concrete C declarations and exports follow the runtime
-  shell. No executable service or IPC protocol is being introduced.
-- Moonshine stays a native dependency behind `adapters::native`. A standalone
-  Rust link/load probe against the provisioned Moonshine 0.0.71 arm64 artifact
-  returned C ABI version `20000`. Production stream integration and portable
-  release packaging remain implementation work.
+- The native deliverables include a shared library (`cdylib`), `rlib` output,
+  and the development CLI. ABI 1 has a compiled C journey. The CLI also hosts
+  one Chrome stdio connection for the browser prototype. Chrome owns its lifetime.
+- Moonshine stays a native dependency behind `adapters::native`. The runtime
+  uses pinned Moonshine 0.1.5, C ABI `30000`, Tiny Streaming models, and native
+  ECAPA inference. Native fixture and browser journeys pass with network access
+  denied. Portable release packaging and live capture qualification remain open.
 - Domain, runtime, utterance, presence, attribution, and enrollment logic remain
   portable. Native capture/storage/clock/model bindings are excluded from WASM.
   Browser model execution and platform adapters remain independently qualified

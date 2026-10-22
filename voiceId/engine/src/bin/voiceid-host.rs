@@ -30,7 +30,7 @@ mod host {
     use voiceid_engine::utterance::TranscriptOutcome;
 
     const SERVICE: &str = "com.seams.voiceid.prototype";
-    const USAGE: &str = "voiceid-host devices | status | delete | enroll <native-inputs.json> | check <native-inputs.json>";
+    const USAGE: &str = "voiceid-host devices | status | delete | enroll <native-inputs.json> | check <native-inputs.json> | browser <native-inputs.json> <namespace> <caller-origin>";
 
     enum Command {
         Devices,
@@ -38,10 +38,19 @@ mod host {
         Delete,
         Enroll(PathBuf),
         Check(PathBuf),
+        Browser(PathBuf, String, String),
     }
 
     pub fn run() -> Result<(), String> {
         let command = parse_command()?;
+        if let Command::Browser(models, namespace, origin) = command {
+            return voiceid_engine::adapters::native::browser_host::run(
+                &models,
+                &namespace,
+                &origin,
+                &mut voiceid_engine::adapters::native::browser_host::MicrophoneCommand,
+            );
+        }
         if matches!(command, Command::Devices) {
             println!("{}", Microphone::default_device().map_err(adapter_error)?);
             return Ok(());
@@ -51,6 +60,7 @@ mod host {
             .map_err(store_error)?;
         match command {
             Command::Devices => unreachable!(),
+            Command::Browser(..) => unreachable!(),
             Command::Status => {
                 match store
                     .load(&clock.work_for(Duration::from_secs(10)))
@@ -94,6 +104,19 @@ mod host {
             Some("delete") => Command::Delete,
             Some("enroll") => Command::Enroll(PathBuf::from(arguments.next().ok_or(USAGE)?)),
             Some("check") => Command::Check(PathBuf::from(arguments.next().ok_or(USAGE)?)),
+            Some("browser") => Command::Browser(
+                PathBuf::from(arguments.next().ok_or(USAGE)?),
+                arguments
+                    .next()
+                    .ok_or(USAGE)?
+                    .into_string()
+                    .map_err(|_| USAGE)?,
+                arguments
+                    .next()
+                    .ok_or(USAGE)?
+                    .into_string()
+                    .map_err(|_| USAGE)?,
+            ),
             _ => return Err(USAGE.into()),
         };
         if arguments.next().is_some() {

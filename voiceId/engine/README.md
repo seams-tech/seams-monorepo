@@ -1,13 +1,15 @@
 # Private VoiceID engine
 
-C host checkpoint as of 2026-10-23. The portable engine coordinates one
+Browser/native checkpoint as of 2026-10-23. The portable engine coordinates one
 bounded utterance through transcription and speaker adapters. It checks
 continuity, deadlines, output correlation, enrollment changes, and result consumption.
 Native Moonshine Tiny and ECAPA adapters process local fixture PCM.
 The macOS development host adds capture, enrollment collection, Keychain storage,
 deletion, and command checks. ABI 1 exposes those engine lifecycles to a native
-C caller. Live microphone qualification, robot actions, and wallet integration
-remain open.
+C caller. The development executable also hosts one Chrome native-messaging
+connection. The [browser prototype](../browser/README.md) reaches the wallet's
+existing signing boundary with real native models and synthetic speech.
+Live microphone qualification, robot actions, and a funded wallet transaction remain open.
 
 The first MVP assumes a user-controlled, authorized device. It uses speaker
 matching and local approval of one exact wallet operation under existing authority.
@@ -26,11 +28,11 @@ and assurance-aware admission remain unimplemented contract work.
 | --- | --- |
 | Production language | Rust, edition 2024. Keep the existing Python package as evaluation/reference tooling. |
 | First native host | The current Apple Silicon macOS development host, `aarch64-apple-darwin`. Target-robot hardware and sensor qualification remain open. |
-| First artifact | An embedded native shared library, built as `cdylib`. Step 3 defines host ownership below; concrete C layouts/exports follow the runtime shell. An `rlib` supports Rust composition and tests. No daemon or IPC service is introduced. |
+| First artifact | An embedded native shared library, built as `cdylib`, plus the development CLI. An `rlib` supports Rust composition and tests. Chrome owns each stdio host process. |
 | Speech backend | Moonshine 0.1.5, C ABI 30000, Tiny Streaming quantized models, and ONNX Runtime 1.23.2. The host supplies utterance boundaries. |
 | Speaker backend | Full-waveform ECAPA ONNX export from the pinned SpeechBrain reference. CPU inference uses ONNX Runtime through `ort`. |
-| Browser direction | Compile the portable engine for `wasm32-unknown-unknown`. Browser capture, storage, model execution, and host bindings are separately qualified adapters. |
-| Package boundary | One unpublished private crate in `seams-monorepo/voiceId/engine`; the public wallet extension and private wallet provider remain outside this crate. |
+| Browser direction | The prototype uses Chrome native messaging on macOS. The portable engine also compiles for `wasm32-unknown-unknown`; browser model execution remains separate work. |
+| Package boundary | One unpublished private crate in `seams-monorepo/voiceId/engine`. Its Chrome host transports opaque perception bindings. Wallet operation construction, authentication, and signing remain in the public Wallet repository. |
 
 The shared library exports the macOS [C API](include/voiceid.h).
 Its native C journey links only the compiled library and this header.

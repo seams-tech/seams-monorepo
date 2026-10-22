@@ -10,6 +10,7 @@ use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
+use super::browser_host::CommandCapture;
 use super::local_host::{
     CollectionPurpose, HOST_CHUNK_SAMPLES, HOST_MAXIMUM_SAMPLES, LocalClock, LocalModels,
     SpokenCommand, collect_utterance, enroll_captures, spoken_command,
@@ -24,7 +25,9 @@ use crate::domain::{
     InputError, ProfileId,
 };
 use crate::enrollment::{EnrollmentRecord, EnrollmentState};
-use crate::runtime::{AudioRuntime, Clock, RuntimeStatus, StopReason, WorkContext, WorkError};
+use crate::runtime::{
+    AudioRuntime, Cancellation, Clock, RuntimeStatus, StopReason, WorkContext, WorkError,
+};
 use crate::utterance::{Assessment, SpeakerVerdict, SpeechWindow, TranscriptOutcome, UtteranceId};
 
 static NEXT_ID: OnceLock<AtomicU64> = OnceLock::new();
@@ -145,12 +148,23 @@ pub(crate) struct NativeSession {
 }
 
 impl NativeSession {
-    pub(crate) fn open(models: &Path, namespace: &str) -> Result<Self, NativeError> {
+    pub(crate) fn open(
+        models: &Path,
+        namespace: &str,
+        cancellation: &impl Cancellation,
+    ) -> Result<Self, NativeError> {
         let clock = LocalClock::new().map_err(adapter_error)?;
-        let work = clock.work_for(Duration::from_secs(60));
+        let work = WorkContext {
+            deadline: clock.work_for(Duration::from_secs(60)).deadline,
+            clock: &clock,
+            cancellation,
+        };
+        // Model setup can outlive a disconnected browser port. Keep it outside
+        // the enrollment lease so a cancelled startup cannot block its replacement.
+        let models = LocalModels::load(models, &work).map_err(adapter_error)?;
+        work.check().map_err(work_error)?;
         let mut store = KeychainStore::open(namespace, &work).map_err(store_error)?;
         let enrollment = store.load(&work).map_err(store_error)?;
-        let models = LocalModels::load(models, &work).map_err(adapter_error)?;
         let ready = clock.capture_ready(ProfileId(
             Sha256::digest(
                 b"voiceid-c-abi-capture-v1\0mono-f32;16000hz;host-timestamps;25ms-bound\0",
@@ -222,6 +236,68 @@ impl NativeSession {
             deadline: work.deadline,
         });
         Ok(request)
+    }
+
+    pub(crate) fn listen_capture(
+        &mut self,
+        timeout_ms: u32,
+        capture: &mut impl CommandCapture,
+        cancellation: &impl Cancellation,
+        on_started: &mut dyn FnMut() -> Result<(), AdapterError>,
+    ) -> Result<NativeOutcome, NativeError> {
+        let request = self.begin(timeout_ms)?;
+        let result = self.collect_command(request, capture, cancellation, on_started);
+        if result.is_err() {
+            let _ = self.cancel(request);
+        }
+        result
+    }
+
+    fn collect_command(
+        &mut self,
+        request: RequestId,
+        capture: &mut impl CommandCapture,
+        cancellation: &impl Cancellation,
+        on_started: &mut dyn FnMut() -> Result<(), AdapterError>,
+    ) -> Result<NativeOutcome, NativeError> {
+        let deadline = self.attempt(request)?.deadline;
+        let captured = {
+            let work = WorkContext {
+                deadline,
+                clock: &self.clock,
+                cancellation,
+            };
+            work.check().map_err(work_error)?;
+            let captured = capture
+                .collect(&self.clock, &work, on_started)
+                .map_err(adapter_error)?;
+            work.check().map_err(work_error)?;
+            captured
+        };
+        let first = captured.audio().stamp();
+        for (sequence, samples) in captured
+            .audio()
+            .samples()
+            .chunks(HOST_CHUNK_SAMPLES)
+            .enumerate()
+        {
+            if cancellation.is_cancelled() {
+                return Err(NativeError::Cancelled);
+            }
+            let at = nanoseconds(
+                first.captured_at.elapsed
+                    + super::local_host::sample_duration(sequence * HOST_CHUNK_SAMPLES),
+            )?;
+            self.push(request, sequence as u64, at, samples.to_vec())?;
+        }
+        if cancellation.is_cancelled() {
+            return Err(NativeError::Cancelled);
+        }
+        self.finish(request)?;
+        if cancellation.is_cancelled() {
+            return Err(NativeError::Cancelled);
+        }
+        Ok(self.take(request)?.outcome)
     }
 
     pub(crate) fn push(

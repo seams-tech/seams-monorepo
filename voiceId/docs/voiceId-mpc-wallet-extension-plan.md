@@ -2,9 +2,10 @@
 
 Date: 2026-09-14
 Updated: 2026-10-23
-Status: proposed extension; no VoiceID wallet factor or signing integration is
-implemented by this plan. Local gating and standalone remote admission are
-separate delivery stages.
+Status: the browser/native local gate is implemented on isolated VoiceID branches.
+The real-model browser journey reaches the existing signing boundary.
+Live microphone qualification and a funded testnet transaction remain open.
+Standalone remote admission remains a separate delivery stage.
 
 Related plans:
 
@@ -52,12 +53,11 @@ VoiceID implementation. The engine, model integration, calibration, and private
 provider implementation remain in `seams-monorepo/voiceId` and are delivered as
 versioned proprietary native/WASM artifacts with any required host bindings.
 
-The integrating wallet runtime explicitly supplies a provider implementing the
-public contract. Public SDK builds, examples, and contract tests work without
-private source, models, or release credentials. VoiceID is optional: importing
-the base SDK does not load the engine or fetch biometric model assets. Use the
-existing wallet package conventions for an optional module/export; introduce a
-separate package only if the delivery boundary needs it.
+The wallet origin controls the required VoiceID setting. The prototype invokes
+its pinned Chrome extension through a versioned native-messaging port. Public
+SDK builds and contract tests work without private source, models, or release
+credentials. Importing the base SDK loads no private engine or biometric model
+assets. The existing authentication and signing runtime retain their authority.
 
 ### Minimal provider surface
 
@@ -327,46 +327,48 @@ actual method recorded accurately. The first MVP requires no PAD result.
 The private native boundary now exists. ABI 1 exposes bounded session, capture,
 enrollment, cancellation, and single-use perception results. Its compiled C journey
 passes with real models, protected storage, and real elapsed-time expiry.
-This completes the engine/host seam. It adds no wallet signing gate.
+The Chrome prototype now composes that engine with the public wallet review gate.
+The [runbook](../browser/README.md) records setup and repeatable evidence.
 
 Repository inspection on 2026-10-23 established these integration boundaries:
 
 | Concern | Existing owner | Integration requirement |
 | --- | --- | --- |
-| Signing orchestration | `seams-wallet/packages/wallet/src/core/runtime` | The current `RuntimePortsKind` supports `browser`. Select the native bridge before adding a consumer. |
-| Operation identity | `SigningOperationId` and `SigningOperationFingerprint` in `core/signingEngine/session/operationState/types.ts` | Reuse validated operation identities and require a frozen fingerprint at the voice boundary. The existing context permits an absent fingerprint. |
+| Signing orchestration | `seams-wallet/packages/wallet/src/core/runtime` | The existing browser wallet invokes the local Chrome native-messaging bridge. |
+| Operation identity | Frozen wallet-iframe request and execution configuration | SHA-256 covers the wallet, exact transfer, network, review identity, generation, and expiry. The existing signer retains its canonical intent/display digest and operation state. |
 | Existing authority | Selected lane identity, `WalletSessionRef`, quota, and threshold-session types | Voice success cannot construct or replace those values. |
 | Presentation lifecycle | `TransactionReviewWire` and `TransactionReviewAdmission` | Preserve connection/request/surface/generation identity, activation, expiry, cancellation, and the signing boundary. |
 | Local voice result | Private native ABI 1 request/result handles | Consume once within the same pending wallet operation. Reject another operation, generation, session, or host lifetime. |
 | Native wallet orchestration | No embedded wallet SDK crate exists in this checkout | The runtime README's embedded-SDK statement is stale. A standalone native wallet needs orchestration work beyond the C perception interface. |
 
-The host choice remains open between the existing browser wallet with a local
-native bridge and a standalone native wallet host. Browser integration must keep
-provider admission inside the wallet origin and validate the bridge's caller,
-version, operation binding, cancellation, and lifecycle. A generic application
-callback is insufficient for that boundary.
+The selected host is the existing browser wallet with a Chrome extension and a
+Chrome-launched native process. The wallet origin owns admission. The bridge
+checks its caller, versioned port, operation binding, cancellation, and lifecycle.
+The native process owns its microphone, models, and Keychain enrollment lease.
 
-After selecting the host, implement one NEAR testnet transfer profile. Use the
+The first profile implements one reviewed NEAR testnet transfer. It uses the
 existing canonical transaction, intent/display digest, and session authorization.
 Present that frozen operation before collecting **“I approve this operation”** or
 **“I cancel this operation.”** Revalidate all bindings before MPC participation.
-Then exercise changed operations, late replies, another speaker, cancellation,
-duplicate delivery, and uncertain signing outcomes through the real integration.
+The public contract exercises changed operations, late replies, cancellation,
+expiry, single consumption, and a fresh replacement. The private journey adds
+real native models, another speaker, spoken cancellation, and extra words.
+The funded testnet exercise still needs to verify broadcast and uncertain outcomes.
 
-- [ ] Choose the native host, wallet lane/protocol, test network, initial asset
+- [x] Choose the native host, wallet lane/protocol, test network, initial asset
       and transaction allowlist. Keep the first real signing exercise on testnet.
-- [ ] Map challenge and approval fields to existing wallet operation, session,
+- [x] Map challenge and approval fields to existing wallet operation, session,
       authority, quota, canonicalization, and confirmation boundaries.
-- [ ] Define the minimal public provider contract and optional extension surface
+- [x] Define the minimal public provider contract and optional extension surface
       in `seams-wallet`, coordinating with local-plan L1. Specify distinct local
       approval and device-assertion variants, boundary parsers, and cancellation.
-- [ ] Select the private artifact/native binding and version/capability contract.
+- [x] Select the private artifact/native binding and version/capability contract.
       Document the browser wallet-origin boundary for later L7 integration.
-- [ ] Add public contract tests with deterministic provider doubles independent
+- [x] Add public contract tests with deterministic provider doubles independent
       of private assets. Keep real model/provider evaluation in `seams-monorepo`.
-- [ ] Select the local trusted process boundary and how it exclusively controls
+- [x] Select the local trusted process boundary and how it exclusively controls
       the integration's signing entry point.
-- [ ] Set approval timeout, retry/rate limits, approval/cancellation vocabulary, risk
+- [x] Set approval timeout, retry/rate limits, approval/cancellation vocabulary, risk
       limits, and measurable acceptance criteria.
 
 Exit: a public extension contract and a private provider delivery boundary for
@@ -379,16 +381,16 @@ MPC behavior. No proprietary source is required to build or test the extension.
       lane/session material. Do not add a VoiceID factor yet.
 - [ ] Require an authorized setup device or an owner-approved linked device.
       Voice enrollment or approval cannot provision signing authority on another device.
-- [ ] Add the operation-bound challenge, deterministic summary, and pending
+- [x] Add the operation-bound challenge, deterministic summary, and pending
       approval lifecycle within the existing wallet workflow.
-- [ ] Adapt local VoiceID to the wallet's active approval profile without PAD,
+- [x] Adapt local VoiceID to the wallet's active approval profile without PAD,
       random spoken cues, visual evidence, or authenticated sensor capture.
       Keep wallet server challenges outside ordinary robot interactions.
-- [ ] Implement the optional public extension in `seams-wallet` and the private
+- [x] Implement the optional public extension in `seams-wallet` and the private
       provider in `seams-monorepo`. Integrate the actual compiled native release
       using local-plan L2 for the prototype. Clean-host distribution follows L6;
       robot visual-context and spoof-detection milestones do not block W1.
-- [ ] Gate the actual client signing entry point; keep secret material and the
+- [x] Gate the actual client signing entry point; keep secret material and the
       reusable session handle inaccessible to the conversational caller.
 - [ ] Add exact-operation consumption, failure, cancellation, restart, and
       uncertain-outcome behavior.

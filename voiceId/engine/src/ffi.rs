@@ -10,6 +10,16 @@ use crate::adapters::native::local_host::SpokenCommand;
 use crate::adapters::native::session::{
     NativeError, NativeOutcome, NativeResult, NativeSession, NativeStatus, RequestId, allocate_id,
 };
+use crate::runtime::Cancellation;
+
+// A C call owns the session thread until it returns. C cancellation is admitted
+// between synchronous calls, through the existing request handle.
+struct CallInProgress;
+impl Cancellation for CallInProgress {
+    fn is_cancelled(&self) -> bool {
+        false
+    }
+}
 
 const MAXIMUM_SESSIONS: usize = 4;
 thread_local! { static SESSIONS: RefCell<BTreeMap<u64, NativeSession>> = const { RefCell::new(BTreeMap::new()) }; }
@@ -322,7 +332,7 @@ fn execute_borrowed(
             if sessions.len() >= MAXIMUM_SESSIONS {
                 return Err(NativeError::Busy);
             }
-            let session = NativeSession::open(&models, &namespace)?;
+            let session = NativeSession::open(&models, &namespace, &CallInProgress)?;
             let handle = allocate_id()?;
             sessions.insert(handle, session);
             Ok(Reply::Number(handle))

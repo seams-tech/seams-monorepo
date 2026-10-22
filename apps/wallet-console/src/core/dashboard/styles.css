@@ -9493,7 +9493,7 @@ select.dashboard-input {
   color: var(--dashboard-ink-soft);
 }
 
-/* The Enterprise band sits on the dark onyx-dusk field with light copy. */
+/* The Enterprise band sits on the black onyx field with light copy. */
 .dashboard-plan-enterprise {
   position: relative;
   isolation: isolate;

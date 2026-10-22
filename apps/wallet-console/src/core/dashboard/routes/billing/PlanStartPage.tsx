@@ -20,11 +20,13 @@ import {
   type DashboardPlanChoice,
 } from './planIntent';
 
-/* The pricing page's plans, with its gradients and icons; the Pro price is a placeholder,
+/* Every gradient on this page is the black onyx field. The Pro price is a placeholder,
    as on the pricing page. */
+const PLAN_FIELD: GrainFieldName = 'onyx-black';
+
+/* The pricing page's plans with their icons. */
 const PLAN_OFFERS: readonly {
   readonly plan: DashboardPlanChoice;
-  readonly field: GrainFieldName;
   readonly icon: LucideIcon;
   readonly price: string;
   readonly includedUsers: number;
@@ -32,7 +34,6 @@ const PLAN_OFFERS: readonly {
 }[] = [
   {
     plan: 'free',
-    field: 'sky-sand',
     icon: Sprout,
     price: '$0',
     includedUsers: 300,
@@ -44,7 +45,6 @@ const PLAN_OFFERS: readonly {
   },
   {
     plan: 'growth',
-    field: 'azure-coral',
     icon: TrendingUp,
     price: '$99',
     includedUsers: 5_000,
@@ -56,7 +56,6 @@ const PLAN_OFFERS: readonly {
   },
   {
     plan: 'pro',
-    field: 'vermilion-sky',
     icon: Rocket,
     price: '$399',
     includedUsers: 100_000,
@@ -232,7 +231,7 @@ export function PlanStartPage(): React.JSX.Element {
             <div className="dashboard-plan-current__head">
               {currentOffer ? (
                 <span className="dashboard-plan-icon" aria-hidden="true">
-                  <GrainField field={currentOffer.field} playing={false} />
+                  <GrainField field={PLAN_FIELD} playing={false} />
                   <currentOffer.icon size={20} />
                 </span>
               ) : null}
@@ -317,7 +316,7 @@ export function PlanStartPage(): React.JSX.Element {
               return (
                 <article key={offer.plan} className={className} aria-label={`${name} plan`}>
                   <span className="dashboard-plan-icon" aria-hidden="true">
-                    <GrainField field={offer.field} playing={false} />
+                    <GrainField field={PLAN_FIELD} playing={false} />
                     <offer.icon size={20} />
                   </span>
                   <h3 className="dashboard-plan-card__name">{name}</h3>
@@ -375,7 +374,7 @@ export function PlanStartPage(): React.JSX.Element {
           </div>
 
           <a className="dashboard-plan-enterprise" href="https://seams.sh/pricing/#contact">
-            <GrainField field="onyx-dusk" />
+            <GrainField field={PLAN_FIELD} />
             <span className="dashboard-plan-enterprise__copy">
               <span className="dashboard-plan-enterprise__title">Enterprise</span>
               <span className="dashboard-plan-enterprise__description">

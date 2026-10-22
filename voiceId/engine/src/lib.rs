@@ -1,4 +1,4 @@
-//! Portable local VoiceID values and adapter contracts.
+//! Portable local VoiceID values, adapter contracts, and bounded audio coordination.
 //!
 //! Adapters run inside the trusted local host. These types describe evidence;
 //! they provide no sensor attestation or permission to execute a command.

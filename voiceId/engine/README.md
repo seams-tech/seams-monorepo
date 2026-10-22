@@ -1,10 +1,14 @@
 # Private VoiceID engine
 
-Domain/adapter contract checkpoint as of 2026-09-15. The portable module tree,
-validated domain values, and Rust adapter traits build and have contract tests.
-There is no runtime coordinator, concrete model/capture/storage adapter,
-enrollment implementation, robot action, wallet integration, or callable C host
-API yet.
+Audio runtime checkpoint as of 2026-10-22. The portable engine coordinates one
+bounded utterance through injected transcription and speaker adapters. It checks
+continuity, deadlines, output correlation, enrollment changes, and result consumption.
+There is no concrete model/capture/storage adapter, enrollment collection,
+robot action, wallet integration, or callable C host API yet.
+
+The first MVP assumes a user-controlled, authorized device. It uses speaker
+matching and local approval of one exact wallet operation under existing authority.
+PAD, visual confirmation, and authenticated capture are outside this MVP.
 
 The planned
 [macOS virtual capture device](../docs/voiceId-macos-virtual-capture-device-plan.md)
@@ -58,13 +62,13 @@ requires separate work and does not follow from compiling the Rust modules.
 | `presence` | Short-lived participant context and continuity invalidation | Consumes observations; no camera access or authorization. |
 | `attribution` | Associate observations with the current speaker/utterance | No robot control or wallet signing. |
 | `enrollment` | Template modalities, versioned enrollment records, validated replacement requests | Device storage and model extraction stay behind adapters; collection/approval lifecycle follows later. |
-| `adapters` | Capture, storage, transcription, speaker, PAD, and visual contracts | Native implementations stay under `adapters::native`, excluded on WASM targets. Clock/cancellation contracts live in `runtime`. |
+| `adapters` | Capture, storage, transcription, speaker, and visual contracts | Native implementations stay under `adapters::native`, excluded on WASM targets. Clock/cancellation contracts live in `runtime`. |
 | `consumers` | Robot command interpretation, action policy, controller handoff | Safety belongs to the robot controller; wallet protocol types stay outside the crate. |
 
 The first six modules stay portable. Model-specific values are normalized at
 adapter boundaries. Consumers use engine results; perception never depends on
-consumer policy. The later composition entry point wires concrete adapters into
-the runtime. Domain and adapter contracts are exposed through documented Rust
+consumer policy. The composition entry point supplies adapters to `AudioRuntime`.
+Domain and adapter contracts are exposed through documented Rust
 modules; native bindings and consumer implementation stay private. Unsafe code
 is denied; any future FFI exception must be narrowly scoped and reviewed in the
 native adapter or host binding.
@@ -80,27 +84,61 @@ verification, and the distinction between capture integrity and human intent.
   and clock mappings; owned timestamped audio/video frames. PCM preserves source
   channels. The initial portable video format is contiguous RGB8; acquisition
   adapters own platform-specific conversion.
-- `utterance`: session-scoped utterance identity, lifecycle states, bounded mono
+- `utterance`: session-scoped utterance identity, bounded mono
   model windows, distinct partial/final transcripts, explicit no-speech completion,
-  and source-bound calibrated speaker/PAD verdicts. Partial text is a replaceable
+  and source-bound calibrated speaker verdicts. Partial text is a replaceable
   full snapshot. Finalizing consumes the decoder; dropping it cancels it.
 - `presence`: track identity, capture time, location with uncertainty or explicit
   spatial unavailability, and current/recent/expired/departed/invalidated states.
   Recent context retains its original timestamp and a configured maximum horizon.
 - `attribution`: attributed/ambiguous/rejected/insufficient outcomes. Only the
   attributed branch carries identity, supporting gates, profile, and validity.
-  It has no public success constructor. Attribution policy is unimplemented;
-  there is no command execution handle or reusable unlocked state.
+  It has no public success constructor. The runtime implements audio-only speaker
+  attribution. There is no command execution handle or reusable unlocked state.
 - `enrollment`: required voice and explicit optional face enrollment, bounded
   model/version-specific template bytes, and same-identity advancing replacement.
   The store contract provides atomic create/compare-and-replace/delete with
   authenticated device binding, explicit conflicts, and uncertain-commit handling.
 
 Traits exist only at substitution boundaries: `AudioCapture`, `VideoCapture`,
-`Transcriber`/`TranscriptStream`, `SpeakerMatcher`, `PresentationAttackDetector`,
+`Transcriber`/`TranscriptStream`, `SpeakerMatcher`,
 `VisualAnalyzer`, `TemplateStore`, `Clock`, and `Cancellation`. No implementation
 returns placeholder identity success. Model verdicts describe calibrated gates;
 they do not prove physical liveness or trusted sensor origin.
+
+## Audio runtime lifecycle — step 4
+
+`AudioRuntime` owns one decoder, one bounded mono buffer, and at most one pending
+result. `begin` allocates an utterance identity and fixes its deadline. `push`
+accepts contiguous 16 kHz mono frames captured after the attempt began. The host
+owns capture and speech endpoint detection. The runtime performs no resampling.
+
+`finish` consumes the decoder and assesses the complete captured window against
+the current enrollment. It checks transcript and speaker source identities,
+model/calibration revisions, text bounds, and work eligibility. Silence yields
+an insufficient outcome without calling the speaker matcher. PAD has no runtime
+contract, field, bypass flag, or passing placeholder.
+
+`take_result` rechecks the deadline and releases the result once. Evidence expiry
+uses the first sample's time plus the configured maximum age, reduced by capture
+clock uncertainty. Passing a later work deadline cannot extend an attempt.
+Partial snapshots never become finalized results.
+
+Cancellation, enrollment reload/deletion, and close discard pending work.
+Capture gaps and clock discontinuities stop the session. `restart` requires a
+different capture epoch and preserves increasing utterance sequences. The host
+must generate a fresh epoch on every restart. A submission for an older utterance
+cannot modify a newer attempt. New model/profile configuration requires a new runtime.
+
+Calls are synchronous. Native adapters must retain inputs until their readers
+finish, even after cancellation. The host drives finalization, cancellation,
+result consumption, and shutdown. No background scheduler or worker queue exists.
+Exported perception results remain subject to their validity and the consumer's
+operation checks. They carry no wallet signing authority.
+
+The runtime journey uses generated PCM and deterministic model doubles. It
+qualifies orchestration and resource cleanup. It does not qualify real models,
+microphone latency, biometric accuracy, protected storage, or wallet integration.
 
 ### Ownership, limits, and cancellation
 
@@ -158,10 +196,21 @@ The manifest has no dependencies on Wallet, Python, Moonshine, or model assets.
 Artifacts remain under this crate's ignored `target/` directory. These commands
 do not modify Wallet source or its Cargo lockfiles. The current 12 boundary tests
 cover media limits/format, epoch binding, text finality, presence horizon, visual
-correlation, template replacement, and work eligibility. Seven compile-fail tests
-check invalid state construction, premature/reused transcript handling, and media
-logging/copying. These tests qualify contracts only; runtime race, adapter, storage,
-attribution-accuracy, and latency tests remain implementation work.
+correlation, template replacement, and work eligibility. Eight compile-fail tests
+check invalid state/result construction, premature/reused transcript handling, and media
+logging/copying. The runtime journey exercises complete attempts, rejection,
+ambiguous/insufficient evidence, cancellation, version changes, malformed/late
+outputs, bounded admission, capture loss, restart, and decoder cleanup.
+
+Repeat the journey from `seams-wallet`:
+
+```sh
+cargo test --offline --locked --manifest-path ../seams-monorepo/voiceId/engine/Cargo.toml --test runtime_journey -- --nocapture
+```
+
+It writes `voiceId/engine/target/runtime-lifecycle.e2e.json`, with named outcomes
+and explicit test-double provenance. The report contains no media, embeddings,
+or transcripts. The ignored artifact is regenerated by the command.
 
 To repeat the optional native link/load probe from that same directory, set the
 native library directory to an explicitly provisioned Moonshine 0.0.71 artifact:
@@ -181,13 +230,13 @@ This macOS development probe requires `libmoonshine.dylib` and its matching
 
 ## Next checkpoint
 
-The domain types and adapter-contract portion of step 3 is complete. Host ownership
-is specified above; exported C declarations/bindings remain deferred until there is
-a runtime shell. Step 4 adds that shell and lifecycle tests, including continuity
-invalidation, out-of-order/late results, bounded admission, stream finalization,
-and enrollment-version invalidation. Keep unimplemented capabilities
-unavailable; add no successful placeholder verifier, fake enrollment, action
-dispatcher, or signing path to make the scaffold appear functional.
+Step 4's audio runtime and lifecycle journey are implemented. Next, stream real
+fixture PCM through a native Rust Moonshine adapter and qualify a native speaker
+backend against the retained Python reference. Then add live capture, protected
+enrollment, the C host binding, and wallet W0-W1 composition.
+
+Keep unimplemented capabilities unavailable. Test doubles stay inside the
+integration test; no production adapter returns placeholder identity success.
 
 The [local architecture plan](../docs/voiceId-local-architecture-and-implementation-plan.md)
 owns the implementation sequence. The

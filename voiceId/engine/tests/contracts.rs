@@ -1,16 +1,13 @@
 use std::cell::Cell;
-use std::num::{NonZeroU16, NonZeroU32, NonZeroU64, NonZeroUsize};
+use std::num::{NonZeroU16, NonZeroU32, NonZeroUsize};
 use std::time::Duration;
 
 use voiceid_engine::domain::{
     AudioFormat, AudioFrame, CalibrationId, CaptureReady, CaptureSessionId, CaptureTime,
-    ClockMapping, CoordinateFrameId, DeviceId, EnrollmentId, EnrollmentRef, FrameStamp,
-    IdentityMatch, InputError, ModelId, ProfileId, TimeRange, UnavailableReason, VideoFormat,
-    VideoFrame,
+    ClockMapping, CoordinateFrameId, EnrollmentId, FrameStamp, IdentityMatch, InputError, ModelId,
+    ProfileId, TimeRange, UnavailableReason, VideoFormat, VideoFrame,
 };
-use voiceid_engine::enrollment::{
-    EnrollmentRecord, EnrollmentReplacement, FaceEnrollment, TemplateData, VoiceTemplate,
-};
+use voiceid_engine::enrollment::{EnrollmentReplacement, FaceEnrollment, TemplateData};
 use voiceid_engine::presence::{
     Location, PositionEstimate, RecentPresence, TrackId, VisualAssessment, VisualObservation,
 };
@@ -23,6 +20,9 @@ const SESSION: CaptureSessionId = CaptureSessionId([1; 16]);
 const OTHER_SESSION: CaptureSessionId = CaptureSessionId([2; 16]);
 const MODEL: ModelId = ModelId([1; 32]);
 const CALIBRATION: CalibrationId = CalibrationId([2; 32]);
+
+mod support;
+use support::enrollment;
 
 fn limit(value: usize) -> NonZeroUsize {
     NonZeroUsize::new(value).unwrap()
@@ -93,20 +93,6 @@ fn observation() -> VisualObservation {
         IdentityMatch::Unknown,
     )
     .unwrap()
-}
-
-fn enrollment(version: u64) -> EnrollmentRecord {
-    EnrollmentRecord {
-        identity: EnrollmentRef {
-            id: EnrollmentId([4; 16]),
-            version: NonZeroU64::new(version).unwrap(),
-        },
-        device: DeviceId([5; 16]),
-        voice: VoiceTemplate(
-            TemplateData::new(MODEL, NonZeroU32::new(1).unwrap(), vec![1, 2, 3], limit(3)).unwrap(),
-        ),
-        face: FaceEnrollment::Disabled,
-    }
 }
 
 #[test]

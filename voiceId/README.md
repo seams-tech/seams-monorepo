@@ -23,12 +23,16 @@ evaluation tools, research material, and private local fixtures remain.
 - [Legacy removal record](docs/voiceId-legacy-removal-plan.md)
 - [Architecture discussion history](docs/voiceId-architecture-discussion-2026-09-13.md)
 
-The [private Rust engine scaffold](engine/README.md) now defines module ownership,
-validated domain types, and adapter contracts with focused tests. Its first target
-is an embedded native shared library on Apple Silicon
-macOS, with Moonshine behind a C-ABI adapter and the portable core checked for
-WASM. Runtime behavior, model integration, and the wallet extension remain
-unimplemented. Nothing in this checkpoint authorizes robot actions or signing.
+The [private Rust engine](engine/README.md) now includes validated domain types,
+adapter contracts, and a bounded audio runtime with a repeatable lifecycle journey.
+Its first target is an embedded native shared library on Apple Silicon macOS.
+Native Moonshine/model integration, capture, storage, host exports, and the wallet
+extension remain unimplemented. Nothing in this checkpoint authorizes robot actions
+or signing.
+
+The first MVP assumes a user-controlled, authorized device. It checks the enrolled
+speaker and explicit approval for one pending wallet operation under existing
+authority. Spoof detection, visual confirmation, and authenticated capture are deferred.
 
 ## Private engine
 
@@ -37,7 +41,7 @@ coordination, utterances, presence, attribution, enrollment, adapters, and robot
 consumers. Native adapter code has its own target-specific module. The public
 wallet contract and private wallet provider will stay outside this crate.
 
-The scaffold has no external dependencies, callable host API, or placeholder
+The engine has no external dependencies, callable host API, or placeholder
 verification behavior. See [engine checks and decisions](engine/README.md) for
 native/WASM builds and the standalone Rust-to-Moonshine link/load probe.
 
@@ -85,8 +89,8 @@ Heavy model benchmarks require their optional dependencies and locally
 provisioned, checksum-verified model assets. Inference must not silently download
 a model or use a remote fallback.
 
-The next architecture step is the runtime shell and lifecycle tests. Domain and
-adapter contracts now exist; native host ownership is specified, while concrete
-C declarations/exports follow the runtime. L0 still owns the actual robot/sensor profile, permitted
-actions, and measurable resource/error budgets. L1 coordinates the minimal public
-provider contract with wallet W0; those wallet changes are a separate checkpoint.
+The next step is native streaming transcription and native speaker-backend
+qualification against the retained reference models. Live capture, protected
+enrollment storage, and concrete C declarations/exports follow. L0 owns the MVP
+microphone profile and measured resource/error budgets. L1 coordinates the minimal
+public provider contract with wallet W0. Wallet signing requires W0-W1 composition.

@@ -1,4 +1,4 @@
-//! Synchronous, bounded local adapter contracts. The later runtime owns scheduling.
+//! Synchronous, bounded local adapter contracts. The runtime owns admission and lifecycle.
 //!
 //! Input borrows end when the call returns. Implementations must finish or join every
 //! native reader before returning, including on error. Cancellation is cooperative:
@@ -14,8 +14,8 @@ use crate::enrollment::{EnrollmentRecord, EnrollmentReplacement, EnrollmentState
 use crate::presence::VisualAssessment;
 use crate::runtime::{WorkContext, WorkError};
 use crate::utterance::{
-    Assessment, PartialTranscript, PresentationVerdict, SpeakerVerdict, SpeechWindow,
-    TranscriptOutcome, UtteranceId, UtteranceSpan,
+    Assessment, PartialTranscript, SpeakerVerdict, SpeechWindow, TranscriptOutcome, UtteranceId,
+    UtteranceSpan,
 };
 
 /// Recoverable adapter failure; errors never contain a successful observation.
@@ -124,18 +124,6 @@ pub trait SpeakerMatcher {
         enrollment: &EnrollmentRecord,
         work: &WorkContext<'_>,
     ) -> Result<Assessment<SpeakerVerdict>, AdapterError>;
-}
-
-/// Presentation-attack detection (PAD), separate from speaker identity and ASR.
-pub trait PresentationAttackDetector {
-    /// Missing or uncalibrated models provide no passing gate.
-    fn availability(&self) -> Availability<()>;
-    /// Evaluate a bounded current-utterance window independently of speaker similarity.
-    fn assess(
-        &mut self,
-        window: &SpeechWindow,
-        work: &WorkContext<'_>,
-    ) -> Result<Assessment<PresentationVerdict>, AdapterError>;
 }
 
 /// Frame analysis/tracking with bounded adapter-owned temporal state, cleared on epoch change.

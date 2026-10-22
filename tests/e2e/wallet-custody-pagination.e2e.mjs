@@ -82,7 +82,7 @@ try {
   await page.mouse.move(0, 0);
 
   // Each capability's figure plays in turn, with its bullet and label lit.
-  assert.equal(await page.evaluate(activeBullet), 'Non-custodial');
+  assert.equal(await page.evaluate(activeBullet), 'Nobody signs alone');
   assert.equal(
     await section.locator('.h2-security__cell.is-active span').textContent(),
     'Keys you control',
@@ -101,7 +101,7 @@ try {
   const interlock = page.frameLocator('iframe[data-figure="interlock"]').locator('#read');
   await interlock.filter({ hasText: /picking|aligning|pin|unlocked/ }).waitFor({ timeout: 2000 });
   await keychain.filter({ hasText: /^rest$/ }).waitFor({ timeout: 2000 });
-  for (const bullet of ['Multiple devices', 'Self-hosted']) {
+  for (const bullet of ['Wallets your users do not lose', 'Own your accounts. Leave any time.']) {
     await progress.evaluate(approachCompletion);
     await page.waitForFunction(bulletIsActive, bullet, { timeout: 2000 });
   }
@@ -155,7 +155,7 @@ try {
 
   // Hovering a figure hands it the turn and holds the timer.
   await section.locator('iframe[data-figure="devices"]').hover();
-  await page.waitForFunction(bulletIsActive, 'Multiple devices', { timeout: 1000 });
+  await page.waitForFunction(bulletIsActive, 'Wallets your users do not lose', { timeout: 1000 });
   const hovered = await progress.evaluate(progressState);
   assert.equal(hovered.state, 'paused');
   await page.waitForTimeout(300);

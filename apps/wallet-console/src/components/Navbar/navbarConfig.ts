@@ -112,14 +112,21 @@ const pricingDropdownPane: DropdownPane = {
       field: 'azure-coral',
     },
     {
-      title: 'Enterprise',
-      description: t('enterpriseDescription'),
-      to: '/pricing/#enterprise',
+      title: 'Pro',
+      description: t('proDescription'),
+      to: '/pricing/#pro',
       icon: Rocket,
-      meta: t('custom'),
-      field: 'mauve-ember',
+      meta: t('proMonthlyPrice'),
+      field: 'vermilion-sky',
     },
   ],
+  // Enterprise takes the large card; the phone menu lists it under the plans.
+  highlight: {
+    title: 'Enterprise',
+    description: t('enterpriseDescription'),
+    to: '/pricing/#enterprise',
+    field: 'onyx-slate',
+  },
   footerLinks: [
     { label: t('comparePlans'), to: '/pricing/' },
     { label: t('estimatePrice'), to: '/pricing/#calculator' },
@@ -168,4 +175,11 @@ export const siteNavbarConfig: SiteNavbarConfig = {
   homeHref: '/',
   aboutHref: '/company/#company',
   dashboardHref: '/dashboard',
+  mobilePlanLinks: [
+    {
+      title: 'Enterprise',
+      description: t('enterpriseDescription'),
+      to: '/pricing/#enterprise',
+    },
+  ],
 };

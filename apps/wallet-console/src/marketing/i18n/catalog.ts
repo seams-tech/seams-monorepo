@@ -356,6 +356,12 @@ export const catalog = {
     ja: '5,000ユーザーまで含む。超過分は1人あたり$0.004',
   },
   monthlyPrice: { en: '$99 / mo', ja: '$99 / 月' },
+  // Placeholder Pro prices, as on the site's pricing page.
+  proDescription: {
+    en: '100,000 users included, then $0.0035 per user',
+    ja: '100,000ユーザーまで含む。超過分は1人あたり$0.0035',
+  },
+  proMonthlyPrice: { en: '$399 / mo', ja: '$399 / 月' },
   enterpriseDescription: {
     en: 'From $0.003 per user on committed volume',
     ja: '利用数の契約に応じて1人あたり$0.003から',

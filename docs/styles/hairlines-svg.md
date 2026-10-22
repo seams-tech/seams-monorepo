@@ -314,4 +314,10 @@ On 2026-10-22 the user asked to keep the existing figures but make them simpler 
 
 The candidate keeps the keychain's four keys, shared ring, rest angles, fan interaction, selection, and accent. It removes all thickness. Each key is a 16-unit head, a 5-unit ring hole, a straight blade, and two short cuts. Each head is an opaque disc with an even-odd hole, so a nearer head covers the keys below it. The ring is one 22-unit circle, drawn in height sections between the keys, so it passes through each hole. Dashed guides show the arc of the key tips and two axes through the ring's pivot.
 
-Edit `apps/wallet-console/showcase/motion/credentials-abstract/abstract-keychain.js`, then rebuild its `index.html` with `build.mjs`. The dev-only page `apps/wallet-console/figure-review/` shows the current keychain beside the candidate at the frontpage cell size, then the real custody section with the candidate in the keychain's cell. Open it at `http://localhost:4001/wallet-static/figure-review/`. The page is not in the build. `WalletFigureCandidates` in `WalletFigure.tsx` swaps the drawing only on that page.
+The user then asked for rough abstract drafts of the other three capability figures, to decide whether the direction is worth polishing. Each draft keeps its figure's subject, camera, and interaction:
+
+- `interlock-abstract/abstract-interlock.js`: three slotted discs, a dial, and a pin. Hover turns the discs until the slots align, then drops the pin.
+- `delegation-abstract/abstract-devices.js`: two flat phones, a viewfinder, and an abstract code. Hover moves them into the scan position, and both screens show the same paired mark.
+- `infrastructure-abstract/abstract-infrastructure.js`: three plain cabinets with slot rules. The pointer slides out the server under it along a dashed rail.
+
+These drafts are not polished. Edit each candidate's `.js` under `apps/wallet-console/showcase/motion/`, then rebuild its `index.html` with `build.mjs`. The dev-only page `apps/wallet-console/figure-review/` shows each current figure beside its candidate at the frontpage cell size, then the real custody section with every candidate in its figure's cell. Open it at `http://localhost:4001/wallet-static/figure-review/`. The page is not in the build. `WalletFigureCandidates` in `WalletFigure.tsx` swaps the drawing only on that page.

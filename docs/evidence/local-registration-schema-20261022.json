@@ -1,0 +1,147 @@
+{
+  "date": "2026-10-22",
+  "classification": "environment_or_infrastructure_failure",
+  "result": "Local passkey registration succeeds after applying the missing D1 migrations.",
+  "scope": "Real local marketing page, Wallet iframe, Gateway, and role Workers. No mocked registration responses.",
+  "versions": {
+    "wallet": "0.18.0",
+    "walletServer": "0.18.0",
+    "changedDuringRepair": false
+  },
+  "measured": [
+    {
+      "fact": "Initial setup and respond succeeded. Activation failed.",
+      "instrument": "Playwright request indexes 352, 354, 359",
+      "statuses": [200, 200, 400]
+    },
+    {
+      "fact": "Activation reported a missing table.",
+      "instrument": "Playwright response-body 359, captured in the diagnostic tool output",
+      "response": {
+        "ok": false,
+        "code": "internal",
+        "message": "D1_ERROR: no such table: wallet_registration_directory_publications: SQLITE_ERROR"
+      }
+    },
+    {
+      "fact": "The ECDSA worker reported an inactive ceremony after activation failed.",
+      "instrument": ".playwright-cli/console-2026-10-22T02-47-13-668Z.log"
+    },
+    {
+      "fact": "The generated config selected candidate migrations ending at 0080.",
+      "instrument": "Backed-up generated config and migration directory listing",
+      "migrationDirectory": "../../.artifacts/local-registration-authority/candidate-package/migrations/d1-signer"
+    },
+    {
+      "fact": "Fresh registration succeeded after migration.",
+      "instrument": "Playwright request indexes 719, 725, 729, 748",
+      "routes": [
+        "/wallets/register/setup",
+        "/wallets/register/respond",
+        "/wallets/register/activate",
+        "/wallets/register/near-provisioning"
+      ],
+      "statuses": [200, 200, 200, 200],
+      "activationOk": true
+    },
+    {
+      "fact": "Reload preserved the registered wallet and its Welcome screen.",
+      "instrument": "Playwright snapshot after reload"
+    }
+  ],
+  "database": {
+    "before": {
+      "latestMigrations": [
+        "0080_registration_setup_rate_limits.sql",
+        "0079_tenant_lookup_indexes.sql",
+        "0078_registration_passkey_claims.sql"
+      ],
+      "directoryPublicationsTableExists": false
+    },
+    "after": {
+      "latestMigrations": [
+        "0082_wallet_signature_completions.sql",
+        "0081_registration_directory_publications.sql",
+        "0080_registration_setup_rate_limits.sql"
+      ],
+      "directoryPublicationsTableExists": true,
+      "pendingDirectoryPublications": 0
+    }
+  },
+  "repair": {
+    "backupDirectory": ".runtime/registration-fix-20261022",
+    "config": ".runtime/wrangler-d1-local/wrangler.d1-local.toml",
+    "migrationDirectory": "../../node_modules/@seams/wallet-server/migrations/d1-signer",
+    "command": "SEAMS_D1_LOCAL_PERSIST_TO=\"$PWD/.local/cloudflare-state/gateway\" SEAMS_D1_LOCAL_WRANGLER_CONFIG=\"$PWD/.runtime/wrangler-d1-local/wrangler.d1-local.toml\" pnpm -C packages/wallet-console-server-ts d1:local:prepare",
+    "signerMigrationsApplied": [
+      "0081_registration_directory_publications.sql",
+      "0082_wallet_signature_completions.sql"
+    ],
+    "consoleMigrationsApplied": [
+      "0100_wallet_live_access_refresh.sql",
+      "0101_free_plan_card_and_growth.sql",
+      "0102_regional_production_admission_pushes.sql",
+      "0103_remove_growth_price_lock.sql",
+      "0104_team_signup_alert.sql"
+    ],
+    "sourceChangeRequired": false,
+    "reason": "The current runtime config generator already selects the installed Wallet server migration directory.",
+    "source": "scripts/local-wallet/d1-local-runtime-config.mjs",
+    "sourceChangeAssessmentScope": "This reproduced activation failure and the current local config generator."
+  },
+  "causeTable": [
+    {
+      "cause": "Missing local schema",
+      "assessment": "Confirmed for the reproduced activation failure by the response body and database inspection."
+    },
+    {
+      "cause": "Wallet package version mismatch",
+      "assessment": "Excluded as the cause of this reproduced failure. The same installed versions succeed after migration."
+    },
+    {
+      "cause": "SVG path errors",
+      "assessment": "Excluded as the registration blocker. They occur before and after successful registration."
+    },
+    {
+      "cause": "Primary ECDSA ceremony failure",
+      "assessment": "The observed inactive-ceremony message follows the missing-table failure. It does not explain that database error."
+    },
+    {
+      "cause": "Browser probe only",
+      "assessment": "The probe reproduces activation HTTP 400 and the same secondary ECDSA error shown by the user."
+    }
+  ],
+  "inferred": [
+    "The stale migration directory prevented the existing preparation command from discovering the installed schema changes."
+  ],
+  "unknown": [
+    {
+      "question": "Which local process originally selected the candidate migration directory?",
+      "measurement": "Retained local setup command logs would identify it. This is unnecessary for the repair."
+    },
+    {
+      "question": "What response body accompanied the original screenshot?",
+      "measurement": "The original browser network capture would settle exact response parity. The reproduced activation signal matches."
+    }
+  ],
+  "verification": {
+    "repeatableSteps": [
+      "Open http://localhost:4001/wallet/ in a fresh Chromium profile.",
+      "Create a wallet with a test passkey.",
+      "Check that setup, respond, activate, and near-provisioning return HTTP 200.",
+      "Reload the page and check that the registered wallet remains available."
+    ],
+    "schemaCommand": "sqlite3 sqlite/seams_signer.sqlite \"SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 3; SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'wallet_registration_directory_publications'; SELECT COUNT(*) FROM wallet_registration_directory_publications;\"",
+    "limits": "The additional lock and unlock check did not complete. Signing and unlock are outside this registration verification."
+  },
+  "parity": {
+    "matched": [
+      "Activation returns HTTP 400.",
+      "The ECDSA worker subsequently reports an inactive registration ceremony."
+    ],
+    "exactOriginalResponseParityEstablished": false,
+    "reason": "The original screenshot does not show the activation response body."
+  },
+  "evidenceRetention": "This report preserves the sanitized response and request summary from diagnostic tool output. Browser request bodies expire after navigation. Temporary request logs were overwritten during later checks.",
+  "independentReview": "A separate read-only reviewer checked the migration directories, config, request statuses, and success snapshot. The reviewer found no source change necessary for this reproduced registration failure."
+}

@@ -16,8 +16,9 @@ const DEFAULT_DOCS_ORIGIN = 'https://docs.localhost:4003/docs';
 const DEFAULT_TEMPO_RPC_URL = 'https://rpc.moderato.tempo.xyz';
 const DEFAULT_TEMPO_EXPLORER_URL = 'https://explore.testnet.tempo.xyz';
 const DEFAULT_TEMPO_FEE_TOKEN = '0x20c0000000000000000000000000000000000001';
-const DEFAULT_ARC_RPC_URL = 'https://rpc.testnet.arc.io';
-const FALLBACK_ARC_RPC_URL = 'https://rpc.drpc.testnet.arc.io';
+// Use a separate provider domain when browsers block the Arc-hosted endpoints.
+const DEFAULT_ARC_RPC_URL = 'https://arc-testnet.drpc.org';
+const FALLBACK_ARC_RPC_URL = 'https://rpc.testnet.arc.io';
 const DEFAULT_ARC_EXPLORER_URL = 'https://testnet.arcscan.app';
 const DEFAULT_DEMO_CONTRACT_ID = 'seams-v1.testnet';
 

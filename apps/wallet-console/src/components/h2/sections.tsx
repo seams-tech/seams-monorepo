@@ -480,9 +480,10 @@ export function H2Security(): React.JSX.Element {
    driven from one list so a label can never name the screen beside it. */
 const CONSOLE_SCREENS = [
   {
-    id: 'overview' as const,
-    label: t('overview'),
-    src: '/wallet-preview/wallet-console-dashboard.png?v=3',
+    id: 'observability' as const,
+    label: t('observability'),
+    src: '/wallet-preview/wallet-console-observability.png?v=2',
+    callout: t('failureAlerts'),
   },
   {
     id: 'audit' as const,
@@ -609,7 +610,7 @@ export function H2Start(): React.JSX.Element {
      pausing the animation (pointer on the band, band off screen) pauses the
      cycle with no timer to keep in step. Reduced motion drops the animation,
      which leaves the tabs as plain manual controls. */
-  const [consoleFocus, setConsoleFocus] = React.useState<ConsoleScreenId>('overview');
+  const [consoleFocus, setConsoleFocus] = React.useState<ConsoleScreenId>('observability');
   const [consolePointerHeld, setConsolePointerHeld] = React.useState(false);
   const [consoleFocusHeld, setConsoleFocusHeld] = React.useState(false);
   const [consoleInView, setConsoleInView] = React.useState(false);

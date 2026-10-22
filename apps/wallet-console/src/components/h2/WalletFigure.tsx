@@ -32,7 +32,8 @@ function figureDocument(html: string, pointerX: number, pointerY: number, play: 
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }
 #stage { width: 100%; height: 100%; touch-action: pan-y; --hairline-stroke: 0.65; }
 #stage svg { display: block; width: 100%; height: 100%; transform: scale(1.22); transform-origin: center; }
-#stage[data-hairline="scoped-credentials"] svg { transform: translateX(5%) scale(1.22); }
+#stage[data-hairline="scoped-credentials"] svg,
+#stage[data-hairline="abstract-keychain"] svg { transform: translateX(5%) scale(1.22); }
 #stage[data-hairline="interlock"] svg { transform: translateX(2%) scale(1.22); }
 #stage[data-hairline="device-linking"] svg,
 #stage[data-hairline="infrastructure-array"] svg { transform: translateY(5%) scale(1.22); }
@@ -72,30 +73,42 @@ const infrastructurePlay: PlayPath = [
   [255, 195, 2400],
 ];
 
+function figureEntry(
+  title: string,
+  html: string,
+  pointerX: number,
+  pointerY: number,
+  play: PlayPath,
+): { title: string; pointerX: number; pointerY: number; play: PlayPath; document: string } {
+  return {
+    title,
+    pointerX,
+    pointerY,
+    play,
+    document: figureDocument(html, pointerX, pointerY, play),
+  };
+}
+
 const figures = {
-  keychain: {
-    title: t('keysControl'),
-    document: figureDocument(keychain, 150, 180, keychainPlay),
-  },
-  interlock: {
-    title: t('scopedPermissions'),
-    document: figureDocument(interlock, 200, 160, [[200, 160, 0]]),
-  },
-  devices: {
-    title: t('linkedDevices'),
-    document: figureDocument(devices, 200, 160, [[200, 160, 0]]),
-  },
-  infrastructure: {
-    title: t('noLockIn'),
-    document: figureDocument(infrastructure, 205, 157, infrastructurePlay),
-  },
-  signing: {
-    title: t('signingFigure'),
-    document: figureDocument(signing, 200, 160, [[200, 160, 0]]),
-  },
+  keychain: figureEntry(t('keysControl'), keychain, 150, 180, keychainPlay),
+  interlock: figureEntry(t('scopedPermissions'), interlock, 200, 160, [[200, 160, 0]]),
+  devices: figureEntry(t('linkedDevices'), devices, 200, 160, [[200, 160, 0]]),
+  infrastructure: figureEntry(t('noLockIn'), infrastructure, 205, 157, infrastructurePlay),
+  signing: figureEntry(t('signingFigure'), signing, 200, 160, [[200, 160, 0]]),
 };
 
 export type WalletFigureName = keyof typeof figures;
+
+/* A dev review page shows a candidate drawing in a figure's place: it gets
+   the same pointer and play as the figure it replaces. */
+export function candidateFigureDocument(figure: WalletFigureName, html: string): string {
+  const { pointerX, pointerY, play } = figures[figure];
+  return figureDocument(html, pointerX, pointerY, play);
+}
+
+export const WalletFigureCandidates = React.createContext<
+  Partial<Record<WalletFigureName, string>>
+>({});
 
 type HostCommand = 'play' | 'rest' | 'outside';
 
@@ -116,7 +129,8 @@ export function WalletFigure({
   playing?: boolean;
   onHover?: (inside: boolean) => void;
 }): React.JSX.Element {
-  const { title, document: source } = figures[figure];
+  const { title, document: current } = figures[figure];
+  const source = React.useContext(WalletFigureCandidates)[figure] ?? current;
   const frame = React.useRef<HTMLIFrameElement>(null);
   let command: HostCommand | null = null;
   if (playing !== undefined) command = playing ? 'play' : 'rest';

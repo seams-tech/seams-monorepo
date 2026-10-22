@@ -307,3 +307,11 @@ The custody section at `/wallet` uses five approved figures. The capability grid
 Hover explores each figure. Enter, Space, or a touch tap toggles its animation. A second activation resets it. Figures retain their reduced-motion and offscreen suspension behavior. Essential descriptions remain in the surrounding HTML. These illustrations never control wallet state.
 
 Browser verification covers all five figures, keyboard and touch activation, timed and manual view selection, reduced motion, and desktop/mobile layout. Local artifacts are in `.artifacts/wallet-frontpage/`. The pagination check `node tests/e2e/wallet-custody-pagination.e2e.mjs` saves timer, pause, reduced-motion, and stable mobile-layout evidence under `.artifacts/wallet-custody-pagination/`. The integration check uses a validated public deployment-discovery fixture because the installed local Wallet server schema lacks a table required by deployment discovery. It does not verify wallet operations.
+
+## Abstract keychain candidate
+
+On 2026-10-22 the user asked to keep the existing figures but make them simpler and more abstract, in the direction of the ElevenLabs safety drawings. The keychain is the first candidate. It is under review and is not on the frontpage.
+
+The candidate keeps the keychain's four keys, shared ring, rest angles, fan interaction, selection, and accent. It removes all thickness and fill. Each key is a 16-unit circle, a 5-unit ring hole, a straight blade, and two short cuts. The ring is one 22-unit circle through the holes. Dashed guides show the arc of the key tips and two axes through the ring's pivot.
+
+Edit `apps/wallet-console/showcase/motion/credentials-abstract/abstract-keychain.js`, then rebuild its `index.html` with `build.mjs`. The dev-only page `apps/wallet-console/figure-review/` shows the current keychain beside the candidate at the frontpage cell size, then the real custody section with the candidate in the keychain's cell. Open it at `http://localhost:4001/wallet-static/figure-review/`. The page is not in the build. `WalletFigureCandidates` in `WalletFigure.tsx` swaps the drawing only on that page.

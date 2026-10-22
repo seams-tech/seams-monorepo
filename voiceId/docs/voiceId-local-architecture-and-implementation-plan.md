@@ -5,7 +5,8 @@ Updated: 2026-10-22
 Status: structure decisions, private Rust modules, domain types, and adapter
 contracts are in place, with boundary and compile-fail tests.
 The audio runtime shell now coordinates injected transcription and speaker
-adapters with a repeatable lifecycle journey. Concrete native model/capture/storage
+adapters with a repeatable lifecycle journey. Native Moonshine Tiny and ECAPA
+adapters now pass a real-fixture reference-agreement journey. Capture/storage
 adapters, the host API, and product acceptance gates remain unimplemented.
 The retained Python incremental Moonshine adapter is evaluation code.
 
@@ -78,7 +79,8 @@ Use the existing Python package and model adapters as the evaluation baseline.
 The production engine is Rust, with a native shared library as the first artifact
 and explicitly provisioned runtime/model dependencies. The first development
 host is the current Apple Silicon Mac. Moonshine's native C API is the selected
-speech integration boundary. The native speaker backend remains an MVP decision.
+speech integration boundary. ECAPA exported to ONNX is the native speaker backend
+for the prototype. Population calibration remains open.
 PAD backend selection and target-robot qualification are later work.
 
 Keep execution direct, with bounded model work. Introduce process separation
@@ -206,8 +208,8 @@ The [engine contract checkpoint](../engine/README.md#domain-and-adapter-contract
 documents typed boundaries, ownership, limits, cancellation, and native host
 responsibilities. Twelve boundary tests and eight compile-fail tests cover the
 implemented value/type invariants. Step 4 now supplies the audio runtime and a
-lifecycle journey with generated PCM and model doubles. Real adapter implementations
-and concrete C exports follow. This progress does not complete the hardware,
+lifecycle journey with generated PCM and model doubles. Native adapters now process
+real fixtures. Concrete C exports follow. This progress does not complete the hardware,
 model, calibration, or release gates in L0-L7.
 
 ### Next implementation checkpoints — 2026-10-22
@@ -216,9 +218,11 @@ model, calibration, or release gates in L0-L7.
    deadlines, current-utterance/model correlation, audio-only attribution, single
    result consumption, cancellation, enrollment invalidation, and fresh-epoch restart.
    The integration journey regenerates `engine/target/runtime-lifecycle.e2e.json`.
-2. Native models: implement Rust Moonshine streaming against real fixture PCM.
-   Select the native speaker backend and compare its outputs with the Python baseline.
-   Verify model assets and measure startup, per-utterance cost, and cleanup.
+2. Native models: reference-agreement checkpoint implemented. Rust Moonshine 0.1.5
+   Tiny Streaming and ECAPA ONNX process real fixture PCM without Python or networking.
+   The journey checks verified assets, transcript/embedding agreement, boundary prefixes,
+   cancellation/restart recovery, and modified-model rejection. It records replay work
+   durations. Recognition quality, live latency, and release packaging remain open.
 3. Local host: add microphone acquisition, speech endpoint detection, protected
    enrollment storage, deletion, and a callable native host binding. Document one
    local invocation and an offline smoke procedure.

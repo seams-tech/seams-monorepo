@@ -26,9 +26,9 @@ evaluation tools, research material, and private local fixtures remain.
 The [private Rust engine](engine/README.md) now includes validated domain types,
 adapter contracts, and a bounded audio runtime with a repeatable lifecycle journey.
 Its first target is an embedded native shared library on Apple Silicon macOS.
-Native Moonshine/model integration, capture, storage, host exports, and the wallet
-extension remain unimplemented. Nothing in this checkpoint authorizes robot actions
-or signing.
+Native Moonshine Tiny and ECAPA adapters now process real local fixture PCM.
+Capture, enrollment collection/storage, host exports, and the wallet extension
+remain unimplemented. Engine results carry no robot or signing authority.
 
 The first MVP assumes a user-controlled, authorized device. It checks the enrolled
 speaker and explicit approval for one pending wallet operation under existing
@@ -41,9 +41,10 @@ coordination, utterances, presence, attribution, enrollment, adapters, and robot
 consumers. Native adapter code has its own target-specific module. The public
 wallet contract and private wallet provider will stay outside this crate.
 
-The engine has no external dependencies, callable host API, or placeholder
-verification behavior. See [engine checks and decisions](engine/README.md) for
-native/WASM builds and the standalone Rust-to-Moonshine link/load probe.
+The portable engine compiles for native and WASM targets. Native model adapters
+use explicitly provisioned Moonshine and ONNX Runtime libraries with verified
+model files. Inference runs without Python or network access. See
+[engine checks and decisions](engine/README.md) for builds and the real-model journey.
 
 ## Retained source
 
@@ -89,8 +90,9 @@ Heavy model benchmarks require their optional dependencies and locally
 provisioned, checksum-verified model assets. Inference must not silently download
 a model or use a remote fallback.
 
-The next step is native streaming transcription and native speaker-backend
-qualification against the retained reference models. Live capture, protected
-enrollment storage, and concrete C declarations/exports follow. L0 owns the MVP
+The next step is live capture, enrollment collection, protected template storage,
+and concrete C declarations/exports. The native journey checks reference agreement
+on local recordings and derived boundary cases. Live recognition quality and
+resource budgets remain open. L0 owns the MVP
 microphone profile and measured resource/error budgets. L1 coordinates the minimal
 public provider contract with wallet W0. Wallet signing requires W0-W1 composition.

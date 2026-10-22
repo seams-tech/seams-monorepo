@@ -7,3 +7,10 @@ description = "Proprietary local VoiceID engine"
 
 [lib]
 crate-type = ["rlib", "cdylib"]
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+libloading = "=0.9.0"
+ort = { version = "=2.0.0-rc.11", default-features = false, features = ["std", "load-dynamic"] }
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"
+sha2 = "=0.10.9"

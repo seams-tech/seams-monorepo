@@ -190,4 +190,4 @@ pub trait TemplateStore {
 }
 
 #[cfg(not(target_family = "wasm"))]
-mod native;
+pub mod native;

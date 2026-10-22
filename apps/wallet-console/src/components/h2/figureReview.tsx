@@ -8,6 +8,8 @@ import previousInterlock from '../../../showcase/motion/interlock/index.html?raw
 import previousDevices from '../../../showcase/motion/delegation/index.html?raw';
 import previousInfrastructure from '../../../showcase/motion/infrastructure-array/index.html?raw';
 import edgePlatforms from '../../../showcase/motion/lockin-edge/index.html?raw';
+import splitKeys from '../../../showcase/motion/keys-split/index.html?raw';
+import mazeInterlock from '../../../showcase/motion/interlock-maze/index.html?raw';
 import { H2Security } from './sections';
 import {
   candidateFigureDocument,
@@ -24,6 +26,8 @@ import {
 type Review = { figure: WalletFigureName; label: string; html: string };
 
 const candidates: readonly Review[] = [
+  { figure: 'keychain', label: 'Keys you control: two halves, one block', html: splitKeys },
+  { figure: 'interlock', label: 'Scoped permissions: maze rings', html: mazeInterlock },
   { figure: 'infrastructure', label: 'No lock-in: edge', html: edgePlatforms },
 ];
 

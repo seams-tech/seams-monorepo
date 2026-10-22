@@ -4,7 +4,7 @@ import { figureCatalog } from '@/marketing/i18n/catalog';
 import keychain from '../../../showcase/motion/credentials-abstract/index.html?raw';
 import interlock from '../../../showcase/motion/interlock-abstract/index.html?raw';
 import devices from '../../../showcase/motion/delegation-planes/index.html?raw';
-import infrastructure from '../../../showcase/motion/infrastructure-abstract/index.html?raw';
+import infrastructure from '../../../showcase/motion/lockin-boundary/index.html?raw';
 import signing from '../../../showcase/motion/threshold-signing/index.html?raw';
 import embed from './hairline/embed.js?raw';
 
@@ -48,9 +48,9 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 </body></html>`;
 }
 
-// The keychain and the block answer to where the pointer is, so their plays
-// sweep across each key and up the block's cells; the lock, the phones and
-// the signing diagram run their whole sequence from a single point.
+// The keychain answers to where the pointer is, so its play sweeps across each
+// key; the lock, the phones, the platforms and the signing diagram run their
+// whole sequence from a single point.
 const keychainPlay: PlayPath = [
   [264, 211, 0],
   [264, 211, 450],
@@ -59,14 +59,6 @@ const keychainPlay: PlayPath = [
   [157, 174, 1500],
   [157, 174, 1950],
   [129, 142, 2250],
-];
-const infrastructurePlay: PlayPath = [
-  [135, 186, 0],
-  [135, 186, 700],
-  [165, 164, 1100],
-  [165, 164, 1800],
-  [195, 142, 2200],
-  [195, 142, 2900],
 ];
 
 function figureEntry(
@@ -89,7 +81,7 @@ const figures = {
   keychain: figureEntry(t('keysControl'), keychain, 205, 198, keychainPlay),
   interlock: figureEntry(t('scopedPermissions'), interlock, 200, 160, [[200, 160, 0]]),
   devices: figureEntry(t('linkedDevices'), devices, 200, 160, [[200, 160, 0]]),
-  infrastructure: figureEntry(t('noLockIn'), infrastructure, 165, 164, infrastructurePlay),
+  infrastructure: figureEntry(t('noLockIn'), infrastructure, 200, 160, [[200, 160, 0]]),
   signing: figureEntry(t('signingFigure'), signing, 200, 160, [[200, 160, 0]]),
 };
 

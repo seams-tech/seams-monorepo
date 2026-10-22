@@ -1267,7 +1267,7 @@ const CONSOLE_SCREENS = [
     id: 'audit' as const,
     label: 'Audit logs',
     blurb: 'Every action attributed, timestamped, and exportable',
-    src: '/wallet-preview/wallet-console-audit.png?v=4',
+    src: '/wallet-preview/wallet-console-audit.png?v=5',
   },
 ];
 

@@ -1,4 +1,6 @@
 import React from 'react';
+import { Check, CheckCircle2, Rocket, Sprout, TrendingUp, type LucideIcon } from 'lucide-react';
+import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { walletConsoleOverviewHref } from '../../consoleNavigation';
 import { canDashboardManageBilling, useDashboardConsoleSession } from '../../consoleSession';
 import { useDashboardSelectedContext } from '../../selectedContext';
@@ -18,32 +20,60 @@ import {
   type DashboardPlanChoice,
 } from './planIntent';
 
-/* The pricing page's plans; the Pro price is a placeholder, as on the pricing page. */
+/* The pricing page's plans, with its gradients and icons; the Pro price is a placeholder,
+   as on the pricing page. */
 const PLAN_OFFERS: readonly {
   readonly plan: DashboardPlanChoice;
+  readonly field: GrainFieldName;
+  readonly icon: LucideIcon;
   readonly price: string;
-  readonly users: string;
-  readonly detail: string;
+  readonly includedUsers: number;
+  readonly features: readonly string[];
 }[] = [
   {
     plan: 'free',
+    field: 'sky-sand',
+    icon: Sprout,
     price: '$0',
-    users: 'Up to 300 monthly active users',
-    detail: '30,000 signatures a month. A card is needed after 30 days.',
+    includedUsers: 300,
+    features: [
+      'Up to 300 monthly active users',
+      '30,000 signatures a month',
+      'Card required after 30 days',
+    ],
   },
   {
     plan: 'growth',
-    price: '$99 a month',
-    users: '5,000 monthly active users included',
-    detail: '$0.004 per active user above 5,000.',
+    field: 'azure-coral',
+    icon: TrendingUp,
+    price: '$99',
+    includedUsers: 5_000,
+    features: [
+      '5,000 monthly active users included',
+      '$0.004 per active user above 5,000',
+      '300 signatures per user, pooled',
+    ],
   },
   {
     plan: 'pro',
-    price: '$399 a month',
-    users: '100,000 monthly active users included',
-    detail: '$0.0035 per active user above 100,000. Uptime SLA and priority support.',
+    field: 'vermilion-sky',
+    icon: Rocket,
+    price: '$399',
+    includedUsers: 100_000,
+    features: [
+      '100,000 monthly active users included',
+      '$0.0035 per active user above 100,000',
+      'Uptime SLA and priority support',
+    ],
   },
 ];
+
+const count = new Intl.NumberFormat('en-US');
+
+/* Stripe names brands in lower case, such as "visa". */
+function cardLabel(card: { readonly brand: string; readonly last4: string }): string {
+  return `${card.brand.charAt(0).toUpperCase()}${card.brand.slice(1)} ending ${card.last4}`;
+}
 
 function utcDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -175,102 +205,187 @@ export function PlanStartPage(): React.JSX.Element {
     project: selectedContext.project,
   });
 
+  const currentOffer = PLAN_OFFERS.find((offer) => offer.plan === plan?.plan) ?? null;
+
   return (
-    <div className="dashboard-view" aria-label="Plan page">
-      <section className="dashboard-view__section">
-        {message ? (
-          <p className="dashboard-info-banner" role="status">
-            {message}
-          </p>
-        ) : null}
-        {errorMessage ? (
-          <div className="dashboard-warning-banner" role="alert">
-            <p>{errorMessage}</p>
-          </div>
-        ) : null}
-        {!loaded || session.loading ? (
-          <p className="dashboard-pagination-note">Loading your plan...</p>
-        ) : !plan ? (
-          <p className="dashboard-pagination-note">
-            Your organization has no billing account yet. Create a project first.
-          </p>
-        ) : (
-          <>
-            <p className="dashboard-pagination-note">{currentPlanSummary(plan)}</p>
-            <div className="dashboard-plan-grid">
-              {PLAN_OFFERS.map((offer) => {
-                const current = plan.plan === offer.plan;
-                const name = dashboardPlanName(offer.plan);
-                const className = [
-                  'dashboard-plan-card',
-                  current ? 'dashboard-plan-card--current' : null,
-                  chosen === offer.plan && !current ? 'dashboard-plan-card--chosen' : null,
-                ]
-                  .filter(Boolean)
-                  .join(' ');
-                return (
-                  <article key={offer.plan} className={className} aria-label={`${name} plan`}>
-                    <h3 className="dashboard-plan-card__name">{name}</h3>
-                    <p className="dashboard-plan-card__price">{offer.price}</p>
-                    <p className="dashboard-plan-card__users">{offer.users}</p>
-                    <p className="dashboard-plan-card__detail">{offer.detail}</p>
-                    <div className="dashboard-plan-card__action">
-                      {current ? (
-                        <span className="dashboard-plan-card__badge">Current plan</span>
-                      ) : offer.plan === 'free' ? null : plan.plan !== 'free' ? (
-                        <p className="dashboard-plan-card__note">Contact us to change plans.</p>
-                      ) : !canManageBilling ? (
-                        <p className="dashboard-plan-card__note">
-                          Ask an owner or a billing administrator to start {name}.
-                        </p>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            className="dashboard-pagination-button dashboard-pagination-button--primary"
-                            disabled={starting !== null}
-                            onClick={() => {
-                              void startPlan(offer.plan === 'pro' ? 'pro' : 'growth');
-                            }}
-                          >
-                            {starting === offer.plan
-                              ? plan.card.kind === 'usable'
-                                ? `Starting ${name}...`
-                                : 'Opening Stripe...'
-                              : `Start ${name}`}
-                          </button>
-                          <p className="dashboard-plan-card__note">
-                            {plan.card.kind === 'usable'
-                              ? `${offer.price} from today, on the ${plan.card.brand} ending ${plan.card.last4}.`
-                              : 'Add a card in Stripe. The plan starts when Stripe confirms it.'}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-            <p className="dashboard-pagination-note">
-              Enterprise has committed volume and custom terms.{' '}
-              <a href="https://seams.sh/pricing/#contact">Contact sales</a>.
-            </p>
-            {plan.plan === 'free' ? (
+    <div className="dashboard-view dashboard-plan-view" aria-label="Plan page">
+      {message ? (
+        <p className="dashboard-plan-notice" role="status">
+          <CheckCircle2 size={18} aria-hidden />
+          <span>{message}</span>
+        </p>
+      ) : null}
+      {errorMessage ? (
+        <div className="dashboard-warning-banner" role="alert">
+          <p>{errorMessage}</p>
+        </div>
+      ) : null}
+      {!loaded || session.loading ? (
+        <p className="dashboard-pagination-note">Loading your plan...</p>
+      ) : !plan ? (
+        <p className="dashboard-pagination-note">
+          Your organization has no billing account yet. Create a project first.
+        </p>
+      ) : (
+        <>
+          <section className="dashboard-plan-current" aria-label="Current plan">
+            <div className="dashboard-plan-current__head">
+              {currentOffer ? (
+                <span className="dashboard-plan-icon" aria-hidden="true">
+                  <GrainField field={currentOffer.field} playing={false} />
+                  <currentOffer.icon size={20} />
+                </span>
+              ) : null}
+              <div className="dashboard-plan-current__copy">
+                <span className="dashboard-plan-current__eyebrow">Current plan</span>
+                <h2 className="dashboard-plan-current__name">{dashboardPlanName(plan.plan)}</h2>
+                <p className="dashboard-plan-current__summary">{currentPlanSummary(plan)}</p>
+              </div>
               <a
-                className="dashboard-pagination-button"
+                className="dashboard-pagination-button dashboard-pagination-button--primary dashboard-plan-current__cta"
                 href={overviewHref}
                 onClick={clearPendingDashboardPlanIntent}
               >
-                {chosen && chosen !== 'free' ? 'Continue on Free' : 'Go to the dashboard'}
+                {plan.plan === 'free' && chosen && chosen !== 'free'
+                  ? 'Continue on Free'
+                  : 'Open the Wallet Console'}
               </a>
-            ) : (
-              <a className="dashboard-pagination-button" href={overviewHref}>
-                Go to the dashboard
-              </a>
-            )}
-          </>
-        )}
-      </section>
+            </div>
+            <dl className="dashboard-plan-current__stats">
+              <div>
+                <dt>Active users this month</dt>
+                <dd>
+                  {count.format(plan.usage.productionActiveUsers)}
+                  {currentOffer ? (
+                    <span> of {count.format(currentOffer.includedUsers)} included</span>
+                  ) : null}
+                </dd>
+                {currentOffer ? (
+                  <meter
+                    className="dashboard-plan-meter"
+                    min={0}
+                    max={currentOffer.includedUsers}
+                    value={Math.min(plan.usage.productionActiveUsers, currentOffer.includedUsers)}
+                    aria-label="Active users this month"
+                  />
+                ) : null}
+              </div>
+              <div>
+                <dt>Signatures this month</dt>
+                <dd>
+                  {count.format(plan.usage.productionSignatures)}
+                  {plan.plan === 'free' ? (
+                    <span> of {count.format(plan.usage.limits.productionSignatures)}</span>
+                  ) : null}
+                </dd>
+                {plan.plan === 'free' ? (
+                  <meter
+                    className="dashboard-plan-meter"
+                    min={0}
+                    max={plan.usage.limits.productionSignatures}
+                    value={Math.min(
+                      plan.usage.productionSignatures,
+                      plan.usage.limits.productionSignatures,
+                    )}
+                    aria-label="Signatures this month"
+                  />
+                ) : null}
+              </div>
+              <div>
+                <dt>Card</dt>
+                <dd>
+                  {plan.card.kind === 'none' ? 'No card on file' : cardLabel(plan.card)}
+                  {plan.card.kind === 'expired' || plan.card.kind === 'removed' ? (
+                    <span> ({plan.card.kind})</span>
+                  ) : null}
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <div className="dashboard-plan-grid">
+            {PLAN_OFFERS.map((offer) => {
+              const current = plan.plan === offer.plan;
+              const name = dashboardPlanName(offer.plan);
+              const className = [
+                'dashboard-plan-card',
+                current ? 'dashboard-plan-card--current' : null,
+                chosen === offer.plan && !current ? 'dashboard-plan-card--chosen' : null,
+              ]
+                .filter(Boolean)
+                .join(' ');
+              return (
+                <article key={offer.plan} className={className} aria-label={`${name} plan`}>
+                  <span className="dashboard-plan-icon" aria-hidden="true">
+                    <GrainField field={offer.field} playing={false} />
+                    <offer.icon size={20} />
+                  </span>
+                  <h3 className="dashboard-plan-card__name">{name}</h3>
+                  <p className="dashboard-plan-card__price">
+                    <strong>{offer.price}</strong>
+                    <span>per month</span>
+                  </p>
+                  <ul className="dashboard-plan-card__features">
+                    {offer.features.map((feature) => (
+                      <li key={feature}>
+                        <Check size={14} aria-hidden />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="dashboard-plan-card__action">
+                    {current ? (
+                      <span className="dashboard-plan-card__badge">
+                        <CheckCircle2 size={16} aria-hidden />
+                        Current plan
+                      </span>
+                    ) : offer.plan === 'free' ? null : plan.plan !== 'free' ? (
+                      <p className="dashboard-plan-card__note">Contact us to change plans.</p>
+                    ) : !canManageBilling ? (
+                      <p className="dashboard-plan-card__note">
+                        Ask an owner or a billing administrator to start {name}.
+                      </p>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="dashboard-pagination-button dashboard-pagination-button--primary"
+                          disabled={starting !== null}
+                          onClick={() => {
+                            void startPlan(offer.plan === 'pro' ? 'pro' : 'growth');
+                          }}
+                        >
+                          {starting === offer.plan
+                            ? plan.card.kind === 'usable'
+                              ? `Starting ${name}...`
+                              : 'Opening Stripe...'
+                            : `Start ${name}`}
+                        </button>
+                        <p className="dashboard-plan-card__note">
+                          {plan.card.kind === 'usable'
+                            ? `${offer.price} a month from today, on the ${cardLabel(plan.card)}.`
+                            : 'Add a card in Stripe. The plan starts when Stripe confirms it.'}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <a className="dashboard-plan-enterprise" href="https://seams.sh/pricing/#contact">
+            <GrainField field="onyx-dusk" />
+            <span className="dashboard-plan-enterprise__copy">
+              <span className="dashboard-plan-enterprise__title">Enterprise</span>
+              <span className="dashboard-plan-enterprise__description">
+                Committed volume, custom terms, and rollout planning with our team.
+              </span>
+            </span>
+            <span className="dashboard-pagination-button">Contact sales</span>
+          </a>
+        </>
+      )}
     </div>
   );
 }

@@ -1,8 +1,38 @@
 # Pricing page conversion funnel: plan
 
-Status: proposed; implementation has not started. Decisions recorded on
-October 21, 2026: see [Decisions](#decisions).
+Status: partly built on `dev` (October 22, 2026); see [Built so far](#built-so-far).
+Decisions recorded on October 21 and 22, 2026: see [Decisions](#decisions).
 Date: October 21, 2026.
+
+## Built so far
+
+Built on October 22, 2026, with a Pro plan added (decision 7). Not deployed.
+
+- **Site links.** The Free, Growth and Pro cards and the closing-banner cards link to
+  `<platform console origin>/dashboard/login?plan=<free|growth|pro>&src=pricing_card`.
+  The company build gets `VITE_PLATFORM_CONSOLE_ORIGIN` from
+  `deployment/console/targets.json`; local development uses `http://localhost:4007`.
+- **Plan intent.** The Platform Console login page keeps the plan, the source, the
+  time, and a project id in sessionStorage (`seams.console.pendingPlanIntent`, one
+  hour), removes the parameters from the URL, and shows the plan and its price above the sign-in
+  buttons. A pending invitation wins and drops the intent.
+- **Automatic setup.** After sign-in with an intent, the login page creates the
+  organization ("My organization") and the first project ("My first app") with the
+  intent's project id, then opens the plan page. New identities create their
+  organization through `POST /console/account/organizations`, not through
+  `POST /console/onboarding/organization`, so `planIntent` is not sent to the server yet.
+- **Plan page.** `/dashboard/billing/plan` on the Platform Console shows Free, Growth
+  and Pro with the current plan. A Growth or Pro intent with no card goes straight to
+  Stripe; with a usable card the owner confirms the start. Stripe returns here.
+- **Plan start on the server.** `POST /console/billing/card-setup` accepts
+  `{ startPlan: 'growth' | 'pro' }` (the plan's `purpose` above). The setup session
+  stores `start_plan`, and the verified card starts the plan in the same D1 batch.
+  `POST /console/billing/plan/start { plan }` starts a plan with the card on file. Both
+  start only from `free`, need `billing.manage`, and never start twice. An explicit
+  start queues no notice email. Migrations 0013 (Console core) and 0105 (Wallet
+  Console) add `pro` and the `start_plan` column.
+- **Not built:** the Free plan summary on the overview, the contact prefill,
+  measurement events, the day-1 email, and the acceptance browser test.
 
 ## Outcome
 
@@ -75,8 +105,8 @@ Facts from the code on `dev`, October 21, 2026:
 - **Growth charges.** The plan and the price version (`wallet-growth-v1`) are
   stored, but nothing bills them. The feat-3 monthly close does not exist. The
   prepaid `wallet.monthly_active_resource` meter ($3 per resource) still applies.
-- **No price lock.** Growth has no fixed-price period. feat-4 stores a 12-month
-  lock date (`priceLockedUntilMs`); that is an error, and its removal is planned.
+- **No price lock.** Growth has no fixed-price period. Migrations 0011 (Console core)
+  and 0103 (Wallet Console) removed the feat-4 lock date.
 - **Analytics.** The company site and the Console have no analytics script. We do
   not track clicks on the company site.
 
@@ -455,6 +485,12 @@ Recorded October 21, 2026:
 6. **No price lock.** Growth has no 12-month fixed-price period. It was never
    decided. The pricing page and the pricing document no longer state it. The
    feat-4 lock date, its email text, and its API field must go.
+7. **Pro is a real plan** (October 22, 2026). It starts like Growth, from a verified
+   card. Its price is a placeholder until approved: `wallet-pro-v1`, $399 a month with
+   100,000 users included.
+8. **Every plan card goes to the plan page** (October 22, 2026). Free, Growth and Pro
+   all sign in, get the automatic setup, and open the plan page. Free does not show
+   the onboarding form.
 
 ## Open decisions
 

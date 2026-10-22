@@ -1551,3 +1551,278 @@ test(
   'Separate consoles recover Wallet setup and redeem invitations for new teammates',
   verifyAutomaticWalletSetup,
 );
+
+async function consoleApiKeyRequest(
+  router: ReturnType<typeof createCloudflareConsoleRouter>,
+  token: string,
+  selectedProjectId: string,
+  method: string,
+  pathname: string,
+  body?: Record<string, unknown>,
+): Promise<Response> {
+  return router(
+    new Request(`${origin}${pathname}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Console-Project-Id': selectedProjectId,
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    }),
+  );
+}
+
+async function consoleApiKeyIds(response: Response): Promise<string[]> {
+  expect(response.status).toBe(200);
+  const payload: unknown = await response.json();
+  if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('Console API key response was not an object');
+  }
+  const rows: unknown = Reflect.get(payload, 'apiKeys');
+  if (!Array.isArray(rows)) throw new Error('Console API key response omitted its list');
+  return rows.map((row: unknown) => {
+    if (row === null || typeof row !== 'object' || Array.isArray(row)) {
+      throw new Error('Console API key list contained an invalid key');
+    }
+    const id: unknown = Reflect.get(row, 'id');
+    if (typeof id !== 'string') throw new Error('Console API key list contained an invalid ID');
+    return id;
+  });
+}
+
+test('project members manage only their projects while owners manage all API keys', async () => {
+  test.setTimeout(120_000);
+  const testInfo = test.info();
+  const worker = runtime(testInfo.outputPath('api-key-project-state'));
+  try {
+    const database = await databaseFor(worker);
+    await migrate(database);
+    const product = await compose(database);
+    await product.core.account.createOrganization(ownerIdentity(), {
+      id: owner.orgId,
+      name: 'Two-project credential account',
+    });
+
+    const projectA = 'credential-project-a';
+    const projectB = 'credential-project-b';
+    await product.core.orgProjects.createProject(owner, { id: projectA, name: 'Project A' });
+    await product.core.orgProjects.createProject(owner, { id: projectB, name: 'Project B' });
+    const environmentsA = await product.environments.provisionProjectEnvironments(owner, {
+      projectId: projectA,
+      liveAccess: 'enabled',
+    });
+    const environmentsB = await product.environments.provisionProjectEnvironments(owner, {
+      projectId: projectB,
+      liveAccess: 'enabled',
+    });
+    const environmentA = environmentsA.find((entry) => entry.key === 'dev');
+    const environmentB = environmentsB.find((entry) => entry.key === 'dev');
+    if (!environmentA || !environmentB) throw new Error('Wallet dev environments were unavailable');
+
+    const keyA = await product.apiKeys.createApiKey(owner, {
+      kind: 'secret_key',
+      name: 'Project A key',
+      environmentId: environmentA.id,
+      scopes: ['wallets.read'],
+    });
+    const keyB = await product.apiKeys.createApiKey(owner, {
+      kind: 'secret_key',
+      name: 'Project B key',
+      environmentId: environmentB.id,
+      scopes: ['wallets.read'],
+    });
+
+    const editor = await product.core.organizationAccess.invite(owner, {
+      email: 'editor@activation.invalid',
+      role: 'MEMBER',
+      projectAccess: [{ projectId: projectA, accessLevel: 'editor' }],
+    });
+    await product.core.organizationAccess.acceptInvitation(
+      { userId: 'credential-editor', verifiedEmail: 'editor@activation.invalid' },
+      editor.invitation.id,
+      { token: editor.token },
+    );
+    const viewer = await product.core.organizationAccess.invite(owner, {
+      email: 'viewer@activation.invalid',
+      role: 'MEMBER',
+      projectAccess: [{ projectId: projectA, accessLevel: 'viewer' }],
+    });
+    await product.core.organizationAccess.acceptInvitation(
+      { userId: 'credential-viewer', verifiedEmail: 'viewer@activation.invalid' },
+      viewer.invitation.id,
+      { token: viewer.token },
+    );
+
+    const router = createCloudflareConsoleRouter({
+      auth: createConsoleSessionAuthAdapter({
+        session: product.session,
+        organizationAccess: product.core.organizationAccess,
+      }),
+      session: product.session,
+      account: product.core.account,
+      accountPlatform: product.core.accountPlatform,
+      orgProjects: product.core.orgProjects,
+      organizationAccess: product.core.organizationAccess,
+      onboarding: product.core.onboarding,
+      billing: product.core.billing,
+      audit: product.core.audit,
+      walletEnvironments: product.environments,
+      apiKeys: product.apiKeys,
+      walletProvisioning: product.delivery,
+      satyrProvisioning: null,
+      corsOrigins: [origin],
+    });
+    const ownerToken = await product.session.signJwt(owner.actorUserId, {
+      kind: 'console_session_v1',
+      orgId: owner.orgId,
+      projectId: projectA,
+    });
+    const editorToken = await product.session.signJwt('credential-editor', {
+      kind: 'console_session_v1',
+      orgId: owner.orgId,
+      projectId: projectA,
+    });
+    const viewerToken = await product.session.signJwt('credential-viewer', {
+      kind: 'console_session_v1',
+      orgId: owner.orgId,
+      projectId: projectA,
+    });
+
+    const ownerIds = await consoleApiKeyIds(
+      await consoleApiKeyRequest(router, ownerToken, projectA, 'GET', '/console/api-keys'),
+    );
+    expect(ownerIds).toContain(keyA.apiKey.id);
+    expect(ownerIds).toContain(keyB.apiKey.id);
+    const editorIds = await consoleApiKeyIds(
+      await consoleApiKeyRequest(router, editorToken, projectA, 'GET', '/console/api-keys'),
+    );
+    expect(editorIds).toEqual([keyA.apiKey.id]);
+    const viewerIds = await consoleApiKeyIds(
+      await consoleApiKeyRequest(router, viewerToken, projectA, 'GET', '/console/api-keys'),
+    );
+    expect(viewerIds).toEqual([keyA.apiKey.id]);
+
+    const deniedB = [
+      await consoleApiKeyRequest(
+        router,
+        editorToken,
+        projectA,
+        'POST',
+        `/console/api-keys/${keyB.apiKey.id}/rotate`,
+        {},
+      ),
+      await consoleApiKeyRequest(
+        router,
+        editorToken,
+        projectA,
+        'PATCH',
+        `/console/api-keys/${keyB.apiKey.id}`,
+        { name: 'Unauthorized rename' },
+      ),
+      await consoleApiKeyRequest(
+        router,
+        editorToken,
+        projectA,
+        'DELETE',
+        `/console/api-keys/${keyB.apiKey.id}`,
+        { reason: 'Unauthorized revocation' },
+      ),
+      await consoleApiKeyRequest(
+        router,
+        editorToken,
+        projectA,
+        'DELETE',
+        `/console/api-keys/${keyB.apiKey.id}/purge`,
+      ),
+    ];
+    expect(deniedB.map((response) => response.status)).toEqual([404, 404, 404, 404]);
+    const createB = await consoleApiKeyRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      '/console/api-keys',
+      {
+        kind: 'secret_key',
+        name: 'Unauthorized B key',
+        environmentId: environmentB.id,
+        scopes: ['wallets.read'],
+      },
+    );
+    expect(createB.status).toBe(403);
+    const viewerRotation = await consoleApiKeyRequest(
+      router,
+      viewerToken,
+      projectA,
+      'POST',
+      `/console/api-keys/${keyA.apiKey.id}/rotate`,
+      {},
+    );
+    expect(viewerRotation.status).toBe(403);
+
+    const editorRotation = await consoleApiKeyRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      `/console/api-keys/${keyA.apiKey.id}/rotate`,
+      {},
+    );
+    expect(editorRotation.status).toBe(200);
+    expect(await editorRotation.json()).toMatchObject({
+      ok: true,
+      apiKey: { id: keyA.apiKey.id },
+      secret: expect.any(String),
+    });
+    const ownerRotation = await consoleApiKeyRequest(
+      router,
+      ownerToken,
+      projectA,
+      'POST',
+      `/console/api-keys/${keyB.apiKey.id}/rotate`,
+      {},
+    );
+    expect(ownerRotation.status).toBe(200);
+    expect(await ownerRotation.json()).toMatchObject({
+      ok: true,
+      apiKey: { id: keyB.apiKey.id },
+      secret: expect.any(String),
+    });
+    const finalKeys = await product.apiKeys.listApiKeys(owner);
+    expect(finalKeys).toHaveLength(2);
+    expect(finalKeys.find((key) => key.id === keyA.apiKey.id)?.secretVersion).toBe(2);
+    expect(finalKeys.find((key) => key.id === keyB.apiKey.id)?.secretVersion).toBe(2);
+    expect(finalKeys.find((key) => key.id === keyB.apiKey.id)?.status).toBe('ACTIVE');
+    expect(finalKeys.find((key) => key.id === keyB.apiKey.id)?.name).toBe('Project B key');
+
+    const evidencePath = testInfo.outputPath('api-key-project-access.json');
+    await writeFile(
+      evidencePath,
+      `${JSON.stringify(
+        {
+          ownerVisibleKeyIds: ownerIds,
+          editorVisibleKeyIds: editorIds,
+          viewerVisibleKeyIds: viewerIds,
+          deniedForeignMutationStatuses: deniedB.map((response) => response.status),
+          deniedForeignCreateStatus: createB.status,
+          deniedViewerRotationStatus: viewerRotation.status,
+          editorOwnRotationStatus: editorRotation.status,
+          ownerForeignRotationStatus: ownerRotation.status,
+          finalSecretVersions: finalKeys.map((key) => ({
+            keyId: key.id,
+            secretVersion: key.secretVersion,
+          })),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    await testInfo.attach('api-key-project-access', {
+      path: evidencePath,
+      contentType: 'application/json',
+    });
+  } finally {
+    await worker.dispose();
+  }
+});

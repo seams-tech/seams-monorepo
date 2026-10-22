@@ -5,6 +5,7 @@ import {
   handleConsoleBillingRoutes,
   sendBillingError,
 } from '@seams-internal/console-server/router/cloudflare/billingRoutes';
+import { hasConsoleProjectAccess } from '@seams-internal/console-server/router/consoleRoutePolicy';
 import { buildWalletConsoleAuthClaims } from '../walletConsoleAuth';
 import { handleConsoleAuditRoutes } from '@seams-internal/console-server/router/cloudflare/auditRoutes';
 import {
@@ -42,6 +43,7 @@ import { isConsoleSponsoredCallError } from '@seams-internal/wallet-console-serv
 import { listConsoleSponsoredCallReconciliationPage } from '@seams-internal/wallet-console-server/sponsoredCalls/reconciliation';
 import { parseListConsoleSponsoredCallRecordsRequest } from '@seams-internal/wallet-console-server/sponsoredCalls/requests';
 import type { ConsoleApiKeyService } from '@seams-internal/wallet-console-server/apiKeys/service';
+import type { ConsoleApiKey } from '@seams-internal/wallet-console-server/apiKeys/types';
 import { isConsoleApiKeyError } from '@seams-internal/wallet-console-server/apiKeys/errors';
 import {
   parseCreateConsoleApiKeyRequest,
@@ -1166,6 +1168,12 @@ async function requireActiveApiKeyEnvironmentForCreate(
         { status: 400 },
       );
     }
+    if (!hasConsoleProjectAccess(claims, environment.projectId, 'editor')) {
+      return json(
+        { ok: false, code: 'forbidden', message: 'No access to this Wallet project' },
+        { status: 403 },
+      );
+    }
     if (environment.status !== 'ACTIVE') {
       return json(
         {
@@ -1534,6 +1542,45 @@ async function handleConsoleRuntimeSnapshots(
   return new Response('Not Found', { status: 404 });
 }
 
+async function visibleConsoleApiKeys(
+  ctx: CloudflareConsoleContext,
+  claims: ConsoleAuthClaims,
+  apiKeys: ConsoleApiKeyService,
+  level: 'viewer' | 'editor',
+): Promise<readonly ConsoleApiKey[] | Response> {
+  const keys = await apiKeys.listApiKeys(toBillingContext(claims));
+  if (claims.role !== 'MEMBER') return keys;
+
+  const environmentsOrResponse = requireWalletEnvironmentService(ctx);
+  if (environmentsOrResponse instanceof Response) return environmentsOrResponse;
+  const environments = await environmentsOrResponse.listEnvironments(
+    toWalletEnvironmentContext(claims),
+  );
+  const projectByEnvironment = new Map(
+    environments.map((environment) => [environment.id, environment.projectId]),
+  );
+  return keys.filter((key) => {
+    const projectId = projectByEnvironment.get(key.environmentId);
+    return projectId !== undefined && hasConsoleProjectAccess(claims, projectId, level);
+  });
+}
+
+async function requireConsoleApiKeyEditor(
+  ctx: CloudflareConsoleContext,
+  claims: ConsoleAuthClaims,
+  apiKeys: ConsoleApiKeyService,
+  apiKeyId: string,
+): Promise<Response | null> {
+  if (claims.role !== 'MEMBER') return null;
+  const visible = await visibleConsoleApiKeys(ctx, claims, apiKeys, 'editor');
+  if (visible instanceof Response) return visible;
+  if (visible.some((key) => key.id === apiKeyId)) return null;
+  return json(
+    { ok: false, code: 'api_key_not_found', message: `API key ${apiKeyId} was not found` },
+    { status: 404 },
+  );
+}
+
 async function handleConsoleApiKeys(ctx: CloudflareConsoleContext): Promise<Response | null> {
   if (!isConsoleApiKeyPath(ctx.pathname)) return null;
 
@@ -1551,7 +1598,8 @@ async function handleConsoleApiKeys(ctx: CloudflareConsoleContext): Promise<Resp
 
   try {
     if (ctx.method === 'GET' && ctx.pathname === '/console/api-keys') {
-      const out = await apiKeys.listApiKeys(apiKeyCtx);
+      const out = await visibleConsoleApiKeys(ctx, auth.claims, apiKeys, 'viewer');
+      if (out instanceof Response) return out;
       return json({ ok: true, apiKeys: out }, { status: 200 });
     }
 
@@ -1601,6 +1649,8 @@ async function handleConsoleApiKeys(ctx: CloudflareConsoleContext): Promise<Resp
       if (routePolicy) return routePolicy;
       const apiKeyId = decodePathPart(apiKeyPathMatch[1]);
       const request = parseRevokeConsoleApiKeyRequest(await readJson(ctx.request));
+      const accessFailure = await requireConsoleApiKeyEditor(ctx, auth.claims, apiKeys, apiKeyId);
+      if (accessFailure) return accessFailure;
       const revoked = await apiKeys.revokeApiKey(apiKeyCtx, apiKeyId, request);
       if (!revoked.revoked || !revoked.apiKey) {
         return json(
@@ -1637,6 +1687,8 @@ async function handleConsoleApiKeys(ctx: CloudflareConsoleContext): Promise<Resp
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const apiKeyId = decodePathPart(apiKeyPurgePathMatch[1]);
+      const accessFailure = await requireConsoleApiKeyEditor(ctx, auth.claims, apiKeys, apiKeyId);
+      if (accessFailure) return accessFailure;
       const deleted = await apiKeys.deleteApiKey(apiKeyCtx, apiKeyId);
       if (!deleted.deleted || !deleted.apiKey) {
         return json(
@@ -1677,6 +1729,8 @@ async function handleConsoleApiKeys(ctx: CloudflareConsoleContext): Promise<Resp
         await readJson(ctx.request),
         WALLET_API_CREDENTIAL_SCOPE_VALIDATION,
       );
+      const accessFailure = await requireConsoleApiKeyEditor(ctx, auth.claims, apiKeys, apiKeyId);
+      if (accessFailure) return accessFailure;
       const updated = await apiKeys.updateApiKey(apiKeyCtx, apiKeyId, request);
       if (!updated) {
         return json(
@@ -1717,6 +1771,8 @@ async function handleConsoleApiKeys(ctx: CloudflareConsoleContext): Promise<Resp
       if (routePolicy) return routePolicy;
       const apiKeyId = decodePathPart(apiKeyRotatePathMatch[1]);
       const request = parseRotateConsoleApiKeyRequest(await readJson(ctx.request));
+      const accessFailure = await requireConsoleApiKeyEditor(ctx, auth.claims, apiKeys, apiKeyId);
+      if (accessFailure) return accessFailure;
       const rotated = await apiKeys.rotateApiKey(apiKeyCtx, apiKeyId, request);
       if (!rotated) {
         return json(

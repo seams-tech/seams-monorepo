@@ -76,6 +76,12 @@ The API keys page lets an authorized organization operator:
 - view key kind, prefix, status, scopes, and timestamps;
 - revoke a key without revealing its secret again.
 
+Organization owners can list and manage keys across all projects. Members see
+keys only for projects where they have viewer or editor access. A member needs
+editor access to the key's environment project to create, update, revoke,
+purge, or rotate it. The selected Console project and a key ID do not grant
+access to a key in another project.
+
 Creating and revoking credentials are audited. Authorization failures do not
 reveal whether a differently scoped credential exists.
 

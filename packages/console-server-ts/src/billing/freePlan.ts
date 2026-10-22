@@ -27,7 +27,33 @@ export const WALLET_GROWTH_PLAN_PRICE_V1 = Object.freeze({
   signatureOveragePerThousandMinor: 5,
 } as const);
 
-export type BillingPlanKindV1 = 'free' | 'growth' | 'enterprise';
+/**
+ * The Pro price is a placeholder from the pricing page; it is not approved and not in
+ * docs/wallet-saas/pricing.md yet. Nothing bills a plan until the feat-3 monthly close.
+ */
+export const WALLET_PRO_PLAN_PRICE_V1 = Object.freeze({
+  version: 'wallet-pro-v1',
+  currency: 'USD',
+  monthlyBaseMinor: 39_900,
+  includedActiveUsers: 100_000,
+  activeUserOverageMicros: 3_500,
+  signaturesPerActiveUser: 300,
+  signatureOveragePerThousandMinor: 4,
+} as const);
+
+/** The paid plans that an owner starts from the Console with a verified card. */
+export type SelfServePlanKindV1 = 'growth' | 'pro';
+
+export const SELF_SERVE_PLAN_PRICES_V1 = Object.freeze({
+  growth: WALLET_GROWTH_PLAN_PRICE_V1,
+  pro: WALLET_PRO_PLAN_PRICE_V1,
+} as const satisfies Record<SelfServePlanKindV1, { readonly version: string }>);
+
+export function isSelfServePlanKind(value: unknown): value is SelfServePlanKindV1 {
+  return value === 'growth' || value === 'pro';
+}
+
+export type BillingPlanKindV1 = 'free' | SelfServePlanKindV1 | 'enterprise';
 export type ProductionStateV1 = 'active' | 'card_required' | 'free_limit_reached';
 export type FreePlanCardReminderDayV1 = (typeof FREE_PLAN_CARD_REMINDER_DAYS)[number];
 export type FreePlanLimitV1 = 'active_users' | 'signatures';
@@ -40,7 +66,7 @@ export type BillingPlanV1 =
       readonly priceVersion?: never;
     }
   | {
-      readonly kind: 'growth';
+      readonly kind: SelfServePlanKindV1;
       readonly freeStartedAtMs: number;
       readonly startedAtMs: number;
       readonly priceVersion: string;
@@ -213,8 +239,8 @@ function evaluatePaidPlan(input: FreePlanEvaluationInputV1): FreePlanEvaluationV
       monthlyBaseMinor: WALLET_GROWTH_PLAN_PRICE_V1.monthlyBaseMinor,
     });
   }
-  // Enterprise runs on a contract. Growth needs a usable card, as for new paid work.
-  if (plan.kind === 'growth' && input.card.kind !== 'usable') {
+  // Enterprise runs on a contract. Growth and Pro need a usable card, as for new paid work.
+  if (isSelfServePlanKind(plan.kind) && input.card.kind !== 'usable') {
     banners.push({ kind: 'card_required' });
     return { kind: 'stay', productionState: 'card_required', notices: [], banners };
   }

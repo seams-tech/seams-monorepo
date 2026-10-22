@@ -1,6 +1,7 @@
 import { consoleApplicationUrl, secureRandomBase36 } from '../boundary';
 import { WALLET_MONTHLY_ACTIVE_RESOURCE_PRICE_V1 } from './pricing';
 import { ConsoleBillingError } from './errors';
+import type { SelfServePlanKindV1 } from './freePlan';
 import { resolveCreditPackAmountMinorOrThrow } from './creditPacks';
 import {
   resolveBillingProviderAdapters,
@@ -172,16 +173,28 @@ export function buildStripeCheckoutReturnUrls(consoleBaseUrl?: string): {
   return buildBillingAccountReturnUrls(consoleBaseUrl, 'checkout');
 }
 
-export function buildCardSetupReturnUrls(consoleBaseUrl?: string): {
+/** A card setup that starts a plan returns to the plan page, which names that plan. */
+export function buildCardSetupReturnUrls(
+  consoleBaseUrl?: string,
+  startPlan: SelfServePlanKindV1 | null = null,
+): {
   successUrl: string;
   cancelUrl: string;
 } {
-  return buildBillingAccountReturnUrls(consoleBaseUrl, 'card_setup');
+  if (!startPlan) return buildBillingAccountReturnUrls(consoleBaseUrl, 'card_setup');
+  return buildBillingAccountReturnUrls(consoleBaseUrl, 'card_setup', {
+    pathname: '/dashboard/billing/plan',
+    query: `plan=${startPlan}`,
+  });
 }
 
 function buildBillingAccountReturnUrls(
   consoleBaseUrl: string | undefined,
   parameter: 'checkout' | 'card_setup',
+  page: { readonly pathname: string; readonly query: string } = {
+    pathname: '/dashboard/billing/account',
+    query: '',
+  },
 ): {
   successUrl: string;
   cancelUrl: string;
@@ -196,11 +209,11 @@ function buildBillingAccountReturnUrls(
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('Console base URL must use HTTP or HTTPS');
   }
-  const accountUrl = consoleApplicationUrl(parsed, '/dashboard/billing/account');
-  const separator = accountUrl.search ? '&' : '?';
+  const pageUrl = consoleApplicationUrl(parsed, page.pathname);
+  const prefix = `${pageUrl}${pageUrl.search ? '&' : '?'}${page.query ? `${page.query}&` : ''}`;
   return {
-    successUrl: `${accountUrl}${separator}${parameter}=success&checkout_session_id={CHECKOUT_SESSION_ID}`,
-    cancelUrl: `${accountUrl}${separator}${parameter}=cancel`,
+    successUrl: `${prefix}${parameter}=success&checkout_session_id={CHECKOUT_SESSION_ID}`,
+    cancelUrl: `${prefix}${parameter}=cancel`,
   };
 }
 

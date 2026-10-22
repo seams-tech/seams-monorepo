@@ -21,6 +21,7 @@ import {
   FREE_PLAN_CARD_GRACE_DAYS,
   FREE_PLAN_CARD_REMINDER_DAYS,
   FREE_PLAN_LIMITS_V1,
+  SELF_SERVE_PLAN_PRICES_V1,
   WALLET_GROWTH_PLAN_PRICE_V1,
   evaluateFreePlan,
   freePlanCardDeadlineMs,
@@ -34,6 +35,7 @@ import {
   type FreePlanNoticeV1,
   type PaymentMethodStateV1,
   type ProductionStateV1,
+  type SelfServePlanKindV1,
 } from './freePlan';
 import { ensureFreePlanD1Schema } from './freePlanSchema';
 import {
@@ -129,8 +131,9 @@ function parsePlan(row: D1Row): BillingPlanV1 {
     case 'free':
       return { kind: 'free', freeStartedAtMs };
     case 'growth':
+    case 'pro':
       return {
-        kind: 'growth',
+        kind: row.plan,
         freeStartedAtMs,
         startedAtMs: positiveMs(row.plan_started_at_ms, 'plan_started_at_ms'),
         priceVersion: requiredText(row.price_version, 'price_version'),
@@ -198,6 +201,24 @@ function currentCardMonthIndex(nowMs: number): number {
   return now.getUTCFullYear() * 12 + now.getUTCMonth();
 }
 
+function parseStartPlan(value: unknown): SelfServePlanKindV1 | null {
+  if (value === null || value === undefined) return null;
+  if (value === 'growth' || value === 'pro') return value;
+  throw new Error('Stored card setup start plan is invalid');
+}
+
+/** Only a Free account starts a paid plan; a second start finds no Free row and changes nothing. */
+function refusePlanStart(current: BillingPlanV1['kind'], plan: SelfServePlanKindV1): never {
+  if (current === plan) {
+    throw new ConsoleBillingError('plan_already_active', 409, `The organization is on ${plan}`);
+  }
+  throw new ConsoleBillingError(
+    'plan_change_unsupported',
+    409,
+    `The organization is on ${current}; only a Free organization can start ${plan}`,
+  );
+}
+
 export class D1FreePlanService {
   private readonly database: D1DatabaseLike;
   private readonly namespace: string;
@@ -233,9 +254,17 @@ export class D1FreePlanService {
     return this.view(snapshot, evaluateFreePlan({ ...snapshot, nowMs }), nowMs);
   }
 
-  async startCardSetup(ctx: FreePlanContextV1): Promise<CardSetupSessionV1> {
+  /** With `startPlan`, the verified card also starts that plan, in the same transaction. */
+  async startCardSetup(
+    ctx: FreePlanContextV1,
+    startPlan: SelfServePlanKindV1 | null = null,
+  ): Promise<CardSetupSessionV1> {
     assertBillingProviderAvailable(this.providers);
     const now = this.clock();
+    if (startPlan) {
+      const snapshot = await this.loadSnapshot(ctx.orgId, now.getTime());
+      if (snapshot && snapshot.plan.kind !== 'free') refusePlanStart(snapshot.plan.kind, startPlan);
+    }
     const account = await queryD1One(
       this.database,
       'SELECT id FROM organization_billing_accounts WHERE namespace = ? AND org_id = ?',
@@ -251,7 +280,7 @@ export class D1FreePlanService {
     const billingAccountId = requiredText(account.id, 'billing account id');
     const customerRef = await this.ensureCustomer(ctx.orgId, billingAccountId, now);
     const setupId = `cset_${now.getTime().toString(36)}_${secureRandomBase36(12, 'card setup id')}`;
-    const urls = buildCardSetupReturnUrls(this.consoleBaseUrl);
+    const urls = buildCardSetupReturnUrls(this.consoleBaseUrl, startPlan);
     const session = await this.providers.stripe.createCardSetupSession({
       setupId,
       orgId: ctx.orgId,
@@ -260,13 +289,14 @@ export class D1FreePlanService {
       successUrl: urls.successUrl,
       cancelUrl: urls.cancelUrl,
       now,
+      startPlan,
     });
     await this.database
       .prepare(
         `INSERT INTO billing_card_setup_sessions
           (namespace, org_id, billing_account_id, id, checkout_session_ref, customer_ref, status,
-            actor_user_id, created_at_ms, updated_at_ms)
-         VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)`,
+            actor_user_id, start_plan, created_at_ms, updated_at_ms)
+         VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?)`,
       )
       .bind(
         this.namespace,
@@ -276,11 +306,41 @@ export class D1FreePlanService {
         session.id,
         customerRef,
         requiredText(ctx.actorUserId, 'actorUserId'),
+        startPlan,
         now.getTime(),
         now.getTime(),
       )
       .run();
     return { checkoutSessionId: session.id, url: session.url, expiresAt: session.expiresAt };
+  }
+
+  /** Starts a paid plan with the usable card on file; the card setup path does the same. */
+  async startPlan(
+    ctx: Pick<FreePlanContextV1, 'orgId'>,
+    plan: SelfServePlanKindV1,
+  ): Promise<BillingPlanViewV1> {
+    const nowMs = this.clock().getTime();
+    const snapshot = await this.loadSnapshot(ctx.orgId, nowMs);
+    if (!snapshot) {
+      throw new ConsoleBillingError(
+        'billing_account_missing',
+        409,
+        'The organization has no billing account yet',
+      );
+    }
+    if (snapshot.plan.kind !== 'free') refusePlanStart(snapshot.plan.kind, plan);
+    if (snapshot.card.kind !== 'usable') {
+      throw new ConsoleBillingError('card_required', 409, `Add a card to start ${plan}`);
+    }
+    const [started] = await this.database.batch<D1ResultLike>([
+      this.startPlanStatement(ctx.orgId, plan, nowMs),
+    ]);
+    if (!started || d1ChangedRows(started) !== 1) {
+      const current = await this.loadSnapshot(ctx.orgId, nowMs);
+      refusePlanStart(current?.plan.kind ?? 'free', plan);
+    }
+    await this.evaluate(ctx.orgId);
+    return await this.getPlan(ctx);
   }
 
   /** A browser return proves nothing; the server-side Stripe lookup verifies the card. */
@@ -290,7 +350,7 @@ export class D1FreePlanService {
   ): Promise<{ readonly verified: boolean; readonly plan: BillingPlanViewV1 }> {
     const row = await queryD1One(
       this.database,
-      `SELECT org_id, customer_ref FROM billing_card_setup_sessions
+      `SELECT org_id, customer_ref, start_plan FROM billing_card_setup_sessions
        WHERE namespace = ? AND checkout_session_ref = ? AND org_id = ?`,
       [this.namespace, requiredText(checkoutSessionId, 'checkoutSessionId'), ctx.orgId],
     );
@@ -301,6 +361,7 @@ export class D1FreePlanService {
       ctx.orgId,
       checkoutSessionId,
       requiredText(row.customer_ref, 'customer_ref'),
+      parseStartPlan(row.start_plan),
     );
     return { verified, plan: await this.getPlan(ctx) };
   }
@@ -310,7 +371,7 @@ export class D1FreePlanService {
       case 'setup_completed': {
         const row = await queryD1One(
           this.database,
-          `SELECT org_id, customer_ref FROM billing_card_setup_sessions
+          `SELECT org_id, customer_ref, start_plan FROM billing_card_setup_sessions
            WHERE namespace = ? AND checkout_session_ref = ?`,
           [this.namespace, event.checkoutSessionId],
         );
@@ -327,6 +388,7 @@ export class D1FreePlanService {
           orgId,
           event.checkoutSessionId,
           requiredText(row.customer_ref, 'customer_ref'),
+          parseStartPlan(row.start_plan),
         );
         return { accepted: verified };
       }
@@ -447,10 +509,15 @@ export class D1FreePlanService {
     return requiredText(stored?.customer_ref, 'customer_ref');
   }
 
+  /**
+   * Stores the verified card and, for a setup that starts a plan, starts it in the same
+   * batch. A replayed verification finds no Free row, so the plan starts once.
+   */
   private async verifyCardSetup(
     orgId: string,
     checkoutSessionId: string,
     customerRef: string,
+    startPlan: SelfServePlanKindV1 | null,
   ): Promise<boolean> {
     const lookup = await this.providers.stripe.getCardSetupSession({ checkoutSessionId });
     if (lookup.kind !== 'verified') return false;
@@ -499,9 +566,37 @@ export class D1FreePlanService {
           this.namespace,
           orgId,
         ),
+      ...(startPlan ? [this.startPlanStatement(orgId, startPlan, nowMs)] : []),
     ]);
     await this.evaluate(orgId);
     return true;
+  }
+
+  /** Plan, pinned price version, and production state change in one statement. */
+  private startPlanStatement(
+    orgId: string,
+    plan: SelfServePlanKindV1,
+    nowMs: number,
+  ): D1PreparedStatementLike {
+    return this.database
+      .prepare(
+        `UPDATE billing_account_plans SET plan = ?, plan_started_at_ms = ?, price_version = ?,
+           production_state = 'active',
+           production_state_changed_at_ms = CASE WHEN production_state = 'active'
+             THEN production_state_changed_at_ms ELSE ? END,
+           evaluation_due_at_ms = 0, updated_at_ms = ?
+         WHERE namespace = ? AND org_id = ? AND plan = 'free' AND ${USABLE_CARD_SQL}`,
+      )
+      .bind(
+        plan,
+        nowMs,
+        SELF_SERVE_PLAN_PRICES_V1[plan].version,
+        nowMs,
+        nowMs,
+        this.namespace,
+        orgId,
+        currentCardMonthIndex(nowMs),
+      );
   }
 
   private async loadSnapshot(orgId: string, nowMs: number): Promise<AccountSnapshot | null> {

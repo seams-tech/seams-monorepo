@@ -1,5 +1,6 @@
 import { secureRandomBase36 } from '../boundary';
 import { ConsoleBillingError } from './errors';
+import type { SelfServePlanKindV1 } from './freePlan';
 import type { BillingCreditPackId, StripeProviderRefundStatus } from './types';
 
 export interface StripeCheckoutSessionProviderInput {
@@ -68,6 +69,8 @@ export interface StripeCardSetupSessionProviderInput {
   successUrl: string;
   cancelUrl: string;
   now: Date;
+  /** The plan that the verified card starts; Stripe's page states its price. */
+  startPlan: SelfServePlanKindV1 | null;
 }
 
 export interface StripeCardSetupSessionProviderOutput {

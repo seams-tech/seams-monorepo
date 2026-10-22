@@ -535,6 +535,104 @@ test('Free plan: card clock, production-only counts, notices, hard stop, and the
   }
 });
 
+test('Plan start: a verified card starts Growth or Pro once, and only from Free', async () => {
+  test.setTimeout(240_000);
+  await rm(path.join(output, 'plan-start'), { recursive: true, force: true });
+  const clock = new Clock(Date.now());
+  const worker = runtime('plan-start');
+  try {
+    const database = await migratedDatabase(worker);
+    const services = await product(database, clock, new Date(clock.ms + 400 * DAY_MS));
+    const pro = organization('start-pro');
+    const growth = organization('start-growth');
+    const enterprise = organization('start-enterprise');
+    for (const org of [pro, growth, enterprise]) await createOrganization(database, services, org);
+    const context = (org: Organization) => ({ orgId: org.orgId, actorUserId: org.ownerUserId });
+
+    // A card setup that starts Pro returns to the plan page, and the verified card starts Pro.
+    const setup = await services.core.freePlan.startCardSetup(context(pro), 'pro');
+    const returned = new URL(setup.url);
+    expect(returned.pathname).toBe('/dashboard/billing/plan');
+    expect(returned.searchParams.get('plan')).toBe('pro');
+    expect(returned.searchParams.get('card_setup')).toBe('success');
+    const verified = await services.core.freePlan.reconcileCardSetup(
+      { orgId: pro.orgId },
+      setup.checkoutSessionId,
+    );
+    expect(verified).toMatchObject({
+      verified: true,
+      plan: { plan: 'pro', priceVersion: 'wallet-pro-v1', productionState: 'active' },
+    });
+    const startedAt = verified.plan.planStartedAt;
+    expect(startedAt).toBeTruthy();
+
+    // A replayed return or webhook does not start the plan again or move its start date.
+    clock.ms += DAY_MS;
+    const replayed = await services.core.freePlan.reconcileCardSetup(
+      { orgId: pro.orgId },
+      setup.checkoutSessionId,
+    );
+    expect(replayed.plan).toMatchObject({ plan: 'pro', planStartedAt: startedAt });
+    const webhook = parseStripeCardSetupWebhookEvent({
+      id: 'evt_plan_start_replay',
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: setup.checkoutSessionId,
+          mode: 'setup',
+          client_reference_id: pro.orgId,
+          metadata: { org_id: pro.orgId },
+        },
+      },
+    });
+    if (!webhook) throw new Error('Setup completion event was not parsed');
+    await services.core.freePlan.handleWebhookEvent(webhook);
+    expect(await services.core.freePlan.getPlan({ orgId: pro.orgId })).toMatchObject({
+      plan: 'pro',
+      planStartedAt: startedAt,
+    });
+
+    // Only a Free organization starts a plan.
+    await expect(services.core.freePlan.startCardSetup(context(pro), 'pro')).rejects.toMatchObject({
+      code: 'plan_already_active',
+    } satisfies Partial<ConsoleBillingError>);
+    await expect(services.core.freePlan.startPlan(context(pro), 'growth')).rejects.toMatchObject({
+      code: 'plan_change_unsupported',
+    } satisfies Partial<ConsoleBillingError>);
+
+    // Without a card the start is refused; with the card on file it starts at once, once.
+    await expect(services.core.freePlan.startPlan(context(growth), 'growth')).rejects.toMatchObject(
+      { code: 'card_required' } satisfies Partial<ConsoleBillingError>,
+    );
+    expect((await addCard(services, growth)).plan).toMatchObject({ plan: 'free' });
+    expect(await services.core.freePlan.startPlan(context(growth), 'growth')).toMatchObject({
+      plan: 'growth',
+      priceVersion: 'wallet-growth-v1',
+      productionState: 'active',
+    });
+    await expect(services.core.freePlan.startPlan(context(growth), 'growth')).rejects.toMatchObject(
+      { code: 'plan_already_active' } satisfies Partial<ConsoleBillingError>,
+    );
+
+    // An Enterprise contract never changes from the Console.
+    await addCard(services, enterprise);
+    await database
+      .prepare(
+        `UPDATE billing_account_plans SET plan = 'enterprise', plan_started_at_ms = ?,
+           price_version = 'enterprise-contract-v1' WHERE namespace = ? AND org_id = ?`,
+      )
+      .bind(clock.ms, namespace, enterprise.orgId)
+      .run();
+    await expect(
+      services.core.freePlan.startPlan(context(enterprise), 'pro'),
+    ).rejects.toMatchObject({
+      code: 'plan_change_unsupported',
+    } satisfies Partial<ConsoleBillingError>);
+  } finally {
+    await worker.dispose();
+  }
+});
+
 function regionalRuntimes(
   signer: D1DatabaseLike,
   binding: TenantDeploymentBindingV1,

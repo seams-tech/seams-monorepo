@@ -10,6 +10,8 @@ import {
   parseBillingInvoiceListRequest,
   parseBillingManualAdjustmentRequest,
   parseStripeCheckoutSessionReconcileRequest,
+  parseCardSetupRequest,
+  parsePlanStartRequest,
   parseGenerateMonthlyInvoiceRequest,
   parseStripeCheckoutSessionRequest,
 } from '../../billing/requests';
@@ -762,6 +764,7 @@ export async function handleConsoleBillingRoutes(
     }
     if (
       ctx.pathname === '/console/billing/plan' ||
+      ctx.pathname === '/console/billing/plan/start' ||
       ctx.pathname === '/console/billing/card-setup' ||
       ctx.pathname === '/console/billing/card-setup/reconcile'
     ) {
@@ -772,8 +775,20 @@ export async function handleConsoleBillingRoutes(
       if (ctx.method === 'GET' && ctx.pathname === '/console/billing/plan') {
         return json({ ok: true, plan: await freePlan.getPlan(billingCtx) }, { status: 200 });
       }
+      if (ctx.method === 'POST' && ctx.pathname === '/console/billing/plan/start') {
+        const request = parsePlanStartRequest(await readJson(ctx.request));
+        const plan = await freePlan.startPlan(billingCtx, request.plan);
+        await emitConsoleAuditEvent(ctx, auth.claims, {
+          category: 'BILLING',
+          action: 'billing.plan.started',
+          summary: `Started the ${request.plan} plan with the card on file`,
+          metadata: { plan: plan.plan, priceVersion: plan.priceVersion, entry: 'card_on_file' },
+        });
+        return json({ ok: true, plan }, { status: 200 });
+      }
       if (ctx.method === 'POST' && ctx.pathname === '/console/billing/card-setup') {
-        const cardSetup = await freePlan.startCardSetup(billingCtx);
+        const request = parseCardSetupRequest(await readJson(ctx.request));
+        const cardSetup = await freePlan.startCardSetup(billingCtx, request.startPlan);
         return json({ ok: true, cardSetup }, { status: 201 });
       }
       if (ctx.method === 'POST' && ctx.pathname === '/console/billing/card-setup/reconcile') {

@@ -18,6 +18,7 @@ import type {
 } from './providers';
 import type { BillingCreditPackId, StripeProviderRefundStatus } from './types';
 import { UnavailableStripeBillingProvider } from './providers';
+import { SELF_SERVE_PLAN_PRICES_V1, type SelfServePlanKindV1 } from './freePlan';
 
 export interface StripeBillingProviderOptions {
   readonly secretKey: string;
@@ -179,6 +180,16 @@ function parseStripeCard(paymentMethod: UnknownRecord): StripeVerifiedCardV1 | n
   return { id, brand, last4, expMonth, expYear };
 }
 
+/** Stripe's page states the price before the visitor enters a card. */
+function cardSetupSubmitMessage(startPlan: SelfServePlanKindV1 | null): string {
+  if (!startPlan) {
+    return 'We charge this card for Growth and usage after each month. We do not charge it while you stay inside the Free limits.';
+  }
+  const name = startPlan === 'pro' ? 'Pro' : 'Growth';
+  const monthly = SELF_SERVE_PLAN_PRICES_V1[startPlan].monthlyBaseMinor / 100;
+  return `${name} starts today at $${monthly} a month. We charge this card for the plan and usage after each month.`;
+}
+
 class StripeBillingProvider implements StripeBillingProviderAdapter {
   private readonly secretKey: string;
   private readonly apiBaseUrl: string;
@@ -324,11 +335,7 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
     setFormField(form, 'metadata[org_id]', input.orgId);
     setFormField(form, 'metadata[billing_account_id]', input.billingAccountId);
     setFormField(form, 'metadata[card_setup_id]', input.setupId);
-    setFormField(
-      form,
-      'custom_text[submit][message]',
-      'We charge this card for Growth and usage after each month. We do not charge it while you stay inside the Free limits.',
-    );
+    setFormField(form, 'custom_text[submit][message]', cardSetupSubmitMessage(input.startPlan));
     const payload = await this.postForm('/v1/checkout/sessions', form, input.setupId);
     const id = normalizeString(payload.id);
     const url = normalizeString(payload.url);

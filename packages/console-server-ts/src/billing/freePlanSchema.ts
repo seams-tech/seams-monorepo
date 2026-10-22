@@ -2,8 +2,8 @@ import { formatD1ExecStatement, type D1DatabaseLike } from '../boundary/d1';
 
 /**
  * Plan state, the card clock, verified payment methods, production usage counts,
- * and sent notices, per billing account. Migrations 0010 and 0011 (Console core) and
- * 0101 and 0103 (Wallet Console) create the same objects on deployed databases.
+ * and sent notices, per billing account. Migrations 0010, 0011 and 0013 (Console core)
+ * and 0101, 0103 and 0105 (Wallet Console) create the same objects on deployed databases.
  */
 export const FREE_PLAN_D1_SCHEMA_SQL = Object.freeze([
   `CREATE TABLE IF NOT EXISTS billing_free_plan_release (
@@ -16,7 +16,7 @@ export const FREE_PLAN_D1_SCHEMA_SQL = Object.freeze([
     namespace TEXT NOT NULL,
     org_id TEXT NOT NULL,
     billing_account_id TEXT NOT NULL,
-    plan TEXT NOT NULL CHECK (plan IN ('free', 'growth', 'enterprise')),
+    plan TEXT NOT NULL CHECK (plan IN ('free', 'growth', 'pro', 'enterprise')),
     free_started_at_ms INTEGER NOT NULL CHECK (free_started_at_ms > 0),
     plan_started_at_ms INTEGER,
     price_version TEXT,
@@ -31,7 +31,7 @@ export const FREE_PLAN_D1_SCHEMA_SQL = Object.freeze([
       REFERENCES organization_billing_accounts(namespace, org_id, id),
     CHECK (
       (plan = 'free' AND plan_started_at_ms IS NULL AND price_version IS NULL)
-      OR (plan = 'growth' AND plan_started_at_ms > 0 AND length(price_version) > 0)
+      OR (plan IN ('growth', 'pro') AND plan_started_at_ms > 0 AND length(price_version) > 0)
       OR (plan = 'enterprise' AND plan_started_at_ms > 0 AND length(price_version) > 0
         AND production_state = 'active')
     ),
@@ -85,6 +85,7 @@ export const FREE_PLAN_D1_SCHEMA_SQL = Object.freeze([
     customer_ref TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('open', 'verified')),
     actor_user_id TEXT NOT NULL CHECK (length(actor_user_id) > 0),
+    start_plan TEXT CHECK (start_plan IS NULL OR start_plan IN ('growth', 'pro')),
     created_at_ms INTEGER NOT NULL CHECK (created_at_ms > 0),
     updated_at_ms INTEGER NOT NULL,
     PRIMARY KEY (namespace, id),

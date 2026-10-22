@@ -194,6 +194,7 @@ const BILLING_MANAGE_ROUTES: readonly ConsoleRouteTuple[] = [
   ],
   ['console_billing_card_setup_create', 'POST', '/console/billing/card-setup'],
   ['console_billing_card_setup_reconcile', 'POST', '/console/billing/card-setup/reconcile'],
+  ['console_billing_plan_start', 'POST', '/console/billing/plan/start'],
 ];
 
 const PLATFORM_SUPPORT_ROUTES: readonly ConsoleRouteTuple[] = [

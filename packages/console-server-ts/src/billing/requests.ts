@@ -1,5 +1,6 @@
 import { ConsoleBillingError } from './errors';
 import { isBillingCreditPackId } from './creditPacks';
+import { isSelfServePlanKind, type SelfServePlanKindV1 } from './freePlan';
 import {
   readOptionalQueryBooleanField as readOptionalQueryBoolean,
   readOptionalQueryPositiveIntegerField as readOptionalQueryPositiveInteger,
@@ -230,6 +231,36 @@ export function parseStripeCheckoutSessionReconcileRequest(
   return {
     checkoutSessionId: readRequiredString(obj, 'checkoutSessionId', createParseError),
   };
+}
+
+/** An empty body adds a card only; `startPlan` also starts that plan when the card verifies. */
+export function parseCardSetupRequest(body: unknown): {
+  readonly startPlan: SelfServePlanKindV1 | null;
+} {
+  if (body === null) return { startPlan: null };
+  const obj = requireObject(body, createParseError);
+  for (const key of Object.keys(obj)) {
+    if (key !== 'startPlan') {
+      throw new ConsoleBillingError('invalid_body', 400, `Unknown field ${key}`);
+    }
+  }
+  if (obj.startPlan === undefined) return { startPlan: null };
+  return { startPlan: readSelfServePlan(obj.startPlan, 'startPlan') };
+}
+
+export function parsePlanStartRequest(body: unknown): { readonly plan: SelfServePlanKindV1 } {
+  const obj = requireObject(body, createParseError);
+  for (const key of Object.keys(obj)) {
+    if (key !== 'plan') throw new ConsoleBillingError('invalid_body', 400, `Unknown field ${key}`);
+  }
+  return { plan: readSelfServePlan(obj.plan, 'plan') };
+}
+
+function readSelfServePlan(value: unknown, field: string): SelfServePlanKindV1 {
+  if (!isSelfServePlanKind(value)) {
+    throw new ConsoleBillingError('invalid_body', 400, `Field ${field} must be growth or pro`);
+  }
+  return value;
 }
 
 export function parseGenerateMonthlyInvoiceRequest(body: unknown): GenerateMonthlyInvoiceRequest {

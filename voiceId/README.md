@@ -32,8 +32,9 @@ enrollment, local Keychain storage, deletion, and exact spoken-command checks.
 The macOS shared library exports ABI 1 for native consumers. A compiled C caller
 verifies its lifecycle. The [browser prototype](browser/README.md) now connects
 the wallet-owned review gate to the native engine through Chrome native messaging.
-The real-model browser journey reaches the existing signing boundary.
-Live microphone qualification and a funded testnet transaction remain open.
+The real-model browser journey now runs Ed25519 Yao MPC, verifies the resulting
+signature, and confirms a reviewed NEAR transfer on testnet.
+Live microphone qualification remains open.
 Engine results carry no robot or signing authority.
 
 The first MVP assumes a user-controlled, authorized device. It checks the enrolled
@@ -99,11 +100,11 @@ provisioned, checksum-verified model assets. Inference must not silently downloa
 a model or use a remote fallback.
 
 Use the [macOS local host](engine/README.md#macos-local-host) for deliberate enrollment
-and voice checks. The next step is live enrollment and one reviewed NEAR testnet
-transfer through the browser prototype. Native fixture replay, synthetic host
-composition, a compiled C caller, and the native/browser bridge have repeatable
+and voice checks. The next step is live enrollment and recognition qualification
+through the browser prototype. Native fixture replay, synthetic host composition,
+a compiled C caller, and the funded browser-to-MPC testnet journey have repeatable
 reports. Live recognition quality and resource budgets remain open.
 L0 owns the MVP
 microphone profile and measured resource/error budgets. L1 coordinates the minimal
-public provider contract with wallet W0. Wallet W1 still needs the funded testnet
-exercise and live capture qualification.
+public provider contract with wallet W0. Wallet W1 now has a confirmed synthetic
+speech testnet transfer. It still needs live capture and uncertain-outcome qualification.

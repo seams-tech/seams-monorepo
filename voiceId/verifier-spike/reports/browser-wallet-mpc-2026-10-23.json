@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "voiceid-wallet-journey-v1",
+  "status": "passed",
+  "capture": "real_time_synthetic_pcm_replay",
+  "models": "real_native_moonshine_and_ecapa",
+  "browser": "real_chromium_extension_and_native_messaging",
+  "nativeNetworkAccess": "denied_by_macos_sandbox",
+  "signing": {
+    "status": "passed",
+    "chain": "deterministic_near_rpc",
+    "onChainConfirmed": false,
+    "ownerAuthority": "registered_wallet_with_owner_passkey_unlock_after_quota_exhaustion",
+    "signing": "real_ed25519_yao_mpc",
+    "signatureVerification": "registered_wallet_public_key",
+    "preparationQuota": {
+      "afterDenials": 0,
+      "afterOwnerUnlockAndSigning": 2
+    },
+    "cancellationPreventedFinalization": true,
+    "differentSpeakerPreventedFinalization": true,
+    "extraWordsPreventedFinalization": true,
+    "observedVoiceOutcomes": [
+      "cancelled",
+      "rejected",
+      "rejected",
+      "approved"
+    ],
+    "owner": {
+      "walletId": "quiet-arbor-nzjtg8",
+      "accountId": "3c982e1921fd4fd6169cceae0056fd8e3b425bae1b43f8d46c5c03aba0d5203c",
+      "publicKey": "ed25519:55Y3wXbw7kioViKL2o9XhEvzmybeT7VCTYbz2rZjY2kb"
+    },
+    "transfers": [
+      {
+        "signedTransactionSha256": "1656b3d8a28f41774210358f692da483c09a37e452718b127c3f20fb758d25b8",
+        "signerId": "3c982e1921fd4fd6169cceae0056fd8e3b425bae1b43f8d46c5c03aba0d5203c",
+        "receiverId": "3c982e1921fd4fd6169cceae0056fd8e3b425bae1b43f8d46c5c03aba0d5203c",
+        "amountYocto": "1",
+        "nonce": "2"
+      }
+    ]
+  },
+  "nativeHostSha256": "27c4dbd90d1997db51c695650ad152c75be94ebb317ce1b1dbc78a4973f522ee",
+  "extensionBridgeSha256": "971d996ea62a110b4e95db9c66a5ac4937f6ba171f15257624dbda5749c173a9",
+  "walletScenarioSha256": "27e37c4805f014d9d6d1be252a7dcaf5f86f8b1216b82c4912af9134d80b340f",
+  "walletCommit": "7a21c7d0415e494fdb65a89be5d4956b77383e99",
+  "disposableAuthorityAndEnrollmentDeleted": true
+}

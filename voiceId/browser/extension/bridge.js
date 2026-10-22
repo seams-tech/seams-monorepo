@@ -1,4 +1,4 @@
-const WALLET_ORIGINS = new Set(['https://localhost:4002', 'http://127.0.0.1:4313']);
+const WALLET_ORIGINS = new Set(['https://localhost:4002', 'http://localhost:4313']);
 const HOST = 'com.seams.voiceid.prototype';
 
 function record(value) {

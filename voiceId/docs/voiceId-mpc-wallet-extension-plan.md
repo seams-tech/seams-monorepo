@@ -3,8 +3,8 @@
 Date: 2026-09-14
 Updated: 2026-10-23
 Status: the browser/native local gate is implemented on isolated VoiceID branches.
-The real-model browser journey reaches the existing signing boundary.
-Live microphone qualification and a funded testnet transaction remain open.
+The real-model browser journey runs MPC, verifies the signature, and confirms a
+reviewed transfer on NEAR testnet. Live microphone qualification remains open.
 Standalone remote admission remains a separate delivery stage.
 
 Related plans:
@@ -353,7 +353,12 @@ Present that frozen operation before collecting **“I approve this operation”
 The public contract exercises changed operations, late replies, cancellation,
 expiry, single consumption, and a fresh replacement. The private journey adds
 real native models, another speaker, spoken cancellation, and extra words.
-The funded testnet exercise still needs to verify broadcast and uncertain outcomes.
+It verifies a real Ed25519 Yao signature against the registered key, then confirms
+a funded one-yoctoNEAR transfer on testnet. Three denied preparations exhaust the
+existing quota. The owner passkey unlocks a new session before approval.
+The [testnet evidence](../verifier-spike/reports/browser-wallet-testnet-2026-10-23.json)
+records funding, finality, public-key verification, and disposable-state cleanup.
+Live capture and uncertain broadcast outcomes remain open.
 
 - [x] Choose the native host, wallet lane/protocol, test network, initial asset
       and transaction allowlist. Keep the first real signing exercise on testnet.
@@ -397,8 +402,9 @@ MPC behavior. No proprietary source is required to build or test the extension.
 - [ ] Run an E2E scenario covering owner approval, another speaker, a changed
       operation, expiry, cancellation, and duplicate approval delivery. Produce a
       repeatable report with operation outcomes and timings, excluding biometric media.
-- [ ] Exercise the complete path on testnet and qualify the wallet-specific
-      captures. A successful robot demo alone does not pass this gate.
+- [x] Confirm the complete path on testnet with synthetic speech, native models,
+      real owner authority, and real MPC. Retain the signature and receipt evidence.
+- [ ] Qualify wallet-specific live captures and uncertain broadcast outcomes.
 - [ ] Verify the native provider against the public contract. Missing providers,
       unsupported versions/profiles, cancellation, and artifact/bridge failure
       cannot bypass approval. Clean-host distribution remains local-plan L6 work.

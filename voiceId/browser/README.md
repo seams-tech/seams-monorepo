@@ -14,9 +14,17 @@ Neither branch is integrated into `dev` yet.
 The composed journey uses real Chromium, the real extension, Chrome native
 messaging, Moonshine, ECAPA, and a disposable macOS login Keychain namespace.
 It replays synthetic speech in real time. Native inference runs with network
-access denied. Its report distinguishes signing admission from transaction
-broadcast. Live microphone qualification and a funded testnet transaction remain
-the next acceptance steps.
+access denied. The journey registers a wallet, rejects three voice attempts,
+checks quota exhaustion, and unlocks with its owner passkey. Approval then produces
+a real Ed25519 Yao signature, which the test verifies against the registered key.
+The final stage funds the disposable wallet and confirms a one-yoctoNEAR transfer
+on NEAR testnet. The automated passkey is a browser virtual authenticator.
+Live microphone qualification remains the next acceptance step.
+
+The [testnet report](../verifier-spike/reports/browser-wallet-testnet-2026-10-23.json)
+records the transaction, signature digest, funding, and cleanup. Its
+[confirmed transaction](https://testnet.nearblocks.io/txns/5FDPRQykY9XXRfBJBh5UQ3ifQnWdBem8uBTdFc34piZE)
+is independently visible on testnet.
 
 Spoof detection, camera evidence, authenticated capture, and a new server factor
 remain outside this MVP. The user controls the device and OS.
@@ -86,13 +94,19 @@ a new review. Disable VoiceID through the same wallet settings page when finishe
 
 ## Repeatable evidence
 
-The public contract runs without private models:
+The public approval contract runs without private models:
 
 ```sh
 cd "$VOICEID_WALLET"
 SEAMS_TEST_FRONTEND_URL=http://localhost:4316 pnpm -C tests test:wallet-browser \
   wallet-ui/voiceid-approval.browser.test.ts --project chromium
 ```
+
+The public MPC contract is
+`tests/e2e/intended-behaviours/passkey.voiceid-near.contract.test.ts` in
+`seams-wallet`. Run it through the existing intended-test service runner.
+It uses a deterministic voice transport and RPC response. It writes
+`voiceid-near-mpc.json` under its Playwright result directory.
 
 The composed journey uses the synthetic fixtures produced by the existing
 `local_host_journey`. Build and run that journey if `local-host.e2e.media` is absent.
@@ -102,19 +116,44 @@ Then run:
 cd "$VOICEID_WALLET"
 cargo build --offline --locked --release --example browser_host_journey \
   --manifest-path "$VOICEID_PRIVATE/voiceId/engine/Cargo.toml"
-cd "$VOICEID_PRIVATE"
-node tests/e2e/voiceid-browser.e2e.mjs "$VOICEID_WALLET"
+pnpm exec tsx --tsconfig tests/tsconfig.wallet-intended.json \
+  "$VOICEID_PRIVATE/tests/e2e/voiceid-browser.e2e.mjs" "$VOICEID_WALLET"
 ```
 
-The journey reserves port 4313. It creates a disposable browser profile and
-Keychain namespace. It deletes both before reporting success. Evidence appears
-under `voiceId/engine/target/browser-journey/`: `report.json`, `review.png`, and
-`listening.png`. No microphone capture or transaction broadcast occurs.
+The journey requires free ports 4312, 4313, 4510, and 4512–4516. It starts the
+existing Wallet services with disposable local state. Set the existing
+`SEAMS_INTENDED_SKIP_BUILD=1` only when those Wallet builds are current.
+It creates a disposable browser profile and Keychain namespace. It deletes those
+and the local Wallet service state before reporting success.
+
+The final stage needs the public testnet faucet and RPC. Each run creates one
+disposable faucet account. It funds the wallet with 0.05 testnet NEAR, then deletes
+the funder and returns its remaining balance to the faucet. The funder key stays
+in process memory. The disposable wallet's remaining testnet balance stays on-chain
+after its local signing authority is deleted. No personal funds or keys are used.
+The helper waits for account-creation finality before reading its access key.
+The [official faucet implementation](https://github.com/near/near-contract-helper/blob/master/src/middleware/createAccount.js)
+defines account creation.
+
+Evidence appears under `voiceId/engine/target/browser-journey/`:
+`wallet-report.json` and `wallet-transfer.png`. The report separates the first
+MPC check with a deterministic RPC from the real testnet confirmation.
+No live microphone capture occurs.
+
+## Remaining acceptance
+
+1. Enroll with deliberate live microphone samples on the intended Mac and browser.
+2. Qualify approval, cancellation, another speaker, and background noise with live speech.
+3. Measure end-to-end delay and tune the speaker gate from those results.
+4. Package the native host and extension for installation on a clean Mac.
+5. Integrate the isolated branches after concurrent work is ready.
+
+Replay and targeted synthesis detection remain outside the selected MVP.
 
 ## Transport boundary
 
 The extension accepts only `https://localhost:4002` and the isolated journey's
-`http://127.0.0.1:4313` wallet origin. It checks the sender origin, URL, tab,
+`http://localhost:4313` wallet origin. It checks the sender origin, URL, tab,
 frame, document, and versioned port name. Each connection accepts one request.
 Chrome's host manifest and the native process both pin the extension origin.
 

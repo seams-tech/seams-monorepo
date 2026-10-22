@@ -3,6 +3,11 @@ import { ensureBillingFundsD1Schema } from '../billingPrepaidReservations/schema
 import { ensureBillingUsageD1Schema } from './usageSchema';
 import { ensureFreePlanD1Schema } from './freePlanSchema';
 import { accruePlanBaseChargeForMonth } from './planBaseCharges';
+import {
+  collectPlanBaseCharge,
+  listDuePlanBaseCollectionTasks,
+  type PlanBaseCollectionTask,
+} from './planBaseCollection';
 import { WALLET_MONTHLY_ACTIVE_RESOURCE_PRICE_V1 } from './pricing';
 import { listD1BillingUsageCharges } from './attribution';
 import {
@@ -94,6 +99,10 @@ const ACTIVE_RESOURCE_USAGE_DEBIT_MINOR = WALLET_MONTHLY_ACTIVE_RESOURCE_PRICE_V
 const DEFAULT_LOW_BALANCE_THRESHOLD_MINOR = 2000;
 const DEFAULT_INVOICE_LIST_LIMIT = 25;
 const MAX_INVOICE_LIST_LIMIT = 100;
+
+function assertNever(value: never): never {
+  throw new Error(`Unexpected billing state: ${String(value)}`);
+}
 const DEFAULT_ACCOUNT_ACTIVITY_LIMIT = 25;
 const MAX_ACCOUNT_ACTIVITY_LIMIT = 100;
 
@@ -128,6 +137,8 @@ export interface D1ConsoleBillingMonthlyFinalizationOptions {
   orgIds?: string[];
   periodMonthUtc?: string;
   now?: () => Date;
+  providers: BillingProviderAdapters;
+  ensureSchema?: boolean;
 }
 
 export interface D1ConsoleBillingMonthlyFinalizationResult {
@@ -136,8 +147,12 @@ export interface D1ConsoleBillingMonthlyFinalizationResult {
   orgCount: number;
   generatedCount: number;
   skippedCount: number;
+  paidCount: number;
+  submittedCount: number;
+  noChargeCount: number;
   failures: Array<{
     orgId: string;
+    monthUtc: string;
     code: string;
     message: string;
   }>;
@@ -4348,56 +4363,115 @@ export async function runD1ConsoleBillingMonthlyFinalization(
 ): Promise<D1ConsoleBillingMonthlyFinalizationResult> {
   const namespace = ensureNamespace(options.namespace);
   const now = options.now || defaultNow;
+  const currentNow = now();
   const periodMonthUtc = options.periodMonthUtc
     ? normalizeMonthUtc(options.periodMonthUtc)
-    : previousMonthUtc(now());
-  const orgIds = Array.from(
-    new Set(
-      (Array.isArray(options.orgIds) ? options.orgIds : [])
-        .map((orgId) => String(orgId || '').trim())
-        .filter(Boolean),
-    ),
-  );
-  if (orgIds.length === 0) {
-    throw new Error('Billing monthly finalization requires at least one orgId');
-  }
+    : previousMonthUtc(currentNow);
   const service = await createD1ConsoleBillingService({
     database: options.database,
     namespace,
     now,
+    providers: options.providers,
+    ensureSchema: options.ensureSchema,
   });
+
+  let tasks: PlanBaseCollectionTask[];
+  if (options.orgIds) {
+    const orgIds = new Set<string>();
+    for (const rawOrgId of options.orgIds) {
+      const orgId = String(rawOrgId || '').trim();
+      if (orgId) orgIds.add(orgId);
+    }
+    tasks = [];
+    for (const orgId of orgIds) tasks.push({ orgId, monthUtc: periodMonthUtc });
+  } else {
+    tasks = await listDuePlanBaseCollectionTasks({
+      database: options.database,
+      namespace,
+      nowMs: currentNow.getTime(),
+      previousMonthUtc: periodMonthUtc,
+      previousMonthEndMs: Date.UTC(
+        Number(periodMonthUtc.slice(0, 4)),
+        Number(periodMonthUtc.slice(5, 7)),
+        1,
+      ),
+      limit: 20,
+    });
+  }
 
   let generatedCount = 0;
   let skippedCount = 0;
+  let paidCount = 0;
+  let submittedCount = 0;
+  let noChargeCount = 0;
   const failures: D1ConsoleBillingMonthlyFinalizationResult['failures'] = [];
 
-  for (const orgId of orgIds) {
+  for (const task of tasks) {
     try {
       const out = await service.generateMonthlyInvoice(
         {
-          orgId,
+          orgId: task.orgId,
           actorUserId: 'system-billing-finalizer',
         },
-        { periodMonthUtc },
+        { periodMonthUtc: task.monthUtc },
       );
       if (out.generated) {
         generatedCount += 1;
       } else {
         skippedCount += 1;
       }
+      const collection = await collectPlanBaseCharge({
+        database: options.database,
+        namespace,
+        orgId: task.orgId,
+        monthUtc: task.monthUtc,
+        nowMs: currentNow.getTime(),
+        stripe: options.providers.stripe,
+      });
+      switch (collection) {
+        case null:
+          noChargeCount += 1;
+          break;
+        case 'paid':
+          paidCount += 1;
+          break;
+        case 'open':
+          submittedCount += 1;
+          break;
+        case 'void':
+        case 'uncollectible':
+          failures.push({
+            orgId: task.orgId,
+            monthUtc: task.monthUtc,
+            code: 'plan_collection_unpaid',
+            message: `Stripe invoice is ${collection}`,
+          });
+          break;
+        case 'draft':
+          throw new ConsoleBillingError(
+            'plan_collection_incomplete',
+            503,
+            'Stripe invoice remained in draft',
+          );
+        default:
+          assertNever(collection);
+      }
     } catch (error: unknown) {
       const code = error instanceof ConsoleBillingError ? error.code : 'internal';
       const message = error instanceof Error ? error.message : String(error);
-      failures.push({ orgId, code, message });
+      failures.push({ orgId: task.orgId, monthUtc: task.monthUtc, code, message });
     }
   }
 
   return {
     namespace,
     periodMonthUtc,
-    orgCount: orgIds.length,
+    orgCount: tasks.length,
     generatedCount,
     skippedCount,
+    paidCount,
+    submittedCount,
+    noChargeCount,
     failures,
   };
 }

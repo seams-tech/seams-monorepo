@@ -113,6 +113,42 @@ export interface StripeDefaultPaymentMethodProviderInput {
   paymentMethodRef: string;
 }
 
+export type StripePlanBaseInvoiceStatus = 'draft' | 'open' | 'paid' | 'void' | 'uncollectible';
+
+export interface StripePlanBaseInvoice {
+  readonly id: string;
+  readonly customerRef: string;
+  readonly chargeKey: string;
+  readonly status: StripePlanBaseInvoiceStatus;
+  readonly currency: 'USD';
+  readonly collectionMethod: 'charge_automatically';
+  readonly autoAdvance: boolean;
+  readonly subtotalMinor: number;
+  readonly totalMinor: number;
+  readonly lineItems: readonly { readonly chargeKey: string; readonly amountMinor: number }[];
+}
+
+export interface StripePlanBaseInvoiceCreateInput {
+  readonly customerRef: string;
+  readonly chargeKey: string;
+  readonly orgId: string;
+  readonly monthUtc: string;
+  readonly plan: SelfServePlanKindV1;
+  readonly priceVersion: string;
+  readonly idempotencyKey: string;
+}
+
+export interface StripePlanBaseInvoiceItemInput {
+  readonly invoiceId: string;
+  readonly customerRef: string;
+  readonly chargeKey: string;
+  readonly plan: SelfServePlanKindV1;
+  readonly amountMinor: number;
+  readonly periodStartMs: number;
+  readonly periodEndMs: number;
+  readonly idempotencyKey: string;
+}
+
 export interface StripeBillingProviderAdapter {
   createCustomer(input: StripeCustomerProviderInput): Promise<string> | string;
   createCardSetupSession(
@@ -124,6 +160,14 @@ export interface StripeBillingProviderAdapter {
     | Promise<StripeCardSetupSessionLookupProviderOutput>
     | StripeCardSetupSessionLookupProviderOutput;
   setDefaultPaymentMethod(input: StripeDefaultPaymentMethodProviderInput): Promise<void> | void;
+  createPlanBaseInvoice(
+    input: StripePlanBaseInvoiceCreateInput,
+  ): Promise<StripePlanBaseInvoice> | StripePlanBaseInvoice;
+  getPlanBaseInvoice(invoiceId: string): Promise<StripePlanBaseInvoice> | StripePlanBaseInvoice;
+  addPlanBaseInvoiceItem(input: StripePlanBaseInvoiceItemInput): Promise<void> | void;
+  finalizePlanBaseInvoice(
+    invoiceId: string,
+  ): Promise<StripePlanBaseInvoice> | StripePlanBaseInvoice;
   createCheckoutSession(
     input: StripeCheckoutSessionProviderInput,
   ): Promise<StripeCheckoutSessionProviderOutput> | StripeCheckoutSessionProviderOutput;
@@ -171,6 +215,8 @@ export function createSimulatedBillingProviderAdapters(
   const refunds = new Map<string, StripeRefundProviderOutput>();
   const setupSessions = new Map<string, StripeCardSetupSessionLookupProviderOutput>();
   const customers = new Map<string, string>();
+  const planInvoices = new Map<string, StripePlanBaseInvoice>();
+  const planInvoiceByKey = new Map<string, string>();
   const setupCard = options.setupCard ?? {
     brand: 'visa',
     last4: '4242',
@@ -208,11 +254,58 @@ export function createSimulatedBillingProviderAdapters(
       ): StripeCardSetupSessionLookupProviderOutput {
         const session = setupSessions.get(String(input.checkoutSessionId || '').trim());
         if (!session) {
-          throw new Error(`Stripe setup session ${input.checkoutSessionId || '(missing)'} was not found`);
+          throw new Error(
+            `Stripe setup session ${input.checkoutSessionId || '(missing)'} was not found`,
+          );
         }
         return session;
       },
       setDefaultPaymentMethod(): void {},
+      createPlanBaseInvoice(input: StripePlanBaseInvoiceCreateInput): StripePlanBaseInvoice {
+        const existingId = planInvoiceByKey.get(input.idempotencyKey);
+        if (existingId) return planInvoices.get(existingId)!;
+        const invoice: StripePlanBaseInvoice = {
+          id: makeProviderId('in', new Date()),
+          customerRef: input.customerRef,
+          chargeKey: input.chargeKey,
+          status: 'draft',
+          currency: 'USD',
+          collectionMethod: 'charge_automatically',
+          autoAdvance: false,
+          subtotalMinor: 0,
+          totalMinor: 0,
+          lineItems: [],
+        };
+        planInvoices.set(invoice.id, invoice);
+        planInvoiceByKey.set(input.idempotencyKey, invoice.id);
+        return invoice;
+      },
+      getPlanBaseInvoice(invoiceId: string): StripePlanBaseInvoice {
+        const invoice = planInvoices.get(invoiceId);
+        if (!invoice) throw new Error(`Stripe plan invoice ${invoiceId} was not found`);
+        return invoice;
+      },
+      addPlanBaseInvoiceItem(input: StripePlanBaseInvoiceItemInput): void {
+        const invoice = planInvoices.get(input.invoiceId);
+        if (!invoice || invoice.status !== 'draft') {
+          throw new Error(`Stripe plan invoice ${input.invoiceId} is not a draft`);
+        }
+        if (invoice.lineItems.length > 0) return;
+        planInvoices.set(input.invoiceId, {
+          ...invoice,
+          subtotalMinor: input.amountMinor,
+          totalMinor: input.amountMinor,
+          lineItems: [{ chargeKey: input.chargeKey, amountMinor: input.amountMinor }],
+        });
+      },
+      finalizePlanBaseInvoice(invoiceId: string): StripePlanBaseInvoice {
+        const invoice = planInvoices.get(invoiceId);
+        if (!invoice) throw new Error(`Stripe plan invoice ${invoiceId} was not found`);
+        if (invoice.status !== 'draft') return invoice;
+        const finalized: StripePlanBaseInvoice = { ...invoice, status: 'paid', autoAdvance: true };
+        planInvoices.set(invoiceId, finalized);
+        return finalized;
+      },
       createCheckoutSession(
         input: StripeCheckoutSessionProviderInput,
       ): StripeCheckoutSessionProviderOutput {
@@ -301,6 +394,22 @@ export class UnavailableStripeBillingProvider implements StripeBillingProviderAd
   }
 
   setDefaultPaymentMethod(): never {
+    return this.requireAvailable();
+  }
+
+  createPlanBaseInvoice(): never {
+    return this.requireAvailable();
+  }
+
+  getPlanBaseInvoice(): never {
+    return this.requireAvailable();
+  }
+
+  addPlanBaseInvoiceItem(): never {
+    return this.requireAvailable();
+  }
+
+  finalizePlanBaseInvoice(): never {
     return this.requireAvailable();
   }
 

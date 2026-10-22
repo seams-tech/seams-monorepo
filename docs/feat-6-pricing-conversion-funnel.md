@@ -38,8 +38,14 @@ Built on October 22, 2026, with a Pro plan added (decision 7). Not deployed.
 - **Base-fee accounting.** A Growth or Pro start records the first UTC month's
   prorated base charge in the same D1 transaction as plan activation. Later
   months accrue once through the scheduled plan pass or monthly finalization.
-  The charge uses the plan's pinned price version. Collection remains part of
-  the future monthly-close work. Migrations 0014 and 0107 add the accrual table.
+  The charge uses the plan's pinned price version. Migrations 0014 and 0107 add
+  the accrual table.
+- **Stripe base-fee collection.** The daily monthly-close job finds due base
+  charges. It creates one automatic-collection Stripe invoice with one base-fee
+  line for each organization and UTC month. D1 stores the Stripe invoice ID and
+  collection status. A retry checks the same invoice before taking another
+  action. An open invoice stays pending until Stripe reports payment. Migrations
+  0015 and 0108 add the collection table.
 - **Not built:** the Free plan summary on the overview, the contact prefill,
   measurement events, the day-1 email, and the acceptance browser test.
 

@@ -266,7 +266,7 @@ function buildConsoleConfig(
       },
     ],
     triggers: {
-      crons: ['* * * * *'],
+      crons: ['* * * * *', '0 3 * * *'],
     },
     observability: {
       enabled: true,

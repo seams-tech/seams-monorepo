@@ -7,6 +7,9 @@ import type {
   StripeCardSetupSessionProviderOutput,
   StripeCustomerProviderInput,
   StripeDefaultPaymentMethodProviderInput,
+  StripePlanBaseInvoice,
+  StripePlanBaseInvoiceCreateInput,
+  StripePlanBaseInvoiceItemInput,
   StripeVerifiedCardV1,
   StripeCheckoutSessionLookupProviderInput,
   StripeCheckoutSessionLookupProviderOutput,
@@ -178,6 +181,78 @@ function parseStripeCard(paymentMethod: UnknownRecord): StripeVerifiedCardV1 | n
     return null;
   }
   return { id, brand, last4, expMonth, expYear };
+}
+
+function parseStripePlanBaseInvoiceStatus(value: unknown): StripePlanBaseInvoice['status'] {
+  switch (normalizeString(value)) {
+    case 'draft':
+      return 'draft';
+    case 'open':
+      return 'open';
+    case 'paid':
+      return 'paid';
+    case 'void':
+      return 'void';
+    case 'uncollectible':
+      return 'uncollectible';
+    default:
+      throw new Error('Stripe plan invoice returned an invalid status');
+  }
+}
+
+function parseStripePlanBaseInvoiceLineItem(
+  raw: unknown,
+): StripePlanBaseInvoice['lineItems'][number] {
+  const row = toUnknownRecord(raw);
+  const amountMinor = Number(row.amount);
+  const chargeKey = normalizeString(toUnknownRecord(row.metadata).plan_base_charge_key);
+  if (!Number.isSafeInteger(amountMinor) || !chargeKey) {
+    throw new Error('Stripe plan invoice returned an invalid line item');
+  }
+  return { chargeKey, amountMinor };
+}
+
+function parseStripePlanBaseInvoice(payload: UnknownRecord): StripePlanBaseInvoice {
+  const id = normalizeString(payload.id);
+  const customerRef = normalizeString(payload.customer);
+  const metadata = toUnknownRecord(payload.metadata);
+  const chargeKey = normalizeString(metadata.plan_base_charge_key);
+  const status = parseStripePlanBaseInvoiceStatus(payload.status);
+  const currency = normalizeString(payload.currency).toLowerCase();
+  const collectionMethod = normalizeString(payload.collection_method);
+  const autoAdvance = payload.auto_advance;
+  const subtotalMinor = Number(payload.subtotal);
+  const totalMinor = Number(payload.total);
+  const lines = toUnknownRecord(payload.lines);
+  const rawLineItems = Array.isArray(lines.data) ? lines.data : [];
+  const lineCount = Number(lines.total_count);
+  if (
+    !id ||
+    !customerRef ||
+    !chargeKey ||
+    currency !== 'usd' ||
+    collectionMethod !== 'charge_automatically' ||
+    typeof autoAdvance !== 'boolean' ||
+    !Number.isSafeInteger(subtotalMinor) ||
+    !Number.isSafeInteger(totalMinor) ||
+    !Number.isSafeInteger(lineCount) ||
+    lineCount !== rawLineItems.length
+  ) {
+    throw new Error('Stripe plan invoice returned invalid identity, status, or lines');
+  }
+  const lineItems = rawLineItems.map(parseStripePlanBaseInvoiceLineItem);
+  return {
+    id,
+    customerRef,
+    chargeKey,
+    status,
+    currency: 'USD',
+    collectionMethod: 'charge_automatically',
+    autoAdvance,
+    subtotalMinor,
+    totalMinor,
+    lineItems,
+  };
 }
 
 /** Stripe's page states the price before the visitor enters a card. */
@@ -388,6 +463,62 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
       `/v1/customers/${encodeURIComponent(input.customerRef)}`,
       form,
       `default:${input.customerRef}:${input.paymentMethodRef}`,
+    );
+  }
+
+  async createPlanBaseInvoice(
+    input: StripePlanBaseInvoiceCreateInput,
+  ): Promise<StripePlanBaseInvoice> {
+    const form = new URLSearchParams();
+    setFormField(form, 'customer', input.customerRef);
+    setFormField(form, 'currency', 'usd');
+    setFormField(form, 'collection_method', 'charge_automatically');
+    setFormField(form, 'auto_advance', 'false');
+    setFormField(form, 'pending_invoice_items_behavior', 'exclude');
+    setFormField(form, 'metadata[plan_base_charge_key]', input.chargeKey);
+    setFormField(form, 'metadata[org_id]', input.orgId);
+    setFormField(form, 'metadata[month_utc]', input.monthUtc);
+    setFormField(form, 'metadata[plan]', input.plan);
+    setFormField(form, 'metadata[price_version]', input.priceVersion);
+    const payload = await this.postForm(
+      '/v1/invoices',
+      form,
+      `plan-base-invoice:${input.idempotencyKey}`,
+    );
+    return parseStripePlanBaseInvoice(payload);
+  }
+
+  async getPlanBaseInvoice(invoiceId: string): Promise<StripePlanBaseInvoice> {
+    const id = normalizeString(invoiceId);
+    if (!id) throw new Error('Stripe plan invoice id is required');
+    return parseStripePlanBaseInvoice(await this.getJson(`/v1/invoices/${encodeURIComponent(id)}`));
+  }
+
+  async addPlanBaseInvoiceItem(input: StripePlanBaseInvoiceItemInput): Promise<void> {
+    const form = new URLSearchParams();
+    setFormField(form, 'customer', input.customerRef);
+    setFormField(form, 'invoice', input.invoiceId);
+    setFormField(form, 'amount', input.amountMinor);
+    setFormField(form, 'currency', 'usd');
+    setFormField(form, 'description', `Seams ${input.plan} plan base fee`);
+    setFormField(form, 'discountable', 'false');
+    setFormField(form, 'period[start]', Math.floor(input.periodStartMs / 1000));
+    setFormField(form, 'period[end]', Math.floor(input.periodEndMs / 1000));
+    setFormField(form, 'metadata[plan_base_charge_key]', input.chargeKey);
+    await this.postForm('/v1/invoiceitems', form, `plan-base-item:${input.idempotencyKey}`);
+  }
+
+  async finalizePlanBaseInvoice(invoiceId: string): Promise<StripePlanBaseInvoice> {
+    const id = normalizeString(invoiceId);
+    if (!id) throw new Error('Stripe plan invoice id is required');
+    const form = new URLSearchParams();
+    setFormField(form, 'auto_advance', 'true');
+    return parseStripePlanBaseInvoice(
+      await this.postForm(
+        `/v1/invoices/${encodeURIComponent(id)}/finalize`,
+        form,
+        `plan-base-finalize:${id}`,
+      ),
     );
   }
 

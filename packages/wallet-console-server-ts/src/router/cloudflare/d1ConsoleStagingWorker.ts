@@ -1173,6 +1173,13 @@ function consoleScheduledHandler(env: CloudflareD1ConsoleStagingEnv): ScheduledH
   const tenantRootRefreshResumption: TenantRootRefreshResumptionRunner =
     runConsoleTenantRootRefreshResumptionV1.bind(undefined, env);
   return createCloudflareCron({
+    billingMonthlyFinalization: {
+      database: env.CONSOLE_DB,
+      namespace,
+      providers: createStripeBillingProviderAdaptersFromEnv(env),
+      ensureSchema: false,
+      cronExpressions: ['0 3 * * *'],
+    },
     tenantRootRefreshResumption: {
       runner: tenantRootRefreshResumption,
     },

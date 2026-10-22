@@ -146,20 +146,21 @@ async function migratedDatabase(
 
 async function product(database: D1DatabaseLike, clock: Clock, setupCardExpiry: Date) {
   const now = clock.now.bind(clock);
+  const billingProviders = createSimulatedBillingProviderAdapters({
+    setupCard: {
+      brand: 'visa',
+      last4: '4242',
+      expMonth: setupCardExpiry.getUTCMonth() + 1,
+      expYear: setupCardExpiry.getUTCFullYear(),
+    },
+  });
   const core = await createCloudflareD1AccountServiceBundle({
     database,
     namespace,
     ensureSchema: false,
     externalDeletionGuard: null,
     now,
-    billingProviders: createSimulatedBillingProviderAdapters({
-      setupCard: {
-        brand: 'visa',
-        last4: '4242',
-        expMonth: setupCardExpiry.getUTCMonth() + 1,
-        expYear: setupCardExpiry.getUTCFullYear(),
-      },
-    }),
+    billingProviders,
     billingEmailConsoleBaseUrl: consoleBaseUrl,
   });
   const environments = await createD1ConsoleWalletEnvironmentService({
@@ -168,7 +169,7 @@ async function product(database: D1DatabaseLike, clock: Clock, setupCardExpiry: 
     ensureSchema: false,
     now,
   });
-  return { core, environments };
+  return { core, environments, billingProviders };
 }
 
 type Product = Awaited<ReturnType<typeof product>>;
@@ -325,6 +326,17 @@ async function planBaseCharges(database: D1DatabaseLike, orgId: string) {
     database,
     `SELECT month_utc, plan, price_version, period_start_ms, period_end_ms, amount_minor
        FROM billing_plan_base_charges
+      WHERE namespace = ? AND org_id = ?
+      ORDER BY month_utc`,
+    [namespace, orgId],
+  );
+}
+
+async function planBaseCollections(database: D1DatabaseLike, orgId: string) {
+  return await queryD1All(
+    database,
+    `SELECT month_utc, status, provider_invoice_ref
+       FROM billing_plan_base_collections
       WHERE namespace = ? AND org_id = ?
       ORDER BY month_utc`,
     [namespace, orgId],
@@ -699,8 +711,29 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
       orgIds: [pro.orgId, growth.orgId],
       periodMonthUtc: '2026-12',
       now: clock.now.bind(clock),
+      providers: services.billingProviders,
     });
     expect(monthlyClose.failures).toEqual([]);
+    expect(monthlyClose.paidCount).toBe(2);
+    const proCollections = await planBaseCollections(database, pro.orgId);
+    const growthCollections = await planBaseCollections(database, growth.orgId);
+    expect(proCollections).toMatchObject([
+      { month_utc: '2026-12', status: 'paid', provider_invoice_ref: expect.any(String) },
+    ]);
+    expect(growthCollections).toMatchObject([
+      { month_utc: '2026-12', status: 'paid', provider_invoice_ref: expect.any(String) },
+    ]);
+    const replayedClose = await runD1ConsoleBillingMonthlyFinalization({
+      database,
+      namespace,
+      orgIds: [pro.orgId, growth.orgId],
+      periodMonthUtc: '2026-12',
+      now: clock.now.bind(clock),
+      providers: services.billingProviders,
+    });
+    expect(replayedClose.failures).toEqual([]);
+    expect(await planBaseCollections(database, pro.orgId)).toEqual(proCollections);
+    expect(await planBaseCollections(database, growth.orgId)).toEqual(growthCollections);
     const finalProCharges = await planBaseCharges(database, pro.orgId);
     const finalGrowthCharges = await planBaseCharges(database, growth.orgId);
     expect(finalProCharges).toHaveLength(3);
@@ -715,6 +748,8 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
         {
           proCharges: finalProCharges,
           growthCharges: finalGrowthCharges,
+          proCollections,
+          growthCollections,
           unbilledPlanRejected: true,
           replayKeptOneFirstMonthCharge: true,
           monthlyAccrualIdempotent: true,

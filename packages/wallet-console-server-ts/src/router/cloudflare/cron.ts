@@ -4,6 +4,7 @@ import {
   type D1ConsoleBillingMonthlyFinalizationOptions,
   type D1ConsoleBillingMonthlyFinalizationResult,
 } from '@seams-internal/console-server/billing/d1';
+import type { BillingProviderAdapters } from '@seams-internal/console-server/billing/providers';
 import {
   runD1ConsoleRuntimeSnapshotOutboxDispatch,
   type D1ConsoleRuntimeSnapshotOutboxDispatchOptions,
@@ -89,6 +90,8 @@ export interface CloudflareBillingMonthlyFinalizationCronOptions {
    * D1 database for console billing finalization.
    */
   database?: D1DatabaseLike;
+  providers: BillingProviderAdapters;
+  ensureSchema?: boolean;
   /**
    * Optional billing namespace; defaults to `console-default`.
    */
@@ -97,9 +100,7 @@ export interface CloudflareBillingMonthlyFinalizationCronOptions {
    * Optional target month (`YYYY-MM`). Defaults to previous UTC month.
    */
   periodMonthUtc?: string;
-  /**
-   * Org ids to finalize for this run.
-   */
+  /** Omit to discover due paid-plan charges from D1. */
   orgIds?: string[];
   /**
    * Optional cron-expression allowlist for this job.
@@ -477,16 +478,6 @@ export function createCloudflareCron(opts: CloudflareCronOptions = {}): Schedule
   const logger = coerceRouterLogger(opts.logger);
   const billingFinalization = opts.billingMonthlyFinalization;
   const billingFinalizationEnabled = Boolean(billingFinalization);
-  const billingFinalizationOrgIds = Array.from(
-    new Set(
-      (billingFinalization && Array.isArray(billingFinalization.orgIds)
-        ? billingFinalization.orgIds
-        : []
-      )
-        .map((orgId) => String(orgId || '').trim())
-        .filter(Boolean),
-    ),
-  );
   const billingFinalizationCronExpressions = normalizeCronExpressions(
     billingFinalization?.cronExpressions,
   );
@@ -545,13 +536,13 @@ export function createCloudflareCron(opts: CloudflareCronOptions = {}): Schedule
       });
     }
 
-    if (billingFinalizationEnabled) {
+    if (billingFinalization) {
       const eventCron = typeof event?.cron === 'string' ? event.cron : undefined;
       const billingCronMatches = shouldRunForCronTick(
         billingFinalizationCronExpressions,
         eventCron,
       );
-      const database = billingFinalization?.database || null;
+      const database = billingFinalization.database || null;
       if (!billingCronMatches) {
         if (verbose) {
           logger.info('[cron][billing-finalization] skipped: cron expression mismatch', {
@@ -561,16 +552,16 @@ export function createCloudflareCron(opts: CloudflareCronOptions = {}): Schedule
         }
       } else if (!database) {
         logger.warn('[cron][billing-finalization] skipped: missing D1 database');
-      } else if (billingFinalizationOrgIds.length === 0) {
-        logger.warn('[cron][billing-finalization] skipped: missing orgIds');
       } else {
-        const runner = billingFinalization?.runner || runD1ConsoleBillingMonthlyFinalization;
+        const runner = billingFinalization.runner || runD1ConsoleBillingMonthlyFinalization;
         const result = await runner({
           database,
-          namespace: billingFinalization?.namespace,
-          orgIds: billingFinalizationOrgIds,
-          periodMonthUtc: billingFinalization?.periodMonthUtc,
-          now: billingFinalization?.now,
+          namespace: billingFinalization.namespace,
+          orgIds: billingFinalization.orgIds,
+          periodMonthUtc: billingFinalization.periodMonthUtc,
+          now: billingFinalization.now,
+          providers: billingFinalization.providers,
+          ensureSchema: billingFinalization.ensureSchema,
         });
         logger.info('[cron][billing-finalization] completed', {
           namespace: result.namespace,
@@ -578,6 +569,9 @@ export function createCloudflareCron(opts: CloudflareCronOptions = {}): Schedule
           orgCount: result.orgCount,
           generatedCount: result.generatedCount,
           skippedCount: result.skippedCount,
+          paidCount: result.paidCount,
+          submittedCount: result.submittedCount,
+          noChargeCount: result.noChargeCount,
           failureCount: result.failures.length,
         });
         if (result.failures.length > 0) {

@@ -29,7 +29,9 @@ import {
 import { listDashboardEnvironments, listDashboardProjects } from '../../consoleContextApi';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import {
+  getDashboardAuditActivity,
   listDashboardAuditEvents,
+  type DashboardConsoleAuditActivityBin,
   type DashboardConsoleAuditCategory,
   type DashboardConsoleAuditEvent,
   type DashboardConsoleAuditOutcome,
@@ -673,6 +675,11 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
   const [loading, setLoading] = React.useState<boolean>(true);
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [events, setEvents] = React.useState<DashboardConsoleAuditEvent[]>([]);
+  /* Server counts over the whole range; null until they arrive or when the
+     request fails, and the chart then counts the listed events instead. */
+  const [serverActivityBins, setServerActivityBins] = React.useState<
+    DashboardConsoleAuditActivityBin[] | null
+  >(null);
   const [searchInput, setSearchInput] = React.useState<string>('');
   const [debouncedSearchInput, setDebouncedSearchInput] = React.useState<string>('');
   const [eventCategoryFilter, setEventCategoryFilter] = React.useState<string>('');
@@ -928,6 +935,18 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
       ...(selectedEnvironmentId ? { environmentId: selectedEnvironmentId } : {}),
     };
     const shouldIncludeOrgScopedRows = Boolean(selectedProjectId || selectedEnvironmentId);
+    setServerActivityBins(null);
+    const { limit: _limit, ...activityFilter } = scopedRequest;
+    getDashboardAuditActivity({
+      ...activityFilter,
+      bins: AUDIT_ACTIVITY_BIN_COUNT,
+      includeOrgScoped: shouldIncludeOrgScopedRows,
+    })
+      .then((bins) => {
+        if (cancelled || bins.length !== AUDIT_ACTIVITY_BIN_COUNT) return;
+        setServerActivityBins(bins);
+      })
+      .catch(() => undefined);
     const request = shouldIncludeOrgScopedRows
       ? Promise.all([
           listDashboardAuditEvents(scopedRequest),
@@ -981,8 +1000,8 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
   }, [loadAuditEvents, session.loading]);
 
   const activityBins = React.useMemo(
-    () => bucketAuditActivity(events, range, AUDIT_ACTIVITY_BIN_COUNT),
-    [events, range],
+    () => serverActivityBins ?? bucketAuditActivity(events, range, AUDIT_ACTIVITY_BIN_COUNT),
+    [events, range, serverActivityBins],
   );
 
   /* Actor options come from the rows on screen rather than from the whole

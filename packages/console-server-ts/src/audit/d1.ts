@@ -7,19 +7,23 @@ import {
   type D1Row,
 } from '../boundary';
 import type { D1DatabaseLike } from '../boundary';
+import { auditActivityWindow, emptyAuditActivityBins } from './activity';
 import { ConsoleAuditError } from './errors';
 import type { ConsoleAuditContext, ConsoleAuditService } from './service';
 import type {
   AppendConsoleAuditEvidenceRequest,
   AppendConsoleAuditEventRequest,
+  ConsoleAuditActivityBin,
   ConsoleAuditActorType,
   ConsoleAuditCategory,
+  ConsoleAuditEventFilter,
   ConsoleAuditEvidenceDomain,
   ConsoleAuditEvidenceRecord,
   ConsoleAuditEvidenceReference,
   ConsoleAuditEvidenceReferenceKind,
   ConsoleAuditEvent,
   ConsoleAuditOutcome,
+  CountConsoleAuditActivityRequest,
   ListConsoleAuditEventsRequest,
   ListConsoleAuditEvidenceRequest,
 } from './types';
@@ -466,19 +470,49 @@ function appendTimestampRangeFilter(
   }
 }
 
+function appendEventScopeFilter(
+  input: {
+    readonly clauses: string[];
+    readonly values: unknown[];
+  },
+  filter: ConsoleAuditEventFilter,
+  includeOrgScoped: boolean,
+): void {
+  const scope = { clauses: [] as string[], values: [] as unknown[] };
+  appendEqualsFilter(scope, 'project_id', filter.projectId);
+  appendEqualsFilter(scope, 'environment_id', filter.environmentId);
+  if (scope.clauses.length === 0) return;
+  const scopedSql = scope.clauses.join(' AND ');
+  input.clauses.push(
+    includeOrgScoped
+      ? `((${scopedSql}) OR (COALESCE(project_id, '') = '' AND COALESCE(environment_id, '') = ''))`
+      : scopedSql,
+  );
+  input.values.push(...scope.values);
+}
+
+function buildEventFilterClauses(
+  namespace: string,
+  orgId: string,
+  filter: ConsoleAuditEventFilter,
+  includeOrgScoped: boolean,
+): { clauses: string[]; values: unknown[] } {
+  const clauses = ['namespace = ?', 'org_id = ?'];
+  const values: unknown[] = [namespace, orgId];
+  appendEventScopeFilter({ clauses, values }, filter, includeOrgScoped);
+  appendEqualsFilter({ clauses, values }, 'category', filter.category);
+  appendEqualsFilter({ clauses, values }, 'actor_user_id', filter.actorUserId);
+  appendEqualsFilter({ clauses, values }, 'outcome', filter.outcome);
+  appendEventSearchFilter({ clauses, values }, filter.q);
+  return { clauses, values };
+}
+
 function buildEventQueryParts(
   namespace: string,
   orgId: string,
   request: ListConsoleAuditEventsRequest,
 ): AuditQueryParts {
-  const clauses = ['namespace = ?', 'org_id = ?'];
-  const values: unknown[] = [namespace, orgId];
-  appendEqualsFilter({ clauses, values }, 'project_id', request.projectId);
-  appendEqualsFilter({ clauses, values }, 'environment_id', request.environmentId);
-  appendEqualsFilter({ clauses, values }, 'category', request.category);
-  appendEqualsFilter({ clauses, values }, 'actor_user_id', request.actorUserId);
-  appendEqualsFilter({ clauses, values }, 'outcome', request.outcome);
-  appendEventSearchFilter({ clauses, values }, request.q);
+  const { clauses, values } = buildEventFilterClauses(namespace, orgId, request, false);
   appendTimestampRangeFilter({ clauses, values }, 'created_at_ms', request.from, request.to);
   return {
     whereSql: clauses.join(' AND '),
@@ -535,6 +569,7 @@ class D1ConsoleAuditServiceImpl implements ConsoleAuditService {
       now: state.now,
     };
     this.listEvents = this.listEvents.bind(this);
+    this.countActivity = this.countActivity.bind(this);
     this.listEvidence = this.listEvidence.bind(this);
     this.appendEvent = this.appendEvent.bind(this);
     this.appendEvidence = this.appendEvidence.bind(this);
@@ -556,6 +591,44 @@ class D1ConsoleAuditServiceImpl implements ConsoleAuditService {
       .bind(...query.values, query.limit)
       .all<D1Row>();
     return (out.results || []).map((row) => parseEventRow(row, this.state.categories));
+  }
+
+  // One grouped scan. CAST floors the bin index whether D1 binds the numbers
+  // as integers or reals, matching auditActivityBinIndex; MIN() closes the
+  // final bin at `to`.
+  async countActivity(
+    ctx: ConsoleAuditContext,
+    request: CountConsoleAuditActivityRequest,
+  ): Promise<ConsoleAuditActivityBin[]> {
+    const window = auditActivityWindow(request.from, request.to, request.bins);
+    const span = Math.max(1, window.toMs - window.fromMs);
+    const { clauses, values } = buildEventFilterClauses(
+      this.state.namespace,
+      ctx.orgId,
+      request,
+      request.includeOrgScoped,
+    );
+    clauses.push('created_at_ms >= ?', 'created_at_ms <= ?');
+    values.push(window.fromMs, window.toMs);
+    const out = await this.state.database
+      .prepare(
+        `SELECT MIN(?, CAST(((created_at_ms - ?) * ?) / ? AS INTEGER)) AS bin,
+                COUNT(*) AS total,
+                SUM(CASE WHEN outcome = 'FAILURE' THEN 1 ELSE 0 END) AS failures
+           FROM audit_events
+          WHERE ${clauses.join(' AND ')}
+          GROUP BY bin`,
+      )
+      .bind(window.bins - 1, window.fromMs, window.bins, span, ...values)
+      .all<D1Row>();
+    const bins = emptyAuditActivityBins(window);
+    for (const row of out.results || []) {
+      const bin = bins[toNumber(row.bin)];
+      if (!bin) continue;
+      bin.total = toNumber(row.total);
+      bin.failures = toNumber(row.failures);
+    }
+    return bins;
   }
 
   async listEvidence(

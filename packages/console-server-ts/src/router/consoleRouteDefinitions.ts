@@ -138,6 +138,7 @@ const PROJECTS_MANAGE_ROUTES: readonly ConsoleRouteTuple[] = [
 
 const PROJECT_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_audit_events_list', 'GET', '/console/audit/events'],
+  ['console_audit_activity_get', 'GET', '/console/audit/activity'],
   ['console_audit_evidence_list', 'GET', '/console/audit/evidence'],
   ['console_audit_exports_list', 'GET', '/console/audit/exports'],
   ['console_audit_exports_get', 'GET', '/console/audit/exports/:id'],

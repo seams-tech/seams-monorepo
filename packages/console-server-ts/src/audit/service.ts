@@ -1,10 +1,14 @@
 import { secureRandomBase36 } from '../boundary';
+import { auditActivityBinIndex, auditActivityWindow, emptyAuditActivityBins } from './activity';
 import { ConsoleAuditError } from './errors';
 import type {
   AppendConsoleAuditEvidenceRequest,
   AppendConsoleAuditEventRequest,
+  ConsoleAuditActivityBin,
+  ConsoleAuditEventFilter,
   ConsoleAuditEvidenceRecord,
   ConsoleAuditEvent,
+  CountConsoleAuditActivityRequest,
   ListConsoleAuditEventsRequest,
   ListConsoleAuditEvidenceRequest,
 } from './types';
@@ -26,6 +30,10 @@ export interface ConsoleAuditService {
     ctx: ConsoleAuditContext,
     request?: ListConsoleAuditEventsRequest,
   ): Promise<ConsoleAuditEvent[]>;
+  countActivity(
+    ctx: ConsoleAuditContext,
+    request: CountConsoleAuditActivityRequest,
+  ): Promise<ConsoleAuditActivityBin[]>;
   listEvidence(
     ctx: ConsoleAuditContext,
     request?: ListConsoleAuditEvidenceRequest,
@@ -84,6 +92,25 @@ function eventMatchesSearch(event: ConsoleAuditEvent, query: string): boolean {
       .toLowerCase()
       .includes(normalizedQuery),
   );
+}
+
+function eventMatchesScope(
+  event: ConsoleAuditEvent,
+  filter: ConsoleAuditEventFilter,
+  includeOrgScoped: boolean,
+): boolean {
+  if (includeOrgScoped && !event.projectId && !event.environmentId) return true;
+  if (filter.projectId && event.projectId !== filter.projectId) return false;
+  if (filter.environmentId && event.environmentId !== filter.environmentId) return false;
+  return true;
+}
+
+function eventMatchesFilter(event: ConsoleAuditEvent, filter: ConsoleAuditEventFilter): boolean {
+  if (filter.category && event.category !== filter.category) return false;
+  if (filter.actorUserId && event.actorUserId !== filter.actorUserId) return false;
+  if (filter.outcome && event.outcome !== filter.outcome) return false;
+  if (filter.q && !eventMatchesSearch(event, filter.q)) return false;
+  return true;
 }
 
 function cloneEvent(input: ConsoleAuditEvent): ConsoleAuditEvent {
@@ -291,18 +318,30 @@ export function createInMemoryConsoleAuditService(
 
       return sortEvents(Array.from(store.events.values()))
         .filter((entry) => {
-          if (request.projectId && entry.projectId !== request.projectId) return false;
-          if (request.environmentId && entry.environmentId !== request.environmentId) return false;
-          if (request.category && entry.category !== request.category) return false;
-          if (request.actorUserId && entry.actorUserId !== request.actorUserId) return false;
-          if (request.outcome && entry.outcome !== request.outcome) return false;
-          if (request.q && !eventMatchesSearch(entry, request.q)) return false;
+          if (!eventMatchesScope(entry, request, false)) return false;
+          if (!eventMatchesFilter(entry, request)) return false;
           const createdAtTs = parseTimestamp(entry.createdAt);
           if (createdAtTs < fromTs || createdAtTs > toTs) return false;
           return true;
         })
         .slice(0, limit)
         .map(cloneEvent);
+    },
+
+    async countActivity(ctx, request): Promise<ConsoleAuditActivityBin[]> {
+      const store = requireOrgStore(ctx);
+      const window = auditActivityWindow(request.from, request.to, request.bins);
+      const bins = emptyAuditActivityBins(window);
+      for (const entry of store.events.values()) {
+        const createdAtTs = parseTimestamp(entry.createdAt);
+        if (createdAtTs < window.fromMs || createdAtTs > window.toMs) continue;
+        if (!eventMatchesScope(entry, request, request.includeOrgScoped)) continue;
+        if (!eventMatchesFilter(entry, request)) continue;
+        const bin = bins[auditActivityBinIndex(window, createdAtTs)]!;
+        bin.total += 1;
+        if (entry.outcome === 'FAILURE') bin.failures += 1;
+      }
+      return bins;
     },
 
     async listEvidence(ctx, request = {}): Promise<ConsoleAuditEvidenceRecord[]> {

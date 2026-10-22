@@ -65,16 +65,37 @@ export interface ConsoleAuditEvidenceRecord {
   createdAt: string;
 }
 
-export interface ListConsoleAuditEventsRequest {
+export interface ConsoleAuditEventFilter {
   projectId?: string;
   environmentId?: string;
   category?: ConsoleAuditCategory;
   actorUserId?: string;
   outcome?: ConsoleAuditOutcome;
   q?: string;
+}
+
+export interface ListConsoleAuditEventsRequest extends ConsoleAuditEventFilter {
   from?: string;
   to?: string;
   limit?: number;
+}
+
+// Event counts for the activity chart: [from, to] split into `bins` equal
+// spans. The chart covers every matching event, not one listed page.
+export interface CountConsoleAuditActivityRequest extends ConsoleAuditEventFilter {
+  from: string;
+  to: string;
+  bins: number;
+  // With a project or environment scope, also count organization-level
+  // events (no project and no environment), as the audit page lists them.
+  includeOrgScoped: boolean;
+}
+
+export interface ConsoleAuditActivityBin {
+  startMs: number;
+  endMs: number;
+  total: number;
+  failures: number;
 }
 
 export interface ListConsoleAuditEvidenceRequest {

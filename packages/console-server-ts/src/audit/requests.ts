@@ -1,13 +1,17 @@
+import { MAX_AUDIT_ACTIVITY_BINS } from './activity';
 import { ConsoleAuditError } from './errors';
 import {
+  readOptionalQueryBooleanField as readOptionalQueryBoolean,
   readOptionalQueryPositiveIntegerField as readOptionalPositiveInteger,
   readOptionalQueryStringField as readOptionalQueryString,
   requireQueryObject,
 } from '../shared/requestParse';
 import type {
   ConsoleAuditCategory,
+  ConsoleAuditEventFilter,
   ConsoleAuditEvidenceDomain,
   ConsoleAuditOutcome,
+  CountConsoleAuditActivityRequest,
   ListConsoleAuditEventsRequest,
   ListConsoleAuditEvidenceRequest,
 } from './types';
@@ -113,17 +117,67 @@ function parseLimit(raw: unknown): number {
   return Math.min(Math.floor(parsed), MAX_LIMIT);
 }
 
-export function parseListConsoleAuditEventsRequest(
-  query: unknown,
-  categories: readonly ConsoleAuditCategory[] = CONSOLE_AUDIT_QUERY_CATEGORIES,
-): ListConsoleAuditEventsRequest {
-  const obj = requireQueryObject(query, createError);
+function parseEventFilter(
+  obj: Record<string, unknown>,
+  categories: readonly ConsoleAuditCategory[],
+): ConsoleAuditEventFilter {
   const projectId = readOptionalQueryString(obj, 'projectId');
   const environmentId = readOptionalQueryString(obj, 'environmentId');
   const category = parseOptionalCategory(readOptionalQueryString(obj, 'category'), categories);
   const actorUserId = readOptionalQueryString(obj, 'actorUserId');
   const outcome = parseOptionalOutcome(readOptionalQueryString(obj, 'outcome'));
   const q = parseOptionalSearchQuery(readOptionalQueryString(obj, 'q'));
+  return {
+    ...(projectId ? { projectId } : {}),
+    ...(environmentId ? { environmentId } : {}),
+    ...(category ? { category } : {}),
+    ...(actorUserId ? { actorUserId } : {}),
+    ...(outcome ? { outcome } : {}),
+    ...(q ? { q } : {}),
+  };
+}
+
+export function parseCountConsoleAuditActivityRequest(
+  query: unknown,
+  categories: readonly ConsoleAuditCategory[] = CONSOLE_AUDIT_QUERY_CATEGORIES,
+): CountConsoleAuditActivityRequest {
+  const obj = requireQueryObject(query, createError);
+  const filter = parseEventFilter(obj, categories);
+  const from = parseOptionalIsoDate(readOptionalQueryString(obj, 'from'), 'from');
+  const to = parseOptionalIsoDate(readOptionalQueryString(obj, 'to'), 'to');
+  if (!from || !to) {
+    throw createError('invalid_query', 400, 'Query parameters from and to are required');
+  }
+  if (from > to) {
+    throw createError(
+      'invalid_query',
+      400,
+      'Query parameter from must be earlier than or equal to to',
+    );
+  }
+  const bins = readOptionalPositiveInteger(obj, 'bins', createError);
+  if (!bins || bins > MAX_AUDIT_ACTIVITY_BINS) {
+    throw createError(
+      'invalid_query',
+      400,
+      `Query parameter bins must be between 1 and ${MAX_AUDIT_ACTIVITY_BINS}`,
+    );
+  }
+  return {
+    ...filter,
+    from,
+    to,
+    bins,
+    includeOrgScoped: readOptionalQueryBoolean(obj, 'includeOrgScoped', createError) ?? false,
+  };
+}
+
+export function parseListConsoleAuditEventsRequest(
+  query: unknown,
+  categories: readonly ConsoleAuditCategory[] = CONSOLE_AUDIT_QUERY_CATEGORIES,
+): ListConsoleAuditEventsRequest {
+  const obj = requireQueryObject(query, createError);
+  const filter = parseEventFilter(obj, categories);
   const from = parseOptionalIsoDate(readOptionalQueryString(obj, 'from'), 'from');
   const to = parseOptionalIsoDate(readOptionalQueryString(obj, 'to'), 'to');
   if (from && to && from > to) {
@@ -135,12 +189,7 @@ export function parseListConsoleAuditEventsRequest(
   }
   const requestedLimit = readOptionalPositiveInteger(obj, 'limit', createError);
   return {
-    ...(projectId ? { projectId } : {}),
-    ...(environmentId ? { environmentId } : {}),
-    ...(category ? { category } : {}),
-    ...(actorUserId ? { actorUserId } : {}),
-    ...(outcome ? { outcome } : {}),
-    ...(q ? { q } : {}),
+    ...filter,
     ...(from ? { from } : {}),
     ...(to ? { to } : {}),
     limit: parseLimit(requestedLimit),

@@ -153,3 +153,74 @@ export async function listDashboardAuditEvents(input?: {
     .map((entry) => decodeAuditEvent(entry))
     .filter((entry): entry is DashboardConsoleAuditEvent => entry !== null);
 }
+
+export interface DashboardConsoleAuditActivityBin {
+  startMs: number;
+  endMs: number;
+  total: number;
+  failures: number;
+}
+
+interface ConsoleAuditActivityResponse {
+  ok?: boolean;
+  code?: string;
+  message?: string;
+  bins?: unknown;
+}
+
+function decodeActivityBin(raw: unknown): DashboardConsoleAuditActivityBin | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const row = raw as Record<string, unknown>;
+  const startMs = Number(row.startMs);
+  const endMs = Number(row.endMs);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null;
+  return {
+    startMs,
+    endMs,
+    total: Math.max(0, Math.floor(Number(row.total) || 0)),
+    failures: Math.max(0, Math.floor(Number(row.failures) || 0)),
+  };
+}
+
+/* Counts for the activity chart over the whole range, so the chart is not
+   limited to the one page of events the table lists. */
+export async function getDashboardAuditActivity(input: {
+  projectId?: string;
+  environmentId?: string;
+  category?: DashboardConsoleAuditCategory;
+  actorUserId?: string;
+  outcome?: DashboardConsoleAuditOutcome;
+  q?: string;
+  from: string;
+  to: string;
+  bins: number;
+  includeOrgScoped: boolean;
+}): Promise<DashboardConsoleAuditActivityBin[]> {
+  const base = requireConsoleBaseUrl();
+  const url = new URL('/console/audit/activity', base);
+  appendOptionalQuery(url, 'projectId', input.projectId);
+  appendOptionalQuery(url, 'environmentId', input.environmentId);
+  appendOptionalQuery(url, 'category', input.category);
+  appendOptionalQuery(url, 'actorUserId', input.actorUserId);
+  appendOptionalQuery(url, 'outcome', input.outcome);
+  appendOptionalQuery(url, 'q', input.q);
+  url.searchParams.set('from', input.from);
+  url.searchParams.set('to', input.to);
+  url.searchParams.set('bins', String(input.bins));
+  if (input.includeOrgScoped) url.searchParams.set('includeOrgScoped', 'true');
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: buildConsoleAcceptHeaders(),
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  const body = (await parseConsoleJson(response)) as ConsoleAuditActivityResponse | null;
+  if (!response.ok || body?.ok !== true) {
+    throw new Error(consoleErrorMessage(response, body, 'Audit activity request failed'));
+  }
+  const rows = Array.isArray(body?.bins) ? body.bins : [];
+  return rows
+    .map((entry) => decodeActivityBin(entry))
+    .filter((entry): entry is DashboardConsoleAuditActivityBin => entry !== null);
+}

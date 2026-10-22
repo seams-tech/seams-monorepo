@@ -4,9 +4,12 @@ export type {
   ConsoleAuditOutcome,
   ConsoleAuditEvidenceDomain,
   ConsoleAuditEvidenceReferenceKind,
+  ConsoleAuditActivityBin,
   ConsoleAuditEvent,
+  ConsoleAuditEventFilter,
   ConsoleAuditEvidenceReference,
   ConsoleAuditEvidenceRecord,
+  CountConsoleAuditActivityRequest,
   ListConsoleAuditEventsRequest,
   ListConsoleAuditEvidenceRequest,
   AppendConsoleAuditEventRequest,
@@ -34,8 +37,11 @@ export {
   createD1ConsoleAuditService,
 } from './d1';
 
+export { MAX_AUDIT_ACTIVITY_BINS } from './activity';
+
 export {
   CONSOLE_AUDIT_QUERY_CATEGORIES,
+  parseCountConsoleAuditActivityRequest,
   parseListConsoleAuditEventsRequest,
   parseListConsoleAuditEvidenceRequest,
 } from './requests';

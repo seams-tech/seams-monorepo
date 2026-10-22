@@ -25,7 +25,7 @@ of Platform and Wallet entry points and the reasons for that design.
   the steps after a pricing card click: sign-in, onboarding, card setup, and the
   contact form.
 - [Wallet database schema](wallet-saas/console-docs/wallet-db-schema.md).
-- [PostgreSQL and Hyperdrive preparation](wallet-postgresql-preparation.md): a
+- [PostgreSQL and Hyperdrive preparation](future-plan-wallet-postgresql-preparation.md): a
   potential latency upgrade, remaining storage ports, and required hosted evidence.
 - [CLI release procedure](wallet-cli-release.md).
 - [Refactor 200 — Cloudflare account migration](refactor-200.md): move all Wallet

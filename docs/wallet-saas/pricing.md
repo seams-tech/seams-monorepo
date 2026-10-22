@@ -274,7 +274,7 @@ This path is not ready yet:
 - [celld](../../deployment/celld/README.md) is qualified on Google VMs. AWS,
   distributed deployment, and release promotion are outside its current scope.
 - The Wallet role store has a PostgreSQL backend. The Console and Gateway stores
-  still use D1. See [Wallet PostgreSQL preparation](../wallet-postgresql-preparation.md).
+  still use D1. See [Wallet PostgreSQL preparation](../future-plan-wallet-postgresql-preparation.md).
 - We have no measured cost for a dedicated deployment. A minimum deployment has
   separate servers for each role, with redundancy, and a managed database. Its
   fixed monthly cost sets the size at which it is cheaper than Cloudflare.

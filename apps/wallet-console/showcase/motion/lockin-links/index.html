@@ -724,148 +724,114 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /* global HL, hairline */
-// No lock-in as a box that opens flat: the lid splits into two flaps, then the
-// walls fold out on their hinges into a cross on the ground, and the small cube
-// the box held stands in the open.
-const SIDE = 40;
-const HALF = SIDE / 2;
-const INNER = 17;
-// The four walls, by their outward direction on the ground. The ±x walls carry
-// the lid's two flaps.
-const WALLS = [
-  [1, 0],
-  [0, 1],
-  [-1, 0],
-  [0, -1],
-];
-// Toward the viewer at the default camera: a larger score is nearer (rule 06).
-const NEAR = [0.612, 0.612, 0.5];
+// Two flat rings linked like chain links: one upright with a gap, one lying
+// level through it. Hover turns the gap to meet the level ring, then the rings
+// slide apart through it along the dashed axis and rest unlinked, side by side.
+const R = 40;
+const BAND = 7;
+const GAP = HL.rad(30);
+const DURATION = 1700;
+const TURN = [0, 700];
+const APART = [800, 1700];
+// The camera's depth toward the viewer, for painting segments back to front.
+const DEPTH_Y = Math.sqrt(0.75) / Math.SQRT2;
+const DEPTH_Z = 0.5;
 
-function depth(points) {
-  let sum = 0;
-  for (const [x, y, z] of points) sum += x * NEAR[0] + y * NEAR[1] + z * NEAR[2];
-  return sum / points.length;
+function phase(progress, [start, end]) {
+  const [a, b] = [start, end].map((ms) => HL.EASE_LIFT(ms / DURATION));
+  return HL.clamp((progress - a) / (b - a), 0, 1);
 }
 
-// A point on a wall: u along its hinge, w up from it, the wall at phi from the ground.
-function wallPoint([dx, dy], u, w, phi) {
-  const out = HALF + w * Math.cos(phi);
-  return [dx * out - dy * u, dy * out + dx * u, w * Math.sin(phi)];
+// The upright ring stands in the x–z plane, the level ring lies in the x–y plane.
+function upright(cx, t, r) {
+  return [cx + r * Math.cos(t), 0, r * Math.sin(t)];
+}
+function level(cx, t, r) {
+  return [cx + r * Math.cos(t), r * Math.sin(t), 0];
 }
 
-// A point on a flap, hinged to its wall's top edge and turned psi past the wall.
-function flapPoint([dx, dy], u, w, phi, psi) {
-  const out = HALF + SIDE * Math.cos(phi) + w * Math.cos(phi + psi);
-  const z = SIDE * Math.sin(phi) + w * Math.sin(phi + psi);
-  return [dx * out - dy * u, dy * out + dx * u, z];
+function makeRing(svg, count) {
+  return Array.from({ length: count }, () => {
+    const g = HL.mk('g', {}, svg);
+    const fill = HL.mk('path', { class: 'fo' }, g);
+    return { g, fill, edge: HL.mk('path', { class: 'nf sil' }, g), depth: 0 };
+  });
 }
 
-function plate(svg, corners, wall) {
-  const group = HL.mk('g', {}, svg);
-  return { group, path: HL.mk('path', { class: 'sil' }, group), corners, wall, depth: 0 };
-}
-
-function wallCorners(wall) {
-  return (phi) => [
-    wallPoint(wall, -HALF, 0, phi),
-    wallPoint(wall, HALF, 0, phi),
-    wallPoint(wall, HALF, SIDE, phi),
-    wallPoint(wall, -HALF, SIDE, phi),
-  ];
-}
-
-function flapCorners(wall) {
-  return (phi, psi) => [
-    flapPoint(wall, -HALF, 0, phi, psi),
-    flapPoint(wall, HALF, 0, phi, psi),
-    flapPoint(wall, HALF, HALF, phi, psi),
-    flapPoint(wall, -HALF, HALF, phi, psi),
-  ];
-}
-
-function draw(state, flaps, wallsX, wallsY) {
-  const psi = (Math.PI / 2) * (1 - flaps);
-  for (const item of state.plates) {
-    const open = item.wall && item.wall[0] ? wallsX : wallsY;
-    const world = item.corners((Math.PI / 2) * (1 - open), psi);
-    const screen = world.map((point) => state.P(...point));
-    item.path.setAttribute('d', HL.poly(HL.fillet(screen, [1.6, 1.6, 1.6, 1.6])));
-    item.depth = depth(world);
-  }
-  // Paint back to front; move the groups only when the order changes (rule 06).
-  const order = [...state.items].sort((a, b) => a.depth - b.depth);
-  if (order.some((item, index) => item !== state.order[index])) {
-    state.order = order;
-    state.svg.append(...order.map((item) => item.group));
+// Each segment of a band fills its own patch and strokes only its arcs, so the
+// segments sort by depth with no seams; a gapped band caps its two ends.
+function drawRing(P, segments, at, t0, t1, capped) {
+  const step = (t1 - t0) / segments.length;
+  for (const [i, seg] of segments.entries()) {
+    const ts = [0, 0.5, 1].map((f) => t0 + (i + f) * step);
+    const outer = ts.map((t) => P(...at(t, R)));
+    const inner = ts.map((t) => P(...at(t, R - BAND)));
+    seg.fill.setAttribute('d', HL.poly(outer.concat([...inner].reverse())));
+    let d = HL.open(outer) + HL.open(inner);
+    if (capped && i === 0) d += HL.seg(outer[0], inner[0]);
+    if (capped && i === segments.length - 1) d += HL.seg(outer[2], inner[2]);
+    seg.edge.setAttribute('d', d);
+    const [x, y, z] = at(ts[1], R - BAND / 2);
+    seg.depth = (x + y) * DEPTH_Y + z * DEPTH_Z;
   }
 }
 
 function tick(state, _dt, now) {
-  const tweens = [state.flaps, state.wallsX, state.wallsY];
-  const values = tweens.map((tween) => HL.tval(tween, now));
-  const key = values.join(',');
-  if (key !== state.drawn) {
-    state.drawn = key;
-    draw(state, ...values);
-  }
-  const moving = !tweens.every((tween) => HL.tdone(tween, now));
-  state.read.textContent = !state.active ? 'rest' : moving ? 'opening' : 'open';
-  return moving;
+  const progress = HL.tval(state.motion, now);
+  if (progress === state.drawn) return !HL.tdone(state.motion, now);
+  state.drawn = progress;
+  const gap = HL.lerp(Math.PI / 2, 0, phase(progress, TURN));
+  const apart = (phase(progress, APART) * state.separation) / 2;
+  const from = gap + GAP / 2;
+  drawRing(
+    state.P,
+    state.upright,
+    upright.bind(null, -apart),
+    from,
+    from + Math.PI * 2 - GAP,
+    true,
+  );
+  drawRing(state.P, state.level, level.bind(null, R + apart), 0, Math.PI * 2, false);
+  const order = [...state.upright, ...state.level].sort((a, b) => a.depth - b.depth);
+  state.svg.append(...order.map((seg) => seg.g));
+  const done = HL.tdone(state.motion, now);
+  state.read.textContent = !state.active ? 'rest' : done ? 'unlinked' : 'turning';
+  return !done;
 }
 
-// Opening runs outward from the lid: flaps, then the walls that carry them, then
-// the other two. Closing runs the same order back (rule 02).
 function select(state, active) {
   if (state.active === active) return;
   state.active = active;
-  const now = performance.now();
-  const order = [state.flaps, state.wallsX, state.wallsY];
-  if (!active) order.reverse();
-  for (const [index, tween] of order.entries()) {
-    HL.tset(tween, Number(active), now, index * state.step);
-  }
-  for (const flap of state.lid) flap.path.classList.toggle('hi', !active);
-  state.inner.sil.classList.toggle('hi', active);
+  HL.tset(state.motion, Number(active), performance.now(), 0);
   state.loop.wake();
 }
 
-function mount({ stage, svg, read }, step) {
-  const C = HL.Cam(45, 0.5, 2.2);
-  const cube = [];
-  for (const x of [-HALF, HALF]) {
-    for (const y of [-HALF, HALF]) cube.push([x, y, 0], [x, y, SIDE]);
-  }
-  HL.fit(C, cube, 200, 160);
-  const P = HL.proj(C);
-  let arcs = '';
-  for (const wall of WALLS) {
-    const arc = [];
-    for (let index = 0; index <= 24; index++) {
-      arc.push(P(...wallPoint(wall, 0, SIDE, (Math.PI / 2) * (index / 24))));
+function set(state, separation) {
+  state.separation = separation;
+  state.drawn = NaN;
+  state.loop.wake();
+}
+
+function mount({ stage, svg, read }, separation) {
+  const C = HL.Cam(45, 0.5, 2.1);
+  // Fit both rest and the widest end pose (rule 03).
+  const extremes = [];
+  for (const apart of [0, 31]) {
+    for (let i = 0; i < 24; i++) {
+      const t = (i / 24) * Math.PI * 2;
+      extremes.push(upright(-apart, t, R), level(R + apart, t, R));
     }
-    arcs += HL.open(arc);
   }
-  HL.mk('path', { d: arcs, class: 'nf lo dash' }, svg);
-  const floor = [
-    [-HALF, -HALF, 0],
-    [HALF, -HALF, 0],
-    [HALF, HALF, 0],
-    [-HALF, HALF, 0],
-  ];
-  const base = plate(svg, () => floor, null);
-  const walls = WALLS.map((wall) => plate(svg, wallCorners(wall), wall));
-  const lid = [WALLS[0], WALLS[2]].map((wall) => plate(svg, flapCorners(wall), wall));
-  const group = HL.mk('g', {}, svg);
-  const [ring, inner] = HL.rings(-INNER / 2, -INNER / 2, INNER / 2, INNER / 2, 2, 1.2);
-  const solid = HL.solid(group);
-  HL.put(solid, HL.prism(P, HL.facing(C), ring, inner, 0, INNER));
-  const cubeItem = { group, depth: (INNER / 2) * NEAR[2] };
-  const plates = [base, ...walls, ...lid];
-  const state = { svg, P, read, step, plates, lid, inner: solid, items: [...plates, cubeItem] };
-  Object.assign(state, { order: [], drawn: '', active: null, loop: null });
-  Object.assign(state, { flaps: HL.tween(0), wallsX: HL.tween(0), wallsY: HL.tween(0) });
+  HL.fit(C, extremes, 200, 160);
+  const P = HL.proj(C);
+  const axis = HL.seg(P(-R - 35, 0, 0), P(2 * R + 35, 0, 0));
+  HL.mk('path', { d: axis, class: 'nf lo dash' }, svg);
+  const state = { svg, P, read, separation, drawn: NaN, active: false, loop: null };
+  Object.assign(state, { upright: makeRing(svg, 40), level: makeRing(svg, 48) });
+  state.motion = HL.tween(0, DURATION);
+  for (const seg of state.upright) seg.edge.classList.add('hi');
   state.loop = HL.register(stage, tick.bind(null, state));
-  select(state, false);
+  state.loop.wake();
   const bag = HL.disposer();
   bag.add(state.loop.unregister);
   bag.add(
@@ -875,15 +841,15 @@ function mount({ stage, svg, read }, step) {
     }),
   );
   bag.add(svg.replaceChildren.bind(svg));
-  return { set: (value) => (state.step = value), destroy: bag.dispose };
+  return { set: set.bind(null, state), destroy: bag.dispose };
 }
 
 hairline({
-  name: 'unfold-box',
+  name: 'unlink-rings',
   means:
-    'A closed box. Hover to split its lid and fold its walls flat, showing the small cube it held.',
-  rules: [2, 4, 5, 6, 8],
-  range: [80, 140, 200],
+    'Two flat rings linked like chain links. Hover to turn the gap to the other ring and slide them apart.',
+  rules: [4, 5, 6, 8],
+  range: [50, 56, 62],
   mount,
 });
 </script>

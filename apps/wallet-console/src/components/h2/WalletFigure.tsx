@@ -1,8 +1,8 @@
 import React from 'react';
 import { locale, t } from '@/marketing/i18n/browser';
 import { figureCatalog } from '@/marketing/i18n/catalog';
-import keychain from '../../../showcase/motion/keys-edge/index.html?raw';
-import interlock from '../../../showcase/motion/interlock-blade/index.html?raw';
+import keychain from '../../../showcase/motion/keys-next/index.html?raw';
+import interlock from '../../../showcase/motion/interlock-next/index.html?raw';
 import devices from '../../../showcase/motion/devices-edge/index.html?raw';
 import infrastructure from '../../../showcase/motion/lockin-boundary/index.html?raw';
 import signing from '../../../showcase/motion/threshold-signing/index.html?raw';

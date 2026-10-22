@@ -72,7 +72,7 @@ export const DASHBOARD_PRODUCTS: DashboardProduct[] = [
     id: 'embedded-wallets',
     name: 'Embedded wallets',
     description: 'Passkey wallets, policies & gas',
-    gradient: 'aqua-evergreen',
+    gradient: 'teal-peach',
     available: true,
   },
 ];
@@ -222,7 +222,7 @@ const walletOpsCockpitQuickActions: readonly OpsCockpitQuickAction[] = [
     description: 'Set signing rules and spend caps for your wallets.',
     path: '/dashboard/policy-engine',
     icon: ScaleIcon,
-    tone: 'green',
+    tone: 'teal',
   },
   {
     title: 'Gas sponsorship',

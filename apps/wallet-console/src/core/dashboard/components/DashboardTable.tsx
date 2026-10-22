@@ -415,7 +415,7 @@ export function DashboardTableState(props: DashboardTableStateProps): React.JSX.
   return (
     <p className={clsx('dashboard-data-table__state', className)}>
       <span className="dashboard-data-table__state-disc" aria-hidden="true">
-        <GrainField field="aqua-evergreen" playing={false} />
+        <GrainField field="teal-peach" playing={false} />
       </span>
       {children}
     </p>

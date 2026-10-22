@@ -67,7 +67,7 @@ const CORE_OVERVIEW_HERO_ACTIONS: readonly OpsCockpitQuickAction[] = [
     description: 'Manage credentials for this environment.',
     path: '/dashboard/api-keys',
     icon: KeyRoundIcon,
-    tone: 'amber',
+    tone: 'peach',
   },
 ] as const;
 
@@ -76,7 +76,7 @@ export type OpsCockpitQuickAction = {
   description: string;
   path: string;
   icon: SidebarIconComponent;
-  tone: 'amber' | 'green' | 'blue';
+  tone: 'peach' | 'teal' | 'blue';
 };
 
 export type OpsCockpitApprovalActions = {
@@ -329,7 +329,7 @@ export function OpsCockpitPage({
             href={linkProps('/dashboard/billing/account').href}
             onClick={linkProps('/dashboard/billing/account').onClick}
           >
-            <GrainField field="aqua-evergreen" />
+            <GrainField field="teal-peach" />
             <span className="dashboard-hero__promo-copy">
               <span className="dashboard-hero__promo-title">Credits</span>
               <span className="dashboard-hero__promo-description">{creditsDescription}</span>

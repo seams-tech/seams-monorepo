@@ -7,6 +7,18 @@ mod ecapa;
 #[allow(unsafe_code)]
 mod moonshine;
 
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+mod keychain;
+#[cfg(target_os = "macos")]
+pub use keychain::KeychainStore;
+#[cfg(target_os = "macos")]
+mod capture;
+#[cfg(target_os = "macos")]
+pub mod local_host;
+#[cfg(target_os = "macos")]
+pub use capture::{CaptureNormalizer, Microphone, PreparedMicrophone};
+
 pub use artifacts::{VerifiedFile, VerifiedModelDirectory};
 pub use ecapa::{EcapaCalibration, EcapaMatcher, SpeakerEmbedding};
 pub use moonshine::{MoonshineLimits, MoonshineStream, MoonshineTranscriber};

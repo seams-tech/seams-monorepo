@@ -26,9 +26,11 @@ evaluation tools, research material, and private local fixtures remain.
 The [private Rust engine](engine/README.md) now includes validated domain types,
 adapter contracts, and a bounded audio runtime with a repeatable lifecycle journey.
 Its first target is an embedded native shared library on Apple Silicon macOS.
-Native Moonshine Tiny and ECAPA adapters now process real local fixture PCM.
-Capture, enrollment collection/storage, host exports, and the wallet extension
-remain unimplemented. Engine results carry no robot or signing authority.
+Native Moonshine Tiny and ECAPA adapters process real local fixture PCM.
+A macOS development host adds microphone acquisition, deliberate three-capture
+enrollment, local Keychain storage, deletion, and exact spoken-command checks.
+Live microphone qualification, C host exports, and wallet integration remain open.
+Engine results carry no robot or signing authority.
 
 The first MVP assumes a user-controlled, authorized device. It checks the enrolled
 speaker and explicit approval for one pending wallet operation under existing
@@ -59,9 +61,10 @@ adaptation:
   finalization, cancellation, and offline phrase/intent evaluation;
 - bounded stage execution used by resilience evaluation.
 
-The current file decoder converts imported media to mono 16 kHz PCM. It is for
-fixtures and offline evaluation. The new live capture path must preserve
-microphone-array channels until spatial processing finishes.
+The file decoder converts imported media to mono 16 kHz PCM for offline evaluation.
+The macOS wallet prototype also uses a mono path. Microphone-array spatial
+processing remains a separate robot capability. That future path must preserve
+channels until spatial processing finishes.
 
 `verifier-spike/` contains consent/provenance, corpus, model-manifest,
 calibration, benchmark, fuzz, and resilience tooling. Dated reports remain
@@ -90,9 +93,10 @@ Heavy model benchmarks require their optional dependencies and locally
 provisioned, checksum-verified model assets. Inference must not silently download
 a model or use a remote fallback.
 
-The next step is live capture, enrollment collection, protected template storage,
-and concrete C declarations/exports. The native journey checks reference agreement
-on local recordings and derived boundary cases. Live recognition quality and
-resource budgets remain open. L0 owns the MVP
+Use the [macOS local host](engine/README.md#macos-local-host) for deliberate enrollment
+and voice checks. The next step is a live user journey, concrete C host exports,
+and wallet W0-W1 composition. Native fixture replay and a synthetic host journey
+have repeatable reports. Live recognition quality and resource budgets remain open.
+L0 owns the MVP
 microphone profile and measured resource/error budgets. L1 coordinates the minimal
 public provider contract with wallet W0. Wallet signing requires W0-W1 composition.

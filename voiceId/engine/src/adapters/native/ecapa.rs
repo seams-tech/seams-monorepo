@@ -78,6 +78,31 @@ pub struct SpeakerEmbedding {
 }
 
 impl SpeakerEmbedding {
+    /// Build one template from three deliberate captures of a consistent speaker.
+    /// The caller supplies a measured development or qualified similarity gate.
+    pub fn enroll_three(
+        captures: [Self; 3],
+        minimum_similarity: f32,
+    ) -> Result<crate::enrollment::VoiceTemplate, AdapterError> {
+        if !minimum_similarity.is_finite() || !(0.0..=1.0).contains(&minimum_similarity) {
+            return Err(AdapterError::InvalidInput(InputError::InvalidReplacement));
+        }
+        let [first, second, third] = captures;
+        if first.similarity(&second)? < minimum_similarity
+            || first.similarity(&third)? < minimum_similarity
+            || second.similarity(&third)? < minimum_similarity
+        {
+            return Err(AdapterError::InvalidInput(InputError::InvalidReplacement));
+        }
+        let mut mean = [0.0; EMBEDDING_DIMENSIONS];
+        for (index, value) in mean.iter_mut().enumerate() {
+            *value = (first.values[index] + second.values[index] + third.values[index]) / 3.0;
+        }
+        let template = Self::from_values(first.model, &mean)?.into_voice_template();
+        mean.fill(0.0);
+        template
+    }
+
     /// Parse model output or consented reference vectors at their boundary.
     pub fn from_values(model: ModelId, values: &[f32]) -> Result<Self, AdapterError> {
         let mut normalized = [0.0; EMBEDDING_DIMENSIONS];
@@ -132,7 +157,7 @@ impl SpeakerEmbedding {
         Ok(VoiceTemplate(template))
     }
 
-    fn from_template(
+    pub(super) fn from_template(
         template: &VoiceTemplate,
         expected_model: ModelId,
     ) -> Result<Self, AdapterError> {

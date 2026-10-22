@@ -1,11 +1,12 @@
 # Private VoiceID engine
 
-Native model checkpoint as of 2026-10-22. The portable engine coordinates one
+Local host checkpoint as of 2026-10-22. The portable engine coordinates one
 bounded utterance through transcription and speaker adapters. It checks
 continuity, deadlines, output correlation, enrollment changes, and result consumption.
 Native Moonshine Tiny and ECAPA adapters process local fixture PCM.
-Capture/storage adapters, enrollment collection, robot actions, wallet integration,
-and a callable C host API remain unimplemented.
+The macOS development host adds capture, enrollment collection, Keychain storage,
+deletion, and command checks. Live microphone qualification, robot actions, wallet
+integration, and a callable C host API remain open.
 
 The first MVP assumes a user-controlled, authorized device. It uses speaker
 matching and local approval of one exact wallet operation under existing authority.
@@ -149,8 +150,10 @@ Media, transcripts, and plaintext templates deliberately lack `Debug` and `Clone
 Borrowed data cannot outlive its owner through these safe Rust contracts. Explicit
 backend copies remain possible; their bounded lifetime and cleanup must be tested
 when implemented. Dropping a buffer currently releases allocation ownership and
-does **not** guarantee memory erasure. Protected persistence is a contract only;
-no encryption backend or device key implementation exists yet.
+does **not** guarantee memory erasure. The macOS prototype stores ECAPA templates
+in the user's encrypted login Keychain. It disables iCloud synchronization.
+Its random local device identifier is storage metadata. Wallet-authorized device
+binding remains W0 work. The prototype makes no hardware-attestation claim.
 
 ### Native host boundary ownership
 
@@ -259,11 +262,109 @@ Unknown: recognition accuracy, live endpoint behavior, and live latency.
 The next local-host checkpoint must measure these with consented microphone
 attempts and known spoken commands on the selected Mac.
 
+## macOS local host
+
+`voiceid-host` supplies one explicitly activated local flow. It never opens the
+microphone during startup, status, or device inspection. Enrollment and command
+checks start capture only after the user presses Enter. Dropping capture stops
+the stream. The host stores a voice template after three consistent captures.
+It writes no microphone recording or transcript file.
+
+Build from the separate `seams-wallet` directory. Use the selected checkout's
+absolute path, including its worktree path when applicable:
+
+```sh
+voiceid_repo=/absolute/path/to/selected/seams-monorepo
+cargo build --offline --locked --release --bin voiceid-host \
+  --manifest-path "$voiceid_repo/voiceId/engine/Cargo.toml"
+voiceid_host="$voiceid_repo/voiceId/engine/target/release/voiceid-host"
+voiceid_models="$voiceid_repo/voiceId/verifier-spike/.cache/native-models/native-inputs.json"
+"$voiceid_host" devices
+"$voiceid_host" enroll "$voiceid_models"
+"$voiceid_host" check "$voiceid_models"
+"$voiceid_host" status
+"$voiceid_host" delete
+```
+
+Use the [existing provisioning procedure](../verifier-spike/README.md#native-rust-model-journey)
+to create model metadata first. The host reads only model paths, hashes, and
+speaker settings. It ignores research templates and fixture cases.
+
+For enrollment, read a sentence for three to six seconds after each prompt.
+The collector requires two seconds of voiced frames per capture. All three
+speaker embeddings must have pairwise similarity of at least `0.6`.
+This is a development gate with no population-calibration claim.
+
+For a command check, say **“I approve this operation”** or **“I cancel this operation.”**
+The host requires a matched speaker and the exact final phrase. Extra words,
+contradictory commands, and unrecognized speech produce no recognized command.
+The displayed result performs no wallet action.
+
+CPAL acquires the default microphone format. The adapter accepts float PCM at
+16, 44.1, or 48 kHz with up to eight channels. It averages channels, resamples
+through Rubato, removes filter delay, and emits 160-sample mono frames at 16 kHz.
+The inspected Mac profile is 48 kHz mono float. Acquisition requests its current rate.
+The audio callback performs no model inference or Keychain work.
+
+A 640 ms queue bounds capture output. Overflow, device errors, and source-clock
+steps above 2 ms invalidate capture. The host brackets CPAL's stream clock with
+local monotonic reads before starting acquisition. The 25 ms absolute clock bound
+remains an engineering assumption for live qualification.
+
+The collector retains 200 ms of pre-roll and ends after 800 ms of quiet audio.
+Its RMS threshold is `0.006`. Command capture requires half a second of voiced
+frames. Ten seconds is the maximum collected utterance. These settings require
+live evaluation in quiet and noisy rooms.
+
+The Keychain store holds an exclusive application-namespace lease throughout
+each host operation. Another VoiceID process receives a conflict while it is held.
+This serializes reads, replacement, deletion, capture, and result consumption.
+The expected enrollment version also enters the Security query. The login
+Keychain API alone does not establish an atomic conditional update.
+[Apple's implementation](https://github.com/apple-oss-distributions/Security/blob/main/OSX/libsecurity_keychain/lib/SecItem.cpp#L5017-L5113)
+searches for items before mutating their handles.
+
+Lease files contain no template or device key. They remain under
+`~/Library/Application Support/Seams/VoiceID/locks/` so their inodes stay stable.
+All VoiceID hosts must use this store boundary. Direct OS administration remains
+inside the trusted-device assumption.
+
+### Repeatable host journey
+
+Run from `seams-wallet`, with the variables above:
+
+```sh
+cargo build --offline --locked --release --example local_host_journey \
+  --manifest-path "$voiceid_repo/voiceId/engine/Cargo.toml"
+/usr/bin/sandbox-exec -p '(version 1) (allow default) (deny network*)' \
+  "$voiceid_repo/voiceId/engine/target/release/examples/local_host_journey" \
+  "$voiceid_models" "$voiceid_repo/voiceId/engine/target/local-host.e2e.json"
+```
+
+The journey uses macOS `say` voices and `ffmpeg` to create known synthetic speech.
+It runs the production normalizer, collector, real models, and a disposable
+Keychain namespace. A child process checks exclusive namespace admission.
+The journey checks enrollment consistency, approve/cancel recognition, extra-word
+rejection, a different speaker, single result consumption, advancing/stale versions,
+cancelled/expired mutations, deletion, capture gaps, and callback bounds.
+It removes its Keychain items and preserves completed cases when a later step fails.
+
+The [dated host report](../verifier-spike/reports/local-host-2026-10-22.json)
+contains outcomes, model identities, and synthetic PCM hashes. It contains no
+media, embeddings, or transcript text. Synthetic replay does not establish live
+microphone timing, human recognition accuracy, or spoof resistance.
+
+The imperative phrase “approve this operation” produced “approved this operation”
+in both native replay and an unchanged Python control on full source audio.
+The first-person phrase matched in the reference control and native journey.
+This supports the selected phrase. It does not establish a population accuracy rate.
+
 ## Next checkpoint
 
-The audio runtime and native reference-agreement journeys are implemented.
-Next, add live capture, speech endpoint detection, native enrollment collection,
-protected template storage, and the C host binding. Then complete wallet W0-W1 composition.
+The runtime, native models, and local host flows are implemented.
+Next, complete a deliberate live user journey and measure capture timing, endpoint
+behavior, and command recognition. Then expose the C host boundary and complete
+wallet W0-W1 composition under existing device/session authority.
 
 Keep unimplemented capabilities unavailable. Test doubles stay inside the
 integration test; no production adapter returns placeholder identity success.

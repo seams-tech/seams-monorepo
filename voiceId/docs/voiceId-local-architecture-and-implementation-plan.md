@@ -6,8 +6,10 @@ Status: structure decisions, private Rust modules, domain types, and adapter
 contracts are in place, with boundary and compile-fail tests.
 The audio runtime shell now coordinates injected transcription and speaker
 adapters with a repeatable lifecycle journey. Native Moonshine Tiny and ECAPA
-adapters now pass a real-fixture reference-agreement journey. Capture/storage
-adapters, the host API, and product acceptance gates remain unimplemented.
+adapters pass a real-fixture reference-agreement journey. The macOS host implements
+microphone acquisition, three-capture enrollment, Keychain storage/deletion, and
+exact command checks. Live qualification, the C host API, and product acceptance
+gates remain open.
 The retained Python incremental Moonshine adapter is evaluation code.
 
 Related plans:
@@ -223,9 +225,11 @@ model, calibration, or release gates in L0-L7.
    The journey checks verified assets, transcript/embedding agreement, boundary prefixes,
    cancellation/restart recovery, and modified-model rejection. It records replay work
    durations. Recognition quality, live latency, and release packaging remain open.
-3. Local host: add microphone acquisition, speech endpoint detection, protected
-   enrollment storage, deletion, and a callable native host binding. Document one
-   local invocation and an offline smoke procedure.
+3. Local host: development CLI implemented with CPAL capture, mono conversion,
+   resampling, bounded endpoint collection, deliberate three-capture enrollment,
+   serialized Keychain storage, and deletion. The synthetic host journey covers
+   real models/storage and exact first-person approve/cancel commands.
+   Live microphone qualification and the callable C host binding remain open.
 4. Wallet W0-W1: consume existing device/session authority, present one exact
    operation, and bind its spoken approval/cancellation to that attempt. Exercise
    the real path on testnet with a repeatable outcome report.

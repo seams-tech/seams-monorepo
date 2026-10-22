@@ -1,5 +1,6 @@
 import { secureRandomBase36 } from '@seams/wallet-server/cloud-host';
 import { ConsolePolicyError } from './errors';
+import { ConsolePolicyRulesDigest } from './reviewDigest';
 import {
   normalizePolicyScopeType as normalizeScopeType,
   policyScopeKey as scopeKey,
@@ -11,6 +12,7 @@ import {
   isConsoleGasSponsorshipPolicyRules,
   isConsoleTransactionPolicyRules,
   parseConsolePolicyRulesInput,
+  serializeConsolePolicyRules,
   validateGasSponsorshipPolicyRulesForPublish,
 } from './rules';
 import type {
@@ -32,6 +34,14 @@ import type {
 export interface ConsolePoliciesContext {
   orgId: string;
   actorUserId: string;
+}
+
+export type ConsolePolicyPublication =
+  | { readonly kind: 'system_onboarding'; readonly rulesDigest?: never }
+  | { readonly kind: 'approved'; readonly rulesDigest: ConsolePolicyRulesDigest };
+
+function assertNever(value: never): never {
+  throw new Error(`Unsupported policy publication authority: ${String(value)}`);
 }
 
 export interface ConsolePolicyService {
@@ -56,6 +66,7 @@ export interface ConsolePolicyService {
   publishPolicy(
     ctx: ConsolePoliciesContext,
     policyId: string,
+    publication: ConsolePolicyPublication,
   ): Promise<PublishConsolePolicyResult | null>;
   deletePolicy(ctx: ConsolePoliciesContext, policyId: string): Promise<DeleteConsolePolicyResult>;
   simulatePolicy(
@@ -321,7 +332,7 @@ export function createInMemoryConsolePolicyService(
       return clonePolicy(current);
     },
 
-    async publishPolicy(ctx, policyId): Promise<PublishConsolePolicyResult | null> {
+    async publishPolicy(ctx, policyId, publication): Promise<PublishConsolePolicyResult | null> {
       const store = ensureOrgStore(ctx);
       const current = store.policies.get(policyId);
       if (!current) return null;
@@ -341,6 +352,27 @@ export function createInMemoryConsolePolicyService(
           );
         }
         validateGasSponsorshipPolicyRulesForPublish(current.rules);
+      }
+      switch (publication.kind) {
+        case 'system_onboarding':
+          break;
+        case 'approved': {
+          const approvedRulesJson = JSON.stringify(serializeConsolePolicyRules(current.rules));
+          const actualDigest = await ConsolePolicyRulesDigest.fromRules(current.rules);
+          if (
+            actualDigest.value !== publication.rulesDigest.value ||
+            JSON.stringify(serializeConsolePolicyRules(current.rules)) !== approvedRulesJson
+          ) {
+            throw new ConsolePolicyError(
+              'approval_stale',
+              409,
+              'Policy rules changed after approval',
+            );
+          }
+          break;
+        }
+        default:
+          return assertNever(publication);
       }
       const now = nowFn();
       current.status = 'PUBLISHED';

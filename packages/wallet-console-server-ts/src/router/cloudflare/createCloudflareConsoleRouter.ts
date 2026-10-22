@@ -124,9 +124,13 @@ import type {
   ApproveConsoleApprovalRequest,
   CreateConsoleApprovalRequest,
   ConsoleApprovalRequestRecord,
+  ParsedCreateConsoleApprovalRequest,
 } from '@seams-internal/wallet-console-server/approvals/types';
 import type { ConsoleApprovalService } from '@seams-internal/wallet-console-server/approvals/service';
-import { isConsoleApprovalsError } from '@seams-internal/wallet-console-server/approvals/errors';
+import {
+  ConsoleApprovalsError,
+  isConsoleApprovalsError,
+} from '@seams-internal/wallet-console-server/approvals/errors';
 import {
   parseApproveConsoleApprovalRequest,
   parseCreateConsoleApprovalRequest,
@@ -170,8 +174,8 @@ import {
   type ConsolePolicyPresentation,
   listConsolePolicyPresentationLookup,
   projectConsolePolicyPresentation,
-  resolveConsolePolicyPresentation,
 } from '../policyPresentation';
+import { ConsolePolicyRulesDigest } from '../../policies/reviewDigest';
 import {
   buildConsolePolicyAssignmentAuditEvent,
   buildConsolePolicyAuditEvent,
@@ -1015,28 +1019,37 @@ async function projectApprovalResponses<
 async function enrichPolicyApprovalCreateRequest(
   ctx: CloudflareConsoleContext,
   claims: ConsoleAuthClaims,
-  request: CreateConsoleApprovalRequest,
+  request: ParsedCreateConsoleApprovalRequest,
 ): Promise<CreateConsoleApprovalRequest> {
   if (request.operationType !== 'POLICY_PUBLISH') return request;
-  const resourceType = String(request.resourceType || '')
-    .trim()
-    .toUpperCase();
-  const resourceId = String(request.resourceId || '').trim();
-  if (resourceType !== 'POLICY' || !resourceId) return request;
-  const policy = await resolveConsolePolicyPresentation(
-    ctx.policies,
-    toBillingContext(claims),
-    resourceId,
-  );
+  if (!ctx.policies) {
+    throw new ConsoleApprovalsError(
+      'policy_service_unavailable',
+      503,
+      'Policy service is unavailable',
+    );
+  }
+  const policy = await ctx.policies.getPolicy(toBillingContext(claims), request.resourceId);
+  if (!policy) {
+    throw new ConsoleApprovalsError('policy_not_found', 404, 'Policy was not found');
+  }
+  const policyRulesDigest = await ConsolePolicyRulesDigest.fromRules(policy.rules);
   const metadata =
     request.metadata && typeof request.metadata === 'object' && !Array.isArray(request.metadata)
       ? { ...request.metadata }
       : {};
-  metadata.policyId = policy.policyId || resourceId;
-  if (policy.policyName) metadata.policyName = policy.policyName;
-  if (policy.policyKind) metadata.policyKind = policy.policyKind;
+  metadata.policyId = policy.id;
+  metadata.policyName = policy.name;
+  metadata.policyKind = policy.kind;
   return {
-    ...request,
+    operationType: 'POLICY_PUBLISH',
+    resourceType: 'policy',
+    resourceId: request.resourceId,
+    reason: request.reason,
+    ...(request.id ? { id: request.id } : {}),
+    ...(request.projectId ? { projectId: request.projectId } : {}),
+    ...(request.environmentId ? { environmentId: request.environmentId } : {}),
+    policyRulesDigest,
     metadata,
   };
 }
@@ -1154,94 +1167,126 @@ async function requireApprovedOperationApproval(
         readonly resourceType: 'key_export';
         readonly resourceId: string;
       },
-): Promise<Response | null> {
-  if (!ctx.approvals) return null;
+): Promise<
+  | { readonly ok: true; readonly approval: ConsoleApprovalRequestRecord }
+  | { readonly ok: false; readonly response: Response }
+> {
+  if (!ctx.approvals) {
+    return {
+      ok: false,
+      response: json(
+        { ok: false, code: 'approval_unavailable', message: 'Approval service is unavailable' },
+        { status: 503 },
+      ),
+    };
+  }
 
   const approvalId = String(input.approvalIdRaw || '').trim();
   if (!approvalId) {
-    return json(
-      {
-        ok: false,
-        code: 'approval_required',
-        message: `Field approvalId is required for ${input.operationType} when approvals service is configured`,
-      },
-      { status: 400 },
-    );
+    return {
+      ok: false,
+      response: json(
+        {
+          ok: false,
+          code: 'approval_required',
+          message: `Field approvalId is required for ${input.operationType} when approvals service is configured`,
+        },
+        { status: 400 },
+      ),
+    };
   }
 
   let approval: Awaited<ReturnType<ConsoleApprovalService['getApprovalRequest']>> = null;
   try {
     approval = await ctx.approvals.getApprovalRequest(toApprovalContext(claims), approvalId);
   } catch (error: unknown) {
-    return sendApprovalError(error);
+    return { ok: false, response: sendApprovalError(error) };
   }
 
   if (!approval) {
-    return json(
-      {
-        ok: false,
-        code: 'approval_not_found',
-        message: `Approval request ${approvalId} was not found`,
-      },
-      { status: 404 },
-    );
+    return {
+      ok: false,
+      response: json(
+        {
+          ok: false,
+          code: 'approval_not_found',
+          message: `Approval request ${approvalId} was not found`,
+        },
+        { status: 404 },
+      ),
+    };
   }
 
   if (approval.operationType !== input.operationType) {
-    return json(
-      {
-        ok: false,
-        code: 'approval_operation_mismatch',
-        message: `Approval request ${approvalId} is ${approval.operationType}; expected ${input.operationType}`,
-      },
-      { status: 409 },
-    );
+    return {
+      ok: false,
+      response: json(
+        {
+          ok: false,
+          code: 'approval_operation_mismatch',
+          message: `Approval request ${approvalId} is ${approval.operationType}; expected ${input.operationType}`,
+        },
+        { status: 409 },
+      ),
+    };
   }
 
   if (approval.status !== 'APPROVED') {
-    return json(
-      {
-        ok: false,
-        code: 'approval_not_approved',
-        message: `Approval request ${approvalId} is ${approval.status}; expected APPROVED`,
-      },
-      { status: 409 },
-    );
+    return {
+      ok: false,
+      response: json(
+        {
+          ok: false,
+          code: 'approval_not_approved',
+          message: `Approval request ${approvalId} is ${approval.status}; expected APPROVED`,
+        },
+        { status: 409 },
+      ),
+    };
   }
 
   if (
     claims.role === 'MEMBER' &&
     !(await memberCanAccessApproval(ctx, claims, approval, 'editor'))
   ) {
-    return json(
-      { ok: false, code: 'approval_not_found', message: 'Approval request was not found' },
-      { status: 404 },
-    );
+    return {
+      ok: false,
+      response: json(
+        { ok: false, code: 'approval_not_found', message: 'Approval request was not found' },
+        { status: 404 },
+      ),
+    };
   }
 
   if (approval.resourceType !== input.resourceType) {
-    return json(
-      {
-        ok: false,
-        code: 'approval_resource_mismatch',
-        message: `Approval request ${approvalId} resource type does not match request`,
-      },
-      { status: 409 },
-    );
+    return {
+      ok: false,
+      response: json(
+        {
+          ok: false,
+          code: 'approval_resource_mismatch',
+          message: `Approval request ${approvalId} resource type does not match request`,
+        },
+        { status: 409 },
+      ),
+    };
   }
 
   if (approval.resourceId !== input.resourceId) {
-    return json(
-      {
-        ok: false,
-        code: 'approval_resource_mismatch',
-        message: `Approval request ${approvalId} resource id does not match request`,
-      },
-      { status: 409 },
-    );
+    return {
+      ok: false,
+      response: json(
+        {
+          ok: false,
+          code: 'approval_resource_mismatch',
+          message: `Approval request ${approvalId} resource id does not match request`,
+        },
+        { status: 409 },
+      ),
+    };
   }
 
-  return null;
+  return { ok: true, approval };
 }
 
 async function requireActiveApiKeyEnvironmentForCreate(
@@ -1607,7 +1652,7 @@ async function handleConsoleKeyExports(ctx: CloudflareConsoleContext): Promise<R
         resourceType: 'key_export',
         resourceId: exportId,
       });
-      if (approvalRequired) return approvalRequired;
+      if (!approvalRequired.ok) return approvalRequired.response;
       const requestBody = parseApproveConsoleKeyExportRequest(rawBody);
       const stepUp = await requireFreshConsoleStepUp(ctx, auth.claims);
       if (!stepUp.ok) return stepUp.response;
@@ -3082,9 +3127,21 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
         resourceType: 'policy',
         resourceId: policyId,
       });
-      if (approvalRequired) return approvalRequired;
+      if (!approvalRequired.ok) return approvalRequired.response;
+      const approvedRules = ConsolePolicyRulesDigest.parse(
+        approvalRequired.approval.policyRulesDigest,
+      );
+      if (!approvedRules.ok) {
+        return json(
+          { ok: false, code: 'approval_stale', message: 'Policy approval has no rules digest' },
+          { status: 409 },
+        );
+      }
       try {
-        const result = await policies.publishPolicy(policyCtx, policyId);
+        const result = await policies.publishPolicy(policyCtx, policyId, {
+          kind: 'approved',
+          rulesDigest: approvedRules.digest,
+        });
         if (!result) {
           return json(
             {

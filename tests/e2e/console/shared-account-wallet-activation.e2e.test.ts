@@ -42,6 +42,7 @@ import { createD1ConsoleRuntimeSnapshotService } from '../../../packages/wallet-
 import { createD1ConsoleWalletService } from '../../../packages/wallet-console-server-ts/src/wallets/d1';
 import { createD1ConsoleKeyExportService } from '../../../packages/wallet-console-server-ts/src/keyExports/d1';
 import { createD1ConsolePolicyService } from '../../../packages/wallet-console-server-ts/src/policies/d1';
+import { ConsolePolicyRulesDigest } from '../../../packages/wallet-console-server-ts/src/policies/reviewDigest';
 import { createD1ConsoleApprovalService } from '../../../packages/wallet-console-server-ts/src/approvals/d1';
 import {
   createD1ConsoleObservabilityIngestionService,
@@ -1623,6 +1624,21 @@ async function consoleResourceIds(response: Response, field: string): Promise<st
   });
 }
 
+async function consoleRecordId(response: Response, field: string): Promise<string> {
+  expect(response.status).toBe(201);
+  const payload: unknown = await response.json();
+  if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('Console record response was not an object');
+  }
+  const row: unknown = Reflect.get(payload, field);
+  if (row === null || typeof row !== 'object' || Array.isArray(row)) {
+    throw new Error(`Console response omitted ${field}`);
+  }
+  const id: unknown = Reflect.get(row, 'id');
+  if (typeof id !== 'string') throw new Error(`Console ${field} ID was invalid`);
+  return id;
+}
+
 test('project members see only assigned project resources while owners govern the organization', async () => {
   test.setTimeout(180_000);
   const testInfo = test.info();
@@ -1723,6 +1739,7 @@ test('project members see only assigned project resources while owners govern th
       environmentId: environmentA.id,
       resourceType: 'policy',
       resourceId: policyA.id,
+      policyRulesDigest: await ConsolePolicyRulesDigest.fromRules(policyA.rules),
     });
     const approvalB = await approvals.createApprovalRequest(owner, {
       operationType: 'POLICY_PUBLISH',
@@ -1731,6 +1748,7 @@ test('project members see only assigned project resources while owners govern th
       environmentId: environmentB.id,
       resourceType: 'policy',
       resourceId: policyB.id,
+      policyRulesDigest: await ConsolePolicyRulesDigest.fromRules(policyB.rules),
     });
     const stepUp = createD1TenantRootStepUpStoreV1({ database, namespace });
     await wallets.upsertWallet(owner, {
@@ -2018,13 +2036,51 @@ test('project members see only assigned project resources while owners govern th
     );
     expect(ownApprovalDecision.status).toBe(200);
     expect((await approvals.getApprovalRequest(owner, approvalA.id))?.status).toBe('APPROVED');
-    const ownPolicyPublish = await consoleRequest(
+    const editedAfterApproval = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'PATCH',
+      `/console/policies/${policyA.id}`,
+      { rules: { blockedActions: ['delete_key'] } },
+    );
+    expect(editedAfterApproval.status).toBe(200);
+    const stalePolicyPublish = await consoleRequest(
       router,
       editorToken,
       projectA,
       'POST',
       `/console/policies/${policyA.id}/publish`,
       { approvalId: approvalA.id },
+    );
+    expect(stalePolicyPublish.status).toBe(409);
+    const freshApprovalId = await consoleRecordId(
+      await consoleRequest(router, editorToken, projectA, 'POST', '/console/approvals', {
+        operationType: 'POLICY_PUBLISH',
+        reason: 'Review the changed Project A policy',
+        projectId: projectA,
+        environmentId: environmentA.id,
+        resourceType: 'policy',
+        resourceId: policyA.id,
+      }),
+      'approval',
+    );
+    const freshApprovalDecision = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      `/console/approvals/${freshApprovalId}/approve`,
+      { reason: 'Reviewed the new rules' },
+    );
+    expect(freshApprovalDecision.status).toBe(200);
+    const ownPolicyPublish = await consoleRequest(
+      router,
+      editorToken,
+      projectA,
+      'POST',
+      `/console/policies/${policyA.id}/publish`,
+      { approvalId: freshApprovalId },
     );
     expect(ownPolicyPublish.status).toBe(200);
     expect((await policies.getPolicy(owner, policyA.id))?.status).toBe('PUBLISHED');
@@ -2640,6 +2696,8 @@ test('project members see only assigned project resources while owners govern th
           foreignAssignmentStatus: foreignAssignment.status,
           foreignApprovalDecisionStatus: foreignApprovalDecision.status,
           ownPolicyPublishStatus: ownPolicyPublish.status,
+          stalePolicyPublishStatus: stalePolicyPublish.status,
+          freshApprovalId,
           weakenedApprovalStatus: weakenedApproval.status,
           weakenedKeyExportStatus: weakenedKeyExport.status,
           forgedMfaStatus: forgedMfa.status,

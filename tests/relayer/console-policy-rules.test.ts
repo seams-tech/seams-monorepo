@@ -455,7 +455,9 @@ test.describe('console policy rules parser and evaluator', () => {
       ],
     });
 
-    const published = await service.publishPolicy(ctx, gasPolicy.id);
+    const published = await service.publishPolicy(ctx, gasPolicy.id, {
+      kind: 'system_onboarding',
+    });
     expect(published?.policy.kind).toBe('GAS_SPONSORSHIP');
 
     await expectPolicyError(
@@ -492,12 +494,9 @@ test.describe('console policy rules parser and evaluator', () => {
     expect(defaultPolicy?.kind).toBe('TRANSACTION');
     expect(defaultPolicy?.name).toBe('Default Policy');
 
-    await expectPolicyError(
-      async () => {
-        await service.deletePolicy(ctx, String(defaultPolicy?.id || ''));
-      },
-      'default_policy_protected',
-    );
+    await expectPolicyError(async () => {
+      await service.deletePolicy(ctx, String(defaultPolicy?.id || ''));
+    }, 'default_policy_protected');
   });
 
   test('contract_call allowlists enforce contract and function restrictions', async () => {
@@ -594,48 +593,54 @@ test.describe('console policy rules parser and evaluator', () => {
 
     await expectPolicyError(
       async () =>
-        parseUpdateConsolePolicyRequest({
-          rules: {
-            allowedContractCalls: [
-              {
-                contractAddress: '0x1111111111111111111111111111111111111111',
-                functions: ['approve('],
-              },
-            ],
-          },
-        }),
+        parseConsolePolicyRulesInput(
+          parseUpdateConsolePolicyRequest({
+            rules: {
+              allowedContractCalls: [
+                {
+                  contractAddress: '0x1111111111111111111111111111111111111111',
+                  functions: ['approve('],
+                },
+              ],
+            },
+          }).rules,
+        ),
       'invalid_body',
     );
 
     await expectPolicyError(
       async () =>
-        parseUpdateConsolePolicyRequest({
-          rules: {
-            allowedContractCalls: [
-              {
-                contractAddress: '0x1111111111111111111111111111111111111111',
-              },
-              {
-                contractAddress: '0x1111111111111111111111111111111111111111',
-              },
-            ],
-          },
-        }),
+        parseConsolePolicyRulesInput(
+          parseUpdateConsolePolicyRequest({
+            rules: {
+              allowedContractCalls: [
+                {
+                  contractAddress: '0x1111111111111111111111111111111111111111',
+                },
+                {
+                  contractAddress: '0x1111111111111111111111111111111111111111',
+                },
+              ],
+            },
+          }).rules,
+        ),
       'invalid_body',
     );
 
     await expectPolicyError(
       async () =>
-        parseUpdateConsolePolicyRequest({
-          rules: {
-            allowedContractCalls: [
-              {
-                contractAddress: '0x1111111111111111111111111111111111111111',
-                functions: ['0xA9059CBB', '0xa9059cbb'],
-              },
-            ],
-          },
-        }),
+        parseConsolePolicyRulesInput(
+          parseUpdateConsolePolicyRequest({
+            rules: {
+              allowedContractCalls: [
+                {
+                  contractAddress: '0x1111111111111111111111111111111111111111',
+                  functions: ['0xA9059CBB', '0xa9059cbb'],
+                },
+              ],
+            },
+          }).rules,
+        ),
       'invalid_body',
     );
   });

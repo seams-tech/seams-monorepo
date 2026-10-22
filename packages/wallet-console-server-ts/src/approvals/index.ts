@@ -6,6 +6,7 @@ export type {
   ConsoleApprovalRequestRecord,
   ListConsoleApprovalsRequest,
   CreateConsoleApprovalRequest,
+  ParsedCreateConsoleApprovalRequest,
   ApproveConsoleApprovalRequest,
   RejectConsoleApprovalRequest,
 } from './types';

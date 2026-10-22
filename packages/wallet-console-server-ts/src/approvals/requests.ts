@@ -9,7 +9,7 @@ import { ConsoleApprovalsError } from './errors';
 import type {
   ConsoleApprovalOperationType,
   ConsoleApprovalStatus,
-  CreateConsoleApprovalRequest,
+  ParsedCreateConsoleApprovalRequest,
   ListConsoleApprovalsRequest,
   RejectConsoleApprovalRequest,
 } from './types';
@@ -79,7 +79,9 @@ export function parseListConsoleApprovalsRequest(query: unknown): ListConsoleApp
   };
 }
 
-export function parseCreateConsoleApprovalRequest(body: unknown): CreateConsoleApprovalRequest {
+export function parseCreateConsoleApprovalRequest(
+  body: unknown,
+): ParsedCreateConsoleApprovalRequest {
   const obj = requireObject(body, createError);
   const operationType = parseOperationType(obj.operationType);
   if (!operationType) {

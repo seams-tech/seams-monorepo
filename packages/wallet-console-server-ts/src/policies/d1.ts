@@ -6,10 +6,12 @@ import {
   parseD1JsonObjectColumn,
   queryD1All,
   queryD1One,
+  type D1ResultLike,
   type D1Row,
 } from '@seams/wallet-server/cloud-host';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { ConsolePolicyError } from './errors';
+import { ConsolePolicyRulesDigest } from './reviewDigest';
 import {
   normalizePolicyScopeType as normalizeScopeType,
   policyScopeKey as assignmentScopeKey,
@@ -24,7 +26,11 @@ import {
   serializeConsolePolicyRules,
   validateGasSponsorshipPolicyRulesForPublish,
 } from './rules';
-import type { ConsolePoliciesContext, ConsolePolicyService } from './service';
+import type {
+  ConsolePoliciesContext,
+  ConsolePolicyPublication,
+  ConsolePolicyService,
+} from './service';
 import type {
   ConsolePolicy,
   ConsolePolicyAssignment,
@@ -46,6 +52,10 @@ import type {
 
 const DEFAULT_POLICY_NAME = 'Default Policy';
 const DEFAULT_POLICY_DESCRIPTION = 'Default policy profile for this organization';
+
+function assertNever(value: never): never {
+  throw new Error(`Unsupported policy publication authority: ${String(value)}`);
+}
 
 export const CONSOLE_POLICY_D1_RUNTIME = Symbol('consolePolicyD1Runtime');
 
@@ -680,9 +690,10 @@ async function publishPolicyInD1(input: {
   state: D1ConsolePolicyState;
   ctx: ConsolePoliciesContext;
   policy: ConsolePolicy;
+  expectedRulesJson: string;
 }): Promise<PublishConsolePolicyResult | null> {
   const publishedAtMs = nowMs(input.state.now());
-  await input.state.database.batch([
+  const results = await input.state.database.batch<D1ResultLike>([
     input.state.database
       .prepare(
         `UPDATE policies
@@ -692,9 +703,20 @@ async function publishPolicyInD1(input: {
                 published_at_ms = ?
           WHERE namespace = ?
             AND org_id = ?
-            AND id = ?`,
+            AND id = ?
+            AND version = ?
+            AND rules_json = ?
+            AND status <> 'ARCHIVED'`,
       )
-      .bind(publishedAtMs, publishedAtMs, input.state.namespace, input.ctx.orgId, input.policy.id),
+      .bind(
+        publishedAtMs,
+        publishedAtMs,
+        input.state.namespace,
+        input.ctx.orgId,
+        input.policy.id,
+        input.policy.version,
+        input.expectedRulesJson,
+      ),
     input.state.database
       .prepare(
         `INSERT INTO policy_versions
@@ -713,6 +735,9 @@ async function publishPolicyInD1(input: {
           WHERE namespace = ?
             AND org_id = ?
             AND id = ?
+            AND version = ?
+            AND rules_json = ?
+            AND status = 'PUBLISHED'
          ON CONFLICT(namespace, org_id, policy_id, version) DO NOTHING`,
       )
       .bind(
@@ -721,8 +746,13 @@ async function publishPolicyInD1(input: {
         input.state.namespace,
         input.ctx.orgId,
         input.policy.id,
+        input.policy.version + 1,
+        input.expectedRulesJson,
       ),
   ]);
+  if (d1ChangedRows(results[0]) !== 1) {
+    throw new ConsolePolicyError('policy_changed', 409, 'Policy changed before publish');
+  }
   const policy = await findPolicy({
     state: input.state,
     orgId: input.ctx.orgId,
@@ -865,10 +895,24 @@ export async function createD1ConsolePolicyService(
     async publishPolicy(
       ctx: ConsolePoliciesContext,
       policyId: string,
+      publication: ConsolePolicyPublication,
     ): Promise<PublishConsolePolicyResult | null> {
       await ensureDefaultPolicy(state, ctx);
-      const current = await findPolicy({ state, orgId: ctx.orgId, policyId });
-      if (!current) return null;
+      const row = await queryD1One(
+        state.database,
+        `SELECT * FROM policies WHERE namespace = ? AND org_id = ? AND id = ?`,
+        [state.namespace, ctx.orgId, policyId],
+      );
+      if (!row) return null;
+      const current = parsePolicyRow(row);
+      const expectedRulesJson = String(row.rules_json || '');
+      if (!expectedRulesJson) {
+        throw new ConsolePolicyError(
+          'invalid_policy_rules',
+          500,
+          'Stored policy rules are missing',
+        );
+      }
       if (current.status === 'ARCHIVED') {
         throw new ConsolePolicyError(
           'policy_archived',
@@ -886,7 +930,24 @@ export async function createD1ConsolePolicyService(
         }
         validateGasSponsorshipPolicyRulesForPublish(current.rules);
       }
-      return await publishPolicyInD1({ state, ctx, policy: current });
+      switch (publication.kind) {
+        case 'system_onboarding':
+          break;
+        case 'approved': {
+          const actualDigest = await ConsolePolicyRulesDigest.fromRules(current.rules);
+          if (actualDigest.value !== publication.rulesDigest.value) {
+            throw new ConsolePolicyError(
+              'approval_stale',
+              409,
+              'Policy rules changed after approval',
+            );
+          }
+          break;
+        }
+        default:
+          return assertNever(publication);
+      }
+      return await publishPolicyInD1({ state, ctx, policy: current, expectedRulesJson });
     },
 
     async deletePolicy(

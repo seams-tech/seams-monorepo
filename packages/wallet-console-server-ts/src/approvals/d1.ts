@@ -99,6 +99,7 @@ export const CONSOLE_APPROVALS_D1_SCHEMA_SQL = Object.freeze([
       environment_id TEXT,
       resource_type TEXT,
       resource_id TEXT,
+      policy_rules_digest TEXT,
       metadata_json TEXT NOT NULL,
       decisions_json TEXT NOT NULL,
       created_at_ms INTEGER NOT NULL,
@@ -260,6 +261,7 @@ function parseRecordRow(row: D1Row): ConsoleApprovalRequestRecord {
     environmentId: toNullableString(row.environment_id),
     resourceType: toNullableString(row.resource_type),
     resourceId: toNullableString(row.resource_id),
+    policyRulesDigest: toNullableString(row.policy_rules_digest),
     metadata: parseJsonObject(row.metadata_json),
     decisions: parseDecisions(row.decisions_json),
     createdAt: toIso(toNumber(row.created_at_ms)),
@@ -461,9 +463,9 @@ class D1ConsoleApprovalServiceImpl implements ConsoleApprovalService {
       await this.state.database
         .prepare(
           `INSERT INTO approvals
-            (namespace, org_id, id, operation_type, status, reason, requested_by_user_id, required_approvals, require_mfa, project_id, environment_id, resource_type, resource_id, metadata_json, decisions_json, created_at_ms, updated_at_ms, resolved_at_ms)
+            (namespace, org_id, id, operation_type, status, reason, requested_by_user_id, required_approvals, require_mfa, project_id, environment_id, resource_type, resource_id, policy_rules_digest, metadata_json, decisions_json, created_at_ms, updated_at_ms, resolved_at_ms)
            VALUES
-            (?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?, ?, NULL)`,
+            (?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?, ?, NULL)`,
         )
         .bind(
           this.state.namespace,
@@ -478,6 +480,7 @@ class D1ConsoleApprovalServiceImpl implements ConsoleApprovalService {
           toNullableString(request.environmentId),
           toNullableString(request.resourceType),
           toNullableString(request.resourceId),
+          request.operationType === 'POLICY_PUBLISH' ? request.policyRulesDigest.value : null,
           JSON.stringify(ensureMetadataObject(request.metadata)),
           createdAtMs,
           createdAtMs,

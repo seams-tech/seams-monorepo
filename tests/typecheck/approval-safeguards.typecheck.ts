@@ -6,11 +6,40 @@ import type {
   ApproveConsoleKeyExportRequest,
   CreateConsoleKeyExportRequest,
 } from '../../packages/wallet-console-server-ts/src/keyExports/types';
+import { ConsolePolicyRulesDigest } from '../../packages/wallet-console-server-ts/src/policies/reviewDigest';
+import type { ConsolePolicyPublication } from '../../packages/wallet-console-server-ts/src/policies/service';
 
 declare const verifiedStepUp: Extract<
   ApproveConsoleApprovalRequest,
   { readonly kind: 'with_step_up' }
 >['stepUp'];
+declare const approvedRulesDigest: ConsolePolicyRulesDigest;
+
+// @ts-expect-error A policy approval must carry a server-computed rules digest.
+const unsealedPolicyApproval: CreateConsoleApprovalRequest = {
+  operationType: 'POLICY_PUBLISH',
+  resourceType: 'policy',
+  resourceId: 'policy-a',
+  reason: 'Publish',
+};
+
+// @ts-expect-error A key-export approval cannot carry a policy digest.
+const unrelatedKeyApproval: CreateConsoleApprovalRequest = {
+  operationType: 'KEY_EXPORT',
+  resourceType: 'key_export',
+  resourceId: 'export-a',
+  reason: 'Export',
+  policyRulesDigest: approvedRulesDigest,
+};
+
+// @ts-expect-error A reviewed publication requires the approved rules digest.
+const unsealedPublication: ConsolePolicyPublication = { kind: 'approved' };
+
+// @ts-expect-error Only the digest parser can construct a rules digest.
+const forgedDigest = new ConsolePolicyRulesDigest('sha256:00');
+
+// @ts-expect-error A direct object literal cannot become a review digest.
+const forgedDigestShape: ConsolePolicyRulesDigest = { value: 'sha256:00' };
 
 // @ts-expect-error A key-export approval requires server-issued step-up evidence.
 const missingProof: ApproveConsoleApprovalRequest = {
@@ -55,4 +84,16 @@ const callerMfaClaim: ApproveConsoleKeyExportRequest = {
   mfaVerified: true,
 };
 
-void [missingProof, invalidBranch, callerQuorum, wrongTarget, callerExportQuorum, callerMfaClaim];
+void [
+  unsealedPolicyApproval,
+  unrelatedKeyApproval,
+  unsealedPublication,
+  forgedDigest,
+  forgedDigestShape,
+  missingProof,
+  invalidBranch,
+  callerQuorum,
+  wrongTarget,
+  callerExportQuorum,
+  callerMfaClaim,
+];

@@ -25,6 +25,7 @@ export interface ConsoleApprovalRequestRecord {
   environmentId: string | null;
   resourceType: string | null;
   resourceId: string | null;
+  policyRulesDigest: string | null;
   metadata: Record<string, unknown>;
   decisions: ConsoleApprovalDecisionRecord[];
   createdAt: string;
@@ -48,7 +49,7 @@ interface CreateConsoleApprovalRequestBase {
   metadata?: Record<string, unknown>;
 }
 
-export type CreateConsoleApprovalRequest =
+export type ParsedCreateConsoleApprovalRequest =
   | (CreateConsoleApprovalRequestBase & {
       readonly operationType: 'POLICY_PUBLISH';
       readonly resourceType: 'policy';
@@ -56,6 +57,14 @@ export type CreateConsoleApprovalRequest =
   | (CreateConsoleApprovalRequestBase & {
       readonly operationType: 'KEY_EXPORT';
       readonly resourceType: 'key_export';
+    });
+
+export type CreateConsoleApprovalRequest =
+  | (Extract<ParsedCreateConsoleApprovalRequest, { readonly operationType: 'POLICY_PUBLISH' }> & {
+      readonly policyRulesDigest: ConsolePolicyRulesDigest;
+    })
+  | (Extract<ParsedCreateConsoleApprovalRequest, { readonly operationType: 'KEY_EXPORT' }> & {
+      readonly policyRulesDigest?: never;
     });
 
 export type ApproveConsoleApprovalRequest =
@@ -73,4 +82,5 @@ export type ApproveConsoleApprovalRequest =
 export interface RejectConsoleApprovalRequest {
   reason: string;
 }
+import type { ConsolePolicyRulesDigest } from '../policies/reviewDigest';
 import type { TenantRootStepUpProofV1 } from '../tenantRootSecurity/stepUp';

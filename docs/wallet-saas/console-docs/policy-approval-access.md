@@ -19,6 +19,12 @@ read or decide the request only when its project and target resource are within
 that member's access. The publish and export routes require an approved request
 for the exact target resource.
 
+The server records a digest of the policy's normalized rules when it creates a
+publication approval. Publication checks that digest against the current rules.
+The D1 update also checks the expected rules and version before it writes a
+published version. Publishing different rules needs a new approval. Approvals
+created before this digest existed cannot publish a policy.
+
 The server sets approval safeguards. Policy publication requires one approval.
 Key export requires two approvals from distinct actors. A key-export requester
 cannot approve their own request. Each key-export approver must complete a fresh

@@ -94,6 +94,7 @@ function cloneRecord(input: ConsoleApprovalRequestRecord): ConsoleApprovalReques
     environmentId: input.environmentId,
     resourceType: input.resourceType,
     resourceId: input.resourceId,
+    policyRulesDigest: input.policyRulesDigest,
     metadata: { ...input.metadata },
     decisions: input.decisions.map(cloneDecision),
     createdAt: input.createdAt,
@@ -175,6 +176,8 @@ export function createInMemoryConsoleApprovalService(
         environmentId: normalizeString(request.environmentId),
         resourceType: normalizeString(request.resourceType),
         resourceId: normalizeString(request.resourceId),
+        policyRulesDigest:
+          request.operationType === 'POLICY_PUBLISH' ? request.policyRulesDigest.value : null,
         metadata:
           request.metadata &&
           typeof request.metadata === 'object' &&

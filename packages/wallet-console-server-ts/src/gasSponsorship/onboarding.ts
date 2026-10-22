@@ -121,7 +121,9 @@ export async function ensureTempoTestnetOnboardingPolicyForEnvironment(input: {
         `Gas sponsorship policy ${matched.id} was not found for update`,
       );
     }
-    const published = await input.policies.publishPolicy(input.ctx, updated.id);
+    const published = await input.policies.publishPolicy(input.ctx, updated.id, {
+      kind: 'system_onboarding',
+    });
     if (!published) {
       throw new ConsoleGasSponsorshipError(
         'internal',
@@ -153,7 +155,9 @@ export async function ensureTempoTestnetOnboardingPolicyForEnvironment(input: {
       contractAddress: input.contractAddress,
     }),
   });
-  const published = await input.policies.publishPolicy(input.ctx, created.id);
+  const published = await input.policies.publishPolicy(input.ctx, created.id, {
+    kind: 'system_onboarding',
+  });
   if (!published) {
     throw new ConsoleGasSponsorshipError(
       'internal',

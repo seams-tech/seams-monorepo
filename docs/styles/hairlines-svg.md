@@ -316,7 +316,7 @@ Each figure keeps the subject and interaction of the figure it replaced:
 
 - `credentials-abstract/abstract-keychain.js`: four keys on one ring. Each key is a 16-unit opaque head with an even-odd ring hole, a straight blade, and two short cuts. The ring is one 22-unit circle, drawn in height sections between the keys, so it passes through each hole. Hover fans the key under the pointer.
 - `interlock-abstract/abstract-interlock.js`: three slotted discs and a dial on a dashed axle. The locking bar is an opaque rod with a 2.7-unit radius. It is drawn in sections between the discs, with no seams at the cuts. Hover turns the discs until the slots align, then the rod drops into the slots.
-- `delegation-abstract/abstract-devices.js`: two flat phones, a viewfinder, and an outlined code. Hover brings the scanner in front of the code phone, a dashed beam joins the code to the viewfinder, and both screens then show the same mark.
+- `delegation-planes/plane-devices.js`: two plain portrait planes. One carries four nested rings that share their lowest point, like the ElevenLabs provenance drawing. Hover turns the planes face to face, dashed corner and tangent guides project the rings across, and the same rings draw on the second plane one after another, from the outside in.
 - `infrastructure-abstract/abstract-infrastructure.js`: one block of 3 × 4 unit cells with a grid on its visible faces. The pointer slides the cube under it out of the front face along dashed rails.
 
 All four meet one spec, measured with every stroke except the dashed guides:

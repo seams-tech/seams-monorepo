@@ -3,7 +3,7 @@ import { locale, t } from '@/marketing/i18n/browser';
 import { figureCatalog } from '@/marketing/i18n/catalog';
 import keychain from '../../../showcase/motion/credentials-abstract/index.html?raw';
 import interlock from '../../../showcase/motion/interlock-abstract/index.html?raw';
-import devices from '../../../showcase/motion/delegation-abstract/index.html?raw';
+import devices from '../../../showcase/motion/delegation-planes/index.html?raw';
 import infrastructure from '../../../showcase/motion/infrastructure-abstract/index.html?raw';
 import signing from '../../../showcase/motion/threshold-signing/index.html?raw';
 import embed from './hairline/embed.js?raw';

@@ -724,10 +724,8 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /* global HL, hairline */
-// The linked phones of delegation/device-linking.js as two plain planes. One
-// carries nested rings that share their lowest point; hovering turns the planes
-// face to face, projects the rings across along dashed guides, and draws the
-// same rings on the other.
+// The linked phones of delegation/device-linking.js as two plain planes. Hover
+// turns them face to face and projects the nested rings of one onto the other.
 const DURATION = 1900;
 const FACE = HL.rrect(-21, 4, 21, 88, 3, 6);
 // Corner points on the rounded outline, joined plane to plane while linking.
@@ -749,8 +747,12 @@ function ring(at, radius, progress = 1) {
   return progress < 1 ? HL.open(points) : HL.poly(points.slice(0, -1));
 }
 
+// Each ring starts a beat after the next larger one: outside in (rule 02).
+const RING_LAG = 0.12;
 function rings(at, progress) {
-  return RINGS.map((radius) => ring(at, radius, progress)).join('');
+  const span = 1 - RING_LAG * (RINGS.length - 1);
+  const part = (index) => HL.clamp((progress - index * RING_LAG) / span, 0, 1);
+  return RINGS.map((radius, index) => ring(at, radius, part(index))).join('');
 }
 
 function plane(svg) {

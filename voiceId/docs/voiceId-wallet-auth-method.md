@@ -143,5 +143,10 @@ verifies the click and cancellation without Keychain access.
 
 The host still needs a VoiceID unlock action. It must request a challenge,
 capture the device assertion, install the fresh server session, open the seed
-envelope, and activate signing lanes. A composed native/browser E2E and a
-revocation E2E remain. Production voice-only signing is pending those paths.
+envelope, and activate signing lanes. The browser now has a typed handoff from
+the selected method and server challenge through native capture and server
+verification. It erases the factor secret after a custody installer returns.
+A real-D1 E2E verifies the handoff and proves that revoking VoiceID blocks
+pending and new challenges while the original owner method stays active. A
+composed native/browser E2E and full removal-flow E2E remain. Production
+voice-only signing is pending those paths.

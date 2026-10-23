@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import { t } from '@/marketing/i18n/browser';
-import land from './globe-land.json';
+import geography from './globe-geography.json';
 import './regional-globe.css';
 
 type Region = 'europe' | 'apac' | 'us';
@@ -44,12 +44,55 @@ function wrapLongitude(longitude: number): number {
   return ((((longitude + 180) % 360) + 360) % 360) - 180;
 }
 
-// Land dots sampled from Natural Earth 1:110m land polygons (public domain).
+// Coastlines and ocean-only grid samples from Natural Earth 1:110m land (public domain).
 // Source: https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_land.geojson
-const LAND_POSITIONS: Position[] = land.map(toPosition);
+const COASTLINES = geography.coastlines.map(toCoastline);
+const OCEAN_GRID = geography.oceanGrid.map(toPosition);
+
+function toCoastline(coordinates: number[][]): Position[] {
+  return coordinates.map(toPosition);
+}
 
 function toPosition(coordinates: number[]): Position {
   return { latitude: coordinates[0], longitude: coordinates[1] };
+}
+
+function traceCoastline(
+  context: CanvasRenderingContext2D,
+  coastline: Position[],
+  camera: Position,
+  centerX: number,
+  centerY: number,
+  radius: number,
+): void {
+  let previous = project(coastline[0], camera);
+  if (previous.depth >= 0)
+    context.moveTo(centerX + previous.x * radius, centerY - previous.y * radius);
+  for (let index = 1; index < coastline.length; index += 1) {
+    const point = project(coastline[index], camera);
+    // Natural Earth closes polygons at the date line; those edges are not coastlines.
+    if (
+      Math.abs(coastline[index - 1].longitude) === 180 &&
+      Math.abs(coastline[index].longitude) === 180
+    ) {
+      if (point.depth >= 0) context.moveTo(centerX + point.x * radius, centerY - point.y * radius);
+      previous = point;
+      continue;
+    }
+    if (previous.depth >= 0 !== point.depth >= 0) {
+      // End each visible segment exactly on the horizon, including polar coastlines.
+      const fraction = previous.depth / (previous.depth - point.depth);
+      const x = previous.x + (point.x - previous.x) * fraction;
+      const y = previous.y + (point.y - previous.y) * fraction;
+      const length = Math.hypot(x, y);
+      const edgeX = centerX + (x / length) * radius;
+      const edgeY = centerY - (y / length) * radius;
+      if (point.depth >= 0) context.moveTo(edgeX, edgeY);
+      else context.lineTo(edgeX, edgeY);
+    }
+    if (point.depth >= 0) context.lineTo(centerX + point.x * radius, centerY - point.y * radius);
+    previous = point;
+  }
 }
 
 export class RegionalGlobe extends React.Component<object, { region: Region }> {
@@ -254,42 +297,30 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
     const radius = width * 0.46;
     const centerX = width * 0.53;
     const centerY = height * 0.6;
-    const surface = context.createRadialGradient(
-      centerX - radius * 0.3,
-      centerY - radius * 0.4,
-      radius * 0.1,
-      centerX,
-      centerY,
-      radius,
-    );
-    surface.addColorStop(0, '#ffffff');
-    surface.addColorStop(0.8, '#fcfbfa');
-    surface.addColorStop(1, '#eeece9');
+    context.lineWidth = 0.75;
+    context.lineJoin = 'round';
+    context.lineCap = 'round';
+    context.fillStyle = '#c7c5ca';
     context.beginPath();
-    context.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    context.fillStyle = surface;
-    context.fill();
-    context.strokeStyle = '#e2dfdb';
-    context.lineWidth = 0.8;
-    context.stroke();
-    const selected = REGIONS[this.state.region];
-    for (const position of LAND_POSITIONS) {
+    for (const position of OCEAN_GRID) {
       const point = project(position, this.camera);
       if (point.depth <= 0) continue;
-      const nearRegion = project(position, selected).depth > 0.94;
-      context.fillStyle = nearRegion
-        ? `rgba(76, 132, 230, ${0.3 + point.depth * 0.6})`
-        : `rgba(151, 146, 136, ${0.2 + point.depth * 0.55})`;
-      context.beginPath();
-      context.arc(
-        centerX + point.x * radius,
-        centerY - point.y * radius,
-        Math.max(0.65, width / 400) * (0.5 + point.depth * 0.5),
-        0,
-        Math.PI * 2,
-      );
-      context.fill();
+      const x = centerX + point.x * radius;
+      const y = centerY - point.y * radius;
+      context.moveTo(x + 0.55, y);
+      context.arc(x, y, 0.55, 0, Math.PI * 2);
     }
+    context.fill();
+    context.beginPath();
+    for (const coastline of COASTLINES) {
+      traceCoastline(context, coastline, this.camera, centerX, centerY, radius);
+    }
+    context.strokeStyle = '#77757e';
+    context.stroke();
+    context.beginPath();
+    context.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    context.strokeStyle = '#a5a3ab';
+    context.stroke();
     for (const region of ['europe', 'apac', 'us'] as const) {
       const point = project(REGIONS[region], this.camera);
       if (point.depth < 0.12) continue;
@@ -297,17 +328,21 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
       const y = centerY - point.y * radius;
       context.beginPath();
       context.arc(x, y, 13, 0, Math.PI * 2);
-      context.fillStyle = 'rgba(76, 132, 230, 0.12)';
-      context.fill();
+      context.strokeStyle = '#c7c5ca';
+      context.stroke();
+      context.beginPath();
+      context.arc(x, y, 8, 0, Math.PI * 2);
+      context.strokeStyle = '#a5a3ab';
+      context.stroke();
       context.beginPath();
       context.arc(x, y, 4, 0, Math.PI * 2);
-      context.fillStyle = '#4c84e6';
+      context.fillStyle = '#44403b';
       context.fill();
       if (region !== this.state.region) continue;
       context.beginPath();
       context.moveTo(x, y - 13);
       context.lineTo(x, y - 57);
-      context.strokeStyle = '#b5bdca';
+      context.strokeStyle = '#77757e';
       context.stroke();
       context.font = '500 14px "Hanken Grotesk", sans-serif';
       const label = regionName(region);

@@ -139,7 +139,7 @@ export function ShopOpsFeed(): React.JSX.Element {
             const fresh = i === 0 && tick > 0;
             return (
               <li key={arrival} className={`h2-ops__row${fresh ? ' is-new' : ''}`}>
-                <FieldTile field={item.field} icon={item.icon} vivid />
+                <FieldTile field={item.field} icon={item.icon} />
                 <span className="h2-ops__main">
                   <span className="h2-ops__task">{item.task}</span>
                   <small>{item.detail}</small>

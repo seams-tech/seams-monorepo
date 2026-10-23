@@ -165,7 +165,7 @@ function HomeHeroCurrent(): React.JSX.Element {
             aria-label="Explore Ecommerce Agents"
           >
             <div className="h2-heroscene__intro h2-fadein" key={`intro-${scene.id}`}>
-              <FieldTile field={scene.field} icon={scene.icon} vivid />
+              <FieldTile field={scene.field} icon={scene.icon} />
               <div>
                 <p className="h2-heroscene__intro-title">{scene.title}</p>
                 <p className="h2-heroscene__intro-sub">{scene.sub}</p>
@@ -193,7 +193,7 @@ function HomeHeroCurrent(): React.JSX.Element {
               </div>
             ) : null}
             <div className="h2-heroscene__intro h2-fadein" key={`aside-intro-${scene.wallet.kind}`}>
-              <FieldTile field="teal-peach" icon={Wallet} vivid />
+              <FieldTile field="teal-peach" icon={Wallet} />
               <div>
                 <p className="h2-heroscene__intro-title">Embedded Wallet</p>
                 <p className="h2-heroscene__intro-sub">{scene.wallet.sub}</p>

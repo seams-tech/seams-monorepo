@@ -14,6 +14,8 @@ export function createWebhookTestEvent(
 }
 
 export const DELIVERY_RESPONSE_BODY_MAX_LEN = 2_048;
+// Four UTF-8 bytes per UTF-16 code unit cover the existing string-length limit.
+const DELIVERY_RESPONSE_BODY_MAX_BYTES = DELIVERY_RESPONSE_BODY_MAX_LEN * 4;
 const WEBHOOK_DISPATCH_TIMEOUT_MS = 10_000;
 
 export function makeId(prefix: string, now: Date): string {
@@ -30,6 +32,41 @@ export function truncateResponseBody(input: string | undefined): string | null {
   if (!input) return null;
   if (input.length <= DELIVERY_RESPONSE_BODY_MAX_LEN) return input;
   return input.slice(0, DELIVERY_RESPONSE_BODY_MAX_LEN);
+}
+
+async function readWebhookResponsePreview(response: Response): Promise<string | undefined> {
+  if (!response.body) return undefined;
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (totalBytes < DELIVERY_RESPONSE_BODY_MAX_BYTES) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      const remainingBytes = DELIVERY_RESPONSE_BODY_MAX_BYTES - totalBytes;
+      const previewBytes = chunk.value.slice(0, remainingBytes);
+      chunks.push(previewBytes);
+      totalBytes += previewBytes.byteLength;
+    }
+    if (totalBytes === DELIVERY_RESPONSE_BODY_MAX_BYTES) {
+      try {
+        await reader.cancel();
+      } catch {
+        // The preview is complete even if the endpoint has closed its stream.
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return truncateResponseBody(new TextDecoder().decode(bytes)) || undefined;
 }
 
 const WEBHOOK_SIGNING_SECRET_BYTES = 32;
@@ -128,7 +165,7 @@ export async function defaultDispatchWebhook(
       body: input.body,
       signal: controller?.signal,
     });
-    const responseBody = truncateResponseBody(await response.text()) || undefined;
+    const responseBody = await readWebhookResponsePreview(response);
     return {
       ok: response.ok,
       statusCode: response.status,

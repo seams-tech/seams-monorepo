@@ -96,6 +96,47 @@ export const ACCOUNT_BILLING_HOOKS: ConsoleBillingRouteHooks = {
   failure: null,
   stripeWebhookFailure: null,
 };
+
+const STRIPE_WEBHOOK_MAX_BODY_BYTES = 1024 * 1024;
+
+async function readStripeWebhookBody(request: Request): Promise<Uint8Array | null> {
+  const contentLength = request.headers.get('Content-Length');
+  if (contentLength !== null && Number(contentLength) > STRIPE_WEBHOOK_MAX_BODY_BYTES) {
+    return null;
+  }
+  if (!request.body) return new Uint8Array();
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      totalBytes += chunk.value.byteLength;
+      if (totalBytes > STRIPE_WEBHOOK_MAX_BODY_BYTES) {
+        try {
+          await reader.cancel();
+        } catch {
+          // The request is rejected even if the sender has closed its stream.
+        }
+        return null;
+      }
+      chunks.push(chunk.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body;
+}
+
 function isSharedBillingPath(pathname: string): boolean {
   return (
     pathname.startsWith('/console/platform/billing/') ||
@@ -221,7 +262,17 @@ export async function handleConsoleBillingRoutes(
   if (ctx.method === 'POST' && ctx.pathname === '/console/billing/stripe/webhook') {
     const signingSecret = requireStripeWebhookSigningSecret(ctx);
     if (signingSecret instanceof Response) return signingSecret;
-    const rawBody = new Uint8Array(await ctx.request.arrayBuffer());
+    const rawBody = await readStripeWebhookBody(ctx.request);
+    if (rawBody === null) {
+      return json(
+        {
+          ok: false,
+          code: 'stripe_webhook_too_large',
+          message: 'Stripe webhook body exceeds 1 MiB',
+        },
+        { status: 413 },
+      );
+    }
     const billingOrResponse = requireBillingService(ctx);
     if (billingOrResponse instanceof Response) return billingOrResponse;
     try {

@@ -1,5 +1,6 @@
 import { expect, test, type TestInfo } from '@playwright/test';
 import { spawnSync } from 'node:child_process';
+import { createHmac } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +29,10 @@ const owner = { orgId: 'p2-account', actorUserId: 'google:p2-owner' };
 const sessionSecret = 'p2-account-composition-session-secret';
 const webhookKey = new Uint8Array(32).fill(8);
 const walletProjectId = 'p2-existing-runtime-project';
+
+function startOpenWebhookResponse(controller: ReadableStreamDefaultController<Uint8Array>): void {
+  controller.enqueue(new TextEncoder().encode('x'.repeat(8 * 1024)));
+}
 
 test(
   'both Workers serve accounts without Wallet or payment config and preserve canonical billing effects',
@@ -82,13 +87,21 @@ class PaymentEndpoints {
   readonly requests: string[] = [];
   readonly webhookEvents: string[] = [];
   readonly checkoutReturns: string[] = [];
+  openPreviewOnNextWebhook = false;
+  openPreviewEventType: string | null = null;
   private checkout: Record<string, unknown> | null = null;
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     this.requests.push(`${request.method} ${url.pathname}`);
     if (url.hostname === 'hooks.acceptance.invalid') {
-      this.webhookEvents.push(text(object(await request.json()).type));
+      const eventType = text(object(await request.json()).type);
+      this.webhookEvents.push(eventType);
+      if (this.openPreviewOnNextWebhook) {
+        this.openPreviewOnNextWebhook = false;
+        this.openPreviewEventType = eventType;
+        return new Response(new ReadableStream({ start: startOpenWebhookResponse }));
+      }
       return new Response('accepted');
     }
     if (url.hostname !== 'api.stripe.com') throw new Error('Unexpected outbound request');
@@ -370,7 +383,11 @@ async function accountWorkerJourney(
         compatibilityDate: '2026-07-17',
         compatibilityFlags: ['nodejs_compat'],
         d1Databases: { CONSOLE_DB: namespace },
-        bindings: { ...bindings, STRIPE_API_SK: 'sk_test_isolated' },
+        bindings: {
+          ...bindings,
+          STRIPE_API_SK: 'sk_test_isolated',
+          STRIPE_WEBHOOK_SECRET: 'whsec_isolated',
+        },
         outboundService: providers.fetch.bind(providers),
       },
     ],
@@ -456,6 +473,33 @@ async function accountWorkerJourney(
       eventCategories: ['BILLING'],
     });
     const worker = await runtime.getWorker('hosted-payments');
+    const oversizedWebhook = await worker.fetch(
+      'https://account.acceptance.invalid/console/billing/stripe/webhook',
+      { method: 'POST', body: 'x'.repeat(1024 * 1024 + 1) },
+    );
+    expect(oversizedWebhook.status).toBe(413);
+    expect(await oversizedWebhook.json()).toMatchObject({ code: 'stripe_webhook_too_large' });
+
+    const ignoredWebhookBody = JSON.stringify({
+      id: 'evt_p2_ignored',
+      type: 'customer.updated',
+      data: { object: {} },
+    });
+    const stripeTimestamp = Math.floor(Date.now() / 1000);
+    const stripeSignature = createHmac('sha256', 'whsec_isolated')
+      .update(`${stripeTimestamp}.${ignoredWebhookBody}`)
+      .digest('hex');
+    const ignoredWebhook = await worker.fetch(
+      'https://account.acceptance.invalid/console/billing/stripe/webhook',
+      {
+        method: 'POST',
+        headers: { 'Stripe-Signature': `t=${stripeTimestamp},v1=${stripeSignature}` },
+        body: ignoredWebhookBody,
+      },
+    );
+    expect(ignoredWebhook.status, await ignoredWebhook.clone().text()).toBe(200);
+    expect(await ignoredWebhook.json()).toMatchObject({ ok: true, ignored: true });
+
     const checkout = await call(worker, token, '/console/billing/stripe/checkout-session', {
       creditPackId: 'usd_10',
     });
@@ -473,6 +517,7 @@ async function accountWorkerJourney(
         ).status,
       ).toBe(200);
     }
+    providers.openPreviewOnNextWebhook = true;
     const support = await call(
       worker,
       token,
@@ -486,6 +531,20 @@ async function accountWorkerJourney(
       },
     );
     expect(support.status, await support.clone().text()).toBe(201);
+    const boundedDelivery = await database
+      .prepare(
+        `SELECT status, response_body
+           FROM webhook_deliveries
+          WHERE namespace = ? AND org_id = ? AND event_type = ?
+          ORDER BY created_at_ms DESC
+          LIMIT 1`,
+      )
+      .bind(namespace, owner.orgId, providers.openPreviewEventType)
+      .first<{ status: string; response_body: string | null }>();
+    expect(boundedDelivery).toMatchObject({
+      status: 'SUCCEEDED',
+      response_body: 'x'.repeat(2048),
+    });
     const overview = object(
       object(await (await call(worker, token, '/console/billing/overview')).json()).overview,
     );
@@ -540,6 +599,15 @@ async function accountWorkerJourney(
       creditBeforeRefundMinor: overview.creditBalanceMinor,
       providerRequests: providers.requests,
       webhookEvents: providers.webhookEvents,
+      stripeWebhookBodyLimit: {
+        oversizedStatus: oversizedWebhook.status,
+        signedSmallEventStatus: ignoredWebhook.status,
+      },
+      boundedWebhookResponse: {
+        eventType: providers.openPreviewEventType,
+        deliveryStatus: boundedDelivery?.status,
+        responseBodyLength: boundedDelivery?.response_body?.length,
+      },
       checks: [
         'account reads without Wallet bindings',
         'missing and malformed payment config refuses mutations',

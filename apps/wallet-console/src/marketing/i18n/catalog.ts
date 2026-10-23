@@ -68,7 +68,6 @@ export const figureCatalog = {
 
 // Each message requires both languages. Components and document builds use this catalog.
 export const catalog = {
-  globeEyebrow: { en: 'Global reach. Local speed.', ja: '世界へ広がる、身近な速さ。' },
   globeTitle: { en: 'Closer to your users.', ja: 'ユーザーの近くで。' },
   globeTitleMuted: { en: 'Across the globe.', ja: '世界のどこでも。' },
   globeDescription: {
@@ -79,7 +78,6 @@ export const catalog = {
   globeApac: { en: 'APAC', ja: 'アジア太平洋' },
   globeUs: { en: 'US', ja: '米国' },
   globeRegions: { en: 'Explore regions', ja: 'リージョンを表示' },
-  globeHint: { en: 'Drag to explore · Arrow keys to rotate', ja: 'ドラッグ、または矢印キーで回転' },
   globeAccessibleName: {
     en: 'Rotatable globe showing Europe, Asia Pacific, and US regions',
     ja: 'ヨーロッパ、アジア太平洋、米国のリージョンを表示する回転可能な地球儀',

@@ -47,42 +47,68 @@ try {
   const canvas = section.getByRole('img');
   await section.scrollIntoViewIfNeeded();
   assert.equal(await section.evaluate(followsAnimations), true);
-  await selected(section, 'Europe');
-  const europe = await settledImage(canvas);
+  await selected(section, 'APAC');
+  const initial = await canvas.evaluate(canvasImage);
+  await page.waitForTimeout(350);
+  assert.notEqual(await canvas.evaluate(canvasImage), initial, 'Globe must rotate automatically');
 
   // Interrupt a region transition, then finish on a different continent.
-  await section.getByRole('button', { name: 'APAC', exact: true }).click();
+  await section.getByRole('button', { name: 'Europe', exact: true }).click();
   await section.getByRole('button', { name: 'US', exact: true }).click();
   await selected(section, 'US');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   const us = await settledImage(canvas);
-  assert.notEqual(us, europe, 'Region selection must rotate the rendered globe');
+  assert.notEqual(us, initial, 'Region selection must rotate the rendered globe');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
 
   // Drag outside the canvas to exercise pointer capture and release.
   const bounds = await canvas.boundingBox();
   assert.ok(bounds);
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await page.mouse.down();
+  const held = await canvas.evaluate(canvasImage);
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2 + 70, {
+    steps: 10,
+  });
+  assert.equal(
+    await canvas.evaluate(canvasImage),
+    held,
+    'Vertical dragging must not tilt the globe',
+  );
   await page.mouse.move(bounds.x - 20, bounds.y + bounds.height / 2, { steps: 10 });
+  const dragged = await canvas.evaluate(canvasImage);
+  assert.notEqual(dragged, held, 'Horizontal dragging must rotate the globe');
   await page.mouse.up();
-  const dragged = await settledImage(canvas);
-  assert.notEqual(dragged, us);
+  await page.waitForTimeout(350);
+  assert.notEqual(
+    await canvas.evaluate(canvasImage),
+    dragged,
+    'Automatic rotation must resume after dragging',
+  );
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const paused = await settledImage(canvas);
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  assert.equal(await canvas.evaluate(canvasImage), dragged, 'Released drag must stop rotating');
+  assert.equal(
+    await canvas.evaluate(canvasImage),
+    paused,
+    'Reduced motion must disable automatic rotation',
+  );
 
   await canvas.focus();
   await page.keyboard.press('ArrowRight');
-  assert.notEqual(await canvas.evaluate(canvasImage), dragged);
-  await section.getByRole('button', { name: 'Europe', exact: true }).focus();
+  assert.notEqual(await canvas.evaluate(canvasImage), paused);
+  await section.getByRole('button', { name: 'APAC', exact: true }).focus();
   await page.keyboard.press('Enter');
-  await selected(section, 'Europe');
-  await section.screenshot({ path: `${artifacts}/desktop-europe.png` });
+  await selected(section, 'APAC');
+  await section.screenshot({ path: `${artifacts}/desktop-apac.png` });
 
   // Reduced motion must render the destination immediately and remain still.
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await section.getByRole('button', { name: 'APAC', exact: true }).click();
-  await selected(section, 'APAC');
+  await section.getByRole('button', { name: 'Europe', exact: true }).click();
+  await selected(section, 'Europe');
   const reduced = await canvas.evaluate(canvasImage);
   assert.equal(await settledImage(canvas), reduced);
+  await section.getByRole('button', { name: 'APAC', exact: true }).click();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await section.scrollIntoViewIfNeeded();
@@ -103,8 +129,11 @@ try {
         origin,
         placement: 'after security animations',
         checked: [
+          'APAC default',
+          'automatic rotation',
           'interrupted rotation',
-          'drag capture and release',
+          'longitude-only dragging',
+          'automatic rotation resumes after release',
           'keyboard rotation',
           'keyboard region selection',
           'reduced motion',

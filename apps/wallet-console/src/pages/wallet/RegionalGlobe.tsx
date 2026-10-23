@@ -1,12 +1,13 @@
 import React from 'react';
-import { ArrowUpRight, MoveHorizontal } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { t } from '@/marketing/i18n/browser';
 import land from './globe-land.json';
 import './regional-globe.css';
 
 type Region = 'europe' | 'apac' | 'us';
 type Position = { latitude: number; longitude: number };
-type Drag = { kind: 'idle' } | { kind: 'dragging'; pointerId: number; x: number; y: number };
+type Drag = { kind: 'idle' } | { kind: 'dragging'; pointerId: number; x: number };
+type Motion = { kind: 'rotating' } | { kind: 'focusing'; target: number; velocity: number };
 
 const REGIONS: Record<Region, Position> = {
   europe: { latitude: 49, longitude: 10 },
@@ -14,6 +15,7 @@ const REGIONS: Record<Region, Position> = {
   us: { latitude: 38, longitude: -98 },
 };
 const RADIANS = Math.PI / 180;
+const ROTATION_DEGREES_PER_SECOND = 3;
 
 function regionName(region: Region): string {
   switch (region) {
@@ -51,28 +53,36 @@ function toPosition(coordinates: number[]): Position {
 }
 
 export class RegionalGlobe extends React.Component<object, { region: Region }> {
-  state: { region: Region } = { region: 'europe' };
+  state: { region: Region } = { region: 'apac' };
   private canvas = React.createRef<HTMLCanvasElement>();
-  private camera: Position = { latitude: 25, longitude: -12 };
-  private target: Position = { ...this.camera };
-  private velocity: Position = { latitude: 0, longitude: 0 };
+  private camera: Position = { latitude: 25, longitude: REGIONS.apac.longitude };
+  private motion: Motion = { kind: 'rotating' };
   private drag: Drag = { kind: 'idle' };
   private frame = 0;
   private previousTime = 0;
   private resizeObserver: ResizeObserver | null = null;
+  private visibilityObserver: IntersectionObserver | null = null;
+  private visible = false;
   private reducedMotion: MediaQueryList | null = null;
 
   componentDidMount(): void {
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     this.reducedMotion.addEventListener('change', this.onMotionChange);
     this.resizeObserver = new ResizeObserver(this.draw);
-    if (this.canvas.current) this.resizeObserver.observe(this.canvas.current);
+    this.visibilityObserver = new IntersectionObserver(this.onVisibilityChange);
+    if (this.canvas.current) {
+      this.resizeObserver.observe(this.canvas.current);
+      this.visibilityObserver.observe(this.canvas.current);
+    }
+    document.addEventListener('visibilitychange', this.onDocumentVisibilityChange);
     this.draw();
   }
 
   componentWillUnmount(): void {
     cancelAnimationFrame(this.frame);
     this.resizeObserver?.disconnect();
+    this.visibilityObserver?.disconnect();
+    document.removeEventListener('visibilitychange', this.onDocumentVisibilityChange);
     this.reducedMotion?.removeEventListener('change', this.onMotionChange);
   }
 
@@ -81,34 +91,59 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
   }
 
   private onMotionChange = (): void => {
-    if (!this.reducedMotion?.matches) return;
-    this.stop();
-    this.camera = { ...this.target };
-    this.draw();
+    if (this.reducedMotion?.matches) {
+      this.stop();
+      if (this.motion.kind === 'focusing') this.camera.longitude = this.motion.target;
+      this.motion = { kind: 'rotating' };
+      this.draw();
+    } else {
+      this.start();
+    }
   };
+
+  private onVisibilityChange = (entries: IntersectionObserverEntry[]): void => {
+    this.visible = entries[0].isIntersecting;
+    this.onDocumentVisibilityChange();
+  };
+
+  private onDocumentVisibilityChange = (): void => {
+    if (!this.visible || document.hidden) this.stop();
+    else this.start();
+  };
+
+  private start(): void {
+    if (
+      this.frame ||
+      !this.visible ||
+      document.hidden ||
+      this.reducedMotion?.matches ||
+      this.drag.kind === 'dragging'
+    )
+      return;
+    this.frame = requestAnimationFrame(this.animate);
+  }
 
   private stop(): void {
     cancelAnimationFrame(this.frame);
     this.frame = 0;
     this.previousTime = 0;
-    this.velocity = { latitude: 0, longitude: 0 };
   }
 
   private selectRegion(region: Region, event: React.MouseEvent<HTMLButtonElement>): void {
     this.setState({ region });
     this.stop();
-    this.target = {
-      latitude: REGIONS[region].latitude - 12,
-      longitude:
-        this.camera.longitude + wrapLongitude(REGIONS[region].longitude - this.camera.longitude),
-    };
+    const target =
+      this.camera.longitude + wrapLongitude(REGIONS[region].longitude - this.camera.longitude);
     // Keyboard activation and reduced motion move directly to the chosen region.
     if (event.detail === 0 || this.reducedMotion?.matches) {
-      this.camera = { ...this.target };
+      this.camera.longitude = target;
+      this.motion = { kind: 'rotating' };
       this.draw();
+      this.start();
       return;
     }
-    this.frame = requestAnimationFrame(this.animate);
+    this.motion = { kind: 'focusing', target, velocity: 0 };
+    this.start();
   }
 
   private selectEurope = (event: React.MouseEvent<HTMLButtonElement>): void => {
@@ -127,33 +162,31 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
     const delta =
       this.previousTime === 0 ? 1 / 60 : Math.min((time - this.previousTime) / 1000, 1 / 30);
     this.previousTime = time;
-    // A damped spring moves the globe from its current orientation.
-    for (const axis of ['latitude', 'longitude'] as const) {
-      this.velocity[axis] +=
-        ((this.target[axis] - this.camera[axis]) * 100 - this.velocity[axis] * 10) * delta;
-      this.camera[axis] += this.velocity[axis] * delta;
-    }
-    const distance =
-      Math.abs(this.target.latitude - this.camera.latitude) +
-      Math.abs(this.target.longitude - this.camera.longitude);
-    const speed = Math.abs(this.velocity.latitude) + Math.abs(this.velocity.longitude);
-    if (distance < 0.02 && speed < 0.05) {
-      this.camera = { ...this.target };
-      this.stop();
+    if (this.motion.kind === 'focusing') {
+      const distance = this.motion.target - this.camera.longitude;
+      this.motion.velocity += (distance * 100 - this.motion.velocity * 20) * delta;
+      this.camera.longitude += this.motion.velocity * delta;
+      if (Math.abs(distance) < 0.02 && Math.abs(this.motion.velocity) < 0.05) {
+        this.camera.longitude = this.motion.target;
+        this.motion = { kind: 'rotating' };
+      }
     } else {
-      this.frame = requestAnimationFrame(this.animate);
+      this.camera.longitude = wrapLongitude(
+        this.camera.longitude + ROTATION_DEGREES_PER_SECOND * delta,
+      );
     }
     this.draw();
+    this.frame = requestAnimationFrame(this.animate);
   };
 
   private onPointerDown = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     if (!event.isPrimary || event.button !== 0) return;
     this.stop();
+    this.motion = { kind: 'rotating' };
     this.drag = {
       kind: 'dragging',
       pointerId: event.pointerId,
       x: event.clientX,
-      y: event.clientY,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
@@ -164,17 +197,11 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
     this.camera.longitude = wrapLongitude(
       this.camera.longitude - (event.clientX - this.drag.x) * scale,
     );
-    this.camera.latitude = Math.max(
-      -65,
-      Math.min(65, this.camera.latitude + (event.clientY - this.drag.y) * scale),
-    );
     this.drag = {
       kind: 'dragging',
       pointerId: event.pointerId,
       x: event.clientX,
-      y: event.clientY,
     };
-    this.target = { ...this.camera };
     this.draw();
   };
 
@@ -184,10 +211,10 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
+    this.start();
   };
 
   private onKeyDown = (event: React.KeyboardEvent<HTMLCanvasElement>): void => {
-    let latitude = 0;
     let longitude = 0;
     switch (event.key) {
       case 'ArrowLeft':
@@ -196,23 +223,15 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
       case 'ArrowRight':
         longitude = 15;
         break;
-      case 'ArrowUp':
-        latitude = 10;
-        break;
-      case 'ArrowDown':
-        latitude = -10;
-        break;
       default:
         return;
     }
     event.preventDefault();
     this.stop();
-    this.camera = {
-      latitude: Math.max(-65, Math.min(65, this.camera.latitude + latitude)),
-      longitude: wrapLongitude(this.camera.longitude + longitude),
-    };
-    this.target = { ...this.camera };
+    this.motion = { kind: 'rotating' };
+    this.camera.longitude = wrapLongitude(this.camera.longitude + longitude);
     this.draw();
+    this.start();
   };
 
   private draw = (): void => {
@@ -311,7 +330,6 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
       <section className="wallet-regions h2-rule" aria-labelledby="wallet-regions-title">
         <div className="wallet-regions__card">
           <div className="wallet-regions__copy">
-            <p className="h2-kicker">{t('globeEyebrow')}</p>
             <h2 id="wallet-regions-title">
               {t('globeTitle')}
               <br />
@@ -344,10 +362,6 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
                 <ArrowUpRight aria-hidden="true" />
               </button>
             </div>
-            <p className="wallet-regions__hint" id="wallet-regions-hint">
-              <MoveHorizontal aria-hidden="true" />
-              {t('globeHint')}
-            </p>
           </div>
           <div className="wallet-regions__visual">
             <canvas
@@ -355,7 +369,6 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
               role="img"
               tabIndex={0}
               aria-label={t('globeAccessibleName')}
-              aria-describedby="wallet-regions-hint"
               onPointerDown={this.onPointerDown}
               onPointerMove={this.onPointerMove}
               onPointerUp={this.onPointerEnd}

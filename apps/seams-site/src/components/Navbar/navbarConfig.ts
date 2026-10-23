@@ -1,20 +1,22 @@
 import { translate, type Translate } from '@/i18n/catalog';
 import type { Locale } from '@/i18n/locale';
-import {
-  Bot,
-  Building2,
-  Fingerprint,
-  LifeBuoy,
-  ListChecks,
-  PenLine,
-  Rocket,
-  Sprout,
-  TrendingUp,
-  Wallet,
-  Wrench,
-} from 'lucide-react';
+import { Bot, Building2, LifeBuoy, PenLine, Store, Wallet } from 'lucide-react';
 import { type DropdownPane, type SiteNavbarConfig } from '@seams-internal/site-navbar';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
+
+/* seams.sh is the landing site for three products: Satyr (ecommerce agents
+   and café management), BakeryOS (bakery robot and appliance orchestration)
+   and Seams Wallet (a standalone stablecoin wallet). Satyr and BakeryOS have
+   no docs or pricing pages yet: these placeholder paths are the one place to
+   point them at the real pages. */
+const productLinks = {
+  satyr: { landing: '/ecommerce', docs: '/docs/satyr/', pricing: '/pricing/#satyr' },
+  bakeryOs: { landing: '/bakeryos', docs: '/docs/bakeryos/', pricing: '/pricing/#bakeryos' },
+  wallet: { landing: '/wallet', docs: '/docs/', pricing: '/pricing/' },
+} as const;
+
+const BAKERY_OS = 'BakeryOS';
+const SEAMS_WALLET = 'Seams Wallet';
 
 /* The 'documentation' pane id historically maps to the "Products" trigger and
    vice versa; ids are kept stable so aria wiring and pane ordering don't churn. */
@@ -25,31 +27,31 @@ function documentationDropdownPane(t: Translate): DropdownPane {
     kicker: t('products'),
     rows: [
       {
-        title: t('embeddedWallet'),
-        description: t('embeddedNav'),
-        to: '/wallet',
-        icon: Wallet,
-        field: 'teal-peach',
-      },
-      {
-        title: t('ecommerceAgents'),
-        description: t('agentsNav'),
-        to: '/ecommerce',
-        icon: Bot,
+        title: t('satyrProduct'),
+        description: t('satyrNav'),
+        to: productLinks.satyr.landing,
+        icon: Store,
         field: 'azure-coral',
       },
       {
-        title: t('biometricAuth'),
-        description: t('biometricCopy'),
-        to: '/docs/concepts/auth-methods/passkeys',
-        icon: Fingerprint,
-        field: 'aqua-evergreen',
+        title: BAKERY_OS,
+        description: t('bakeryNav'),
+        to: productLinks.bakeryOs.landing,
+        icon: Bot,
+        field: 'apricot-beam',
+      },
+      {
+        title: SEAMS_WALLET,
+        description: t('walletNav'),
+        to: productLinks.wallet.landing,
+        icon: Wallet,
+        field: 'teal-peach',
       },
     ],
     highlight: {
       title: t('liveDemo'),
       description: t('liveDemoCopy'),
-      to: '/wallet',
+      to: productLinks.wallet.landing,
       field: 'teal-peach',
     },
     footerLinks: [{ label: t('planPricing'), to: '/pricing/' }],
@@ -63,25 +65,25 @@ function productsDropdownPane(t: Translate): DropdownPane {
     kicker: t('documentation'),
     rows: [
       {
-        title: t('getStarted'),
+        title: t('satyrProduct'),
+        description: t('satyrDocs'),
+        to: productLinks.satyr.docs,
+        icon: Store,
+        field: 'azure-coral',
+      },
+      {
+        title: BAKERY_OS,
+        description: t('bakeryDocs'),
+        to: productLinks.bakeryOs.docs,
+        icon: Bot,
+        field: 'apricot-beam',
+      },
+      {
+        title: SEAMS_WALLET,
         description: t('getStartedCopy'),
-        to: '/docs/',
-        icon: Rocket,
-        field: 'sky-sand',
-      },
-      {
-        title: t('toolsGuides'),
-        description: t('toolsCopy'),
-        to: '/docs/guides/',
-        icon: Wrench,
-        field: 'slate-amber',
-      },
-      {
-        title: t('useCasesNav'),
-        description: t('useCasesCopy'),
-        to: '/docs/use-cases/',
-        icon: ListChecks,
-        field: 'mauve-ember',
+        to: productLinks.wallet.docs,
+        icon: Wallet,
+        field: 'teal-peach',
       },
     ],
     highlight: {
@@ -91,7 +93,7 @@ function productsDropdownPane(t: Translate): DropdownPane {
       field: 'slate-amber',
     },
     footerLinks: [
-      { label: t('readDocs'), to: '/docs/' },
+      { label: t('readDocs'), to: productLinks.wallet.docs },
       { label: t('releases'), to: '/docs/releases' },
     ],
   };
@@ -104,28 +106,26 @@ function pricingDropdownPane(t: Translate): DropdownPane {
     kicker: t('plans'),
     rows: [
       {
-        title: t('free'),
-        description: t('freeUsers'),
-        to: '/pricing/#free',
-        icon: Sprout,
-        meta: t('freePrice'),
-        field: 'sky-sand',
-      },
-      {
-        title: 'Growth',
-        description: t('growthNav'),
-        to: '/pricing/#growth',
-        icon: TrendingUp,
-        meta: t('growthMonthlyPrice'),
+        title: t('satyrProduct'),
+        description: t('satyrPricing'),
+        to: productLinks.satyr.pricing,
+        icon: Store,
         field: 'azure-coral',
       },
       {
-        title: 'Pro',
-        description: t('proNav'),
-        to: '/pricing/#pro',
-        icon: Rocket,
-        meta: t('proMonthlyPrice'),
-        field: 'vermilion-sky',
+        title: BAKERY_OS,
+        description: t('bakeryPricing'),
+        to: productLinks.bakeryOs.pricing,
+        icon: Bot,
+        field: 'apricot-beam',
+      },
+      {
+        title: SEAMS_WALLET,
+        description: t('walletPricing'),
+        to: productLinks.wallet.pricing,
+        icon: Wallet,
+        meta: t('freePrice'),
+        field: 'teal-peach',
       },
     ],
     // Enterprise takes the large card; the phone menu lists it under the plans.

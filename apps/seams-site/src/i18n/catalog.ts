@@ -266,18 +266,42 @@ export const messages = {
     en: 'Learn more about the Seams team and mission',
     ja: 'Seamsのチームとミッションを知る',
   },
-  embeddedNav: {
-    en: 'Non-custodial wallets with policy-bound keys and sessions',
-    ja: 'ポリシーに従う鍵とセッションを備えたノンカストディアルウォレット',
-  },
   agentsNav: {
     en: 'AI agents with scoped credentials, acting inside policy',
     ja: '権限を限定した認証情報でポリシーに従って動くAIエージェント',
   },
-  biometricAuth: { en: 'Biometric Authentication', ja: '生体認証' },
-  biometricCopy: {
-    en: 'Passkey authentication. VoiceID is planned.',
-    ja: 'パスキー認証。VoiceIDは提供予定です。',
+  satyrProduct: { en: 'Satyr Ecommerce Automation', ja: 'Satyr EC自動化' },
+  satyrNav: {
+    en: 'Ecommerce agents and café management in one platform',
+    ja: 'ECエージェントとカフェ管理をひとつのプラットフォームで',
+  },
+  satyrDocs: {
+    en: 'Connect your store and café, set limits, and run agents',
+    ja: 'ストアとカフェの接続、上限の設定、エージェントの運用',
+  },
+  satyrPricing: {
+    en: 'Plans for stores and cafés run by agents',
+    ja: 'エージェントが運営するストアとカフェ向けプラン',
+  },
+  bakeryNav: {
+    en: 'Orchestration for bakery robots and appliances',
+    ja: 'ベーカリーのロボットと機器のオーケストレーション',
+  },
+  bakeryDocs: {
+    en: 'Connect ovens, mixers, and robots, and run production',
+    ja: 'オーブン、ミキサー、ロボットの接続と生産の運用',
+  },
+  bakeryPricing: {
+    en: 'Plans for each kitchen and its machines',
+    ja: 'キッチンと機器ごとのプラン',
+  },
+  walletNav: {
+    en: 'A standalone stablecoin wallet with passkeys and policy',
+    ja: 'パスキーとポリシーを備えたスタンドアロンのステーブルコインウォレット',
+  },
+  walletPricing: {
+    en: 'Free, Growth, Pro, and Enterprise plans',
+    ja: 'Free、Growth、Pro、Enterpriseプラン',
   },
   liveDemo: { en: 'Live demo', ja: 'ライブデモ' },
   liveDemoCopy: {
@@ -285,20 +309,9 @@ export const messages = {
     ja: '組み込みウォレットのページでパスキーウォレットを作成',
   },
   planPricing: { en: 'Plan pricing', ja: 'プランと料金' },
-  getStarted: { en: 'Get Started', ja: 'はじめに' },
   getStartedCopy: {
     en: 'Install the SDK, create a wallet, and sign with policy',
     ja: 'SDKの導入、ウォレットの作成、ポリシーに従う署名',
-  },
-  toolsGuides: { en: 'Tools and Guides', ja: 'ツールとガイド' },
-  toolsCopy: {
-    en: 'Auth, sessions, wallet UI, policy, and the SDK reference',
-    ja: '認証、セッション、ウォレットUI、ポリシー、SDKリファレンス',
-  },
-  useCasesNav: { en: 'Use cases', ja: 'ユースケース' },
-  useCasesCopy: {
-    en: 'Mandates, delegated agents, and agent-driven commerce',
-    ja: '委任、権限を委ねたエージェント、エージェントによるコマース',
   },
   architectureCopy: {
     en: 'How passkeys, policy, and signing fit together',
@@ -306,20 +319,10 @@ export const messages = {
   },
   releases: { en: 'Releases', ja: 'リリース' },
   plans: { en: 'Plans', ja: 'プラン' },
-  growthNav: {
-    en: '5,000 users included, then {growthPerUser} per user',
-    ja: '5,000ユーザーを含み、超過分は1人あたり約{growthPerUser}',
-  },
-  proNav: {
-    en: '100,000 users included, then {proPerUser} per user',
-    ja: '100,000ユーザーを含み、超過分は1人あたり約{proPerUser}',
-  },
   enterpriseNav: {
     en: 'From {enterprisePerUser} per user on committed volume',
     ja: '確約した利用量に応じて1人あたり約{enterprisePerUser}から',
   },
-  growthMonthlyPrice: { en: '{growthBase} / mo', ja: '{growthBase} / 月' },
-  proMonthlyPrice: { en: '{proBase} / mo', ja: '{proBase} / 月' },
   estimatePrice: { en: 'Estimate your price', ja: '料金を試算' },
   comparePlans: { en: 'Compare plans', ja: 'プランを比較' },
   aboutUs: { en: 'About Us', ja: 'Seamsについて' },

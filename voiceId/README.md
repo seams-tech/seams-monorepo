@@ -20,6 +20,7 @@ evaluation tools, research material, and private local fixtures remain.
 
 - [Local architecture and implementation](docs/voiceId-local-architecture-and-implementation-plan.md)
 - [MPC wallet extension](docs/voiceId-mpc-wallet-extension-plan.md)
+- [Wallet auth method and lazy plugin](docs/voiceId-wallet-auth-method.md)
 - [Legacy removal record](docs/voiceId-legacy-removal-plan.md)
 - [Architecture discussion history](docs/voiceId-architecture-discussion-2026-09-13.md)
 
@@ -40,9 +41,11 @@ microphone and clean-Mac qualification remain open. See the
 [package setup](browser/SETUP.txt).
 Engine results carry no robot or signing authority.
 
-The first MVP assumes a user-controlled, authorized device. It checks the enrolled
-speaker and explicit approval for one pending wallet operation under existing
-authority. Spoof detection, visual confirmation, and authenticated capture are deferred.
+The first MVP assumes a user-controlled, authorized device. The current local
+gate checks the enrolled speaker before one wallet operation. The selected
+[auth-method design](docs/voiceId-wallet-auth-method.md) adds a device-bound
+credential and custody envelope so VoiceID can issue a fresh Wallet Session.
+Spoof detection, visual confirmation, and authenticated capture are deferred.
 
 ## Private engine
 

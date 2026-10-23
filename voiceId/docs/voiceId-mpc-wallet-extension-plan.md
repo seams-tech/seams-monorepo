@@ -5,7 +5,9 @@ Updated: 2026-10-23
 Status: the browser/native local gate is implemented on isolated VoiceID branches.
 The real-model browser journey runs MPC, verifies the signature, and confirms a
 reviewed transfer on NEAR testnet. Live microphone qualification remains open.
-Standalone remote admission remains a separate delivery stage.
+The selected next delivery stage is a fresh Wallet Session auth method. Its
+[device, custody, and server contract](voiceId-wallet-auth-method.md) is the
+current implementation target.
 
 Related plans:
 
@@ -29,21 +31,20 @@ the transaction-approval, local custody/access, and server-admission boundaries.
 
 ## First MVP trust model
 
-Assume the user controls the device, its OS, and the signing runtime. Signing
-uses authority established on that device during wallet setup or through the
-existing device-linking flow. Linking requires scanning and approval from an
-authorized owner device. Voice approval cannot enroll an unauthorized device or
-replace wallet recovery, unlock, session authority, or server admission.
+Assume the user physically possesses an open, active device and controls its OS
+and signing runtime. Initial VoiceID activation uses an existing owner unlock.
+Device linking still requires scanning and approval from an authorized owner
+device. A later voice-only unlock uses a registered device key and server proof.
 
 The MVP checks the current enrolled speaker, usable audio, and explicit approval
 of the exact presented operation. It preserves operation expiry, cancellation,
 single consumption, and the wallet's existing authorization checks.
 
 Spoof detection and resistance to cloned or replayed speech are outside MVP
-acceptance. Camera evidence, authenticated capture, hardware attestation, and a
-new server-recognized VoiceID factor are later work. Protocol replay and reuse of
-an earlier approval remain rejected. Voice is a local approval interaction within
-existing device authority. This profile makes no spoof-resistance or liveness claim.
+acceptance. The physically present user is assumed able to notice an attempted
+recording replay. Camera evidence, authenticated capture, and hardware
+attestation remain later work. Protocol replay and reuse of an earlier
+assertion remain rejected. This profile makes no spoof-resistance claim.
 
 ## Public extension and proprietary provider
 
@@ -53,8 +54,8 @@ VoiceID implementation. The engine, model integration, calibration, and private
 provider implementation remain in `seams-monorepo/voiceId` and are delivered as
 versioned proprietary native/WASM artifacts with any required host bindings.
 
-The wallet origin controls the required VoiceID setting. The prototype invokes
-a loopback service and a persistent native host through a bounded local protocol. Public
+The SDK selects the VoiceID auth-method plugin. Its browser code loads on first
+enabled use and invokes a loopback service with a persistent native host. Public
 SDK builds and contract tests work without private source, models, or release
 credentials. Importing the base SDK loads no private engine or biometric model
 assets. The existing authentication and signing runtime retain their authority.
@@ -156,15 +157,16 @@ Custody terms retain their existing meanings:
 - An additional device authorization key signs admission assertions only. It is
   distinct from all MPC signing material and never substitutes for an MPC share.
 
-Prefer a linked device's suitably scoped signing lane for the standalone native
-device pilot. This avoids giving the robot the wallet custody seed. Verify that
-the existing device-linking/provisioning flow supports the selected runtime;
-the reviewed specification is not proof that a native robot adapter exists.
+The first Wallet auth-method pilot targets the existing browser wallet on its
+authorized device. It reseals the wallet custody seed under a random device-held
+factor secret. The native host releases only that factor secret after VoiceID
+checks and never receives the wallet custody seed. A linked device keeps its
+existing scoped authority; this method does not elevate it to an owner root.
 
-Adding VoiceID as an owner-level seed-envelope unlock method is a separate
-custody expansion. If later selected, it must protect the same existing seed
-under a cryptographic device key and preserve the authenticated wallet/key
-manifest binding. It is outside the initial pilot.
+VoiceID as an owner-level seed-envelope unlock method is now selected. It
+protects the same existing seed under a random, device-held factor secret and
+preserves the authenticated wallet/key manifest binding. The
+[auth-method contract](voiceId-wallet-auth-method.md) defines this expansion.
 
 ## Transaction approval flow
 

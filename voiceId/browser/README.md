@@ -49,11 +49,10 @@ enrollment page, licenses, and setup instructions. It contains no voice samples
 or templates.
 
 Follow [SETUP.txt](SETUP.txt). Enroll once through the local recording page.
-Then start `node serve.mjs "$PWD"` from the package directory. Open
-`https://localhost:4002/sdk/voiceid.html` or
-`http://localhost:4313/sdk/voiceid.html` in a separate browser tab and enable
-VoiceID. The service listens on `127.0.0.1:4318` and accepts only those two
-Wallet origins. A Wallet iframe cannot change the setting.
+Then start `node serve.mjs "$PWD"` from the package directory. Enable the
+VoiceID plugin through the application SDK's `authMethods` configuration.
+The service listens on `127.0.0.1:4318` and accepts the two pinned Wallet
+origins at `https://localhost:4002` and `http://localhost:4313`.
 
 The native process starts on the first valid Wallet request. It opens one
 Keychain session and retains the namespace lease until the service stops.

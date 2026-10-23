@@ -1,0 +1,95 @@
+# VoiceID wallet auth method
+
+The target is an opt-in Wallet authentication method. VoiceID can issue a fresh
+Wallet Session after the previous session expires. The SDK loads its browser
+module only when an app selects `authMethods: [voiceIdAuthMethod()]` and a
+VoiceID operation starts.
+
+## First device profile
+
+The user activates VoiceID while holding an existing owner Wallet Session from
+a passkey or Email OTP unlock. The user then keeps physical possession of an
+open, active Mac or phone. The device and its OS are trusted for this first
+profile. The native implementation starts on Apple Silicon macOS; another native
+adapter can implement the same contract on iPhone.
+
+This profile does not evaluate spoofed or replayed recordings. The user is
+assumed present and able to notice an attempted recording replay. The protocol
+still rejects a reused assertion, a changed wallet, a changed origin, and an
+expired challenge. The product makes no spoof-resistance claim.
+
+## Authority and custody
+
+The native device holds a randomly generated authorization private key and a
+separate random factor secret. Both are scoped to one wallet and one VoiceID
+activation. Voice samples and embeddings never derive either value. The private
+key never leaves the native device store. The factor secret crosses the local
+bridge only after a successful, user-started VoiceID check.
+
+The existing owner unlock authorizes activation. The server stores the
+authorization public key as a new `voiceid` Wallet auth method bound to the
+existing wallet authority. The Wallet custody worker reseals the existing wallet
+custody seed under the random factor secret and binds the envelope to that
+exact auth method. VoiceID never receives the custody seed or an MPC share.
+
+The server alone verifies a VoiceID device assertion and creates verified
+factor evidence. A local `approved` result cannot mint a Wallet Session. The
+server checks the method's active status and authority before issuing a fresh
+session and quota. Revocation blocks later issuance and retires sessions issued
+by that method.
+
+## Activation
+
+1. Require an active owner Wallet Session from a different auth method.
+2. Check enrollment on the selected physical device.
+3. Create the device authorization key and random factor secret locally.
+4. Reseal the existing custody seed under a VoiceID envelope in the Wallet
+   custody worker.
+5. Register the public key and envelope under one server-verified source
+   authorization. Commit the method only when both records can be used.
+6. Mark the local activation ready only after the server confirms the method.
+
+An interrupted activation leaves no active VoiceID auth method. Retrying uses
+the same activation identity or starts a fresh one. Replacement and removal
+require another active owner method. A voice result alone cannot replace the
+device key or enroll a new wallet.
+
+## Unlock
+
+1. The SDK requests an exact wallet, method, origin, and short-lived server
+   challenge after a visible user action.
+2. The native host checks the enrolled speaker while the device is open and
+   active. Cancellation or capture failure ends the attempt.
+3. After a match, the native host signs the challenge with its registered
+   device key and releases the scoped factor secret to the Wallet origin.
+4. The server verifies the key, signature, challenge, expiry, origin, wallet,
+   method status, and single use. It issues a fresh Wallet Session and quota.
+5. The Wallet custody worker opens the matching method-bound seed envelope.
+   It verifies the wallet key manifest before activating owner signing roots.
+
+The unlock result reports `authMethod: 'voiceid'` only after both server
+issuance and custody activation succeed. A missing native host, lost device
+key, stale template, revoked method, unavailable server, or envelope mismatch
+fails closed. The user can recover with an existing owner method.
+
+## Plugin loading
+
+`voiceIdAuthMethod()` is a small SDK descriptor. It contains no callback or
+native code. The SDK normalizes descriptors and sends them to the hosted wallet
+iframe as configuration. The host imports the VoiceID browser module only for
+an enabled request. Disabled applications fetch no VoiceID module and make no
+loopback request. The native host and model assets are separate local files.
+
+The current branch has the descriptor, config boundary, on-demand browser
+chunk, the earlier per-transaction approval flow, and an exact device-assertion
+wire contract with server-only signature verification. The verifier rejects
+replay through its atomic challenge-consumption port, but no production
+challenge store or issuance route calls it yet.
+
+Fresh-session implementation must extend the canonical Wallet auth-method and
+authority unions together with D1 persistence, session issuance, revocation,
+and signing-lane scope. The current unions support passkey and Email OTP only.
+It must also add the native device key and factor secret, the method-bound
+custody envelope in Rust/WASM, and the Wallet unlock flow. Each change needs
+an end-to-end contract. Do not present the descriptor alone as a working
+VoiceID Wallet auth method.

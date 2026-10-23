@@ -8,7 +8,6 @@ import previousInterlock from '../../../showcase/motion/interlock/index.html?raw
 import previousDevices from '../../../showcase/motion/delegation/index.html?raw';
 import previousInfrastructure from '../../../showcase/motion/infrastructure-array/index.html?raw';
 import edgePlatforms from '../../../showcase/motion/lockin-edge/index.html?raw';
-import signingLine from '../../../showcase/motion/signing-line/index.html?raw';
 import { H2Security } from './sections';
 import {
   candidateFigureDocument,
@@ -26,7 +25,6 @@ type Review = { figure: WalletFigureName; label: string; html: string };
 
 const candidates: readonly Review[] = [
   { figure: 'infrastructure', label: 'No lock-in: edge', html: edgePlatforms },
-  { figure: 'signing', label: 'Signing: line style', html: signingLine },
 ];
 
 const reviews: readonly Review[] = [

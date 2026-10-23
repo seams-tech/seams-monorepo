@@ -11,6 +11,7 @@ import { startSiteAnchorScroll, subscribeToSiteNavigation } from '@/app/router/s
 import { EnterpriseCalculator } from './EnterpriseCalculator';
 import { estimate, lowestSelfServePlan } from './estimate';
 import { planSignupHref } from './planSignup';
+import { PlanSignupDialog, type SignupOffer } from './PlanSignupDialog';
 import '@/styles/h2.css';
 import './styles.css';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
@@ -107,10 +108,42 @@ function planTeasers(t: Translate): Record<PlanId, string> {
   };
 }
 
-function BannerPlanCard({ plan }: { plan: Plan }): React.JSX.Element {
-  const t = useTranslation();
+/* A self-serve card opens the Console sign-in in a dialog on this page. A click with a
+   modifier key keeps the link, which opens the full sign-in page. */
+function usePlanCardLink(
+  plan: Plan,
+  onSignup: (offer: SignupOffer) => void,
+): { href: string; onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void } {
   const { linkProps } = useSiteRouter();
   const ctaProps = linkProps(plan.cta.to);
+  if (plan.id === 'enterprise') return ctaProps;
+  const offer: SignupOffer = {
+    id: plan.id,
+    name: plan.name,
+    price: plan.price,
+    unit: plan.unit,
+    field: plan.field,
+  };
+  return {
+    href: plan.cta.to,
+    onClick: (event) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+        return;
+      event.preventDefault();
+      onSignup(offer);
+    },
+  };
+}
+
+function BannerPlanCard({
+  plan,
+  onSignup,
+}: {
+  plan: Plan;
+  onSignup: (offer: SignupOffer) => void;
+}): React.JSX.Element {
+  const t = useTranslation();
+  const ctaProps = usePlanCardLink(plan, onSignup);
   // The plan's gradient shows on hover or focus; it only animates while shown.
   const [lit, setLit] = React.useState(false);
   return (
@@ -142,7 +175,13 @@ function BannerPlanCard({ plan }: { plan: Plan }): React.JSX.Element {
 }
 
 /* Closing call to action: the SDK pitch with one card per plan. */
-function PlanBanner({ plans }: { plans: readonly Plan[] }): React.JSX.Element {
+function PlanBanner({
+  plans,
+  onSignup,
+}: {
+  plans: readonly Plan[];
+  onSignup: (offer: SignupOffer) => void;
+}): React.JSX.Element {
   const t = useTranslation();
   return (
     <>
@@ -164,7 +203,7 @@ function PlanBanner({ plans }: { plans: readonly Plan[] }): React.JSX.Element {
         <div className="h2-shell">
           <div className="pricing-banner__cards">
             {plans.map((plan) => (
-              <BannerPlanCard key={plan.id} plan={plan} />
+              <BannerPlanCard key={plan.id} plan={plan} onSignup={onSignup} />
             ))}
           </div>
         </div>
@@ -174,9 +213,16 @@ function PlanBanner({ plans }: { plans: readonly Plan[] }): React.JSX.Element {
 }
 
 /* Self-serve plans are cards in a row; Enterprise is a band below them. */
-function PlanCard({ plan, selected }: { plan: Plan; selected: boolean }): React.JSX.Element {
-  const { linkProps } = useSiteRouter();
-  const ctaProps = linkProps(plan.cta.to);
+function PlanCard({
+  plan,
+  selected,
+  onSignup,
+}: {
+  plan: Plan;
+  selected: boolean;
+  onSignup: (offer: SignupOffer) => void;
+}): React.JSX.Element {
+  const ctaProps = usePlanCardLink(plan, onSignup);
   const className = [
     'pricing-plan',
     plan.id === 'enterprise' ? 'pricing-plan--enterprise' : null,
@@ -234,6 +280,8 @@ export function PricingPage(): React.JSX.Element {
   const plans = getPlans(t);
   React.useEffect(startSiteAnchorScroll, []);
   const selectedPlanId = React.useSyncExternalStore(subscribeToSiteNavigation, readSelectedPlanId);
+  const [signupOffer, setSignupOffer] = React.useState<SignupOffer | null>(null);
+  const closeSignup = React.useCallback(() => setSignupOffer(null), []);
 
   return (
     <div className="h2-page">
@@ -256,7 +304,12 @@ export function PricingPage(): React.JSX.Element {
             <div className="h2-shell">
               <div className="pricing-plans">
                 {plans.map((plan) => (
-                  <PlanCard key={plan.id} plan={plan} selected={plan.id === selectedPlanId} />
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    selected={plan.id === selectedPlanId}
+                    onSignup={setSignupOffer}
+                  />
                 ))}
               </div>
               <div className="pricing-note">
@@ -300,12 +353,13 @@ export function PricingPage(): React.JSX.Element {
 
           <EnterpriseCalculator />
 
-          <PlanBanner plans={plans} />
+          <PlanBanner plans={plans} onSignup={setSignupOffer} />
 
           <H2Faq />
         </main>
         <H2Footer />
       </div>
+      <PlanSignupDialog offer={signupOffer} onClose={closeSignup} />
     </div>
   );
 }

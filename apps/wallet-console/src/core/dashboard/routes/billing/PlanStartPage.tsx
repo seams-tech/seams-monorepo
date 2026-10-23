@@ -4,7 +4,6 @@ import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { walletConsoleOverviewHref } from '../../consoleNavigation';
 import { canDashboardManageBilling, useDashboardConsoleSession } from '../../consoleSession';
 import { useDashboardSelectedContext } from '../../selectedContext';
-import { getDashboardOnboardingState } from '../onboarding/consoleOnboardingApi';
 import {
   dashboardPlanName,
   getDashboardBillingPlan,
@@ -17,6 +16,7 @@ import {
 import {
   clearPendingDashboardPlanIntent,
   isDashboardPlanChoice,
+  readDashboardOverviewHref,
   readPendingDashboardPlanIntent,
   type DashboardPlanChoice,
 } from './planIntent';
@@ -97,21 +97,6 @@ function currentPlanSummary(plan: DashboardBillingPlan): string {
   }
   const since = plan.planStartedAt ? ` since ${utcDate(plan.planStartedAt)}` : '';
   return `Your organization is on ${dashboardPlanName(plan.plan)}${since}.`;
-}
-
-/* The Wallet Console overview for the organization's first project, as onboarding ends.
-   A session issued before the project existed names no project, so read it here. */
-async function readDashboardOverviewHref(): Promise<string | null> {
-  try {
-    const state = await getDashboardOnboardingState();
-    if (state.currentStep !== 'complete') return null;
-    return walletConsoleOverviewHref({
-      organization: state.orgId,
-      project: state.selectedProjectId,
-    });
-  } catch {
-    return null;
-  }
 }
 
 /**

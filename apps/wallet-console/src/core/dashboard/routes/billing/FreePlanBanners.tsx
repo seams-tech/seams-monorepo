@@ -30,6 +30,13 @@ function writeDismissed(key: string): void {
   }
 }
 
+/* A reload after a verified return must not show the notice again. */
+function removeCardSetupReturn(): void {
+  const url = new URL(window.location.href);
+  for (const key of ['plan', 'card_setup', 'checkout_session_id']) url.searchParams.delete(key);
+  window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+}
+
 function utcDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     timeZone: 'UTC',
@@ -111,9 +118,12 @@ export function FreePlanBanners(props: {
     };
   }, []);
 
+  /* Stripe returns to the billing page, and the pricing-page sign-up returns to the
+     dashboard. The card is verified here, and a verified plan start shows its plan. */
   React.useEffect(() => {
-    if (props.variant !== 'billing' || !props.search) return;
-    const params = new URLSearchParams(props.search);
+    const search = props.variant === 'billing' ? props.search : window.location.search;
+    if (!search) return;
+    const params = new URLSearchParams(search);
     const status = params.get('card_setup');
     const checkoutSessionId = String(params.get('checkout_session_id') || '').trim();
     if (status === 'cancel') {
@@ -127,10 +137,21 @@ export function FreePlanBanners(props: {
     void reconcileDashboardCardSetup(checkoutSessionId)
       .then((result) => {
         if (result.plan) setPlan(result.plan);
+        if (!result.verified) {
+          setMessage('Stripe has not confirmed the card yet. Refresh in a moment.');
+          return;
+        }
+        if (props.variant === 'dashboard') removeCardSetupReturn();
+        const started = result.plan && result.plan.plan !== 'free' ? result.plan : null;
+        // The Growth notice already names the plan and its start date.
+        if (started?.banners.some((banner) => banner.kind === 'growth_move')) {
+          setMessage('');
+          return;
+        }
         setMessage(
-          result.verified
-            ? 'Your card is verified. Production uses it from now on.'
-            : 'Stripe has not confirmed the card yet. Refresh in a moment.',
+          started
+            ? `${dashboardPlanName(started.plan)} started. We charge your card after each month.`
+            : 'Your card is verified. Production uses it from now on.',
         );
       })
       .catch(() => setMessage('Card verification is still pending. Refresh in a moment.'));
@@ -162,7 +183,7 @@ export function FreePlanBanners(props: {
   const showAddCard =
     props.canManageBilling &&
     (banners.some(needsCard) || (props.variant === 'billing' && plan?.card.kind !== 'usable'));
-  if (props.variant === 'dashboard' && banners.length === 0) return null;
+  if (props.variant === 'dashboard' && banners.length === 0 && !message) return null;
   return (
     <section className="dashboard-view__section" aria-label="Plan notices">
       {banners.map((banner) =>

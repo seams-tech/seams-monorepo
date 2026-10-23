@@ -767,3 +767,123 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- sign-up dialog: the plan band over the Console sign-in frame ---------- */
+
+/* the dialog carries .h2-page for the palette, like the contact form. The band sits
+   one inset inside the panel, so its radius keeps the corners concentric. */
+.h2-page.plan-signup {
+  --plan-signup-radius: 28px;
+  --plan-signup-inset: 8px;
+  width: min(440px, calc(100vw - 32px));
+  max-width: none;
+  min-height: 0;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--plan-signup-radius);
+  background: var(--h2-bg);
+  overflow: auto;
+  overscroll-behavior: contain;
+  box-shadow:
+    0 2px 6px rgba(10, 10, 10, 0.12),
+    0 24px 60px -12px rgba(10, 10, 10, 0.35);
+}
+
+.plan-signup::backdrop {
+  background: rgba(10, 10, 10, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+html:has(.plan-signup[open]) {
+  overflow: hidden;
+}
+
+.plan-signup__panel {
+  position: relative;
+  display: grid;
+  gap: 20px;
+  padding: var(--plan-signup-inset) var(--plan-signup-inset) 24px;
+}
+
+.plan-signup__band {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-height: 96px;
+  align-content: flex-end;
+  padding: 24px 24px 20px;
+  border-radius: calc(var(--plan-signup-radius) - var(--plan-signup-inset));
+  background: var(--h2-ink);
+  color: #ffffff;
+}
+
+.plan-signup__plan {
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.plan-signup__price {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.plan-signup__price strong {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.plan-signup__close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .plan-signup__close:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+}
+
+.plan-signup__close:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* the frame's page is white with no margins; the panel gives it the side gutter */
+.plan-signup__frame {
+  display: block;
+  width: calc(100% - 40px);
+  margin: 0 20px;
+  border: 0;
+  background: #ffffff;
+  transition: height 160ms ease;
+}
+
+@media (max-width: 560px) {
+  .h2-page.plan-signup {
+    --plan-signup-radius: 24px;
+  }
+
+  .plan-signup__frame {
+    width: calc(100% - 24px);
+    margin: 0 12px;
+  }
+}

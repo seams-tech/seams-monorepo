@@ -1,0 +1,28 @@
+/* The login page in the pricing page's sign-in dialog and in the GitHub popup: the
+   sign-in column only. The dialog draws the frame, the close button and the padding
+   around it. */
+.dashboard-login-embedded {
+  display: grid;
+  align-content: start;
+  min-height: 0;
+  padding: 0.25rem 0.125rem 0.375rem;
+  color: #0a0a0a;
+  background: #ffffff;
+}
+
+.dashboard-login-embedded .dashboard-login__form-header :is(h1, h2) {
+  font-size: var(--dashboard-text-section-title, 1.5rem);
+}
+
+/* The GitHub popup is a whole window, so it keeps the page's own margins. */
+.dashboard-login-embedded--popup {
+  min-height: 100dvh;
+  align-content: center;
+  justify-items: center;
+  padding: 2rem 1.5rem;
+}
+
+.dashboard-login-embedded--popup .dashboard-login__form {
+  width: 100%;
+  max-width: 384px;
+}

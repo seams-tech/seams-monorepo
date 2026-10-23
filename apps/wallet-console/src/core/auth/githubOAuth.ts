@@ -8,6 +8,8 @@ export type GithubOAuthCallback =
   | { kind: 'code'; code: string };
 
 const GITHUB_OAUTH_STATE_KEY = 'seams.dashboard.github.oauth.state';
+const GITHUB_OAUTH_POPUP_KEY = 'seams.dashboard.github.oauth.popup';
+const GITHUB_SIGN_IN_CHANNEL = 'seams.dashboard.github.sign-in';
 
 function normalizeRelayBaseUrl(input: unknown): string {
   return String(input || '')
@@ -70,6 +72,46 @@ export function beginGithubOAuth(options: Extract<GithubOAuthOptions, { configur
   authorizeUrl.searchParams.set('state', state);
   authorizeUrl.searchParams.set('prompt', 'select_account');
   window.location.assign(authorizeUrl.toString());
+}
+
+/*
+ * GitHub refuses to load in a frame, so the sign-in dialog on the pricing page runs
+ * GitHub in a popup window. The popup opens the login page on this origin, which keeps
+ * its mode through the GitHub redirect, signs in, tells the dialog, and closes. A
+ * BroadcastChannel reaches the dialog even when GitHub's pages drop `window.opener`.
+ */
+export function openGithubOAuthPopup(): Window | null {
+  const url = new URL('/dashboard/login', window.location.origin);
+  url.searchParams.set('github_popup', '1');
+  return window.open(url.href, 'seams-github-sign-in', 'popup,width=560,height=720');
+}
+
+export function isGithubOAuthPopup(): boolean {
+  try {
+    if (new URLSearchParams(window.location.search).get('github_popup') === '1') {
+      sessionStorage.setItem(GITHUB_OAUTH_POPUP_KEY, '1');
+      return true;
+    }
+    return sessionStorage.getItem(GITHUB_OAUTH_POPUP_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function finishGithubOAuthPopup(): void {
+  sessionStorage.removeItem(GITHUB_OAUTH_POPUP_KEY);
+  const channel = new BroadcastChannel(GITHUB_SIGN_IN_CHANNEL);
+  channel.postMessage('signed-in');
+  channel.close();
+  window.close();
+}
+
+export function onGithubOAuthPopupSignIn(listener: () => void): () => void {
+  const channel = new BroadcastChannel(GITHUB_SIGN_IN_CHANNEL);
+  channel.onmessage = (event: MessageEvent<unknown>) => {
+    if (event.data === 'signed-in') listener();
+  };
+  return () => channel.close();
 }
 
 export function consumeGithubOAuthCallback(): GithubOAuthCallback {

@@ -1,3 +1,5 @@
+import { walletConsoleOverviewHref } from '../../consoleNavigation';
+import { replaceDashboardSelectedContext } from '../../useDashboardUiPreferences';
 import { deriveDashboardOrganizationSlug } from '../../utils/organizationIdentity';
 import {
   createInitialOrganization,
@@ -95,6 +97,37 @@ export function captureDashboardPlanIntentLink(): DashboardPlanIntent | null {
     // Without storage the intent still routes this page load.
   }
   return intent;
+}
+
+/* The organization and first project as onboarding ends. A session issued before the
+   project existed names no project, so read it here. */
+async function readDashboardPlanContext(): Promise<{
+  readonly organization: string;
+  readonly project: string;
+} | null> {
+  try {
+    const state = await getDashboardOnboardingState();
+    if (state.currentStep !== 'complete') return null;
+    return { organization: state.orgId, project: state.selectedProjectId };
+  } catch {
+    return null;
+  }
+}
+
+/* The Wallet Console overview for the organization's first project. */
+export async function readDashboardOverviewHref(): Promise<string | null> {
+  const context = await readDashboardPlanContext();
+  return context ? walletConsoleOverviewHref(context) : null;
+}
+
+/**
+ * Stripe returns the pricing-page sign-up to the dashboard with no project in the URL,
+ * so the selection is stored before Stripe opens. A selection that an earlier account
+ * left in this browser would otherwise name a project of another organization.
+ */
+export async function selectDashboardPlanContext(): Promise<void> {
+  const context = await readDashboardPlanContext();
+  if (context) replaceDashboardSelectedContext({ ...context, environment: '' });
 }
 
 /**

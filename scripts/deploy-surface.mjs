@@ -109,6 +109,8 @@ async function runConsoleOperation(operation, site, component) {
       VITE_MAINNET_RELAYER_URL: '',
       VITE_PLATFORM_CONSOLE_ORIGIN: site.platformOrigin,
       VITE_WALLET_CONSOLE_ORIGIN: site.walletConsoleOrigin,
+      // The login page runs in a dialog on the company site's pricing page.
+      VITE_COMPANY_SITE_ORIGIN: readFrontendSite(site.id).origin,
     };
     // Preserve the existing account stores. Production testnet retains its own
     // backend; the mainnet and staging account authorities also serve the new hosts.
@@ -465,8 +467,9 @@ export function buildFrontendEnvironment(site, frontendOrigin, sourceEnvironment
     VITE_COMPANY_SITE_ORIGIN: site.origin,
     VITE_WALLET_SITE_ORIGIN: site.walletSiteOrigin,
     VITE_DOCS_ORIGIN: `${site.docsOrigin}/`,
-    // The pricing page's plan cards open sign-up on the Platform Console.
     VITE_PLATFORM_CONSOLE_ORIGIN: readConsoleFrontendSite(site.id).platformOrigin,
+    // The pricing page's plan cards open the Wallet Console sign-in in a dialog.
+    VITE_WALLET_CONSOLE_ORIGIN: readConsoleFrontendSite(site.id).walletConsoleOrigin,
   };
   for (const lane of site.lanes) {
     const prefix = site.id === 'production' ? `VITE_${lane.network.toUpperCase()}_` : 'VITE_';

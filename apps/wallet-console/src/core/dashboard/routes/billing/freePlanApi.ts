@@ -222,14 +222,19 @@ export async function getDashboardBillingPlan(): Promise<DashboardBillingPlan | 
   }
 }
 
-/** With `startPlan`, the card that Stripe verifies also starts that plan. */
+/**
+ * With `startPlan`, the card that Stripe verifies also starts that plan. Stripe returns
+ * to the plan page, or with `returnTo: 'dashboard'` (the pricing-page sign-up) to the
+ * dashboard, and a cancel to the pricing page.
+ */
 export async function startDashboardCardSetup(
   startPlan: DashboardSelfServePlan | null = null,
+  returnTo: 'plan_page' | 'dashboard' = 'plan_page',
 ): Promise<string> {
   const body = await request('/console/billing/card-setup', {
     method: 'POST',
     headers: buildConsoleJsonHeaders(),
-    body: JSON.stringify(startPlan ? { startPlan } : {}),
+    body: JSON.stringify(startPlan ? { startPlan, returnTo } : {}),
   });
   const url = text(record(body.cardSetup)?.url);
   if (!url) throw new Error('Card setup response was invalid');

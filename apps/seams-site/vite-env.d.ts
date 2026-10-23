@@ -6,7 +6,7 @@ declare module '@seams/wallet/react/styles';
 // Note: Keep keys in sync with the root .env.local and CI/Pages envs.
 interface ImportMetaEnv {
   readonly VITE_WALLET_SITE_ORIGIN?: string;
-  readonly VITE_PLATFORM_CONSOLE_ORIGIN?: string;
+  readonly VITE_WALLET_CONSOLE_ORIGIN?: string;
   readonly VITE_SITE_ID?: 'staging' | 'production';
   readonly VITE_SITE_ORIGIN?: string;
   readonly VITE_RELAYER_URL?: string;

@@ -8,24 +8,41 @@ Date: October 21, 2026.
 
 Built on October 22, 2026, with a Pro plan added (decision 7). Not deployed.
 
-- **Site links.** The Free, Growth and Pro cards and the closing-banner cards link to
-  `<platform console origin>/dashboard/login?plan=<free|growth|pro>&src=pricing_card`.
-  The company build gets `VITE_PLATFORM_CONSOLE_ORIGIN` from
-  `deployment/console/targets.json`; local development uses `http://localhost:4007`.
-- **Plan intent.** The Platform Console login page keeps the plan, the source, the
+- **Sign-in dialog (October 23, 2026).** A click on the Free, Growth or Pro card, or on a
+  closing-banner card, opens a dialog on the pricing page. The dialog frames the Wallet
+  Console login page (`/dashboard/login?plan=…&src=pricing_card&embed=1`), so the
+  session is made on the dashboard's host. The frame signs in, does the automatic setup,
+  and asks the page to open Stripe or the dashboard in the whole tab
+  (`apps/wallet-console/src/core/dashboard/login/embeddedSignIn.ts`). GitHub refuses
+  frames, so the dialog runs GitHub in a popup window. The card link without the dialog
+  is the full Wallet Console login page. The company build gets
+  `VITE_WALLET_CONSOLE_ORIGIN`, and the Console build gets `VITE_COMPANY_SITE_ORIGIN`,
+  from `deployment/console/targets.json`; local development uses `http://localhost:4001`
+  for both.
+- **Why not the Platform Console.** Until October 23 the cards opened the Platform
+  Console login. Each Console host calls the Console API on its own origin, and the
+  session cookie is host-only. After Stripe, the plan page sent the visitor to the
+  Wallet Console overview, which had no session, so the visitor signed in a second time.
+- **Plan intent.** The Console login page (Wallet and Platform) keeps the plan, the source, the
   time, and a project id in sessionStorage (`seams.console.pendingPlanIntent`, one
   hour), removes the parameters from the URL, and shows the plan and its price above the sign-in
   buttons. A pending invitation wins and drops the intent.
 - **Automatic setup.** After sign-in with an intent, the login page creates the
   organization ("My organization") and the first project ("My first app") with the
   intent's project id. A Growth or Pro intent on a Free organization without a card
-  then goes straight to Stripe; every other intent opens the plan page. New identities create their
+  then goes straight to Stripe; every other intent opens the Wallet Console overview
+  (the plan page on the Platform Console). New identities create their
   organization through `POST /console/account/organizations`, not through
   `POST /console/onboarding/organization`, so `planIntent` is not sent to the server yet.
+- **Stripe return.** The Wallet Console login asks for card setup with
+  `{ startPlan, returnTo: 'dashboard' }`. Stripe then returns to the Wallet Console
+  overview, which verifies the card and shows the started plan; a cancel returns to the
+  pricing page. Before Stripe opens, the login page stores the new organization and
+  project as the dashboard selection. A Free intent, or one that needs no card, opens
+  the overview at once.
 - **Plan page.** `/dashboard/billing/plan` on the Platform Console shows Free, Growth
   and Pro with the current plan and this month's usage. With a usable card the owner
-  confirms the start. Stripe returns here; after a verified start from the pricing
-  page, the page opens the Wallet Console overview of the first project.
+  confirms the start. A plan start from the plan page returns there from Stripe.
 - **Local runs.** Without `STRIPE_API_SK`, the local router uses simulated Stripe: the
   card setup returns at once with a verified test card, so no Stripe page shows.
 - **Plan start on the server.** `POST /console/billing/card-setup` accepts

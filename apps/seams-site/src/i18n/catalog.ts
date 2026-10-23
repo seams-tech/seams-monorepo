@@ -106,6 +106,8 @@ export const messages = {
     ja: 'パスキーでのログイン、分散鍵ウォレット、アカウント復旧。プランを選んで始めましょう。',
   },
   startPlan: { en: 'Start with a plan', ja: 'プランを選んで始める' },
+  signupDialogLabel: { en: 'Sign in to start {plan}', ja: '{plan}を始めるためにサインイン' },
+  signupFrameTitle: { en: 'Seams Console sign-in', ja: 'Seams Consoleへのサインイン' },
   poolNote: {
     en: 'Paid plans include 300 monthly signatures per active user, pooled across your app.',
     ja: '有料プランでは、アクティブユーザー1人につき月300回の署名をアプリ全体で共有できます。',

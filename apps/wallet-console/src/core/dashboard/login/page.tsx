@@ -13,6 +13,10 @@ import {
   beginGithubOAuth,
   consumeGithubOAuthCallback,
   fetchGithubOAuthOptions,
+  finishGithubOAuthPopup,
+  isGithubOAuthPopup,
+  onGithubOAuthPopupSignIn,
+  openGithubOAuthPopup,
   type GithubOAuthOptions,
 } from '@core/auth/githubOAuth';
 import {
@@ -21,17 +25,25 @@ import {
   fetchDashboardConsoleSession,
 } from '../consoleSession';
 import { readUnscopedConsoleSession } from '../routes/onboarding/initialOrganizationApi';
-import { consoleSessionHref, rememberConsoleContext } from '../consoleNavigation';
+import {
+  consoleSessionHref,
+  rememberConsoleContext,
+  walletConsoleHref,
+} from '../consoleNavigation';
 import { readPendingDashboardInvitation } from '../routes/invitations/invitation';
 import { getDashboardBillingPlan, startDashboardCardSetup } from '../routes/billing/freePlanApi';
 import {
   captureDashboardPlanIntentLink,
   clearPendingDashboardPlanIntent,
   prepareDashboardAccountForPlan,
+  readDashboardOverviewHref,
   readPendingDashboardPlanIntent,
+  selectDashboardPlanContext,
   type DashboardPlanChoice,
 } from '../routes/billing/planIntent';
+import { isEmbeddedSignIn, postToCompanySite } from './embeddedSignIn';
 import '../styles.css';
+import './embeddedSignIn.css';
 
 function normalizeBaseUrl(input: unknown): string {
   return String(input || '')
@@ -45,6 +57,19 @@ function loginDestination(pathname: '/dashboard' | '/dashboard/onboarding'): str
   }
   return consoleSessionHref(pathname);
 }
+
+/* The page in a whole tab, in the pricing page's sign-in dialog, or in the GitHub popup
+   that the dialog opens. */
+type LoginPresentation = 'page' | 'embedded' | 'github_popup';
+
+function readLoginPresentation(): LoginPresentation {
+  if (isEmbeddedSignIn()) return 'embedded';
+  return isGithubOAuthPopup() ? 'github_popup' : 'page';
+}
+
+/* A plan picked on the pricing page ends in Wallet Console: Stripe returns to its
+   dashboard, where this session is. Platform Console keeps its plan page. */
+const PLAN_RETURN_PAGE = import.meta.env.MODE === 'wallet' ? 'dashboard' : 'plan_page';
 
 /** The login text for a visitor who picked a plan on the pricing page. */
 const PLAN_LOGIN_TEXT: Record<DashboardPlanChoice, { title: string; description: string }> = {
@@ -184,18 +209,35 @@ export function DashboardLoginPage(): React.JSX.Element {
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [googleConfigured, setGoogleConfigured] = React.useState<boolean>(false);
   const [signedOut, setSignedOut] = React.useState<boolean>(false);
+  const [presentation] = React.useState(readLoginPresentation);
+  const [githubPopupSignedIn, setGithubPopupSignedIn] = React.useState(false);
+  const embeddedRef = React.useRef<HTMLElement | null>(null);
+  const githubPopupStarted = React.useRef(false);
   // A pending invitation wins over a plan picked on the pricing page.
   const [planIntent] = React.useState(() =>
-    import.meta.env.MODE === 'platform' ? captureDashboardPlanIntentLink() : null,
+    presentation === 'github_popup' ? null : captureDashboardPlanIntentLink(),
   );
-  const [preparingPlan, setPreparingPlan] = React.useState<'setup' | 'stripe' | null>(null);
+  const [preparingPlan, setPreparingPlan] = React.useState<
+    'setup' | 'stripe' | 'dashboard' | null
+  >(null);
 
   React.useEffect(rememberConsoleContext, []);
 
+  /* In the dialog, the company site opens the next page in the whole tab. */
+  const openPage = React.useCallback(
+    (href: string) => {
+      const url = new URL(href, window.location.origin);
+      if (presentation === 'embedded') postToCompanySite({ kind: 'navigate', url: url.href });
+      else if (url.origin === window.location.origin) go(`${url.pathname}${url.search}${url.hash}`);
+      else window.location.assign(url.href);
+    },
+    [go, presentation],
+  );
+
   /* After sign-in, a visitor with a plan intent gets an organization and a first project
      with default names. A Growth or Pro intent on a Free organization without a card goes
-     straight to Stripe; every other intent opens the plan page. Everyone else continues
-     as before. */
+     straight to Stripe; every other intent opens the dashboard (Wallet Console) or the
+     plan page (Platform Console). Everyone else continues as before. */
   const continueSignedIn = React.useCallback(
     async (pathname: '/dashboard' | '/dashboard/onboarding') => {
       const intent = readPendingDashboardPlanIntent();
@@ -209,11 +251,23 @@ export function DashboardLoginPage(): React.JSX.Element {
             const plan = await getDashboardBillingPlan();
             if (plan?.plan === 'free' && plan.card.kind !== 'usable') {
               setPreparingPlan('stripe');
-              window.location.assign(await startDashboardCardSetup(intent.plan));
+              const checkoutUrl = await startDashboardCardSetup(intent.plan, PLAN_RETURN_PAGE);
+              // Only the plan page reads the intent after Stripe.
+              if (PLAN_RETURN_PAGE === 'dashboard') {
+                await selectDashboardPlanContext();
+                clearPendingDashboardPlanIntent();
+              }
+              openPage(checkoutUrl);
               return;
             }
           }
-          go('/dashboard/billing/plan');
+          if (PLAN_RETURN_PAGE === 'dashboard') {
+            setPreparingPlan('dashboard');
+            clearPendingDashboardPlanIntent();
+            openPage((await readDashboardOverviewHref()) ?? walletConsoleHref('/dashboard'));
+            return;
+          }
+          openPage('/dashboard/billing/plan');
         } catch (error: unknown) {
           const message = error instanceof Error ? error.message : String(error);
           setErrorMessage(`Account setup failed: ${message}. Reload the page to try again.`);
@@ -221,9 +275,26 @@ export function DashboardLoginPage(): React.JSX.Element {
         setPreparingPlan(null);
         return;
       }
-      go(loginDestination(pathname));
+      openPage(loginDestination(pathname));
     },
-    [go, relayerBaseUrl],
+    [openPage, relayerBaseUrl],
+  );
+
+  /* Continues a session that exists already: on load, and after the GitHub popup. Wallet
+     Console sets up an identity without an organization only for a plan intent. */
+  const resumeSignedInSession = React.useCallback(
+    async (isCancelled: () => boolean): Promise<void> => {
+      const scoped = await fetchDashboardConsoleSession().then(
+        () => true,
+        () => false,
+      );
+      if (isCancelled()) return;
+      if (scoped) return await continueSignedIn('/dashboard');
+      if (import.meta.env.MODE === 'wallet' && !readPendingDashboardPlanIntent()) return;
+      const unscoped = await readUnscopedConsoleSession(relayerBaseUrl).catch(() => false);
+      if (unscoped && !isCancelled()) await continueSignedIn('/dashboard/onboarding');
+    },
+    [continueSignedIn, relayerBaseUrl],
   );
 
   React.useEffect(() => {
@@ -238,25 +309,47 @@ export function DashboardLoginPage(): React.JSX.Element {
         cancelled = true;
       };
     }
-    fetchDashboardConsoleSession()
-      .then(() => {
-        if (cancelled) return;
-        void continueSignedIn('/dashboard');
-      })
-      .catch(async () => {
-        if (import.meta.env.MODE === 'wallet') return;
-        if (await readUnscopedConsoleSession(relayerBaseUrl).catch(() => false)) {
-          if (!cancelled) void continueSignedIn('/dashboard/onboarding');
-        }
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setInitializing(false);
-      });
+    // The GitHub popup only signs in; the dialog that opened it continues.
+    if (presentation === 'github_popup') {
+      setInitializing(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+    void resumeSignedInSession(() => cancelled).finally(() => {
+      if (!cancelled) setInitializing(false);
+    });
     return () => {
       cancelled = true;
     };
-  }, [continueSignedIn, relayerBaseUrl]);
+  }, [presentation, resumeSignedInSession]);
+
+  React.useEffect(() => {
+    if (presentation !== 'embedded') return;
+    let cancelled = false;
+    const stop = onGithubOAuthPopupSignIn(() => {
+      setLoadingProvider('github');
+      void resumeSignedInSession(() => cancelled).finally(() => {
+        if (!cancelled) setLoadingProvider(null);
+      });
+    });
+    return () => {
+      cancelled = true;
+      stop();
+    };
+  }, [presentation, resumeSignedInSession]);
+
+  /* The dialog sizes its frame to this page. */
+  React.useEffect(() => {
+    const element = embeddedRef.current;
+    if (presentation !== 'embedded' || !element) return;
+    const report = () =>
+      postToCompanySite({ kind: 'height', height: Math.ceil(element.scrollHeight) });
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [presentation]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -314,6 +407,11 @@ export function DashboardLoginPage(): React.JSX.Element {
     githubLogin.current
       .then(async (kind) => {
         if (cancelled) return;
+        if (presentation === 'github_popup') {
+          setGithubPopupSignedIn(true);
+          finishGithubOAuthPopup();
+          return;
+        }
         if (kind === 'console_identity_v1') {
           await continueSignedIn('/dashboard/onboarding');
           return;
@@ -332,7 +430,16 @@ export function DashboardLoginPage(): React.JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [continueSignedIn, relayerBaseUrl]);
+  }, [continueSignedIn, presentation, relayerBaseUrl]);
+
+  /* The popup goes on to GitHub at once; GitHub returns to it without `github_popup`. */
+  React.useEffect(() => {
+    if (presentation !== 'github_popup' || githubPopupStarted.current) return;
+    if (!githubOptions.configured) return;
+    if (!new URLSearchParams(window.location.search).has('github_popup')) return;
+    githubPopupStarted.current = true;
+    beginGithubOAuth(githubOptions);
+  }, [githubOptions, presentation]);
 
   const onGoogleSignIn = React.useCallback(async () => {
     if (loadingProvider) return;
@@ -382,8 +489,22 @@ export function DashboardLoginPage(): React.JSX.Element {
     if (loadingProvider || !githubOptions.configured) return;
     setErrorMessage('');
     rememberConsoleContext();
-    beginGithubOAuth(githubOptions);
-  }, [githubOptions, loadingProvider]);
+    if (presentation !== 'embedded') {
+      beginGithubOAuth(githubOptions);
+      return;
+    }
+    const popup = openGithubOAuthPopup();
+    if (!popup) {
+      setErrorMessage('Allow pop-ups for this page to continue with GitHub.');
+      return;
+    }
+    setLoadingProvider('github');
+    const watch = window.setInterval(() => {
+      if (!popup.closed) return;
+      window.clearInterval(watch);
+      setLoadingProvider((current) => (current === 'github' ? null : current));
+    }, 500);
+  }, [githubOptions, loadingProvider, presentation]);
 
   const githubLabel =
     loadingProvider === 'github'
@@ -410,6 +531,71 @@ export function DashboardLoginPage(): React.JSX.Element {
     googleConfigured,
     githubConfigured: githubOptions.configured,
   });
+  const authCard = (
+    <DashboardAuthCard
+      classNames={{
+        root: 'dashboard-login__form',
+        header: 'dashboard-login__form-header',
+        heading: 'dashboard-login__form-heading',
+        copy: 'dashboard-login__form-copy',
+        ctaGroup: 'dashboard-login__provider-buttons',
+        ctaButton: 'dashboard-login__auth-button',
+        ctaIcon: 'dashboard-login__auth-button-icon',
+        note: 'dashboard-login__form-note',
+        error: 'dashboard-login__form-error',
+      }}
+      titleId="dashboard-login-title"
+      title={
+        presentation === 'github_popup'
+          ? githubPopupSignedIn
+            ? 'Signed in with GitHub'
+            : 'Continue with GitHub'
+          : preparingPlan
+            ? 'Setting up your account'
+            : signedOut
+              ? 'Signed out'
+              : planIntent
+                ? PLAN_LOGIN_TEXT[planIntent.plan].title
+                : 'Welcome back'
+      }
+      description={
+        presentation === 'github_popup'
+          ? githubPopupSignedIn
+            ? 'You can close this window.'
+            : 'Opening GitHub...'
+          : preparingPlan === 'stripe'
+            ? 'Opening Stripe to add your card...'
+            : preparingPlan === 'dashboard'
+              ? 'Opening your dashboard...'
+              : preparingPlan === 'setup'
+                ? 'Creating your organization and first project...'
+                : signedOut
+                  ? 'You have been signed out of the Seams console.'
+                  : planIntent
+                    ? PLAN_LOGIN_TEXT[planIntent.plan].description
+                    : 'Sign in to the Seams console'
+      }
+      providers={presentation === 'github_popup' ? [] : providers}
+      note={presentation === 'github_popup' && githubOptions.configured ? '' : footerNote}
+      errorMessage={errorMessage}
+    />
+  );
+
+  if (presentation !== 'page') {
+    return (
+      <main
+        ref={embeddedRef}
+        className={
+          presentation === 'github_popup'
+            ? 'dashboard-login-embedded dashboard-login-embedded--popup'
+            : 'dashboard-login-embedded'
+        }
+        aria-label="Sign in to Seams"
+      >
+        {authCard}
+      </main>
+    );
+  }
 
   return (
     <main className="dashboard-login" aria-label="Dashboard login page">
@@ -425,45 +611,7 @@ export function DashboardLoginPage(): React.JSX.Element {
           <SeamsWordmark height={24} />
           <span className="dashboard-login__brand-label">Console</span>
         </a>
-        <div className="dashboard-login__body">
-          <DashboardAuthCard
-            classNames={{
-              root: 'dashboard-login__form',
-              header: 'dashboard-login__form-header',
-              heading: 'dashboard-login__form-heading',
-              copy: 'dashboard-login__form-copy',
-              ctaGroup: 'dashboard-login__provider-buttons',
-              ctaButton: 'dashboard-login__auth-button',
-              ctaIcon: 'dashboard-login__auth-button-icon',
-              note: 'dashboard-login__form-note',
-              error: 'dashboard-login__form-error',
-            }}
-            titleId="dashboard-login-title"
-            title={
-              preparingPlan
-                ? 'Setting up your account'
-                : signedOut
-                  ? 'Signed out'
-                  : planIntent
-                    ? PLAN_LOGIN_TEXT[planIntent.plan].title
-                    : 'Welcome back'
-            }
-            description={
-              preparingPlan === 'stripe'
-                ? 'Opening Stripe to add your card...'
-                : preparingPlan === 'setup'
-                  ? 'Creating your organization and first project...'
-                  : signedOut
-                    ? 'You have been signed out of the Seams console.'
-                    : planIntent
-                      ? PLAN_LOGIN_TEXT[planIntent.plan].description
-                      : 'Sign in to the Seams console'
-            }
-            providers={providers}
-            note={footerNote}
-            errorMessage={errorMessage}
-          />
-        </div>
+        <div className="dashboard-login__body">{authCard}</div>
         <p className="dashboard-login__legal">
           Don&rsquo;t have console access?{' '}
           <a href={contactProps.href} onClick={contactProps.onClick}>

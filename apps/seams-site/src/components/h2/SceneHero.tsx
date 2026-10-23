@@ -153,15 +153,19 @@ export function IntegrationsWindow(): React.JSX.Element {
 }
 
 /* An HTML replica of the transaction confirmer, showing a multi-step escrow
-   release. */
-export function WalletTransactionPreview(): React.JSX.Element {
+   release. `sheet` draws it as the bottom-sheet drawer, with a drag handle,
+   docked to the edge of the panel below it. */
+export function WalletTransactionPreview({ sheet = false }: { sheet?: boolean }) {
   return (
     <div
       className="h2-wallet-confirm"
       role="img"
       aria-label="Transaction confirmer preview: escrow release for an order"
     >
-      <div className="h2-wallet-confirm__card h2-txmock">
+      <div
+        className={`h2-wallet-confirm__card h2-txmock${sheet ? ' h2-wallet-confirm__card--sheet' : ''}`}
+      >
+        {sheet ? <span className="h2-txmock__handle" /> : null}
         <p className="h2-txmock__title">Review transaction</p>
         <p className="h2-txmock__meta">
           <Lock aria-hidden /> localhost

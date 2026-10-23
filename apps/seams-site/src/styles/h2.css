@@ -502,6 +502,193 @@ body:has(.h2-page) {
   }
 }
 
+/* Sage variant: the hero content sits on a rounded panel carrying an
+   Andon-style sage gradient with light ink on top. */
+.h2-hero-simple--sage {
+  padding: 2rem 0 1rem;
+}
+
+.h2-hero-simple.h2-hero-simple--sage {
+  padding-top: 2rem;
+}
+
+.h2-hero-simple--sage > .h2-shell {
+  background: var(--h2-gradient-sage);
+  border-radius: var(--h2-radius-card);
+  padding: 10rem 56px 72px;
+}
+
+.h2-hero-simple--sage .h2-hero-simple__title {
+  color: #ffffff;
+}
+
+.h2-hero-simple--sage .h2-hero-simple__sub {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 900px) {
+  .h2-hero-simple--sage {
+    padding: 64px 0 14px;
+  }
+
+  .h2-hero-simple--sage > .h2-shell {
+    padding: 76px 28px 54px;
+  }
+}
+
+/* Grain variant: the sage panel's layout on a moving GrainField, which the
+   page renders as the shell's first child. A shorter panel than the home hero. */
+.h2-hero-simple--sage.h2-hero-simple--grain > .h2-shell {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--h2-ink);
+  padding: 6rem 56px 40px;
+}
+
+@media (max-width: 900px) {
+  .h2-hero-simple--sage.h2-hero-simple--grain > .h2-shell {
+    padding: 76px 28px 40px;
+  }
+}
+
+/* ---------- hero scenes: paged two-panel product band ---------- */
+
+/* Scene band under the umbrella headline: an app-window mock on the left,
+   a floating card on the right; the pager at the bottom junction cycles
+   dashboard / integrations / wallet scenes. Mocks are placeholders with the
+   same footprint as the real screenshots/videos that will replace them. */
+.h2-heroscene__split {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.h2-heroscene__stage {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  /* fixed so the two columns stay level: must exceed the aside's natural
+     height (~527px with the 0.8-scaled login shell) or the row stretches.
+     No bottom padding: the window mock crops at the band's bottom edge. */
+  height: 488px;
+  padding: 28px 44px 0 36px;
+  transition: background-color 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-heroscene__stage:hover {
+    background-color: color-mix(in srgb, var(--h2-taupe) 62%, transparent);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-heroscene__stage:hover .h2-fork,
+  .h2-heroscene__aside:hover .h2-fork {
+    color: var(--h2-ink);
+  }
+}
+
+.h2-heroscene__intro {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.h2-heroscene__intro-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: var(--h2-bg);
+  box-shadow: 0 0 0 1px var(--h2-stone);
+  color: var(--h2-graphite);
+}
+
+.h2-heroscene__intro-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.h2-heroscene__intro-title {
+  margin: 0;
+  font-size: var(--h2-text-title);
+  font-weight: 600;
+  color: var(--h2-ink);
+}
+
+.h2-heroscene__intro-sub {
+  margin: 2px 0 0;
+  font-size: var(--h2-text-lg);
+  color: var(--h2-smoke);
+}
+
+/* Window anchored to the panel's bottom-right like the reference hero:
+   inset from the left and top, bleeding past the column divider and the
+   band's bottom edge, cropped by the frame. */
+.h2-heroscene__frame {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  margin-top: 26px;
+  margin-left: 58px;
+  /* run to the column divider (cancels the stage's right padding) */
+  margin-right: -44px;
+  overflow: hidden;
+}
+
+.h2-heroscene__frame .h2-window {
+  /* wider + taller than the frame: right corner and bottom edge get cropped */
+  width: calc(100% + 36px);
+  min-height: 464px;
+  border-radius: 13px 0 0 0;
+}
+
+.h2-heroscene__aside {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 28px 36px 28px;
+  /* inter-panel dividers read a step stronger than the outer grid lines */
+  border-left: 1px solid var(--h2-stone);
+  /* the tinted background paints over the section rule's hairline; restore it */
+  border-top: 1px solid var(--h2-stone);
+  background-color: color-mix(in srgb, var(--h2-taupe) 55%, var(--h2-bg) 45%);
+  transition: background-color 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-heroscene__aside:hover {
+    /* hover just deepens the panel's own warm tint to full taupe (base is
+       taupe 55% / bg 45%) rather than mixing in stone, so it lifts a touch
+       without reading dark grey */
+    background-color: var(--h2-taupe);
+  }
+}
+
+.h2-heroscene__aside-body {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  /* slight top bias so the card sits optically centered under the header */
+  padding-top: 9px;
+}
+
+/* the confirmer scene bottom-anchors: its drawer docks to the band edge */
+.h2-heroscene__aside:has(.h2-wallet-confirm) {
+  padding-bottom: 0;
+}
+
+.h2-heroscene__aside-body:has(.h2-wallet-confirm) {
+  place-items: end center;
+  padding-top: 0;
+}
+
 /* ---------- hero scene cards (mocks on the hero's gradient) ---------- */
 
 /* Display-only artwork matches the wallet's create screen. */
@@ -685,12 +872,96 @@ body:has(.h2-page) {
   box-shadow: 0 22px 40px -16px rgba(15, 23, 42, 0.28);
 }
 
+/* In the scene band the confirmer docks to the band's bottom edge; the top
+   margin only sets the panel's min-content floor. */
+.h2-heroscene__aside .h2-wallet-confirm {
+  justify-self: center;
+  position: relative;
+  width: min(344px, 100%);
+  margin: 14px 0 0;
+}
+
+/* the drawer screenshot is a bottom sheet (drag handle up top): dock it to
+   the band's bottom edge with top-only rounding and an upward shadow */
+.h2-wallet-confirm__card--sheet {
+  position: relative;
+  z-index: 2;
+  border-radius: 16px 16px 0 0;
+  border-bottom: none;
+  padding-bottom: 24px;
+  box-shadow: none;
+  filter: drop-shadow(0 -14px 32px rgba(15, 23, 42, 0.1));
+}
+
+/* app canvas behind the drawer: the merchant dashboard fills the whole
+   panel, blurred and dimmed like the page under a live bottom sheet. */
+.h2-heroscene__aside:has(.h2-heroscene__aside-appback) {
+  overflow: hidden;
+}
+
+.h2-heroscene__aside-appback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.h2-heroscene__aside-appback .h2-window {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  /* ground the app in the panel's own tint (the sign-in scene's backdrop)
+     instead of card white, so both scenes share one warm tone */
+  background: color-mix(in srgb, var(--h2-taupe) 55%, var(--h2-bg) 45%);
+  /* slight scale keeps the blur from feathering the panel edges; a touch of
+     brightness keeps the frosted app from reading dim */
+  filter: blur(6px) brightness(1.05);
+  transform: scale(1.04);
+}
+
+/* cream/light-grey veil over the app, like a page dimmed under a live bottom
+   sheet — neutral with only a hint of warmth, not sandy. The opaque backdrop
+   hides the aside's own taupe hover, so the veil carries the hover response
+   on this scene: a slow shift one step deeper into the same grey. */
+.h2-heroscene__aside-appback::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, #f9f8f6 58%, transparent);
+  transition: background-color 350ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-heroscene__aside:hover .h2-heroscene__aside-appback::after {
+    background: color-mix(in srgb, #efedea 58%, transparent);
+  }
+}
+
+/* panel header and body stack above the backdrop */
+.h2-heroscene__aside > .h2-heroscene__intro,
+.h2-heroscene__aside > .h2-heroscene__aside-body {
+  position: relative;
+  z-index: 1;
+}
+
 /* HTML replica of the confirmer drawer (editable, unlike the screenshots);
    type/color matched to the SDK confirmer, which uses the system stack */
 .h2-txmock {
   padding: 14px 20px 18px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   color: #0a0a0a;
+}
+
+.h2-txmock__handle {
+  display: block;
+  width: 40px;
+  height: 5px;
+  margin: 0 auto 7px;
+  border-radius: 9999px;
+  background: #e7e4df;
 }
 
 .h2-txmock__title {
@@ -1019,6 +1290,51 @@ body:has(.h2-page) {
   }
 }
 
+@media (max-width: 980px) {
+  .h2-heroscene__split {
+    grid-template-columns: 1fr;
+  }
+
+  .h2-heroscene__stage {
+    height: auto;
+    /* bottom padding: the contained window is a bordered card, not a crop */
+    padding: 28px 22px 26px;
+  }
+
+  .h2-heroscene__frame {
+    min-height: 288px;
+    margin: 18px 0 0;
+  }
+
+  /* stacked layout: contained, fully rounded window */
+  .h2-heroscene__frame .h2-window {
+    width: 100%;
+    min-height: 320px;
+    border-radius: 13px;
+  }
+
+  .h2-heroscene__aside {
+    border-left: none;
+    border-top: 1px solid var(--h2-stone);
+    padding: 36px 22px 50px;
+  }
+
+  .h2-heroscene__aside .h2-scene__shell {
+    min-width: 0;
+    max-width: min(386px, 100%);
+  }
+
+  /* narrow columns: keep the readable drawer, drop the app backdrop */
+  .h2-heroscene__aside .h2-wallet-confirm {
+    width: min(384px, 100%);
+    margin: 0;
+  }
+
+  .h2-heroscene__aside-appback {
+    display: none;
+  }
+}
+
 /* ---------- networks strip: brand-mark lockups ---------- */
 
 .h2-logos__row {
@@ -1047,6 +1363,24 @@ body:has(.h2-page) {
 }
 
 /* ---------- two products, one account layer (duo panels) ---------- */
+
+.h2-duo__head {
+  max-width: 576px;
+  margin: 0 auto 36px;
+  text-align: center;
+}
+
+.h2-duo__head h2 {
+  font-size: clamp(27px, 3vw, 39.5px);
+}
+
+.h2-duo__copy {
+  margin: 16px auto 0;
+  max-width: 488px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--h2-smoke);
+}
 
 .h2-duo__grid {
   display: grid;
@@ -1650,6 +1984,429 @@ body:has(.h2-page) {
   .h2-hero--scene .h2-hero__demo {
     min-height: 0;
     padding: 44px 16px 50px;
+  }
+}
+
+.h2-duo__title svg {
+  width: 20px;
+  height: 20px;
+  color: var(--h2-graphite);
+}
+
+.h2-duo__panel-copy {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--h2-smoke);
+}
+
+/* visuals center in the space between the copy and the CTA, so a panel that
+   grows taller than its twin doesn't strand its visual at the bottom edge */
+.h2-duo__visual {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: 224px;
+  padding: 16px 0 14px;
+}
+
+/* margin-top pins the CTA to the panel foot even when a panel has no visual;
+   panels with a flex:1 visual are unaffected (grow absorbs the free space) */
+.h2-duo__cta {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--h2-text-base);
+  font-weight: 600;
+  color: var(--h2-graphite);
+  transition: color 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-duo__panel:hover .h2-duo__cta {
+    color: var(--h2-ink);
+  }
+}
+
+@media (max-width: 900px) {
+  .h2-duo__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- hero (headline left, live product right) ---------- */
+
+/* The hero IS the demo band: the working auth card sits in the first viewport
+   beside the headline, and the product carries the fold. The hero stays in the
+   base stacking layer so its tinted right-cell background cannot cover the next
+   section's corner tick; the pager escapes to root-level stacking because no
+   ancestor creates a stacking context. */
+.h2-hero__split {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.h2-hero__main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  padding: 72px 44px 44px 36px;
+}
+
+.h2-hero .h2-kicker {
+  display: block;
+  margin: 0 0 18px;
+}
+
+.h2-hero__title {
+  margin: 0;
+  max-width: 520px;
+  font-size: clamp(29px, 2.7vw, 38px);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.h2-hero__sub {
+  margin: 16px 0 0;
+  max-width: 424px;
+  font-size: var(--h2-text-title);
+  line-height: 1.6;
+  color: var(--h2-graphite);
+}
+
+.h2-hero__ctas {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+}
+
+/* product forks: small gradient chips, one fabric per future product page */
+.h2-hero__forks {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.h2-fork {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--h2-text-base);
+  font-weight: 600;
+  color: var(--h2-graphite);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-fork:hover {
+    color: var(--h2-ink);
+  }
+}
+
+.h2-fork__chip {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+}
+
+.h2-hero__note {
+  margin: 24px 0 0;
+  font-size: var(--h2-text-base);
+  font-style: italic;
+  color: var(--h2-ash);
+}
+
+.h2-hero__demo {
+  /* Fixed height so swapping the NEAR/Tempo/Arc tab (or unlocking into the tx
+     card) never resizes this cell and shifts the pager + sections below. The
+     card is vertically centered, so a shorter tab just gains a little breathing
+     room instead of moving the page. Sized to the tallest steady state; single
+     knob below to retune. */
+  --h2-demo-fixed-height: 744px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* min-width:0 stops min-content widening the 1fr column; min-height:0 is the
+     load-bearing one — without it a grid item defaults to min-height:auto,
+     which resolves to content size and lets a tall tab (Arc) override the fixed
+     height and grow the row. min-height:0 makes the height a hard cap. */
+  min-width: 0;
+  min-height: 0;
+  padding: 50px 36px 36px;
+  border-left: 1px solid var(--h2-stone);
+  background-color: color-mix(in srgb, var(--h2-taupe) 55%, var(--h2-bg) 45%);
+  height: var(--h2-demo-fixed-height);
+}
+
+.h2-hero__demo .h2-themeswitch {
+  justify-content: center;
+  margin-top: 14px;
+}
+
+/* the chip row scrolls edge to edge: break out of the demo column's 36px side
+   padding, then re-add it inside so the chips still start on the content rail.
+   The negative margins cancel the added width, so the row's layout footprint
+   (and the centered THEMES kicker above it) is unchanged. */
+.h2-hero__demo .h2-themeswitch__track {
+  width: calc(100% + 72px);
+  max-width: calc(100% + 72px);
+  margin-inline: -36px;
+  padding-inline: 36px;
+  scroll-padding-inline: 36px;
+}
+
+.h2-page--wallet .passkey-demo {
+  min-height: var(--h2-wallet-demo-shell-min-height);
+}
+
+.h2-page--wallet .passkey-login-container-root {
+  width: 100%;
+  min-height: var(--h2-wallet-auth-menu-block-size);
+  padding-block: 0;
+  align-items: center;
+}
+
+.h2-page--wallet .passkey-login-menu-placeholder {
+  min-height: 0;
+  max-height: var(--h2-wallet-auth-menu-block-size);
+}
+
+.h2-page--wallet .seams-signup-menu-root {
+  height: auto;
+  min-height: 0;
+  max-height: none;
+}
+
+.h2-page--wallet .seams-signup-menu-root[data-waiting='true'] {
+  height: auto;
+  min-height: 170px;
+}
+
+.h2-page--wallet .passkey-login-menu-placeholder {
+  height: var(--h2-wallet-auth-menu-block-size);
+}
+
+/* Wallet hero: give the stage the tall band floor and center the card in it
+   (width comes from the Carousel's own fixed style). */
+.h2-page--wallet .carousel-stage {
+  min-height: var(--h2-wallet-demo-shell-min-height);
+  align-items: center;
+}
+
+/* Live-demo theme presets. */
+/* kicker over a single-line chip carousel; justify-items lets the track size
+   to its content so short rows center and long ones fill and scroll */
+.h2-themeswitch {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 26px;
+}
+
+.h2-themeswitch__label {
+  font-family: var(--h2-label);
+  font-size: var(--h2-text-xs);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--h2-ash);
+}
+
+.h2-themeswitch__track {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  cursor: grab;
+  /* the row is dragged and wheel-scrolled; a visible bar would crowd the chips */
+  scrollbar-width: none;
+}
+
+.h2-themeswitch__track::-webkit-scrollbar {
+  display: none;
+}
+
+.h2-themeswitch__track.is-dragging {
+  cursor: grabbing;
+}
+
+/* while dragging, chips must not swallow the pointer or show hover states */
+.h2-themeswitch__track.is-dragging .h2-themeswitch__btn {
+  pointer-events: none;
+}
+
+.h2-themeswitch__btn {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 7px;
+  padding: 5px 13px 5px 7px;
+  border-radius: 9999px;
+  border: 1px solid var(--h2-stone);
+  background: var(--h2-bg);
+  color: var(--h2-smoke);
+  font-family: inherit;
+  font-size: var(--h2-text-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-themeswitch__btn:hover {
+    color: var(--h2-ink);
+    border-color: var(--h2-ash);
+  }
+}
+
+.h2-themeswitch__btn.is-active {
+  color: var(--h2-ink);
+  border-color: var(--h2-ink);
+  background: var(--h2-taupe);
+}
+
+.h2-themeswitch__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6);
+}
+
+/* Carousel pager: chevron circles flanking a dot pill. Positioned at the split
+   junction: centered on the vertical divider AND the section's bottom border,
+   i.e. the bottom-right corner of the left cell / bottom-left of the right cell.
+   z-index escapes to root stacking (no ancestor has a stacking context), so it
+   paints above the next section's border line while the band bg stays below the
+   corner tick. */
+.h2-pager {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.h2-pager__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  border: 1px solid var(--h2-stone);
+  background: var(--h2-bg);
+  color: var(--h2-graphite);
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.h2-pager__btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.h2-pager__btn:active:not(:disabled) {
+  background: var(--h2-taupe);
+  color: var(--h2-ink);
+  border-color: var(--h2-ash);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-pager__btn:hover:not(:disabled) {
+    color: var(--h2-ink);
+    border-color: var(--h2-ash);
+  }
+}
+
+/* muted but fully opaque: translucent chrome reads as a rendering glitch
+   over the panel backgrounds */
+.h2-pager__btn:disabled {
+  color: var(--h2-ash);
+  border-color: var(--h2-line);
+  cursor: default;
+}
+
+.h2-pager__dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  border: 1px solid var(--h2-stone);
+  background: var(--h2-bg);
+}
+
+.h2-pager__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: var(--h2-stone);
+  transition: background-color 150ms ease;
+}
+
+.h2-pager__dot.is-active {
+  background: var(--h2-ink);
+}
+
+@media (max-width: 980px) {
+  .h2-hero__split {
+    grid-template-columns: 1fr;
+  }
+
+  .h2-hero__main {
+    padding: 96px 22px 36px;
+  }
+
+  .h2-hero__demo {
+    border-left: none;
+    border-top: 1px solid var(--h2-stone);
+    /* stacked layout: let the cell size to content again */
+    height: auto;
+    min-height: 0;
+    padding: 44px 22px 50px;
+  }
+}
+
+@media (max-width: 560px) {
+  .h2-hero__demo {
+    padding: 36px 7px 44px;
+  }
+
+  /* The SDK auth card sizes itself to the viewport (min(100dvw, 420px)), so
+     inside this padded cell it overflows the right edge on phones: cap it to
+     the viewport minus the cell padding instead. */
+  .h2-hero__demo .seams-signup-menu-root {
+    max-width: calc(100vw - 16px);
   }
 }
 

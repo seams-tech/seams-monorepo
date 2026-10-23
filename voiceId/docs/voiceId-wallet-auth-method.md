@@ -97,10 +97,18 @@ signs the canonical challenge. The running host caches one credential after its
 first Keychain read. A fake-host bridge E2E checks message routing, origin
 rejection, and cancellation without microphone or Keychain access.
 
-Fresh-session implementation must extend the canonical Wallet auth-method and
-authority unions together with D1 persistence, session issuance, revocation,
-and signing-lane scope. The current unions support passkey and Email OTP only.
-It must add the method-bound custody envelope in Rust/WASM and the Wallet
-activation and unlock flow. The native bridge has no SDK caller yet. Each
-change needs an end-to-end contract. Do not present the descriptor alone as a
-working VoiceID Wallet auth method.
+The Wallet now stores `voiceid` in its canonical auth-method record and D1
+persistence. The D1 migration preserves existing methods, issued sessions,
+operation triggers, and indexes. An E2E runs the migration against a real local
+D1 database. The Wallet also has a `voiceid` custody-envelope factor in Rust
+and TypeScript. Its binding includes the exact device key ID and factor
+version. A cross-language E2E reseals a generated test seed in Rust, opens the
+envelope in browser WASM, and rejects the wrong factor secret. It writes a
+repeatable JSON report with no seed or factor secret.
+
+A fresh Wallet Session still needs an owner-authorized activation transaction,
+a production challenge and verification route, session issuance, revocation,
+and signing-lane scope. The SDK must call the native bridge and custody worker
+during activation and unlock. The native bridge has no SDK caller yet. The
+method remains unavailable for production unlock and signing until those paths
+are complete. Each new path needs an end-to-end contract.

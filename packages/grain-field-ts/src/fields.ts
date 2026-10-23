@@ -11,8 +11,9 @@
    tall one adds the shadow and the ridges.
    Teal Peach Wisp is teal-peach in another shape and a bluer key: fitted
    from a card with pink-peach wisps that cross a cerulean field on a
-   diagonal, over a deep blue at the lower left. Its pinks turn toward
-   peach and are a little more saturated than the card's.
+   diagonal, over a deeper blue at the lower left. Its pinks turn toward
+   peach and are a little more saturated than the card's, and its darks are
+   lifted to a mid blue.
    Onyx Dusk is drawn, not fitted: three folds across near-black that converge
    on the right. The lit edge runs from warm silver to slate blue, and a pale
    blue rim lights one corner; the lower fold is graphite, with no brown.
@@ -80,7 +81,7 @@ const PHOTO_FIELDS = {
   'desert-dawn':
     'scz7ydj/zt381+P/4On84ur94+v/4en82eT/zt39yNT/uMz7s836ydn/0N792OT/4er95Ov95ez/4ur92uT/0N39yNb/us36r8z7yNf/zd382OP/3er84en+4er/3+n72OP/zN39xtP+tsz8uM75y9v/0+L/3Of65ez+6u/+6vD+6O//3+j81uH/ydn/wc/2z9Le29rm4Ob16Ov+6e7+6vH88fP67fD76uv94eLx29bh1NLf2crC6tnO7trG9eLK++fS//Dg9e/k++ra+uHH9NfC7tfL4si867uQ+sSa/c+n/9e+9trH59zP/+LK+NrF+NXD+s6q972T7LaM4plv7qmA+LCM8LaY/7+d/8ih7MCw/8Cl/baT/6mG9KSA6pN07IKE9IN/9IiC/5aJ+ZWVx4+k/6CR85OS9ZCV3oyW4n+N1XuMH0NhKGCRG1+cBWGvAF62AGK9AGK8IGmwM2ucOVmBNVVzJTpRFAAAEAAHKh8sNyQsSi01SScvPSguHhMbJAsOIA4RHAgRHAgRAgcPCw0YBgcSBgsZAw4dBw0YBQsXDg0YDg8aCwoVDAoXAgML',
   'teal-peach-wisp':
-    't8Da/8W0+djC+dbP4tDqDpfOIpfQD5nSD5fRD5jREJnSD57WlbnY4Li898O648TD/+vckMHqDp7OK5jSL6HUD57UFJ7VGKDXnbnZ0rrI1cLK3cHJ39jN/9LPlcTpD5fQD5LRD5bTEqHXD5/Wd7PV6K++/86y/9qx/8i738TQ/9LJ/8nLqcvmD6raH57VLKPYNJ3HIpzGbavUWqvaYrDYq8Dg8Li73cjY/8HA7M/kD6bdD6fc/7uoDHmwMYy0IIu0UZy+XKLGt7XP4LO9tMPayMbb9cLNpsrmh5691Ky8Nom0LIq8DXy1E4u9HpG+T6HJvbPRt73ZmrrZd73eMIm3C2mbCmOVCEVvEVN8EWKSDHWoFoe3OpbAfqnKoLLPwL/cDD5kJFJ3EkFjEENmCD5hDUdsFU96El6ODWyeDYC0DpHCD6LVCTRYCEt1ClF9DmKSE3GjEIGzDo2+EZPDHJnHJ6HLMa3YJafQCjFWDkNmDkx2El2LD2GOE2KRFGCPFGaYDnOjDYa8DpTBELDfCTVZCTpeDVN+D2OXFnapD4W3D4/BD429EJHDEpjGE6zYE63b',
+    'ucLc/8W0+djC+dbP49HrD5nSI5nTD5vWD5nUD5rVEJzVD6DYl7vb4bm+98O65MXE/+vckcHrD6HSLJvVL6PXD6DXFKDYGKLanrvc1b3L2MTN38PL4dnP/9LPlcXqD5rTD5TUD5nWEqPaD6HZebXY6a+//86y/9qx/8i74cXR/9LJ/8nLqsznD6vcH6DYLaXbNaHMI6DLbq7XW63cY7LbrMLi8Li73snZ/8HA7c/lEKffEKje/7uoDYC6NJK9IZK9VKHFXqfLurjT4rS+tcXcysjd9sLNp8rni6TE16+/OY+9LpDDDYK9FJDDH5bFUKXOwLbUub/bnLzbeL/gMo+/DHOrDG6nClqPFGWXE26lDX20F42/PJvGga3Oo7XTwsHeEVWKLGaUGlqJFluLC1eIEV2OGmKWFGuiDnatDYa9DpbID6TYDU6ECl6TDGKYD2+lFHqwEYi8DpLFEZjIHZ3MKKXPMq/bJqnUEEuDE1uLEV+UFWugEW+iFW+kF22jFnKpD3ywDovDDpjHELHhDk6EDFOHEGSYEW+oGH60EIu/EJPHEJLEEJXIEpzLFK7aE6/d',
 } as const;
 
 export type GrainFieldName = keyof typeof PHOTO_FIELDS;

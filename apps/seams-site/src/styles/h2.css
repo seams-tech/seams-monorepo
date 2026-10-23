@@ -18,7 +18,7 @@
   --h2-taupe: #f5f3f1;
   --h2-stone: #ebe8e4;
   /* the teal-peach-wisp field's colours, shown until its first frame */
-  --h2-gradient-wisp: linear-gradient(160deg, #eebcc0 0%, #2f97c8 45%, #104c76 100%);
+  --h2-gradient-wisp: linear-gradient(160deg, #eebcc0 0%, #2f97c8 45%, #1f6699 100%);
   /* structural hairlines (column borders, rules): a half step lighter than
      component outlines so the grid recedes but stays visible */
   --h2-line: #f2f0ed;
@@ -523,11 +523,10 @@ body:has(.h2-page) {
   grid-template-columns: minmax(0, 1fr) minmax(0, 392px);
   align-items: center;
   gap: 48px;
-  min-height: 560px;
   background: var(--h2-gradient-wisp);
   border-radius: var(--h2-radius-card);
   /* the top clears the floating navbar pill */
-  padding: 112px 56px 56px;
+  padding: 96px 56px 44px;
 }
 
 .h2-hero-simple--panel .h2-hero-simple__title {
@@ -567,7 +566,6 @@ body:has(.h2-page) {
   .h2-hero-simple--panel > .h2-shell {
     grid-template-columns: minmax(0, 1fr);
     gap: 40px;
-    min-height: 0;
   }
 
   .h2-hero-simple--panel .h2-policy {
@@ -612,6 +610,10 @@ body:has(.h2-page) {
 
   .h2-hero-simple--panel .h2-hero-simple__copy {
     padding: 0 4px;
+  }
+
+  .h2-hero-simple--panel .h2-policy {
+    --h2-policy-rows: 3;
   }
 }
 
@@ -665,9 +667,12 @@ body:has(.h2-page) {
   font-variant-numeric: tabular-nums;
 }
 
-/* four rows tall; the fifth row waits below the edge */
+/* four rows tall (three on phones); the rows past the edge wait below it */
 .h2-policy__window {
-  height: calc(4 * var(--h2-policy-row) + 3 * var(--h2-policy-gap));
+  height: calc(
+    var(--h2-policy-rows, 4) * var(--h2-policy-row) + (var(--h2-policy-rows, 4) - 1) *
+      var(--h2-policy-gap)
+  );
   overflow: hidden;
   border-radius: 12px;
 }

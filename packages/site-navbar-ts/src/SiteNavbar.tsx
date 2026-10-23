@@ -132,6 +132,25 @@ export type SiteNavbarProps = NavbarStaticProps & {
   languageSelector?: React.ReactNode;
 };
 
+/* A mobile menu section that slides open: the outer grid track grows from
+   0fr to 1fr, so the height follows the content with no measuring, and the
+   inner clip hides the rows while it is short. Closed rows stay hidden from
+   focus and assistive tech through `visibility`, which flips only after the
+   collapse ends. */
+function MobileSubmenu({
+  open,
+  children,
+}: {
+  open: boolean;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <div className={`navbar-static__mobile-submenu${open ? ' is-open' : ''}`}>
+      <div className="navbar-static__mobile-submenu-inner">{children}</div>
+    </div>
+  );
+}
+
 export function SiteNavbar({
   appearance = 'auto',
   layout = 'page',
@@ -753,7 +772,7 @@ export function SiteNavbar({
             aria-hidden
           />
         </button>
-        <div className={`navbar-static__mobile-submenu${isMobileProductsOpen ? ' is-open' : ''}`}>
+        <MobileSubmenu open={isMobileProductsOpen}>
           <section className="navbar-static__mobile-section">
             <h3 className="navbar-static__mobile-section-title">
               {documentationDropdownPane.kicker}
@@ -773,7 +792,7 @@ export function SiteNavbar({
               );
             })}
           </section>
-        </div>
+        </MobileSubmenu>
         <button
           type="button"
           className="navbar-static__mobile-link navbar-static__mobile-link--button"
@@ -792,9 +811,7 @@ export function SiteNavbar({
             aria-hidden
           />
         </button>
-        <div
-          className={`navbar-static__mobile-submenu${isMobileDocumentationOpen ? ' is-open' : ''}`}
-        >
+        <MobileSubmenu open={isMobileDocumentationOpen}>
           <section className="navbar-static__mobile-section">
             <h3 className="navbar-static__mobile-section-title">{productsDropdownPane.kicker}</h3>
             {productsDropdownPane.rows.map((row) => {
@@ -812,7 +829,7 @@ export function SiteNavbar({
               );
             })}
           </section>
-        </div>
+        </MobileSubmenu>
         <button
           type="button"
           className="navbar-static__mobile-link navbar-static__mobile-link--button"
@@ -831,7 +848,7 @@ export function SiteNavbar({
             aria-hidden
           />
         </button>
-        <div className={`navbar-static__mobile-submenu${isMobileAboutOpen ? ' is-open' : ''}`}>
+        <MobileSubmenu open={isMobileAboutOpen}>
           <section className="navbar-static__mobile-section">
             <h3 className="navbar-static__mobile-section-title">{aboutDropdownPane.kicker}</h3>
             {aboutDropdownPane.rows.map((row) => {
@@ -857,7 +874,7 @@ export function SiteNavbar({
             <span>{labels.companyOverview}</span>
             <small>{labels.companyMission}</small>
           </a>
-        </div>
+        </MobileSubmenu>
         <button
           type="button"
           className="navbar-static__mobile-link navbar-static__mobile-link--button"
@@ -876,7 +893,7 @@ export function SiteNavbar({
             aria-hidden
           />
         </button>
-        <div className={`navbar-static__mobile-submenu${isMobilePricingOpen ? ' is-open' : ''}`}>
+        <MobileSubmenu open={isMobilePricingOpen}>
           <section className="navbar-static__mobile-section">
             <h3 className="navbar-static__mobile-section-title">{pricingDropdownPane.kicker}</h3>
             {pricingDropdownPane.rows.map((row) => {
@@ -908,7 +925,7 @@ export function SiteNavbar({
               </a>
             );
           })}
-        </div>
+        </MobileSubmenu>
         <div className="navbar-static__mobile-cta-row">
           <a
             className="navbar-static__pill navbar-static__pill--solid"

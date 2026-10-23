@@ -6889,10 +6889,10 @@ select.dashboard-input {
   display: grid;
   gap: 14px;
   padding: 22px 24px 20px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #edf1f5;
   background:
-    radial-gradient(120% 160% at 0% 0%, #f8fafc 0%, rgba(248, 250, 252, 0) 55%),
-    linear-gradient(115deg, #f1f5f9 0%, #e2e8f0 52%, #cbd5e1 100%);
+    radial-gradient(120% 160% at 0% 0%, #ffffff 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(115deg, #f8fafc 0%, #f1f5f9 52%, #e2e8f0 100%);
   color: #0f172a;
 }
 

@@ -113,7 +113,10 @@ export function DashboardAuthCard({
           <h1 id={titleId}>{title}</h1>
         </div>
       </div>
-      <p className={classNames.copy}>{description}</p>
+      {/* keyed so that a new status line can fade in */}
+      <p key={description} className={classNames.copy}>
+        {description}
+      </p>
       <div className={classNames.ctaGroup}>{providerButtons}</div>
       {note ? <p className={classNames.note}>{note}</p> : null}
       {errorMessage ? (

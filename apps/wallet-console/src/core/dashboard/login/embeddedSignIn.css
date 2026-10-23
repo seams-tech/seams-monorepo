@@ -29,8 +29,10 @@
   max-width: 384px;
 }
 
-/* Each state of the dialog's sign-in comes in like the navbar's menu panes: a
-   blur crossfade with a short slide from the direction of travel. */
+/* The dialog's card comes in once, like the navbar's menu panes: a blur
+   crossfade with a short slide from the direction of travel. After that only
+   the status line changes, with a plain crossfade, so a signed-in visitor sees
+   one calm card on the way to the dashboard. */
 .dashboard-login-embedded__state {
   animation: dashboard-login-embedded-state-in 250ms cubic-bezier(0.5, 1, 0.89, 1) both;
 }
@@ -43,8 +45,36 @@
   }
 }
 
+.dashboard-login-embedded .dashboard-login__form-copy {
+  animation: dashboard-login-embedded-status-in 200ms ease-out both;
+}
+
+@keyframes dashboard-login-embedded-status-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Hidden buttons keep their space, during the session check and during the
+   account setup, so the dialog keeps one size from its first paint. */
+.dashboard-login-embedded .dashboard-login__provider-buttons {
+  transition:
+    opacity 200ms ease-out,
+    visibility 200ms;
+}
+
+.dashboard-login-embedded .dashboard-login__provider-buttons--hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .dashboard-login-embedded__state {
+  .dashboard-login-embedded__state,
+  .dashboard-login-embedded .dashboard-login__form-copy {
     animation: none;
+  }
+
+  .dashboard-login-embedded .dashboard-login__provider-buttons {
+    transition: none;
   }
 }

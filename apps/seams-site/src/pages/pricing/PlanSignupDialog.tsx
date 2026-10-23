@@ -19,7 +19,8 @@ export type SignupOffer = {
  */
 const EMBEDDED_SIGN_IN_SOURCE = 'seams-console-sign-in';
 const STRIPE_CHECKOUT_ORIGIN = 'https://checkout.stripe.com';
-const FRAME_DEFAULT_HEIGHT = 260;
+// the sign-in card's height at desktop width, so the dialog opens at its final size
+const FRAME_DEFAULT_HEIGHT = 200;
 const FRAME_MAX_HEIGHT = 720;
 
 type EmbeddedSignInMessage =
@@ -59,6 +60,9 @@ export function PlanSignupDialog({
   const dialogRef = React.useRef<HTMLDialogElement>(null);
   const frameRef = React.useRef<HTMLIFrameElement>(null);
   const [frameHeight, setFrameHeight] = React.useState(FRAME_DEFAULT_HEIGHT);
+  /* Set as the tab leaves for the dashboard or Stripe: the page behind the dialog
+     fades to white, the colour both of them first paint, so the change is no cut. */
+  const [leaving, setLeaving] = React.useState(false);
   const open = offer !== null;
   /* The dialog keeps its last plan while it fades out, and each opening loads a
      fresh frame. */
@@ -81,6 +85,7 @@ export function PlanSignupDialog({
     if (!dialog) return;
     if (open && !dialog.open) {
       setFrameHeight(FRAME_DEFAULT_HEIGHT);
+      setLeaving(false);
       dialog.showModal();
     }
     if (!open && dialog.open) dialog.close();
@@ -108,6 +113,7 @@ export function PlanSignupDialog({
         return;
       }
       if (isSignupDestination(message.url, consoleOrigin)) {
+        setLeaving(true);
         window.location.assign(message.url.href);
       }
     };
@@ -118,7 +124,7 @@ export function PlanSignupDialog({
   return (
     <dialog
       ref={dialogRef}
-      className="h2-page plan-signup"
+      className={leaving ? 'h2-page plan-signup plan-signup--leaving' : 'h2-page plan-signup'}
       aria-label={shown ? t('signupDialogLabel').replace('{plan}', shown.name) : undefined}
       onClick={(event) => {
         // a click on the backdrop lands on the dialog element itself

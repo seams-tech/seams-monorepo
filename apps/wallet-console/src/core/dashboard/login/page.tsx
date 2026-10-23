@@ -201,6 +201,7 @@ export function DashboardLoginPage(): React.JSX.Element {
     configured: false,
   });
   const [initializing, setInitializing] = React.useState<boolean>(true);
+  const [providerOptionsLoaded, setProviderOptionsLoaded] = React.useState(false);
   const [loadingProvider, setLoadingProvider] = React.useState<'google' | 'github' | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [googleConfigured, setGoogleConfigured] = React.useState<boolean>(false);
@@ -352,6 +353,7 @@ export function DashboardLoginPage(): React.JSX.Element {
         if (!cancelled) {
           setGoogleConfigured(false);
           setGithubOptions({ configured: false });
+          setProviderOptionsLoaded(true);
         }
         return;
       }
@@ -367,6 +369,7 @@ export function DashboardLoginPage(): React.JSX.Element {
       if (githubResult.status === 'fulfilled') {
         setGithubOptions(githubResult.value);
       }
+      setProviderOptionsLoaded(true);
     };
     void run();
     window.addEventListener('focus', run);
@@ -525,6 +528,14 @@ export function DashboardLoginPage(): React.JSX.Element {
     googleConfigured,
     githubConfigured: githubOptions.configured,
   });
+  /* The dialog shows one card of one size: the plan title stays, and the buttons
+     show only after the session check and the provider options and before the
+     account setup, so a signed-in visitor never sees them. Only the status line
+     changes. */
+  const embedded = presentation === 'embedded';
+  const embeddedBusy = embedded && preparingPlan !== null;
+  const embeddedProvidersHidden =
+    embeddedBusy || (embedded && (initializing || !providerOptionsLoaded));
   const authCard = (
     <DashboardAuthCard
       classNames={{
@@ -532,7 +543,9 @@ export function DashboardLoginPage(): React.JSX.Element {
         header: 'dashboard-login__form-header',
         heading: 'dashboard-login__form-heading',
         copy: 'dashboard-login__form-copy',
-        ctaGroup: 'dashboard-login__provider-buttons',
+        ctaGroup: embeddedProvidersHidden
+          ? 'dashboard-login__provider-buttons dashboard-login__provider-buttons--hidden'
+          : 'dashboard-login__provider-buttons',
         ctaButton: 'dashboard-login__auth-button',
         ctaIcon: 'dashboard-login__auth-button-icon',
         note: 'dashboard-login__form-note',
@@ -544,7 +557,7 @@ export function DashboardLoginPage(): React.JSX.Element {
           ? githubPopupSignedIn
             ? 'Signed in with GitHub'
             : 'Continue with GitHub'
-          : preparingPlan
+          : preparingPlan && !embedded
             ? 'Setting up your account'
             : signedOut
               ? 'Signed out'
@@ -570,7 +583,11 @@ export function DashboardLoginPage(): React.JSX.Element {
                     : 'Sign in to the Seams console'
       }
       providers={presentation === 'github_popup' ? [] : providers}
-      note={presentation === 'github_popup' && githubOptions.configured ? '' : footerNote}
+      note={
+        (presentation === 'github_popup' && githubOptions.configured) || embeddedProvidersHidden
+          ? ''
+          : footerNote
+      }
       errorMessage={errorMessage}
     />
   );
@@ -586,10 +603,8 @@ export function DashboardLoginPage(): React.JSX.Element {
         }
         aria-label="Sign in to Seams"
       >
-        {/* A new state (signing in, setting up, opening Stripe) crossfades in. */}
-        <div key={preparingPlan ?? 'sign-in'} className="dashboard-login-embedded__state">
-          {authCard}
-        </div>
+        {/* The card fades in once; later states change only the status line. */}
+        <div className="dashboard-login-embedded__state">{authCard}</div>
       </main>
     );
   }

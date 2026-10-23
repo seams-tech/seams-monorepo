@@ -823,6 +823,12 @@
   backdrop-filter: blur(0);
 }
 
+/* As the tab leaves for the dashboard or Stripe, the page behind the dialog
+   fades to their white, and the dialog stays with its status line. */
+.plan-signup--leaving[open]::backdrop {
+  background-color: #ffffff;
+}
+
 @starting-style {
   .h2-page.plan-signup[open] {
     opacity: 0;

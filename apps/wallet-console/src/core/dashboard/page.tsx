@@ -1243,6 +1243,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
             key={consoleSession.claims?.orgId}
             variant="dashboard"
             canManageBilling={canDashboardManageBilling(consoleSession.claims)}
+            orgId={consoleSession.claims?.orgId}
           />
         ) : null}
 

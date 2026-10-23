@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSiteRouter } from '@core/router/useSiteRouter';
 import {
   dashboardPlanName,
   getDashboardBillingPlan,
@@ -8,6 +9,26 @@ import {
   type DashboardFreePlanBanner,
   type DashboardFreePlanLimit,
 } from './freePlanApi';
+
+function growthMoveDismissKey(orgId: string, startedAt: string): string {
+  return `seams.console.growthMoveDismissed:${orgId}:${startedAt}`;
+}
+
+function readDismissed(key: string): boolean {
+  try {
+    return window.localStorage.getItem(key) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeDismissed(key: string): void {
+  try {
+    window.localStorage.setItem(key, '1');
+  } catch {
+    // Storage can be blocked; the banner then stays hidden for this page view only.
+  }
+}
 
 function utcDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -19,10 +40,12 @@ function utcDate(iso: string): string {
 }
 
 function limitLabel(limit: DashboardFreePlanLimit): string {
-  return limit === 'active_users' ? '300 production monthly active users' : '30,000 production signatures';
+  return limit === 'active_users'
+    ? '300 production monthly active users'
+    : '30,000 production signatures';
 }
 
-function bannerMessage(banner: DashboardFreePlanBanner): string {
+function bannerMessage(banner: Exclude<DashboardFreePlanBanner, { kind: 'growth_move' }>): string {
   switch (banner.kind) {
     case 'card_due':
       return `Add a card by ${utcDate(banner.deadlineAt)} to keep production running. We do not charge it while you stay inside the Free limits.`;
@@ -34,8 +57,6 @@ function bannerMessage(banner: DashboardFreePlanBanner): string {
         : `You used 80% of a Free limit (${limitLabel(banner.limit)}). Add a card before the limit, or production sign-ups and signing stop.`;
     case 'free_limit_reached':
       return `Production sign-ups or signing are paused: you reached ${limitLabel(banner.limit)}. Add a card to move to Growth.`;
-    case 'growth_move':
-      return `Your organization moved to Growth: $${(banner.monthlyBaseMinor / 100).toFixed(0)} a month from ${utcDate(banner.startedAt)}.`;
   }
 }
 
@@ -60,14 +81,18 @@ function planSummary(plan: DashboardBillingPlan): string {
 
 /**
  * Free plan banners. The billing page variant also shows the plan summary, offers card
- * setup, and verifies a card setup return through the Console.
+ * setup, and verifies a card setup return through the Console. On the dashboard the
+ * Growth move notice links to billing and can be dismissed per organization.
  */
 export function FreePlanBanners(props: {
   readonly variant: 'dashboard' | 'billing';
   readonly canManageBilling: boolean;
+  readonly orgId?: string;
   readonly search?: string;
 }): React.ReactElement | null {
+  const { linkProps } = useSiteRouter();
   const [plan, setPlan] = React.useState<DashboardBillingPlan | null>(null);
+  const [dismissedKeys, setDismissedKeys] = React.useState<ReadonlySet<string>>(new Set());
   const [message, setMessage] = React.useState('');
   const [starting, setStarting] = React.useState(false);
   const reconciledRef = React.useRef('');
@@ -122,24 +147,79 @@ export function FreePlanBanners(props: {
   }, []);
 
   if (!plan && !message) return null;
-  const banners = plan?.banners ?? [];
+  const dismissible = props.variant === 'dashboard';
+  const isDismissed = (banner: DashboardFreePlanBanner): boolean => {
+    if (!dismissible || banner.kind !== 'growth_move') return false;
+    const key = growthMoveDismissKey(props.orgId ?? '', banner.startedAt);
+    return dismissedKeys.has(key) || readDismissed(key);
+  };
+  const dismiss = (key: string): void => {
+    writeDismissed(key);
+    setDismissedKeys((current) => new Set(current).add(key));
+  };
+  const billingLink = linkProps('/dashboard/billing/account');
+  const banners = (plan?.banners ?? []).filter((banner) => !isDismissed(banner));
   const showAddCard =
     props.canManageBilling &&
     (banners.some(needsCard) || (props.variant === 'billing' && plan?.card.kind !== 'usable'));
   if (props.variant === 'dashboard' && banners.length === 0) return null;
   return (
     <section className="dashboard-view__section" aria-label="Plan notices">
-      {banners.map((banner) => (
-        <div
-          key={banner.kind}
-          className={
-            banner.kind === 'growth_move' ? 'dashboard-info-banner' : 'dashboard-warning-banner'
-          }
-          role={banner.kind === 'card_required' || banner.kind === 'free_limit_reached' ? 'alert' : 'status'}
-        >
-          <p>{bannerMessage(banner)}</p>
-        </div>
-      ))}
+      {banners.map((banner) =>
+        banner.kind === 'growth_move' ? (
+          <div key={banner.kind} className="dashboard-plan-banner" role="status">
+            <span className="dashboard-plan-banner__badge">Growth</span>
+            <div className="dashboard-plan-banner__body">
+              <p className="dashboard-plan-banner__title">Your organization moved to Growth</p>
+              <p>
+                ${(banner.monthlyBaseMinor / 100).toFixed(0)} a month from{' '}
+                {utcDate(banner.startedAt)}.
+                {dismissible ? (
+                  <>
+                    {' '}
+                    <a
+                      className="dashboard-plan-banner__link"
+                      href={billingLink.href}
+                      onClick={billingLink.onClick}
+                    >
+                      View billing
+                    </a>
+                  </>
+                ) : null}
+              </p>
+            </div>
+            {dismissible ? (
+              <button
+                type="button"
+                className="dashboard-plan-banner__close"
+                aria-label="Dismiss Growth notice"
+                onClick={() => dismiss(growthMoveDismissKey(props.orgId ?? '', banner.startedAt))}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                  <path
+                    d="M3 3l8 8M11 3l-8 8"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <div
+            key={banner.kind}
+            className="dashboard-warning-banner"
+            role={
+              banner.kind === 'card_required' || banner.kind === 'free_limit_reached'
+                ? 'alert'
+                : 'status'
+            }
+          >
+            <p>{bannerMessage(banner)}</p>
+          </div>
+        ),
+      )}
       {props.variant === 'billing' && plan ? (
         <p className="dashboard-pagination-note">{planSummary(plan)}</p>
       ) : null}

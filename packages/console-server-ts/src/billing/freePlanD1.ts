@@ -34,6 +34,7 @@ import {
   type FreePlanEvaluationV1,
   type FreePlanNoticeV1,
   type PaymentMethodStateV1,
+  type PlanStartReturnPageV1,
   type ProductionStateV1,
   type SelfServePlanKindV1,
 } from './freePlan';
@@ -261,6 +262,7 @@ export class D1FreePlanService {
   async startCardSetup(
     ctx: FreePlanContextV1,
     startPlan: SelfServePlanKindV1 | null = null,
+    returnTo: PlanStartReturnPageV1 = 'plan_page',
   ): Promise<CardSetupSessionV1> {
     assertBillingProviderAvailable(this.providers);
     const now = this.clock();
@@ -283,7 +285,12 @@ export class D1FreePlanService {
     const billingAccountId = requiredText(account.id, 'billing account id');
     const customerRef = await this.ensureCustomer(ctx.orgId, billingAccountId, now);
     const setupId = `cset_${now.getTime().toString(36)}_${secureRandomBase36(12, 'card setup id')}`;
-    const urls = buildCardSetupReturnUrls(this.consoleBaseUrl, startPlan, ctx.returnOrigin);
+    const urls = buildCardSetupReturnUrls(
+      this.consoleBaseUrl,
+      startPlan,
+      ctx.returnOrigin,
+      returnTo,
+    );
     const session = await this.providers.stripe.createCardSetupSession({
       setupId,
       orgId: ctx.orgId,

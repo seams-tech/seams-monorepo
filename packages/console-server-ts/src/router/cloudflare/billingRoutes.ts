@@ -843,7 +843,9 @@ export async function handleConsoleBillingRoutes(
       }
       if (ctx.method === 'POST' && ctx.pathname === '/console/billing/card-setup') {
         const request = parseCardSetupRequest(await readJson(ctx.request));
-        const cardSetup = await freePlan.startCardSetup(returnCtx, request.startPlan);
+        const cardSetup = request.startPlan
+          ? await freePlan.startCardSetup(returnCtx, request.startPlan, request.returnTo)
+          : await freePlan.startCardSetup(returnCtx);
         return json({ ok: true, cardSetup }, { status: 201 });
       }
       if (ctx.method === 'POST' && ctx.pathname === '/console/billing/card-setup/reconcile') {

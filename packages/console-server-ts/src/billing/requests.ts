@@ -1,6 +1,10 @@
 import { ConsoleBillingError } from './errors';
 import { isBillingCreditPackId } from './creditPacks';
-import { isSelfServePlanKind, type SelfServePlanKindV1 } from './freePlan';
+import {
+  isSelfServePlanKind,
+  type PlanStartReturnPageV1,
+  type SelfServePlanKindV1,
+} from './freePlan';
 import {
   readOptionalQueryBooleanField as readOptionalQueryBoolean,
   readOptionalQueryPositiveIntegerField as readOptionalQueryPositiveInteger,
@@ -233,19 +237,31 @@ export function parseStripeCheckoutSessionReconcileRequest(
   };
 }
 
+export type CardSetupRequestV1 =
+  | { readonly startPlan: null }
+  | { readonly startPlan: SelfServePlanKindV1; readonly returnTo: PlanStartReturnPageV1 };
+
 /** An empty body adds a card only; `startPlan` also starts that plan when the card verifies. */
-export function parseCardSetupRequest(body: unknown): {
-  readonly startPlan: SelfServePlanKindV1 | null;
-} {
+export function parseCardSetupRequest(body: unknown): CardSetupRequestV1 {
   if (body === null) return { startPlan: null };
   const obj = requireObject(body, createParseError);
   for (const key of Object.keys(obj)) {
-    if (key !== 'startPlan') {
+    if (key !== 'startPlan' && key !== 'returnTo') {
       throw new ConsoleBillingError('invalid_body', 400, `Unknown field ${key}`);
     }
   }
-  if (obj.startPlan === undefined) return { startPlan: null };
-  return { startPlan: readSelfServePlan(obj.startPlan, 'startPlan') };
+  if (obj.startPlan === undefined) {
+    if (obj.returnTo !== undefined) {
+      throw new ConsoleBillingError('invalid_body', 400, 'returnTo requires startPlan');
+    }
+    return { startPlan: null };
+  }
+  const startPlan = readSelfServePlan(obj.startPlan, 'startPlan');
+  if (obj.returnTo === undefined) return { startPlan, returnTo: 'plan_page' };
+  if (obj.returnTo !== 'plan_page' && obj.returnTo !== 'dashboard') {
+    throw new ConsoleBillingError('invalid_body', 400, 'returnTo must be plan_page or dashboard');
+  }
+  return { startPlan, returnTo: obj.returnTo };
 }
 
 export function parsePlanStartRequest(body: unknown): { readonly plan: SelfServePlanKindV1 } {

@@ -53,6 +53,13 @@ export function isSelfServePlanKind(value: unknown): value is SelfServePlanKindV
   return value === 'growth' || value === 'pro';
 }
 
+/**
+ * Where Stripe returns after a card setup that starts a plan. The plan page is the
+ * default; the pricing-page sign-up returns to the dashboard, and its cancel to the
+ * pricing page.
+ */
+export type PlanStartReturnPageV1 = 'plan_page' | 'dashboard';
+
 export type BillingPlanKindV1 = 'free' | SelfServePlanKindV1 | 'enterprise';
 export type ProductionStateV1 = 'active' | 'card_required' | 'free_limit_reached';
 export type FreePlanCardReminderDayV1 = (typeof FREE_PLAN_CARD_REMINDER_DAYS)[number];

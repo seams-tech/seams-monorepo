@@ -1,7 +1,7 @@
 import { consoleApplicationUrl, secureRandomBase36 } from '../boundary';
 import { WALLET_MONTHLY_ACTIVE_RESOURCE_PRICE_V1 } from './pricing';
 import { ConsoleBillingError } from './errors';
-import type { SelfServePlanKindV1 } from './freePlan';
+import type { PlanStartReturnPageV1, SelfServePlanKindV1 } from './freePlan';
 import { resolveCreditPackAmountMinorOrThrow } from './creditPacks';
 import {
   resolveBillingProviderAdapters,
@@ -178,20 +178,50 @@ export function buildStripeCheckoutReturnUrls(
   return buildBillingAccountReturnUrls(consoleBaseUrl, returnOrigin, 'checkout');
 }
 
-/** A card setup that starts a plan returns to the plan page, which names that plan. */
+/**
+ * A card setup that starts a plan returns to the plan page, which names that plan. The
+ * pricing-page sign-up returns to the dashboard instead, and its cancel goes back to the
+ * pricing page: the configured base URL sends `/pricing/` to the company site.
+ */
 export function buildCardSetupReturnUrls(
   consoleBaseUrl?: string,
   startPlan: SelfServePlanKindV1 | null = null,
   returnOrigin?: string,
+  returnTo: PlanStartReturnPageV1 = 'plan_page',
 ): {
   successUrl: string;
   cancelUrl: string;
 } {
   if (!startPlan) return buildBillingAccountReturnUrls(consoleBaseUrl, returnOrigin, 'card_setup');
-  return buildBillingAccountReturnUrls(consoleBaseUrl, returnOrigin, 'card_setup', {
-    pathname: '/dashboard/billing/plan',
-    query: `plan=${startPlan}`,
-  });
+  if (returnTo === 'plan_page') {
+    return buildBillingAccountReturnUrls(consoleBaseUrl, returnOrigin, 'card_setup', {
+      pathname: '/dashboard/billing/plan',
+      query: `plan=${startPlan}`,
+    });
+  }
+  const { successUrl } = buildBillingAccountReturnUrls(
+    consoleBaseUrl,
+    returnOrigin,
+    'card_setup',
+    { pathname: '/dashboard/overview', query: `plan=${startPlan}` },
+  );
+  const pricing = new URL('/pricing/', parseConsoleBaseUrl(consoleBaseUrl));
+  pricing.searchParams.set('card_setup', 'cancel');
+  return { successUrl, cancelUrl: pricing.href };
+}
+
+function parseConsoleBaseUrl(consoleBaseUrl: string | undefined): URL {
+  const normalized = String(consoleBaseUrl || DEFAULT_CONSOLE_BASE_URL).trim();
+  let parsed: URL;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    throw new Error('Console base URL must be an absolute HTTP or HTTPS URL');
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Console base URL must use HTTP or HTTPS');
+  }
+  return parsed;
 }
 
 function buildBillingAccountReturnUrls(
@@ -206,16 +236,7 @@ function buildBillingAccountReturnUrls(
   successUrl: string;
   cancelUrl: string;
 } {
-  const normalized = String(consoleBaseUrl || DEFAULT_CONSOLE_BASE_URL).trim();
-  let parsed: URL;
-  try {
-    parsed = new URL(normalized);
-  } catch {
-    throw new Error('Console base URL must be an absolute HTTP or HTTPS URL');
-  }
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error('Console base URL must use HTTP or HTTPS');
-  }
+  let parsed = parseConsoleBaseUrl(consoleBaseUrl);
   if (returnOrigin) {
     const calling = new URL(returnOrigin);
     calling.search = parsed.search;

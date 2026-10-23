@@ -502,8 +502,10 @@ body:has(.h2-page) {
   }
 }
 
-/* Sage variant: the hero content sits on a rounded panel carrying an
-   Andon-style sage gradient with light ink on top. */
+/* Sage variant: the hero content sits on a rounded panel with light ink on
+   top. The home page draws a moving sage GrainField as the shell's first
+   child, with the headline at the left and the policy card at the right; the
+   flat sage gradient shows until the field's first frame. */
 .h2-hero-simple--sage {
   padding: 2rem 0 1rem;
 }
@@ -513,17 +515,62 @@ body:has(.h2-page) {
 }
 
 .h2-hero-simple--sage > .h2-shell {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 392px);
+  align-items: center;
+  gap: 48px;
+  min-height: 560px;
   background: var(--h2-gradient-sage);
   border-radius: var(--h2-radius-card);
-  padding: 10rem 56px 72px;
+  /* the top clears the floating navbar pill */
+  padding: 112px 56px 56px;
 }
 
 .h2-hero-simple--sage .h2-hero-simple__title {
   color: #ffffff;
 }
 
+/* each sentence starts its own line; the second one is quieter */
+.h2-hero-simple--sage .h2-hero-simple__title > span {
+  display: block;
+  text-wrap: balance;
+}
+
+.h2-hero-simple--sage .h2-hero-simple__title-muted {
+  color: rgba(255, 255, 255, 0.66);
+}
+
 .h2-hero-simple--sage .h2-hero-simple__sub {
   color: rgba(255, 255, 255, 0.9);
+}
+
+.h2-hero-simple--sage .h2-hero-simple__title,
+.h2-hero-simple--sage .h2-hero-simple__sub {
+  text-shadow: 0 1px 12px rgba(10, 10, 10, 0.12);
+}
+
+.h2-hero-simple--sage .h2-hero-simple__ctas {
+  margin-top: 28px;
+}
+
+/* white on the field: the outline button needs no grey border */
+.h2-hero-simple--sage .h2-btn--outline {
+  border-color: transparent;
+}
+
+@media (max-width: 1000px) {
+  .h2-hero-simple--sage > .h2-shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+    min-height: 0;
+  }
+
+  .h2-hero-simple--sage .h2-policy {
+    justify-self: start;
+  }
 }
 
 @media (max-width: 900px) {
@@ -532,7 +579,225 @@ body:has(.h2-page) {
   }
 
   .h2-hero-simple--sage > .h2-shell {
-    padding: 76px 28px 54px;
+    padding: 76px 28px 28px;
+  }
+}
+
+@media (max-width: 560px) {
+  .h2-hero-simple--sage > .h2-shell {
+    gap: 32px;
+    padding: 64px 16px 16px;
+  }
+
+  .h2-hero-simple--sage .h2-hero-simple__copy {
+    padding: 0 4px;
+  }
+}
+
+/* ---------- policy card: the home hero's live feed of checked actions ---------- */
+
+.h2-policy {
+  --h2-policy-row: 52px;
+  --h2-policy-gap: 6px;
+  width: 100%;
+  max-width: 392px;
+  justify-self: end;
+  padding: 12px;
+  border-radius: 18px;
+  color: var(--h2-ink);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  box-shadow:
+    0 28px 56px -28px rgba(10, 10, 10, 0.42),
+    0 2px 8px rgba(10, 10, 10, 0.06);
+}
+
+.h2-policy__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 4px 10px;
+}
+
+.h2-policy__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--h2-text-xl);
+  font-weight: 500;
+}
+
+.h2-policy__live {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--h2-green);
+  animation: h2-policy-live 2.4s ease-out infinite;
+}
+
+.h2-policy__count {
+  font-size: var(--h2-text-sm);
+  color: var(--h2-smoke);
+  font-variant-numeric: tabular-nums;
+}
+
+/* four rows tall; the fifth row waits below the edge */
+.h2-policy__window {
+  height: calc(4 * var(--h2-policy-row) + 3 * var(--h2-policy-gap));
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.h2-policy__list {
+  display: grid;
+  grid-auto-rows: var(--h2-policy-row);
+  gap: var(--h2-policy-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.h2-policy__list.is-moving {
+  animation: h2-policy-step 520ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.h2-policy__row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: var(--h2-bg);
+  border: 1px solid var(--h2-line);
+}
+
+.h2-policy__row.is-new {
+  animation: h2-policy-arrive 520ms ease-out both;
+}
+
+.h2-policy__agent {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--h2-taupe);
+  color: var(--h2-graphite);
+}
+
+.h2-policy__agent svg {
+  width: 15px;
+  height: 15px;
+}
+
+.h2-policy__main {
+  display: grid;
+  min-width: 0;
+}
+
+.h2-policy__action,
+.h2-policy__main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.h2-policy__action {
+  font-size: var(--h2-text-lg);
+  font-weight: 500;
+}
+
+.h2-policy__main small {
+  font-size: var(--h2-text-sm);
+  color: var(--h2-smoke);
+}
+
+/* "Checking" and the verdict share one cell; the verdict replaces it */
+.h2-policy__verdict {
+  display: grid;
+  justify-items: end;
+}
+
+.h2-policy__verdict > * {
+  grid-area: 1 / 1;
+}
+
+.is-new .h2-policy__checking {
+  animation: h2-policy-out 200ms ease 1100ms both;
+}
+
+.is-new .h2-policy__result {
+  animation: h2-policy-in 260ms ease 1200ms both;
+}
+
+.h2-policy__foot {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 4px 1px;
+  font-size: var(--h2-text-sm);
+  color: var(--h2-smoke);
+}
+
+.h2-policy__foot svg {
+  width: 13px;
+  height: 13px;
+}
+
+@keyframes h2-policy-step {
+  from {
+    transform: translateY(calc(-1 * (var(--h2-policy-row) + var(--h2-policy-gap))));
+  }
+}
+
+@keyframes h2-policy-arrive {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes h2-policy-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes h2-policy-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes h2-policy-live {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--h2-green) 45%, transparent);
+  }
+
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--h2-green) 0%, transparent);
+  }
+}
+
+@media (max-width: 560px) {
+  .h2-policy {
+    max-width: none;
+    padding: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h2-policy__live,
+  .h2-policy__list.is-moving,
+  .h2-policy__row.is-new,
+  .is-new .h2-policy__checking,
+  .is-new .h2-policy__result {
+    animation: none;
   }
 }
 

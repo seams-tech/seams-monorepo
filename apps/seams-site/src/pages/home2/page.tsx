@@ -1,11 +1,13 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, Slack, Store, Wallet } from 'lucide-react';
+import { GrainField, type GeneratedField } from '@seams-internal/grain-field';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import {
   DashboardWindow,
   IntegrationsWindow,
   WalletTransactionPreview,
 } from '@/components/h2/SceneHero';
+import { PolicyFeed } from '@/components/h2/PolicyFeed';
 import { SeamsAuthMenuMock } from '@/components/h2/SeamsAuthMenuMock';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import {
@@ -61,6 +63,18 @@ function renderHeroWalletPreview(preview: HeroWalletPreview): React.JSX.Element 
 
 /* ---------- hero: headline + paged scenes ---------- */
 
+/* The headline panel keeps the sage of the old flat gradient as a moving
+   field: white to near-black through sage, dark under the headline at the
+   lower left and light behind the policy card at the upper right. */
+const HOME_HERO_FIELD: GeneratedField = {
+  accents: ['#c2d4ca', '#6e8d80'],
+  angle: 240,
+  seed: 11,
+};
+
+/* half the site pace, so the field stays calm behind the headline */
+const HOME_HERO_FIELD_PACE = 0.5;
+
 type HeroScene = {
   id: string;
   icon: React.ComponentType<{ 'aria-hidden'?: boolean }>;
@@ -104,29 +118,34 @@ function HomeHeroCurrent(): React.JSX.Element {
     <>
       <header className="h2-hero-simple h2-hero-simple--sage" aria-labelledby="h2-home-title">
         <div className="h2-shell">
-          <h1 id="h2-home-title" className="h2-display h2-hero-simple__title">
-            Ecommerce on autopilot. Embedded wallets made simple.
-          </h1>
-          <p className="h2-hero-simple__sub">
-            Auth, wallets, credentials, and delegated access in one SDK. Policy checks every action
-            before it runs.
-          </p>
-          <div className="h2-hero-simple__ctas">
-            <a
-              className="h2-btn h2-btn--primary h2-btn--lg"
-              href={startProps.href}
-              onClick={startProps.onClick}
-            >
-              Start building
-            </a>
-            <a
-              className="h2-btn h2-btn--outline h2-btn--lg"
-              href={contactProps.href}
-              onClick={contactProps.onClick}
-            >
-              Contact sales
-            </a>
+          <GrainField field={HOME_HERO_FIELD} pace={HOME_HERO_FIELD_PACE} />
+          <div className="h2-hero-simple__copy">
+            <h1 id="h2-home-title" className="h2-display h2-hero-simple__title">
+              <span>Ecommerce on autopilot.</span>{' '}
+              <span className="h2-hero-simple__title-muted">Embedded wallets made simple.</span>
+            </h1>
+            <p className="h2-hero-simple__sub">
+              Auth, wallets, credentials, and delegated access in one SDK. Policy checks every
+              action before it runs.
+            </p>
+            <div className="h2-hero-simple__ctas">
+              <a
+                className="h2-btn h2-btn--primary h2-btn--lg"
+                href={startProps.href}
+                onClick={startProps.onClick}
+              >
+                Start building
+              </a>
+              <a
+                className="h2-btn h2-btn--outline h2-btn--lg"
+                href={contactProps.href}
+                onClick={contactProps.onClick}
+              >
+                Contact sales
+              </a>
+            </div>
           </div>
+          <PolicyFeed />
         </div>
       </header>
 

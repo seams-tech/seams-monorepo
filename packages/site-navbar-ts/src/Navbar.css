@@ -139,7 +139,9 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   transition: background-color 150ms ease;
 }
 
+/* the logo keeps its ink on hover; a page's link hover colour must not tint it */
 .navbar-static__brand:hover {
+  color: var(--navbar-text);
   background: transparent;
 }
 

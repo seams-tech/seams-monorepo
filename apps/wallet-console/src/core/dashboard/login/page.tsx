@@ -586,7 +586,10 @@ export function DashboardLoginPage(): React.JSX.Element {
         }
         aria-label="Sign in to Seams"
       >
-        {authCard}
+        {/* A new state (signing in, setting up, opening Stripe) crossfades in. */}
+        <div key={preparingPlan ?? 'sign-in'} className="dashboard-login-embedded__state">
+          {authCard}
+        </div>
       </main>
     );
   }

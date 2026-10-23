@@ -5,6 +5,8 @@
   display: grid;
   align-content: start;
   min-height: 0;
+  /* the state slide must not add a sideways scrollbar to the frame */
+  overflow-x: clip;
   padding: 0.25rem 0.125rem 0.375rem;
   color: #0a0a0a;
   background: #ffffff;
@@ -25,4 +27,24 @@
 .dashboard-login-embedded--popup .dashboard-login__form {
   width: 100%;
   max-width: 384px;
+}
+
+/* Each state of the dialog's sign-in comes in like the navbar's menu panes: a
+   blur crossfade with a short slide from the direction of travel. */
+.dashboard-login-embedded__state {
+  animation: dashboard-login-embedded-state-in 250ms cubic-bezier(0.5, 1, 0.89, 1) both;
+}
+
+@keyframes dashboard-login-embedded-state-in {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+    translate: 16px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-login-embedded__state {
+    animation: none;
+  }
 }

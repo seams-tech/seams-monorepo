@@ -1091,32 +1091,38 @@ textarea {
    highlight off then on, and keeps the highlight while the menu fades out over
    DASHBOARD_MENU_EXIT_MS. These rules override every item family's hover,
    focus and selected styles for the length of the blink, hence !important. */
-/* A menu opens with a short fade and rise from its trigger, and closes with a
-   shorter fade and settle. The palette's panel rises over its fading backdrop.
-   `translate` and `scale` leave each menu's own `transform` alone. */
+/* Menus move like the site navbar's menus: they open with a soft scale and a
+   6px drop from the trigger (220ms), and close by lifting and fading. The
+   palette's panel drops in the same way over a fading backdrop. `translate` and
+   `scale` leave each menu's own `transform` alone. */
 .dashboard-menu {
-  transform-origin: top center;
-  animation: dashboard-menu-enter 170ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: top left;
+  animation: dashboard-menu-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.dashboard-account-menu__list {
+  transform-origin: top right;
 }
 
 .dashboard-command-palette-backdrop {
-  animation: dashboard-palette-backdrop-enter 180ms ease-out both;
+  animation: dashboard-palette-backdrop-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .dashboard-command-palette {
-  animation: dashboard-palette-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: top center;
+  animation: dashboard-menu-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .dashboard-menu.is-closing,
 .dashboard-command-palette-backdrop.is-closing {
   pointer-events: none;
-  animation: dashboard-menu-exit 160ms ease-out forwards;
+  animation: dashboard-menu-exit 160ms cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 @keyframes dashboard-menu-enter {
   from {
     opacity: 0;
-    translate: 0 -4px;
+    translate: 0 -6px;
     scale: 0.98;
   }
 }
@@ -1127,13 +1133,6 @@ textarea {
   }
 }
 
-@keyframes dashboard-palette-enter {
-  from {
-    opacity: 0;
-    translate: 0 10px;
-    scale: 0.985;
-  }
-}
 
 .dashboard-menu:has([data-blink]),
 .dashboard-command-palette-backdrop:has([data-blink]),
@@ -1144,8 +1143,8 @@ textarea {
 @keyframes dashboard-menu-exit {
   to {
     opacity: 0;
-    translate: 0 -2px;
-    scale: 0.985;
+    translate: 0 -6px;
+    scale: 0.98;
   }
 }
 
@@ -6971,9 +6970,45 @@ select.dashboard-input {
 }
 
 .dashboard-onboarding-card__body {
+  padding: 18px;
+}
+
+/* The steps area morphs to the active step's height, as the site navbar morphs
+   between menus. The 6px step padding keeps focus rings inside the clip. */
+.dashboard-onboarding-card__steps {
+  position: relative;
+  overflow: hidden;
+  transition: height 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dashboard-onboarding-card__step {
   display: grid;
   gap: 16px;
-  padding: 24px;
+  padding: 6px;
+}
+
+.dashboard-onboarding-card__step--leaving {
+  position: absolute;
+  inset: 0 0 auto;
+  pointer-events: none;
+  animation: dashboard-onboarding-step-out 200ms ease forwards;
+}
+
+.dashboard-onboarding-card__step--leaving .dashboard-onboarding-form {
+  animation: none;
+}
+
+/* The leaving step drifts 16px away from the direction of travel. */
+.dashboard-onboarding-card__step--leaving:has(.dashboard-onboarding-form--organization) {
+  --dashboard-onboarding-step-to: -16px;
+}
+
+@keyframes dashboard-onboarding-step-out {
+  to {
+    opacity: 0;
+    filter: blur(3px);
+    translate: var(--dashboard-onboarding-step-to, 16px) 0;
+  }
 }
 
 .dashboard-onboarding-form,
@@ -6983,30 +7018,36 @@ select.dashboard-input {
   min-width: 0;
 }
 
-/* A new step slides in from its side: the project from the right, the organization
-   (after Back) from the left. */
+/* A new step comes in from the direction of travel, as the navbar's menu panes
+   do: a blur crossfade and a 16px slide. The project comes from the right, the
+   organization (after Back) from the left. */
 @keyframes dashboard-onboarding-step-in {
   from {
     opacity: 0;
-    transform: translateX(var(--dashboard-onboarding-step-from, 12px));
-  }
-  to {
-    opacity: 1;
-    transform: none;
+    filter: blur(3px);
+    translate: var(--dashboard-onboarding-step-from, 16px) 0;
   }
 }
 
 .dashboard-onboarding-form {
-  animation: dashboard-onboarding-step-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: dashboard-onboarding-step-in 250ms cubic-bezier(0.5, 1, 0.89, 1) both;
 }
 
 .dashboard-onboarding-form--organization {
-  --dashboard-onboarding-step-from: -12px;
+  --dashboard-onboarding-step-from: -16px;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dashboard-onboarding-form {
     animation-name: none;
+  }
+
+  .dashboard-onboarding-card__steps {
+    transition: none;
+  }
+
+  .dashboard-onboarding-card__step--leaving {
+    display: none;
   }
 
   .dashboard-onboarding-stepper__item,
@@ -7087,9 +7128,12 @@ select.dashboard-input {
 }
 
 @media (max-width: 640px) {
-  .dashboard-onboarding-card__band,
-  .dashboard-onboarding-card__body {
+  .dashboard-onboarding-card__band {
     padding-inline: 18px;
+  }
+
+  .dashboard-onboarding-card__body {
+    padding-inline: 12px;
   }
 
   .dashboard-onboarding-form__actions .dashboard-pagination-button {
@@ -8500,7 +8544,7 @@ select.dashboard-input {
 @keyframes dashboard-mobile-navigation-enter {
   from {
     opacity: 0;
-    translate: 24px 0;
+    translate: 16px 0;
   }
 }
 
@@ -8609,7 +8653,7 @@ select.dashboard-input {
 
   .dashboard-mobile-navigation[open] {
     display: block;
-    animation: dashboard-mobile-navigation-enter 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation: dashboard-mobile-navigation-enter 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -162,6 +162,14 @@ function resolveActionableMutationError(error: unknown): string {
   return message;
 }
 
+/* Matches the leaving step's fade in styles.css. */
+const ONBOARDING_STEP_LEAVE_MS = 220;
+
+/* React 18 does not pass `inert` through, so set it on the leaving copy. */
+function markInert(node: HTMLElement | null): void {
+  node?.setAttribute('inert', '');
+}
+
 function stepperStatusLabel(status: OnboardingStepperStatus): string {
   if (status === 'current') return 'Current';
   if (status === 'done') return 'Done';
@@ -641,6 +649,147 @@ export function DashboardOnboardingPage({
           ? `Onboarding status unavailable: ${errorMessage}`
           : '';
 
+  /* The step that just left stays a moment as an inert copy, so the two steps
+     crossfade while the card morphs to the new step's height. */
+  const shownStep: OnboardingVisibleStep | null = showProjectStep
+    ? 'project'
+    : showOrganizationStep
+      ? 'organization'
+      : null;
+  const [leavingStep, setLeavingStep] = React.useState<OnboardingVisibleStep | null>(null);
+  const lastStepRef = React.useRef(shownStep);
+  React.useEffect(() => {
+    const last = lastStepRef.current;
+    lastStepRef.current = shownStep;
+    if (!last || !shownStep || last === shownStep) return;
+    setLeavingStep(last);
+    const timer = window.setTimeout(() => setLeavingStep(null), ONBOARDING_STEP_LEAVE_MS);
+    return () => window.clearTimeout(timer);
+  }, [shownStep]);
+
+  const stepsRef = React.useRef<HTMLDivElement | null>(null);
+  const [stepsHeight, setStepsHeight] = React.useState<number | null>(null);
+  // A step change sets the new height before paint, so the morph starts at once.
+  React.useLayoutEffect(() => {
+    const element = stepsRef.current;
+    if (element) setStepsHeight(element.offsetHeight);
+  }, [shownStep, statusMessage, mutationError]);
+  React.useEffect(() => {
+    const element = stepsRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => setStepsHeight(element.offsetHeight));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [onboardingComplete]);
+
+  const stepForm = (step: OnboardingVisibleStep): React.JSX.Element =>
+    step === 'organization' ? (
+      <form
+        className="dashboard-onboarding-form dashboard-onboarding-form--organization"
+        aria-label="Create organization"
+        onSubmit={onSubmitOrganization}
+      >
+        <div className="dashboard-onboarding-form__head">
+          <h2>Name your organization</h2>
+          <p>Your team sees this name in the Console. You can change it later.</p>
+        </div>
+        <label className="dashboard-form-field">
+          <span>Organization name</span>
+          <input
+            className="dashboard-input"
+            type="text"
+            name="organizationName"
+            autoComplete="organization"
+            value={orgNameInput}
+            onChange={onOrganizationNameChange}
+            onBlur={onOrganizationNameBlur}
+            placeholder="Acme Wallets"
+            aria-invalid={Boolean(orgNameValidationMessageForUi)}
+          />
+          {orgNameValidationMessageForUi ? (
+            <p className="dashboard-form-hint dashboard-form-hint--error">
+              {orgNameValidationMessageForUi}
+            </p>
+          ) : (
+            <p className="dashboard-form-hint">
+              Handle: <code>{orgSlugInput || 'acme-wallets'}</code>
+            </p>
+          )}
+        </label>
+        <div className="dashboard-onboarding-form__actions">
+          <button
+            type="submit"
+            className="dashboard-pagination-button dashboard-pagination-button--primary"
+            disabled={organizationSubmitDisabled}
+          >
+            {submitting ? 'Saving organization...' : 'Continue'}
+          </button>
+        </div>
+        {organizationResult ? (
+          <p className="dashboard-pagination-note">
+            Saved as <strong>{organizationResult.organization.name}</strong>.
+          </p>
+        ) : null}
+      </form>
+    ) : (
+      <form
+        className="dashboard-onboarding-form dashboard-onboarding-form--project"
+        aria-label="Create project"
+        onSubmit={onSubmitProjectStep}
+      >
+        <fieldset className="dashboard-onboarding-form__fieldset" disabled={projectStepLocked}>
+          <div className="dashboard-onboarding-form__head">
+            <h2>Create your first project</h2>
+            <p>
+              A project holds your app&rsquo;s wallets, keys and policies. Wallet sets itself up
+              when you open the project.
+            </p>
+          </div>
+          <label className="dashboard-form-field">
+            <span>Project name</span>
+            <input
+              className="dashboard-input"
+              type="text"
+              name="projectName"
+              autoComplete="off"
+              value={projectNameInput}
+              onChange={onProjectNameChange}
+              onBlur={onProjectNameBlur}
+              placeholder="Consumer App"
+              aria-invalid={Boolean(projectNameValidationMessageForUi)}
+            />
+            <p
+              className={`dashboard-form-hint${projectNameValidationMessageForUi ? ' dashboard-form-hint--error' : ''}`}
+            >
+              {projectNameValidationMessageForUi || 'You can rename it later.'}
+            </p>
+          </label>
+          <div className="dashboard-onboarding-form__actions">
+            <button
+              type="button"
+              className="dashboard-pagination-button dashboard-pagination-button--secondary"
+              onClick={onBackToOrganizationStep}
+              disabled={submitting}
+            >
+              Back
+            </button>
+            <button
+              type="submit"
+              className="dashboard-pagination-button dashboard-pagination-button--primary"
+              disabled={projectSubmitDisabled}
+            >
+              {submitting ? 'Creating project...' : 'Create project'}
+            </button>
+          </div>
+        </fieldset>
+        {projectResult ? (
+          <p className="dashboard-pagination-note">
+            Saved as <strong>{projectResult.project.name}</strong>.
+          </p>
+        ) : null}
+      </form>
+    );
+
   if (onboardingComplete) {
     return (
       <div className="dashboard-view" aria-label="Onboarding wizard page">
@@ -675,135 +824,39 @@ export function DashboardOnboardingPage({
         </header>
 
         <div className="dashboard-onboarding-card__body">
-          {statusMessage ? <p className="dashboard-pagination-note">{statusMessage}</p> : null}
-
-          {showOrganizationStep ? (
-            <form
-              className="dashboard-onboarding-form dashboard-onboarding-form--organization"
-              aria-label="Create organization"
-              onSubmit={onSubmitOrganization}
-            >
-              <div className="dashboard-onboarding-form__head">
-                <h2>Name your organization</h2>
-                <p>Your team sees this name in the Console. You can change it later.</p>
-              </div>
-              <label className="dashboard-form-field">
-                <span>Organization name</span>
-                <input
-                  className="dashboard-input"
-                  type="text"
-                  name="organizationName"
-                  autoComplete="organization"
-                  value={orgNameInput}
-                  onChange={onOrganizationNameChange}
-                  onBlur={onOrganizationNameBlur}
-                  placeholder="Acme Wallets"
-                  aria-invalid={Boolean(orgNameValidationMessageForUi)}
-                />
-                {orgNameValidationMessageForUi ? (
-                  <p className="dashboard-form-hint dashboard-form-hint--error">
-                    {orgNameValidationMessageForUi}
-                  </p>
-                ) : (
-                  <p className="dashboard-form-hint">
-                    Handle: <code>{orgSlugInput || 'acme-wallets'}</code>
-                  </p>
-                )}
-              </label>
-              <div className="dashboard-onboarding-form__actions">
-                <button
-                  type="submit"
-                  className="dashboard-pagination-button dashboard-pagination-button--primary"
-                  disabled={organizationSubmitDisabled}
-                >
-                  {submitting ? 'Saving organization...' : 'Continue'}
-                </button>
-              </div>
-              {organizationResult ? (
-                <p className="dashboard-pagination-note">
-                  Saved as <strong>{organizationResult.organization.name}</strong>.
-                </p>
-              ) : null}
-            </form>
-          ) : null}
-
-          {showProjectStep ? (
-            <form
-              className="dashboard-onboarding-form dashboard-onboarding-form--project"
-              aria-label="Create project"
-              onSubmit={onSubmitProjectStep}
-            >
-              <fieldset
-                className="dashboard-onboarding-form__fieldset"
-                disabled={projectStepLocked}
-              >
-                <div className="dashboard-onboarding-form__head">
-                  <h2>Create your first project</h2>
-                  <p>
-                    A project holds your app&rsquo;s wallets, keys and policies. Wallet sets itself
-                    up when you open the project.
-                  </p>
+          <div
+            className="dashboard-onboarding-card__steps"
+            style={stepsHeight === null ? undefined : { height: stepsHeight }}
+          >
+            <div ref={stepsRef} className="dashboard-onboarding-card__step">
+              {statusMessage ? <p className="dashboard-pagination-note">{statusMessage}</p> : null}
+              {shownStep ? stepForm(shownStep) : null}
+              {mutationError ? (
+                <div className="dashboard-form-alert" role="alert">
+                  <span>{mutationError}</span>
+                  {lastFailedAction ? (
+                    <button
+                      type="button"
+                      className="dashboard-inline-link"
+                      onClick={onRetryFailedMutation}
+                      disabled={submitting}
+                    >
+                      {submitting ? 'Retrying...' : 'Retry'}
+                    </button>
+                  ) : null}
                 </div>
-                <label className="dashboard-form-field">
-                  <span>Project name</span>
-                  <input
-                    className="dashboard-input"
-                    type="text"
-                    name="projectName"
-                    autoComplete="off"
-                    value={projectNameInput}
-                    onChange={onProjectNameChange}
-                    onBlur={onProjectNameBlur}
-                    placeholder="Consumer App"
-                    aria-invalid={Boolean(projectNameValidationMessageForUi)}
-                  />
-                  <p
-                    className={`dashboard-form-hint${projectNameValidationMessageForUi ? ' dashboard-form-hint--error' : ''}`}
-                  >
-                    {projectNameValidationMessageForUi || 'You can rename it later.'}
-                  </p>
-                </label>
-                <div className="dashboard-onboarding-form__actions">
-                  <button
-                    type="button"
-                    className="dashboard-pagination-button dashboard-pagination-button--secondary"
-                    onClick={onBackToOrganizationStep}
-                    disabled={submitting}
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="submit"
-                    className="dashboard-pagination-button dashboard-pagination-button--primary"
-                    disabled={projectSubmitDisabled}
-                  >
-                    {submitting ? 'Creating project...' : 'Create project'}
-                  </button>
-                </div>
-              </fieldset>
-              {projectResult ? (
-                <p className="dashboard-pagination-note">
-                  Saved as <strong>{projectResult.project.name}</strong>.
-                </p>
-              ) : null}
-            </form>
-          ) : null}
-
-          {mutationError ? (
-            <div className="dashboard-form-alert" role="alert">
-              <span>{mutationError}</span>
-              {lastFailedAction ? (
-                <button
-                  type="button"
-                  className="dashboard-inline-link"
-                  onClick={onRetryFailedMutation}
-                  disabled={submitting}
-                >
-                  {submitting ? 'Retrying...' : 'Retry'}
-                </button>
               ) : null}
             </div>
-          ) : null}
+            {leavingStep ? (
+              <div
+                ref={markInert}
+                className="dashboard-onboarding-card__step dashboard-onboarding-card__step--leaving"
+                aria-hidden="true"
+              >
+                {stepForm(leavingStep)}
+              </div>
+            ) : null}
+          </div>
         </div>
       </section>
     </div>

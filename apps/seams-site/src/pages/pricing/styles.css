@@ -796,24 +796,25 @@
   backdrop-filter: blur(4px);
 }
 
-/* The dialog rises and fades in over a fading backdrop, and settles out when it
-   closes. Browsers without @starting-style or discrete transitions open and
-   close it at once. */
+/* The dialog moves like the navbar's menus: it opens with a soft scale and a
+   6px drop over a fading backdrop (220ms), and lifts and fades when it closes.
+   Browsers without @starting-style or discrete transitions open and close it
+   at once. */
 .h2-page.plan-signup,
 .plan-signup::backdrop {
   transition:
-    opacity 200ms ease,
-    translate 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    scale 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    background-color 200ms ease,
-    backdrop-filter 200ms ease,
-    overlay 260ms allow-discrete,
-    display 260ms allow-discrete;
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    translate 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    scale 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 220ms ease,
+    backdrop-filter 220ms ease,
+    overlay 220ms allow-discrete,
+    display 220ms allow-discrete;
 }
 
 .h2-page.plan-signup:not([open]) {
   opacity: 0;
-  translate: 0 8px;
+  translate: 0 -6px;
   scale: 0.98;
 }
 
@@ -825,7 +826,7 @@
 @starting-style {
   .h2-page.plan-signup[open] {
     opacity: 0;
-    translate: 0 16px;
+    translate: 0 -6px;
     scale: 0.98;
   }
 
@@ -920,7 +921,8 @@ html:has(.plan-signup[open]) {
   margin: 0 20px;
   border: 0;
   background: #ffffff;
-  transition: height 160ms ease;
+  /* morphs with the sign-in's states, as the navbar morphs between menus */
+  transition: height 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (max-width: 560px) {

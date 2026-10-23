@@ -135,11 +135,21 @@ existing Wallet IndexedDB app-state store can retain that record. An exact
 retry uses the same ciphertext after a lost response. The real-D1 E2E checks
 this retry and opens the stored envelope in WASM.
 
-The Wallet SDK now exposes `registration.addVoiceId({ walletId })`. The host
+The Wallet SDK exposes
+`registration.activateAuthMethod({ walletId, method: 'voiceid' })`. The host
 loads the activation operation only when the VoiceID plugin is enabled. It
 requires an exact owner session, shows an Activate button on the Wallet origin,
 and starts native capture from that button's click. A fake-host browser E2E
 verifies the click and cancellation without Keychain access.
+
+The browser implementation is contained in the public Wallet repository's
+`packages/wallet/src/plugins/voiceid` directory. A trusted host registry loads
+its typed activation and review implementation on first enabled use. The core
+UI takes its review copy from the plugin. An E2E verifies that disabled and
+enabled-but-unused VoiceID fetch no implementation chunks. It also verifies
+that disabling the plugin blocks reuse after a prior load. Replacing the host
+registry loader replaces the implementation under the same device-proof
+protocol.
 
 The host still needs a VoiceID unlock action. It must request a challenge,
 capture the device assertion, install the fresh server session, open the seed

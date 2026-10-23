@@ -1,4 +1,6 @@
 import React from 'react';
+import { TrendingUp } from 'lucide-react';
+import { GrainField } from '@seams-internal/grain-field';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import {
   dashboardPlanName,
@@ -189,26 +191,26 @@ export function FreePlanBanners(props: {
       {banners.map((banner) =>
         banner.kind === 'growth_move' ? (
           <div key={banner.kind} className="dashboard-plan-banner" role="status">
-            <span className="dashboard-plan-banner__badge">Growth</span>
+            <span className="dashboard-plan-icon" aria-hidden="true">
+              <GrainField field="onyx-black" playing={false} />
+              <TrendingUp size={20} />
+            </span>
             <div className="dashboard-plan-banner__body">
               <p className="dashboard-plan-banner__title">Your organization moved to Growth</p>
               <p>
                 ${(banner.monthlyBaseMinor / 100).toFixed(0)} a month from{' '}
                 {utcDate(banner.startedAt)}.
-                {dismissible ? (
-                  <>
-                    {' '}
-                    <a
-                      className="dashboard-plan-banner__link"
-                      href={billingLink.href}
-                      onClick={billingLink.onClick}
-                    >
-                      View billing
-                    </a>
-                  </>
-                ) : null}
               </p>
             </div>
+            {dismissible ? (
+              <a
+                className="dashboard-pagination-button dashboard-plan-banner__link"
+                href={billingLink.href}
+                onClick={billingLink.onClick}
+              >
+                View billing
+              </a>
+            ) : null}
             {dismissible ? (
               <button
                 type="button"

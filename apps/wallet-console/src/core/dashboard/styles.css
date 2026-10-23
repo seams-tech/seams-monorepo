@@ -2043,30 +2043,18 @@ textarea {
   text-underline-offset: 2px;
 }
 
+/* The plan notice reads like the plan page: a white card with the plan icon. */
 .dashboard-plan-banner {
   margin: 0;
   display: flex;
   align-items: center;
   gap: 14px;
-  border: 1px solid color-mix(in srgb, var(--dashboard-accent) 32%, transparent);
-  border-left: 4px solid var(--dashboard-accent);
+  border: 1px solid var(--dashboard-border);
   border-radius: var(--dashboard-radius-xl);
-  padding: 14px 18px;
-  background: var(--dashboard-success-soft);
+  padding: 14px 14px 14px 16px;
+  background: var(--dashboard-surface);
   color: var(--dashboard-ink);
   box-shadow: var(--dashboard-shadow-sm);
-}
-
-.dashboard-plan-banner__badge {
-  flex: none;
-  border-radius: 999px;
-  padding: 4px 10px;
-  background: var(--dashboard-accent);
-  color: #ffffff;
-  font-size: var(--dashboard-text-caption);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
 }
 
 .dashboard-plan-banner__body {
@@ -2076,35 +2064,29 @@ textarea {
 
 .dashboard-plan-banner__body p {
   margin: 0;
+  color: var(--dashboard-ink-soft);
   font-size: var(--dashboard-text-compact);
   line-height: 1.45;
 }
 
 .dashboard-plan-banner__body .dashboard-plan-banner__title {
+  color: var(--dashboard-ink);
   font-size: var(--dashboard-text-body);
   font-weight: 600;
 }
 
 .dashboard-plan-banner__link {
-  color: var(--dashboard-accent);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  flex: none;
   white-space: nowrap;
-}
-
-.dashboard-plan-banner__link:hover {
-  color: color-mix(in srgb, var(--dashboard-accent) 80%, var(--dashboard-ink) 20%);
+  text-decoration: none;
 }
 
 .dashboard-plan-banner__close {
   flex: none;
-  align-self: flex-start;
   display: grid;
   place-items: center;
   width: 28px;
   height: 28px;
-  margin: -4px -6px 0 0;
   border: 0;
   border-radius: var(--dashboard-radius-md);
   background: transparent;
@@ -2113,18 +2095,33 @@ textarea {
 }
 
 .dashboard-plan-banner__close:hover {
-  background: color-mix(in srgb, var(--dashboard-accent) 14%, transparent);
+  background: var(--dashboard-alpha-50);
   color: var(--dashboard-ink);
 }
 
 .dashboard-plan-banner__close:focus-visible {
-  outline: 2px solid var(--dashboard-accent);
+  outline: 2px solid var(--dashboard-ink);
   outline-offset: 1px;
 }
 
+/* On a phone the button moves under the text, beside the icon column. */
 @media (max-width: 640px) {
-  .dashboard-plan-banner__badge {
-    display: none;
+  .dashboard-plan-banner {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .dashboard-plan-banner__body {
+    flex-basis: calc(100% - 96px);
+  }
+
+  .dashboard-plan-banner__close {
+    order: 3;
+  }
+
+  .dashboard-plan-banner__link {
+    order: 4;
+    margin-left: 54px;
   }
 }
 

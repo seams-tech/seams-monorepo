@@ -601,9 +601,15 @@
 
 /* ---------- closing banner: the SDK pitch with one card per plan ---------- */
 
-/* the plan cards sit close to their rules, like the banners */
+/* the plan cards sit close to their rules, like the banners, and 0.5rem from the column
+   edges, as far as they sit from each other */
 .h2-section.pricing-banner-plans {
   padding: 0.5rem 0;
+}
+
+.h2-section.pricing-banner-plans > .h2-shell {
+  padding-right: 0.5rem;
+  padding-left: 0.5rem;
 }
 
 .pricing-banner__cards {
@@ -615,13 +621,6 @@
 @media (max-width: 1160px) {
   .pricing-banner__cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* line up with the plan cards at the top of the page */
-@media (min-width: 1161px) {
-  .pricing-banner__cards {
-    margin: 0 -22px;
   }
 }
 

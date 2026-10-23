@@ -1,8 +1,8 @@
 import React from 'react';
 import { locale, t } from '@/marketing/i18n/browser';
 import { figureCatalog } from '@/marketing/i18n/catalog';
-import keychain from '../../../showcase/motion/keys-next/index.html?raw';
-import interlock from '../../../showcase/motion/interlock-next/index.html?raw';
+import keychain from '../../../showcase/motion/keys-maze/index.html?raw';
+import interlock from '../../../showcase/motion/interlock-layers/index.html?raw';
 import devices from '../../../showcase/motion/devices-edge/index.html?raw';
 import infrastructure from '../../../showcase/motion/lockin-boundary/index.html?raw';
 import signing from '../../../showcase/motion/threshold-signing/index.html?raw';
@@ -48,18 +48,6 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 </body></html>`;
 }
 
-// The keychain answers to where the pointer is, so its play sweeps across each
-// key; the lock, the phones, the platforms and the signing diagram run their
-// whole sequence from a single point.
-const keychainPlay: PlayPath = [
-  [282, 205, 0],
-  [282, 205, 450],
-  [194, 183, 750],
-  [194, 183, 1200],
-  [134, 141, 1500],
-  [134, 141, 1950],
-];
-
 function figureEntry(
   title: string,
   html: string,
@@ -77,7 +65,7 @@ function figureEntry(
 }
 
 const figures = {
-  keychain: figureEntry(t('keysControl'), keychain, 194, 183, keychainPlay),
+  keychain: figureEntry(t('keysControl'), keychain, 200, 160, [[200, 160, 0]]),
   interlock: figureEntry(t('scopedPermissions'), interlock, 200, 160, [[200, 160, 0]]),
   devices: figureEntry(t('linkedDevices'), devices, 200, 160, [[200, 160, 0]]),
   infrastructure: figureEntry(t('noLockIn'), infrastructure, 200, 160, [[200, 160, 0]]),

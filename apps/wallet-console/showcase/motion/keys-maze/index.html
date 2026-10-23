@@ -724,182 +724,178 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /* global HL, hairline */
-// "Nobody signs alone" in x-ray line: a key in two sharp halves on one dashed
-// axis, above and below a thick square frame. Nothing is opaque: visible edges
-// are solid, hidden edges dashed. Hover locks the halves into one cube in the
-// opening, and a dashed circle on its top marks the one key.
-const [OUTER, INNER, RIM] = [32, 16, 13];
-// The cube's half width; each half is HALF tall. The halves join level with the
-// frame's top; at rest the top half's base and the bottom half's top stand here.
-const HALF = 11;
-const [TOP_REST, BOTTOM_REST] = [34, -20];
-// Phases as fractions of the tween: the top half travels first, the bottom
-// half follows. Reversing runs them back in mirror order.
-const TOP = [0, 0.65];
-const BOTTOM = [0.35, 1];
-const GLIDE = HL.bezier(0.65, 0, 0.35, 1);
-// Towards the camera (azimuth 45°, sin(elevation) 0.5), for the hidden-line test.
-const VIEW = [0.6124, 0.6124, 0.5];
-const STEPS = 16;
+// "Keys you control" as a maze in line only: three thin rings, each two arcs with two gaps
+// out of line, round a target of nested circles. Edges a solid would hide are dashed
+// (x-ray), so nothing is opaque. Hover turns the rings, alternating, until the gaps
+// line up; the key's path traces in dashes, then solid, and a cube slides in.
+const HEIGHT = 6;
+const CHANNEL = 11;
+// Each ring's radius and rest turn in degrees. At rest no gap ends near a ring's left
+// or right edge, where two ends would stack.
+const RADII = [11.5, 23.5, 37];
+const RESTS = [90, -135, 130];
+const TARGET = [6, 4.2, 2.4];
+const CUBE = 3; // half the cube's side
+const START = RADII[2] + 4 + CUBE * Math.SQRT2;
+// The channel runs from the centre straight towards the viewer (+x +y).
+const AIM = 45;
+// The play as fractions of its length: the rings turn outer first, the path traces,
+// then the cube slides.
+const turnSlot = (index) => [(2 - index) * 0.12, (2 - index) * 0.12 + 0.4];
+const DASHED = [0.25, 0.5];
+const SOLID = [0.4, 0.65];
+const SLIDE = [0.6, 1];
+const EASE = HL.bezier(0.65, 0, 0.35, 1);
 
-function phase(progress, [start, end]) {
-  const [a, b] = [start, end].map((fraction) => HL.EASE_LIFT(fraction));
-  return HL.clamp((progress - a) / (b - a), 0, 1);
+const phase = (head, [a, b]) => EASE(HL.clamp((head - a) / (b - a), 0, 1));
+const ring = (r, a, z) => [r * Math.cos(HL.rad(a)), r * Math.sin(HL.rad(a)), z];
+const arcAt = (P, r, [a0, a1], z) => {
+  const n = Math.max(2, Math.ceil(Math.abs(a1 - a0) / 4));
+  return Array.from({ length: n + 1 }, (_, i) => P(...ring(r, HL.lerp(a0, a1, i / n), z)));
+};
+// Half a gap in degrees: the channel's width at the ring, and a little more.
+const gapHalf = (r) => (Math.asin(CHANNEL / 2 / r) * 180) / Math.PI + 6;
+
+// A ring's two walls as arcs in world degrees, for a turn from 0 (rest) to 1.
+function walls(index, turn) {
+  const [g, shift] = [gapHalf(RADII[index]), AIM + RESTS[index] * (1 - turn)];
+  return [g, 180 + g].map((a) => [a + shift, a + shift + 180 - 2 * g]);
 }
 
-// A square of half width h at height z, corners anticlockwise from (h, h).
-const square = (h, z) => [h, -h, -h, h].map((x, k) => [x, k < 2 ? h : -h, z]);
-const sub = (a, b) => a.map((v, k) => v - b[k]);
-const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-const cross = (a, b) =>
-  [0, 1, 2].map((k) => a[(k + 1) % 3] * b[(k + 2) % 3] - a[(k + 2) % 3] * b[(k + 1) % 3]);
-
-// A solid as convex faces and edges. Each ring side gives its top and bottom
-// edges, its corner, and the wall between; the frame's top and base are four
-// quads each, between the outer and inner squares.
-function walls(top, base, faces, edges) {
-  for (let i = 0; i < 4; i++) {
-    const j = (i + 1) % 4;
-    faces.push([top[i], top[j], base[j], base[i]]);
-    edges.push([top[i], top[j]], [base[i], base[j]], [base[i], top[i]]);
-  }
-}
-function box(z0, z1) {
-  const [top, base] = [square(HALF, z1), square(HALF, z0)];
-  const solid = { faces: [top, base], edges: [] };
-  walls(top, base, solid.faces, solid.edges);
-  return solid;
-}
-function frame() {
-  const [ot, ob, it, ib] = [
-    square(OUTER, RIM),
-    square(OUTER, 0),
-    square(INNER, RIM),
-    square(INNER, 0),
-  ];
-  const solid = { faces: [], edges: [] };
-  walls(ot, ob, solid.faces, solid.edges);
-  walls(it, ib, solid.faces, solid.edges);
-  for (let i = 0; i < 4; i++) {
-    const j = (i + 1) % 4;
-    solid.faces.push([ot[i], ot[j], it[j], it[i]], [ob[i], ob[j], ib[j], ib[i]]);
-  }
-  return solid;
-}
-
-// Whether a face lies between a world point and the camera.
-function covers(P, face, point) {
-  const normal = cross(sub(face[1], face[0]), sub(face[2], face[0]));
-  const facing = dot(normal, VIEW);
-  if (Math.abs(facing) < 1e-9 || dot(normal, sub(face[0], point)) / facing < 1e-4) return false;
-  const [q, corners] = [P(...point), face.map((p) => P(...p))];
-  const turns = corners.map((a, i) => {
-    const b = corners[(i + 1) % corners.length];
-    return (b[0] - a[0]) * (q[1] - a[1]) - (b[1] - a[1]) * (q[0] - a[0]);
+// Cuts an arc where the ring turns from its near half (-45° to 135°) to its far half.
+function halves([a0, a1]) {
+  const s = ((((a0 + 45) % 360) + 360) % 360) - 45;
+  const e = s + a1 - a0;
+  return [-45, 135, 315].flatMap((lo) => {
+    const [from, to] = [Math.max(s, lo), Math.min(e, lo + 180)];
+    return to > from ? [{ arc: [from, to], near: lo !== 135, fold: s < lo ? from : null }] : [];
   });
-  // On a shared edge both faces count, so no ray slips between two of them.
-  return turns.every((t) => t > -1e-6) || turns.every((t) => t < 1e-6);
 }
 
-// Each edge in short steps: the steps no face covers draw solid, the rest dashed.
-function trace(P, edges, faces) {
-  let [shown, hidden] = ['', ''];
-  for (const [a, b] of edges) {
-    const at = (s) => a.map((v, k) => HL.lerp(v, b[k], s / STEPS));
-    for (let s = 0; s < STEPS; s++) {
-      const behind = faces.some((face) => covers(P, face, at(s + 0.5)));
-      const d = HL.seg(P(...at(s)), P(...at(s + 1)));
-      if (behind) hidden += d;
-      else shown += d;
-    }
+// One wall as lines: its top, its foot (dashed on the far half, where a closed ring's
+// own near side would hide it), a vertical at each end and where the ring turns away.
+function wall(P, r, arc) {
+  const up = (a) => HL.seg(P(...ring(r, a, 0)), P(...ring(r, a, HEIGHT)));
+  let [seen, hidden] = [HL.open(arcAt(P, r, arc, HEIGHT)) + up(arc[0]) + up(arc[1]), ''];
+  for (const { arc: part, near, fold } of halves(arc)) {
+    const foot = HL.open(arcAt(P, r, part, 0));
+    if (near) seen += foot;
+    else hidden += foot;
+    if (fold !== null) seen += up(fold);
   }
-  return [shown, hidden];
+  return [seen, hidden];
 }
 
-function draw(state, t) {
-  const { P } = state;
-  const [up, down] = [GLIDE(phase(t, TOP)), GLIDE(phase(t, BOTTOM))];
-  const joined = up === 1 && down === 1;
-  const [topBase, bottomTop] = [HL.lerp(TOP_REST, RIM, up), HL.lerp(BOTTOM_REST, RIM, down)];
-  const halves = joined
-    ? [box(RIM - HALF, RIM + HALF)]
-    : [box(topBase, topBase + HALF), box(bottomTop - HALF, bottomTop)];
-  const faces = [state.frame, ...halves].flatMap((solid) => solid.faces);
-  const parts = [state.frame, ...halves].map((solid) => trace(P, solid.edges, faces));
-  state.paths.frame.setAttribute('d', parts[0][0]);
-  state.paths.top.setAttribute('d', parts[1][0]);
-  state.paths.bottom.setAttribute('d', joined ? '' : parts[2][0]);
-  state.paths.hidden.setAttribute('d', parts.map((part) => part[1]).join(''));
-  state.paths.sign.setAttribute('d', joined ? state.sign : '');
-  state.joined = joined;
+// The cube, square to the ground's axes: its outline and the three edges at its
+// nearest top corner seen, the three at its farthest foot corner dashed.
+function cube(P, x, y) {
+  const at = (dx, dy, z) => P(x + dx * CUBE, y + dy * CUBE, z * CUBE);
+  const hull = HL.hull(
+    [...Array(8).keys()].map((i) => at((i & 1) * 2 - 1, (i & 2) - 1, i & 4 ? 2 : 0)),
+  );
+  const spokes = (o, ends) => ends.map((end) => HL.seg(o, end)).join('');
+  const seen = spokes(at(1, 1, 2), [at(1, 1, 0), at(-1, 1, 2), at(1, -1, 2)]);
+  const hidden = spokes(at(-1, -1, 0), [at(1, -1, 0), at(-1, 1, 0), at(-1, -1, 2)]);
+  return { hull, seen: HL.poly(hull) + seen, hidden };
 }
 
-function tick(state, _dt, now) {
-  const t = HL.tval(state.motion, now);
-  if (t !== state.drawn) {
-    state.drawn = t;
-    draw(state, t);
+// The open polyline as far as part of its edges.
+function partial(points, part) {
+  const out = [points[0]];
+  for (let i = 1, left = part * (points.length - 1); i < points.length && left > 0; i++, left--)
+    out.push(points[i - 1].map((v, k) => HL.lerp(v, points[i][k], Math.min(1, left))));
+  return out;
+}
+
+function draw(state, head) {
+  const { P, el } = state;
+  const lines = RADII.flatMap((r, i) =>
+    walls(i, phase(head, turnSlot(i))).map((a) => wall(P, r, a)),
+  );
+  el.rings.setAttribute('d', lines.map((l) => l[0]).join(''));
+  el.ringsHidden.setAttribute('d', lines.map((l) => l[1]).join(''));
+  const moved = phase(head, SLIDE);
+  const shape = cube(P, ...ring(HL.lerp(START, 0, moved), AIM, 0));
+  el.cube.setAttribute('d', shape.seen);
+  el.cubeHidden.setAttribute('d', shape.hidden);
+  const from = P(...ring(START, AIM, 0));
+  const reach = (p) => (p > 0 ? HL.seg(from, P(...ring(HL.lerp(START, 0, p), AIM, 0))) : '');
+  const solid = phase(head, SOLID);
+  el.dashed.setAttribute('d', solid < 1 ? reach(phase(head, DASHED)) : '');
+  el.solid.setAttribute('d', reach(solid));
+  // Where the cube stood, its outline traces in dashes as it slides away.
+  el.echo.setAttribute('d', moved > 0 ? HL.open(partial(state.home, moved)) : '');
+  state.docked = head === 1;
+  el.cube.classList.toggle('hi', state.docked);
+  el.target.classList.toggle('hi', !state.docked);
+}
+
+// The play head runs forward while active and back while not, so a leave mid-play
+// reverses from where it is; each part eases within its own slot of the play.
+function tick(state, dt) {
+  const target = state.active ? 1 : 0;
+  const step = HL.reducedMotion() ? 1 : (dt * 1000) / state.duration;
+  const head = HL.clamp(state.head + (target ? step : -step), 0, 1);
+  if (head !== state.head || state.drawn !== head) {
+    state.head = state.drawn = head;
+    draw(state, head);
   }
-  const moving = state.active ? 'joining' : 'splitting';
-  state.read.textContent = state.joined ? 'one key' : t > 0 ? moving : 'rest';
-  return !HL.tdone(state.motion, now);
+  state.read.textContent = state.docked ? 'allowed' : head > 0 ? 'aligning' : 'rest';
+  return head !== target;
 }
 
-// Any point plays the join; leaving plays it back from wherever it is.
-function select(state, active) {
-  if (state.active === active) return;
-  state.active = active;
-  HL.tset(state.motion, Number(active), performance.now(), 0);
-  state.loop.wake();
-}
-
-// The slider sets how long the whole join takes, from where it is now.
-function set(state, duration) {
-  const now = performance.now();
-  state.motion = HL.tween(HL.tval(state.motion, now), duration);
-  HL.tset(state.motion, Number(state.active), now, 0);
-  state.loop.wake();
-}
-
-// A dashed circle of radius r lying flat at height z, round the column.
-function circle(P, r, z) {
-  const ring = HL.circ(r, 48).map((p) => P(p.u, p.v, z));
-  return HL.poly(ring);
-}
+const select = (state, active) => ((state.active = active), state.loop.wake());
+const path = (svg, cls, d = '') => HL.mk('path', { d, class: cls }, svg);
 
 function mount({ stage, svg, read }, duration) {
-  const C = HL.Cam(45, 0.5, 2.45);
-  const bounds = [...square(OUTER, 0), ...square(OUTER, RIM)];
-  bounds.push(...square(HALF, TOP_REST + HALF), ...square(HALF, BOTTOM_REST - HALF));
-  HL.fit(C, bounds, 200, 160);
+  const C = HL.Cam(45, 0.5, 3.05);
+  const outer = RADII[2];
+  const bounds = [];
+  for (let a = 0; a < 360; a += 15) bounds.push(ring(outer, a, 0), ring(outer, a, HEIGHT));
+  const [sx, sy] = ring(START, AIM, 0);
+  for (const d of [-1, 1])
+    bounds.push([sx + d * CUBE, sy - d * CUBE, 0], [sx + CUBE, sy + CUBE, 0]);
+  // Centred a little low: the cube at rest stands below the rings, docked it does not.
+  HL.fit(C, bounds, 200, 164);
   const P = HL.proj(C);
-  // Construction (rule 06 gives way to x-ray here): the column's axis and the
-  // circle inscribed in the opening, at the frame's top.
-  let guides = HL.seg(P(0, 0, BOTTOM_REST - HALF - 3), P(0, 0, TOP_REST + HALF + 3));
-  guides += circle(P, INNER, RIM);
-  HL.mk('path', { d: guides, class: 'nf lo dash' }, svg);
-  const mk = (cls) => HL.mk('path', { class: cls }, svg);
-  const paths = { hidden: mk('nf lo dash'), sign: mk('nf lo dash') };
-  Object.assign(paths, { frame: mk('nf sil'), bottom: mk('nf sil'), top: mk('nf sil hi') });
-  const state = { P, read, paths, frame: frame(), sign: circle(P, HALF, RIM + HALF) };
-  Object.assign(state, { motion: HL.tween(0, duration), drawn: NaN, active: false });
-  Object.assign(state, { joined: false, loop: null });
+  // Construction, sparse: the ground's two axes, the key's path, and the echo.
+  const axis = (a) => HL.seg(P(...ring(outer + 3, a, 0)), P(...ring(outer + 3, a + 180, 0)));
+  path(svg, 'nf lo dash', axis(0) + axis(90));
+  // The target's circles share their near point, where the cube arrives.
+  const circles = TARGET.map((radius) => {
+    const [cx, cy] = ring(TARGET[0] - radius, AIM, 0);
+    return HL.poly(HL.circ(radius, 48).map((q) => P(cx + q.u, cy + q.v, 0)));
+  });
+  const el = {
+    echo: path(svg, 'nf lo dash'),
+    dashed: path(svg, 'nf lo dash'),
+    solid: path(svg, 'nf lo'),
+    target: path(svg, 'nf sil', circles[0]),
+    inner: path(svg, 'nf lo', circles.slice(1).join('')),
+    ringsHidden: path(svg, 'nf lo dash'),
+    rings: path(svg, 'nf sil'),
+    cubeHidden: path(svg, 'nf lo dash'),
+    cube: path(svg, 'nf sil'),
+  };
+  const home = cube(P, sx, sy).hull;
+  const state = { P, read, el, duration, home: home.concat([home[0]]) };
+  Object.assign(state, { head: 0, drawn: NaN, active: false, loop: null });
   state.loop = HL.register(stage, tick.bind(null, state));
-  draw(state, 0);
-  state.read.textContent = 'rest';
   const bag = HL.disposer();
   bag.add(state.loop.unregister);
+  // Where the pointer is does not matter: any point plays, leaving plays back.
   const pointer = { move: select.bind(null, state, true), leave: select.bind(null, state, false) };
   bag.add(HL.pointer(stage, pointer));
   bag.add(svg.replaceChildren.bind(svg));
-  return { set: set.bind(null, state), destroy: bag.dispose };
+  const set = (value) => ((state.duration = value), state.loop.wake());
+  return { set, destroy: bag.dispose };
 }
 
 hairline({
-  name: 'split-keys',
-  means: 'A key in two halves, above and below a square frame. Hover to lock them into one cube.',
-  rules: [4, 5, 8],
-  range: [1500, 1100, 800],
+  name: 'maze-keys',
+  means: 'Line rings round a target. Hover: they turn into line and a cube slides in.',
+  rules: [2, 4, 5],
+  range: [1900, 1500, 1200],
   mount,
 });
 </script>

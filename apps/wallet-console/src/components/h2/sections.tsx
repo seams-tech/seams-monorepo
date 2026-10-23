@@ -245,7 +245,7 @@ const walletCapabilities: readonly WalletCapability[] = [
     copy: t('permissionsDescription'),
     icon: SlidersHorizontal,
     field: 'azure-coral',
-    playMs: 5600,
+    playMs: 3600,
   },
   {
     figure: 'devices',

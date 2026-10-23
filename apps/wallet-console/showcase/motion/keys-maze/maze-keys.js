@@ -4,10 +4,10 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /* global HL, hairline */
-// "Permissions" as a maze in line only: three thin rings, each two arcs with two gaps
+// "Keys you control" as a maze in line only: three thin rings, each two arcs with two gaps
 // out of line, round a target of nested circles. Edges a solid would hide are dashed
 // (x-ray), so nothing is opaque. Hover turns the rings, alternating, until the gaps
-// line up; the request's path traces in dashes, then solid, and a cube slides in.
+// line up; the key's path traces in dashes, then solid, and a cube slides in.
 const HEIGHT = 6;
 const CHANNEL = 11;
 // Each ring's radius and rest turn in degrees. At rest no gap ends near a ring's left
@@ -138,7 +138,7 @@ function mount({ stage, svg, read }, duration) {
   // Centred a little low: the cube at rest stands below the rings, docked it does not.
   HL.fit(C, bounds, 200, 164);
   const P = HL.proj(C);
-  // Construction, sparse: the ground's two axes, the request's path, and the echo.
+  // Construction, sparse: the ground's two axes, the key's path, and the echo.
   const axis = (a) => HL.seg(P(...ring(outer + 3, a, 0)), P(...ring(outer + 3, a + 180, 0)));
   path(svg, 'nf lo dash', axis(0) + axis(90));
   // The target's circles share their near point, where the cube arrives.
@@ -172,7 +172,7 @@ function mount({ stage, svg, read }, duration) {
 }
 
 hairline({
-  name: 'maze-interlock',
+  name: 'maze-keys',
   means: 'Line rings round a target. Hover: they turn into line and a cube slides in.',
   rules: [2, 4, 5],
   range: [1900, 1500, 1200],

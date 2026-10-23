@@ -88,7 +88,7 @@ try {
     'Keys you control',
   );
   const keychain = page.frameLocator('iframe[data-figure="keychain"]').locator('#read');
-  await keychain.filter({ hasText: /^key 0/ }).waitFor({ timeout: 3000 });
+  await keychain.filter({ hasText: /aligning|allowed/ }).waitFor({ timeout: 3000 });
 
   // Observe a complete real timer turn, including the progress-line movement.
   const initial = await progress.evaluate(progressState);
@@ -99,8 +99,8 @@ try {
   await page.waitForFunction(bulletIsActive, 'Permissions', { timeout: 4500 });
   assert.ok((await progress.evaluate(progressState)).time < 1500, 'Each figure starts a new timer');
   const interlock = page.frameLocator('iframe[data-figure="interlock"]').locator('#read');
-  await interlock.filter({ hasText: /picking|aligning|pin|unlocked/ }).waitFor({ timeout: 2000 });
-  await keychain.filter({ hasText: /^rest$/ }).waitFor({ timeout: 2000 });
+  await interlock.filter({ hasText: /aligning|passing|allowed/ }).waitFor({ timeout: 2000 });
+  await keychain.filter({ hasText: /^rest$/ }).waitFor({ timeout: 3000 });
   for (const bullet of ['Wallets your users do not lose', 'Own your accounts. Leave any time.']) {
     await progress.evaluate(approachCompletion);
     await page.waitForFunction(bulletIsActive, bullet, { timeout: 2000 });

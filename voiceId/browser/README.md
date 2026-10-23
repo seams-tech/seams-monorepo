@@ -40,6 +40,15 @@ A fresh review required another voice check, and cancellation prevented another
 signature. The [broadcast-failure evidence](../verifier-spike/reports/browser-wallet-broadcast-failure-2026-10-23.json)
 records both the app error and the detailed Wallet receipt. This check opens no
 microphone and establishes no on-chain outcome.
+A rebased Wallet 0.21.0 run passed the same contract. Its
+[evidence](../verifier-spike/reports/browser-wallet-021-2026-10-23.json)
+records fresh owner signing and the unavailable broadcast replies.
+
+The local enrollment page starts one native microphone capture per Record click.
+The [web enrollment journey](../verifier-spike/reports/browser-web-enrollment-2026-10-23.json)
+checks the relocated package in Chromium. It exercises three separate clicks and
+rejects a request from another origin. This automated journey uses a controlled
+host and opens no microphone. Live speech qualification remains open.
 
 Spoof detection, camera evidence, authenticated capture, and a new server factor
 remain outside this MVP. The user controls the device and OS.
@@ -79,15 +88,17 @@ Python, Rust, and the source checkout are unnecessary on the target Mac.
 The package is an internal prototype with an ad hoc signed shared library.
 Developer ID signing, notarization, and clean-Mac qualification remain open.
 
-Follow the package's `SETUP.txt`. Record three deliberate enrollment samples:
+Follow the package's `SETUP.txt`. Open the local enrollment page:
 
 ```sh
-"$VOICEID_PACKAGE/bin/voiceid-host" enroll "$VOICEID_PACKAGE/native-inputs.json"
+node "$VOICEID_PACKAGE/enroll-web.mjs" "$VOICEID_PACKAGE"
 ```
 
-Each capture requires Enter. Grant microphone permission when macOS requests it.
-Only the template remains in the local Keychain. `voiceid-host status` checks the
-enrollment. `voiceid-host delete` removes it.
+Open the printed local address. Select Record once for each of three samples.
+Each click starts the native microphone. The page receives no audio. Grant
+microphone permission when macOS requests it. Only the template remains in the
+local Keychain. `voiceid-host status` checks enrollment. `voiceid-host delete`
+removes it.
 
 Choose the Chrome or Chromium user data directory that will run the prototype.
 It contains the `Default` and `Profile 1` directories. Register the native host:
@@ -145,6 +156,17 @@ node "$VOICEID_PRIVATE/tests/e2e/voiceid-package.e2e.mjs" \
 Its report and C evidence appear under `voiceId/engine/target/package-journey/`.
 The archive is extracted outside both checkouts into a path with spaces and an
 apostrophe. Browser removal affects its disposable profile only.
+
+The web enrollment journey checks the local page and its three manual Record
+buttons in real Chromium. It uses a controlled host and records no audio:
+
+```sh
+node "$VOICEID_PRIVATE/tests/e2e/voiceid-web-enrollment.e2e.mjs" \
+  "$VOICEID_WALLET" "$VOICEID_PACKAGE.tar.gz"
+```
+
+It writes `voiceId/engine/target/web-enrollment-journey/report.json` and a
+completion screenshot. It also checks that another origin cannot start capture.
 
 The public approval contract runs without private models:
 

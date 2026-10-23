@@ -9,11 +9,13 @@ This package is not signed for public distribution or notarized.
 
 2. Record three deliberate enrollment samples:
 
-   ./bin/voiceid-host enroll "$PWD/native-inputs.json"
+   node enroll-web.mjs "$PWD"
 
-   Each sample starts after you press Enter. Grant microphone access if macOS
-   requests it. Only the voice template stays in your local Keychain. The package
-   contains no enrollment, recordings, transcripts, or evaluation fixtures.
+   Open the local address printed in Terminal. Select Record once for each sample.
+   Speak for about three seconds, then pause. Grant microphone access if macOS
+   requests it. Keep Terminal open until the page says Voice enrolled. The page
+   receives no audio. Only the voice template stays in your local Keychain.
+   The package contains no enrollment, recordings, transcripts, or evaluation fixtures.
 
 3. Register the host for the browser's user data directory. For normal Chrome:
 

@@ -98,6 +98,8 @@ async function main() {
   await copy(output, 'include/voiceid.h', path.join(ENGINE, 'include/voiceid.h'));
   for (const file of [
     'install.mjs',
+    'enroll-web.mjs',
+    'enroll-web.html',
     'SETUP.txt',
     'extension/manifest.json',
     'extension/bridge.js',

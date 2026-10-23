@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Enroll VoiceID</title>
+  <style nonce="__NONCE__">
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, sans-serif;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #101115;
+      color: #f4f4f5;
+    }
+    main {
+      width: min(34rem, calc(100vw - 2.5rem));
+      padding: 2rem;
+      border: 1px solid #3d3e47;
+      border-radius: 1rem;
+      background: #1b1c23;
+    }
+    h1 {
+      margin: .25rem 0 1rem;
+      font-size: 2rem;
+    }
+    p {
+      line-height: 1.5;
+      color: #c9c9d2;
+    }
+    .eyebrow {
+      margin: 0;
+      color: #9db6ff;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-size: .75rem;
+    }
+    output {
+      display: block;
+      min-height: 3rem;
+      margin: 1.5rem 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    button {
+      font: inherit;
+      padding: .8rem 1rem;
+      border: 1px solid #cbd0dc;
+      border-radius: .65rem;
+      background: #eceef4;
+      color: #181a20;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: .5;
+      cursor: default;
+    }
+    [hidden] {
+      display: none !important;
+    }
+    .privacy {
+      font-size: .9rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">VoiceID on this device</p>
+    <h1>Record your voice</h1>
+    <p>Select Record for each of three samples. Read a sentence for about three seconds, then stay quiet for one second.</p>
+    <output id="status" role="status" aria-live="polite">Loading verified voice models…</output>
+    <button id="record" type="button" disabled>Record sample</button>
+    <button id="restart" type="button" hidden>Restart enrollment</button>
+    <p class="privacy">The native host uses your Mac microphone. This page receives no audio. The local Keychain stores only your voice template.</p>
+  </main>
+  <script nonce="__NONCE__">
+    const status = document.querySelector('#status');
+    const record = document.querySelector('#record');
+    const restart = document.querySelector('#restart');
+
+    function render(state) {
+      record.disabled = state.kind !== 'ready';
+      record.hidden = state.kind === 'complete';
+      restart.hidden = state.kind !== 'failed';
+      switch (state.kind) {
+        case 'loading':
+          status.textContent = 'Loading verified voice models…';
+          break;
+        case 'ready':
+          status.textContent = `Sample ${state.sample} of 3 is ready.`;
+          record.textContent = `Record sample ${state.sample}`;
+          break;
+        case 'starting':
+          status.textContent = `Starting the microphone for sample ${state.sample}…`;
+          break;
+        case 'listening':
+          status.textContent = `Recording sample ${state.sample}. Speak now, then pause.`;
+          break;
+        case 'complete':
+          status.textContent = 'Voice enrolled. Return to the Wallet VoiceID page and select Enable VoiceID.';
+          break;
+        case 'failed':
+          status.textContent = `Enrollment stopped: ${state.message}`;
+          break;
+        default:
+          status.textContent = 'The voice host returned an unknown state.';
+          record.disabled = true;
+          restart.hidden = true;
+      }
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch('/state', { cache: 'no-store' });
+        if (!response.ok) throw new Error('The local host is unavailable.');
+        render(await response.json());
+      } catch {
+        status.textContent = 'The local host is unavailable.';
+        record.disabled = true;
+        restart.hidden = true;
+      }
+    }
+
+    async function send(path) {
+      record.disabled = true;
+      restart.disabled = true;
+      try {
+        const response = await fetch(path, {
+          method: 'POST',
+          headers: { 'x-voiceid-action': 'enroll' },
+        });
+        render(await response.json());
+      } catch {
+        status.textContent = 'The local host is unavailable.';
+      }
+      restart.disabled = false;
+    }
+
+    function capture() {
+      void send('/capture');
+    }
+
+    function beginAgain() {
+      void send('/restart');
+    }
+
+    record.addEventListener('click', capture);
+    restart.addEventListener('click', beginAgain);
+    setInterval(refresh, 250);
+    void refresh();
+  </script>
+</body>
+</html>

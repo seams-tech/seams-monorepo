@@ -58,6 +58,8 @@ import type {
 export interface ConsoleBillingContext {
   orgId: string;
   actorUserId: string;
+  /** A trusted calling Console origin; Stripe returns there instead of the configured base. */
+  returnOrigin?: string;
 }
 
 export interface ConsoleBillingRefundSupportContext extends ConsoleBillingContext {
@@ -166,23 +168,27 @@ const DEFAULT_ACCOUNT_ACTIVITY_LIMIT = 25;
 const MAX_ACCOUNT_ACTIVITY_LIMIT = 100;
 const DEFAULT_CONSOLE_BASE_URL = 'https://example.localhost';
 
-export function buildStripeCheckoutReturnUrls(consoleBaseUrl?: string): {
+export function buildStripeCheckoutReturnUrls(
+  consoleBaseUrl?: string,
+  returnOrigin?: string,
+): {
   successUrl: string;
   cancelUrl: string;
 } {
-  return buildBillingAccountReturnUrls(consoleBaseUrl, 'checkout');
+  return buildBillingAccountReturnUrls(consoleBaseUrl, returnOrigin, 'checkout');
 }
 
 /** A card setup that starts a plan returns to the plan page, which names that plan. */
 export function buildCardSetupReturnUrls(
   consoleBaseUrl?: string,
   startPlan: SelfServePlanKindV1 | null = null,
+  returnOrigin?: string,
 ): {
   successUrl: string;
   cancelUrl: string;
 } {
-  if (!startPlan) return buildBillingAccountReturnUrls(consoleBaseUrl, 'card_setup');
-  return buildBillingAccountReturnUrls(consoleBaseUrl, 'card_setup', {
+  if (!startPlan) return buildBillingAccountReturnUrls(consoleBaseUrl, returnOrigin, 'card_setup');
+  return buildBillingAccountReturnUrls(consoleBaseUrl, returnOrigin, 'card_setup', {
     pathname: '/dashboard/billing/plan',
     query: `plan=${startPlan}`,
   });
@@ -190,6 +196,7 @@ export function buildCardSetupReturnUrls(
 
 function buildBillingAccountReturnUrls(
   consoleBaseUrl: string | undefined,
+  returnOrigin: string | undefined,
   parameter: 'checkout' | 'card_setup',
   page: { readonly pathname: string; readonly query: string } = {
     pathname: '/dashboard/billing/account',
@@ -208,6 +215,11 @@ function buildBillingAccountReturnUrls(
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('Console base URL must use HTTP or HTTPS');
+  }
+  if (returnOrigin) {
+    const calling = new URL(returnOrigin);
+    calling.search = parsed.search;
+    parsed = calling;
   }
   const pageUrl = consoleApplicationUrl(parsed, page.pathname);
   const prefix = `${pageUrl}${pageUrl.search ? '&' : '?'}${page.query ? `${page.query}&` : ''}`;

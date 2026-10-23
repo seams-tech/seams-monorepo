@@ -4076,7 +4076,10 @@ export async function createD1ConsoleBillingService(
       assertBillingProviderAvailable(providers);
       const currentNow = state.now();
       const amountMinor = resolveCreditPackAmountMinorOrThrow(request.creditPackId);
-      const checkoutReturnUrls = buildStripeCheckoutReturnUrls(state.consoleBaseUrl);
+      const checkoutReturnUrls = buildStripeCheckoutReturnUrls(
+        state.consoleBaseUrl,
+        ctx.returnOrigin,
+      );
       const purchaseId = makeId('bcp', currentNow);
       await state.database
         .prepare(

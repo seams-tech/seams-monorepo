@@ -26,7 +26,7 @@ import {
   handleConsoleReady,
   handleConsoleSession,
 } from './accountRoutes';
-import type { AccountConsoleContext } from './context';
+import { resolveConsoleReturnOrigin, type AccountConsoleContext } from './context';
 import { json } from './http';
 import { handleAccountPlatformRoutes } from './accountPlatformRoutes';
 import { handleAccountConsoleAudit } from './auditRoutes';
@@ -117,6 +117,11 @@ function splitCorsOrigins(input: string | undefined): string[] {
   return origins;
 }
 
+function allowedCorsOrigins(options: AccountConsoleRouterOptions): readonly string[] | '*' {
+  const origins = (options.corsOrigins ?? []).flatMap(splitCorsOrigins);
+  return origins.includes('*') ? '*' : origins;
+}
+
 async function routeAccountRequest(
   options: AccountConsoleRouterOptions,
   request: Request,
@@ -151,6 +156,7 @@ async function routeAccountRequest(
     organizationAccess: options.services.organizationAccess,
     authorizeTenant: null,
     waitUntil: options.waitUntil ?? null,
+    consoleReturnOrigin: resolveConsoleReturnOrigin(request, allowedCorsOrigins(options)),
   };
   const response = await dispatchAccountRequest(options, context);
   if (options.requestCompleted) {

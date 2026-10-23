@@ -12,7 +12,10 @@ import {
   authenticateWalletConsoleRequest,
   type WalletConsoleAuthClaims as ConsoleAuthClaims,
 } from '../walletConsoleAuth';
-import type { AccountConsoleContext } from '@seams-internal/console-server/router/cloudflare/context';
+import {
+  resolveConsoleReturnOrigin,
+  type AccountConsoleContext,
+} from '@seams-internal/console-server/router/cloudflare/context';
 import { handleAccountPlatformRoutes } from '@seams-internal/console-server/router/cloudflare/accountPlatformRoutes';
 import {
   handleConsoleHealth,
@@ -3735,6 +3738,9 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
       readyCheck: opts.readyCheck ?? null,
       authorizeTenant: null,
       waitUntil: cfCtx?.waitUntil ? cfCtx.waitUntil.bind(cfCtx) : null,
+      consoleReturnOrigin: opts.corsOrigins
+        ? resolveConsoleReturnOrigin(request, buildCorsOrigins(...opts.corsOrigins))
+        : null,
       billingStripeWebhookSigningSecret: opts.billingStripeWebhookSigningSecret ?? null,
       accountPlatform: opts.accountPlatform ?? null,
       walletProvisioning: opts.walletProvisioning ?? null,

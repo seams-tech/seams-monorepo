@@ -65,6 +65,8 @@ export interface D1FreePlanServiceOptions {
 export interface FreePlanContextV1 {
   readonly orgId: string;
   readonly actorUserId: string;
+  /** A trusted calling Console origin; card setup returns there. */
+  readonly returnOrigin?: string;
 }
 
 export interface BillingPlanViewV1 {
@@ -281,7 +283,7 @@ export class D1FreePlanService {
     const billingAccountId = requiredText(account.id, 'billing account id');
     const customerRef = await this.ensureCustomer(ctx.orgId, billingAccountId, now);
     const setupId = `cset_${now.getTime().toString(36)}_${secureRandomBase36(12, 'card setup id')}`;
-    const urls = buildCardSetupReturnUrls(this.consoleBaseUrl, startPlan);
+    const urls = buildCardSetupReturnUrls(this.consoleBaseUrl, startPlan, ctx.returnOrigin);
     const session = await this.providers.stripe.createCardSetupSession({
       setupId,
       orgId: ctx.orgId,

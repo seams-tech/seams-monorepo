@@ -4,7 +4,11 @@ import type { ConsoleBillingService } from '../../billing/service';
 import type { ConsoleWebhookService } from '../../webhooks/service';
 import type { D1AccountPlatformService } from '../../accountPlatform/d1';
 import type { AccountServiceProvisioningAdapterV1 } from '../../accountPlatform/provisioning';
-import type { NormalizedRouterLogger, SessionAdapter } from '../../boundary';
+import {
+  normalizeCorsOrigin,
+  type NormalizedRouterLogger,
+  type SessionAdapter,
+} from '../../boundary';
 import type { ConsoleOnboardingService } from '../../onboarding/service';
 import type { ConsoleOrgProjectService } from '../../orgProjectEnv/service';
 import type { ConsoleOrganizationAccessService } from '../../teamRbac';
@@ -36,5 +40,17 @@ export interface AccountConsoleContext {
   readonly satyrProvisioning: AccountServiceProvisioningAdapterV1 | null;
   readonly authorizeTenant: ((claims: ConsoleAuthClaims) => Response | null) | null;
   readonly waitUntil: ((work: Promise<unknown>) => void) | null;
+  /** The calling Console's origin when it is on the explicit CORS list, for Stripe returns. */
+  readonly consoleReturnOrigin: string | null;
   authClaims?: ConsoleAuthClaims;
+}
+
+/** A wildcard list trusts no origin as a return target. */
+export function resolveConsoleReturnOrigin(
+  request: Request,
+  allowedOrigins: readonly string[] | '*',
+): string | null {
+  if (allowedOrigins === '*') return null;
+  const origin = normalizeCorsOrigin(request.headers.get('Origin') ?? undefined);
+  return origin && allowedOrigins.includes(origin) ? origin : null;
 }

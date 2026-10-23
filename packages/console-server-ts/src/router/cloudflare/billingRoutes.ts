@@ -335,6 +335,9 @@ export async function handleConsoleBillingRoutes(
   if (billingOrResponse instanceof Response) return billingOrResponse;
   const billing = billingOrResponse;
   const billingCtx = { orgId: auth.claims.orgId, actorUserId: auth.claims.userId };
+  const returnCtx = ctx.consoleReturnOrigin
+    ? { ...billingCtx, returnOrigin: ctx.consoleReturnOrigin }
+    : billingCtx;
   const invoiceMatch = ctx.pathname.match(/^\/console\/billing\/invoices\/([^/]+)$/);
   const invoicePdfMatch = ctx.pathname.match(/^\/console\/billing\/invoices\/([^/]+)\/pdf$/);
   const invoiceActivityMatch = ctx.pathname.match(
@@ -840,7 +843,7 @@ export async function handleConsoleBillingRoutes(
       }
       if (ctx.method === 'POST' && ctx.pathname === '/console/billing/card-setup') {
         const request = parseCardSetupRequest(await readJson(ctx.request));
-        const cardSetup = await freePlan.startCardSetup(billingCtx, request.startPlan);
+        const cardSetup = await freePlan.startCardSetup(returnCtx, request.startPlan);
         return json({ ok: true, cardSetup }, { status: 201 });
       }
       if (ctx.method === 'POST' && ctx.pathname === '/console/billing/card-setup/reconcile') {
@@ -869,7 +872,7 @@ export async function handleConsoleBillingRoutes(
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const request = parseStripeCheckoutSessionRequest(await readJson(ctx.request));
-      const checkoutSession = await billing.createStripeCheckoutSession(billingCtx, request);
+      const checkoutSession = await billing.createStripeCheckoutSession(returnCtx, request);
       return json({ ok: true, checkoutSession }, { status: 201 });
     }
     if (

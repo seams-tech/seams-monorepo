@@ -7,7 +7,7 @@ import {
   IntegrationsWindow,
   WalletTransactionPreview,
 } from '@/components/h2/SceneHero';
-import { PolicyFeed } from '@/components/h2/PolicyFeed';
+import { ShopOpsFeed } from '@/components/h2/ShopOpsFeed';
 import { SeamsAuthMenuMock } from '@/components/h2/SeamsAuthMenuMock';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import {
@@ -147,7 +147,7 @@ function HomeHeroCurrent(): React.JSX.Element {
               </a>
             </div>
           </div>
-          <PolicyFeed />
+          <ShopOpsFeed />
         </div>
       </header>
 

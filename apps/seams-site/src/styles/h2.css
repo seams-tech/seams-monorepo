@@ -505,7 +505,7 @@ body:has(.h2-page) {
 
 /* Panel variant: the hero content sits on a rounded panel. The home page
    draws the teal-peach-wisp GrainField as the shell's first child, with
-   the headline in white at the left and the policy card at the right; the
+   the headline in white at the left and the shop ops card at the right; the
    flat wisp gradient shows until the field's first frame. */
 .h2-hero-simple--panel {
   padding: 2rem 0 1rem;
@@ -568,7 +568,7 @@ body:has(.h2-page) {
     gap: 40px;
   }
 
-  .h2-hero-simple--panel .h2-policy {
+  .h2-hero-simple--panel .h2-ops {
     justify-self: start;
   }
 
@@ -612,16 +612,16 @@ body:has(.h2-page) {
     padding: 0 4px;
   }
 
-  .h2-hero-simple--panel .h2-policy {
-    --h2-policy-rows: 3;
+  .h2-hero-simple--panel .h2-ops {
+    --h2-ops-rows: 3;
   }
 }
 
-/* ---------- policy card: the home hero's live feed of checked actions ---------- */
+/* ---------- shop ops card: the home hero's live feed of a bakery-café's agents ---------- */
 
-.h2-policy {
-  --h2-policy-row: 52px;
-  --h2-policy-gap: 6px;
+.h2-ops {
+  --h2-ops-row: 52px;
+  --h2-ops-gap: 6px;
   width: 100%;
   max-width: 392px;
   justify-self: end;
@@ -637,7 +637,7 @@ body:has(.h2-page) {
     0 2px 8px rgba(10, 10, 10, 0.06);
 }
 
-.h2-policy__head {
+.h2-ops__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -645,7 +645,7 @@ body:has(.h2-page) {
   padding: 2px 4px 10px;
 }
 
-.h2-policy__title {
+.h2-ops__title {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -653,44 +653,43 @@ body:has(.h2-page) {
   font-weight: 500;
 }
 
-.h2-policy__live {
+.h2-ops__live {
   width: 7px;
   height: 7px;
   border-radius: 9999px;
   background: var(--h2-green);
-  animation: h2-policy-live 2.4s ease-out infinite;
+  animation: h2-ops-live 2.4s ease-out infinite;
 }
 
-.h2-policy__count {
+.h2-ops__count {
   font-size: var(--h2-text-sm);
   color: var(--h2-smoke);
   font-variant-numeric: tabular-nums;
 }
 
 /* four rows tall (three on phones); the rows past the edge wait below it */
-.h2-policy__window {
+.h2-ops__window {
   height: calc(
-    var(--h2-policy-rows, 4) * var(--h2-policy-row) + (var(--h2-policy-rows, 4) - 1) *
-      var(--h2-policy-gap)
+    var(--h2-ops-rows, 4) * var(--h2-ops-row) + (var(--h2-ops-rows, 4) - 1) * var(--h2-ops-gap)
   );
   overflow: hidden;
   border-radius: 12px;
 }
 
-.h2-policy__list {
+.h2-ops__list {
   display: grid;
-  grid-auto-rows: var(--h2-policy-row);
-  gap: var(--h2-policy-gap);
+  grid-auto-rows: var(--h2-ops-row);
+  gap: var(--h2-ops-gap);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.h2-policy__list.is-moving {
-  animation: h2-policy-step 520ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+.h2-ops__list.is-moving {
+  animation: h2-ops-step 520ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
-.h2-policy__row {
+.h2-ops__row {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr) auto;
   align-items: center;
@@ -701,11 +700,11 @@ body:has(.h2-page) {
   border: 1px solid var(--h2-line);
 }
 
-.h2-policy__row.is-new {
-  animation: h2-policy-arrive 520ms ease-out both;
+.h2-ops__row.is-new {
+  animation: h2-ops-arrive 520ms ease-out both;
 }
 
-.h2-policy__agent {
+.h2-ops__icon {
   display: grid;
   place-items: center;
   width: 28px;
@@ -715,52 +714,52 @@ body:has(.h2-page) {
   color: var(--h2-graphite);
 }
 
-.h2-policy__agent svg {
+.h2-ops__icon svg {
   width: 15px;
   height: 15px;
 }
 
-.h2-policy__main {
+.h2-ops__main {
   display: grid;
   min-width: 0;
 }
 
-.h2-policy__action,
-.h2-policy__main small {
+.h2-ops__task,
+.h2-ops__main small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.h2-policy__action {
+.h2-ops__task {
   font-size: var(--h2-text-lg);
   font-weight: 500;
 }
 
-.h2-policy__main small {
+.h2-ops__main small {
   font-size: var(--h2-text-sm);
   color: var(--h2-smoke);
 }
 
-/* "Checking" and the verdict share one cell; the verdict replaces it */
-.h2-policy__verdict {
+/* "Running" and the status share one cell; the status replaces it */
+.h2-ops__result {
   display: grid;
   justify-items: end;
 }
 
-.h2-policy__verdict > * {
+.h2-ops__result > * {
   grid-area: 1 / 1;
 }
 
-.is-new .h2-policy__checking {
-  animation: h2-policy-out 200ms ease 1100ms both;
+.is-new .h2-ops__running {
+  animation: h2-ops-out 200ms ease 1100ms both;
 }
 
-.is-new .h2-policy__result {
-  animation: h2-policy-in 260ms ease 1200ms both;
+.is-new .h2-ops__status {
+  animation: h2-ops-in 260ms ease 1200ms both;
 }
 
-.h2-policy__foot {
+.h2-ops__foot {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -769,37 +768,37 @@ body:has(.h2-page) {
   color: var(--h2-smoke);
 }
 
-.h2-policy__foot svg {
+.h2-ops__foot svg {
   width: 13px;
   height: 13px;
 }
 
-@keyframes h2-policy-step {
+@keyframes h2-ops-step {
   from {
-    transform: translateY(calc(-1 * (var(--h2-policy-row) + var(--h2-policy-gap))));
+    transform: translateY(calc(-1 * (var(--h2-ops-row) + var(--h2-ops-gap))));
   }
 }
 
-@keyframes h2-policy-arrive {
+@keyframes h2-ops-arrive {
   from {
     opacity: 0;
   }
 }
 
-@keyframes h2-policy-out {
+@keyframes h2-ops-out {
   to {
     opacity: 0;
   }
 }
 
-@keyframes h2-policy-in {
+@keyframes h2-ops-in {
   from {
     opacity: 0;
     transform: scale(0.92);
   }
 }
 
-@keyframes h2-policy-live {
+@keyframes h2-ops-live {
   0% {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--h2-green) 45%, transparent);
   }
@@ -811,18 +810,18 @@ body:has(.h2-page) {
 }
 
 @media (max-width: 560px) {
-  .h2-policy {
+  .h2-ops {
     max-width: none;
     padding: 10px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .h2-policy__live,
-  .h2-policy__list.is-moving,
-  .h2-policy__row.is-new,
-  .is-new .h2-policy__checking,
-  .is-new .h2-policy__result {
+  .h2-ops__live,
+  .h2-ops__list.is-moving,
+  .h2-ops__row.is-new,
+  .is-new .h2-ops__running,
+  .is-new .h2-ops__status {
     animation: none;
   }
 }

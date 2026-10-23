@@ -114,8 +114,16 @@ authority, session, and quota. An exact retry returns the committed method.
 The real-D1 E2E opens the stored envelope in browser WASM and proves that a
 duplicate device key or retired source session rolls both writes back.
 
-Fresh Wallet Sessions still need production challenge and verification routes,
-session issuance, revocation integration, and signing-lane scope. The SDK must
-call the native bridge and custody worker during activation and unlock. The
-native bridge has no SDK caller yet. The method remains unavailable for
-production unlock and signing until those paths are complete.
+The Wallet server now issues and stores a short-lived VoiceID challenge
+bound to the hosted wallet origin. After the registered device signs it, the
+server checks the active method, full-owner authority, and custody envelope.
+It consumes the challenge once and issues a fresh Wallet Session and quota.
+The E2E retires the original owner session, then uses a generated test key to
+issue and read a new VoiceID session. A changed origin and replayed assertion
+fail. This test uses no microphone or Keychain access.
+
+The SDK still needs to call the native bridge and custody worker during
+activation and unlock. It must activate signing lanes under the new session.
+A composed E2E with the native host and a revocation E2E remain. The native
+bridge has no SDK caller yet, so production voice-only signing remains
+unavailable.

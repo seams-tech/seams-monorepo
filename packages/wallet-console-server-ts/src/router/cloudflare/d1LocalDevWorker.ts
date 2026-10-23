@@ -1284,8 +1284,11 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     tenantRootRoutes: [
       recoveryTrustResponse.bind(
         null,
-        env.TENANT_ROOT_CONTROL_PLANE,
-        localRouterAbInternalServiceAuthSecret(env),
+        {
+          kind: 'direct-control-plane',
+          binding: env.TENANT_ROOT_CONTROL_PLANE,
+          internalServiceAuthSecret: localRouterAbInternalServiceAuthSecret(env),
+        },
         env.CONSOLE_STEP_UP_ORIGIN || env.CONSOLE_BASE_URL || 'http://localhost:4001',
       ),
       tenantRootCustody.fetch.bind(tenantRootCustody),

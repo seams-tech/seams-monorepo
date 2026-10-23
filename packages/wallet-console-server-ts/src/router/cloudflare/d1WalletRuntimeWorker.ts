@@ -33,6 +33,11 @@ type CloudflareWalletRuntimeEnv = CloudflareD1GatewayEnv &
     readonly CF_VERSION_METADATA: { readonly id: unknown };
   };
 
+const RECOVERY_TRUST_RUNTIME_URL =
+  'https://wallet-runtime.internal/internal/wallet-runtime/v1/recovery-trust';
+const RECOVERY_TRUST_CONTROL_PLANE_URL =
+  'https://tenant-root-control-plane.internal/router-ab/tenant-root-control-plane/recovery/trust';
+
 async function fetch(
   request: Request,
   env: CloudflareWalletRuntimeEnv,
@@ -101,6 +106,16 @@ async function fetch(
       }),
       { router: env.MPC_ROUTER, credential },
     ) ?? new Response('Not found', { status: 404 });
+  }
+  if (request.url === RECOVERY_TRUST_RUNTIME_URL) {
+    if (request.method !== 'GET') return new Response(null, { status: 405 });
+    const secret = env.ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET?.trim();
+    if (!secret) return Response.json({ error: 'recovery_trust_unavailable' }, { status: 503 });
+    return await env.TENANT_ROOT_CONTROL_PLANE.fetch(
+      new Request(RECOVERY_TRUST_CONTROL_PLANE_URL, {
+        headers: { 'x-router-ab-internal-service-auth': secret },
+      }),
+    );
   }
   const controlResponse = await handleWalletControlRequest(request, env);
   if (controlResponse) return controlResponse;

@@ -689,8 +689,7 @@ async function createConsoleHandler(
   });
   const routerWithOps: FetchHandler = async (request, workerEnv, ctx) => {
     const trustResponse = await recoveryTrustResponse(
-      walletControl.controlPlane,
-      WALLET_CONTROL_AUTH_MARKER_V1,
+      { kind: 'wallet-runtime', binding: env.WALLET_RUNTIME },
       requireEnvString(env, 'CONSOLE_STEP_UP_ORIGIN'),
       request,
     );

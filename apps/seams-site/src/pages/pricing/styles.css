@@ -609,7 +609,7 @@
 .pricing-banner__cards {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 22px;
+  gap: 22px 0.5rem;
 }
 
 @media (max-width: 1160px) {

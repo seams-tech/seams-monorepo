@@ -80,11 +80,13 @@ iframe as configuration. The host imports the VoiceID browser module only for
 an enabled request. Disabled applications fetch no VoiceID module and make no
 loopback request. The native host and model assets are separate local files.
 
-The current branch has the descriptor, config boundary, on-demand browser
+The Wallet branch has the descriptor, config boundary, on-demand browser
 chunk, the earlier per-transaction approval flow, and an exact device-assertion
 wire contract with server-only signature verification. The verifier rejects
-replay through its atomic challenge-consumption port, but no production
-challenge store or issuance route calls it yet.
+replay through its atomic challenge-consumption port. The Wallet server now has
+a tenant-scoped D1 store that issues exact challenges and consumes each one
+once. Its E2E verifies replay rejection and concurrent consumption with two
+store instances. No production issuance route calls the store yet.
 
 The macOS host now creates a separate random authorization key and factor
 secret for each wallet auth method. Its Keychain record binds both to the

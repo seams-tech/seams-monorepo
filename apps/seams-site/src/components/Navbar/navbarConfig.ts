@@ -5,7 +5,7 @@ import { type DropdownPane, type SiteNavbarConfig } from '@seams-internal/site-n
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* seams.sh is the landing site for three products: Satyr (ecommerce agents
-   and café management), BakeryOS (bakery robot and appliance orchestration)
+   and café management), BakeryOS (robotics for bakeries; its thesis is open)
    and Seams Wallet (a standalone stablecoin wallet). Satyr and BakeryOS have
    no docs or pricing pages yet: these placeholder paths are the one place to
    point them at the real pages. */

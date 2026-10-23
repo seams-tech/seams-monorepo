@@ -284,16 +284,16 @@ export const messages = {
     ja: 'エージェントが運営するストアとカフェ向けプラン',
   },
   bakeryNav: {
-    en: 'Orchestration for bakery robots and appliances',
-    ja: 'ベーカリーのロボットと機器のオーケストレーション',
+    en: 'Robotics for bakeries',
+    ja: 'ベーカリーのためのロボティクス',
   },
   bakeryDocs: {
-    en: 'Connect ovens, mixers, and robots, and run production',
-    ja: 'オーブン、ミキサー、ロボットの接続と生産の運用',
+    en: 'Robotics for bakeries. Docs are coming soon.',
+    ja: 'ベーカリーのためのロボティクス。ドキュメントは準備中です。',
   },
   bakeryPricing: {
-    en: 'Plans for each kitchen and its machines',
-    ja: 'キッチンと機器ごとのプラン',
+    en: 'Robotics for bakeries. Pricing is coming soon.',
+    ja: 'ベーカリーのためのロボティクス。料金は準備中です。',
   },
   walletNav: {
     en: 'A standalone stablecoin wallet with passkeys and policy',

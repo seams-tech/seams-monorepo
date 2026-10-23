@@ -1,5 +1,6 @@
 //! Safe, thread-confined composition behind the native C boundary.
 
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::cell::RefCell;
 use std::collections::VecDeque;
@@ -8,8 +9,9 @@ use std::path::Path;
 use std::rc::Rc;
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use super::device_credential::DeviceCredential;
 use super::local_bridge::CommandCapture;
 use super::local_host::{
     CollectionPurpose, HOST_CHUNK_SAMPLES, HOST_MAXIMUM_SAMPLES, LocalClock, LocalModels,
@@ -68,6 +70,35 @@ pub(crate) enum NativeOutcome {
     Rejected,
     Ambiguous,
     Insufficient,
+}
+
+pub(crate) enum DeviceCaptureOutcome<T> {
+    Approved(T),
+    Cancelled,
+    Rejected,
+}
+
+pub(crate) struct DeviceActivation {
+    pub(crate) public_key_b64u: String,
+    pub(crate) device_key_id: String,
+    pub(crate) factor_secret_b64u: String,
+}
+
+pub(crate) struct DeviceUnlock {
+    pub(crate) signature_b64u: String,
+    pub(crate) factor_secret_b64u: String,
+}
+
+pub(crate) struct DeviceUnlockRequest<'a> {
+    pub(crate) wallet_id: &'a str,
+    pub(crate) wallet_auth_method_id: &'a str,
+    pub(crate) challenge: &'a Value,
+    pub(crate) caller_origin: &'a str,
+}
+
+enum CredentialAccess {
+    Existing,
+    CreateIfMissing,
 }
 pub(crate) struct NativeResult {
     pub(crate) request: RequestId,
@@ -141,6 +172,7 @@ pub(crate) struct NativeSession {
     clock: LocalClock,
     store: KeychainStore,
     enrollment: Option<EnrollmentRef>,
+    credential: Option<DeviceCredential>,
     matcher: Rc<RefCell<EcapaMatcher>>,
     runtime: NativeRuntime,
     ready: CaptureReady<AudioFormat>,
@@ -185,6 +217,7 @@ impl NativeSession {
             clock,
             store,
             enrollment: identity,
+            credential: None,
             matcher,
             runtime,
             ready,
@@ -246,6 +279,109 @@ impl NativeSession {
             let _ = self.cancel(request);
         }
         result
+    }
+
+    pub(crate) fn activate_capture(
+        &mut self,
+        wallet_id: &str,
+        wallet_auth_method_id: &str,
+        timeout_ms: u32,
+        capture: &mut impl CommandCapture,
+        cancellation: &impl Cancellation,
+        on_started: &mut dyn FnMut() -> Result<(), AdapterError>,
+    ) -> Result<DeviceCaptureOutcome<DeviceActivation>, NativeError> {
+        match self.listen_capture(timeout_ms, capture, cancellation, on_started)? {
+            NativeOutcome::Matched(SpokenCommand::Approve) => {}
+            NativeOutcome::Matched(SpokenCommand::Cancel) => {
+                return Ok(DeviceCaptureOutcome::Cancelled);
+            }
+            _ => return Ok(DeviceCaptureOutcome::Rejected),
+        }
+        if cancellation.is_cancelled() {
+            return Err(NativeError::Cancelled);
+        }
+        let credential = self.device_credential(
+            wallet_id,
+            wallet_auth_method_id,
+            CredentialAccess::CreateIfMissing,
+        )?;
+        Ok(DeviceCaptureOutcome::Approved(DeviceActivation {
+            public_key_b64u: credential.public_key_b64u(),
+            device_key_id: credential.device_key_id_b64u(),
+            factor_secret_b64u: credential.factor_secret_b64u(),
+        }))
+    }
+
+    pub(crate) fn unlock_capture(
+        &mut self,
+        request: DeviceUnlockRequest<'_>,
+        timeout_ms: u32,
+        capture: &mut impl CommandCapture,
+        cancellation: &impl Cancellation,
+        on_started: &mut dyn FnMut() -> Result<(), AdapterError>,
+    ) -> Result<DeviceCaptureOutcome<DeviceUnlock>, NativeError> {
+        match self.listen_capture(timeout_ms, capture, cancellation, on_started)? {
+            NativeOutcome::Matched(SpokenCommand::Approve) => {}
+            NativeOutcome::Matched(SpokenCommand::Cancel) => {
+                return Ok(DeviceCaptureOutcome::Cancelled);
+            }
+            _ => return Ok(DeviceCaptureOutcome::Rejected),
+        }
+        if cancellation.is_cancelled() {
+            return Err(NativeError::Cancelled);
+        }
+        let credential = self.device_credential(
+            request.wallet_id,
+            request.wallet_auth_method_id,
+            CredentialAccess::Existing,
+        )?;
+        let now_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(id_exhausted)?
+            .as_millis()
+            .try_into()
+            .map_err(id_exhausted)?;
+        let signature_b64u = credential
+            .sign_challenge(request.challenge, request.caller_origin, now_ms)
+            .map_err(store_error)?;
+        Ok(DeviceCaptureOutcome::Approved(DeviceUnlock {
+            signature_b64u,
+            factor_secret_b64u: credential.factor_secret_b64u(),
+        }))
+    }
+
+    fn device_credential(
+        &mut self,
+        wallet_id: &str,
+        wallet_auth_method_id: &str,
+        access: CredentialAccess,
+    ) -> Result<&DeviceCredential, NativeError> {
+        let enrollment = self.enrollment.ok_or(NativeError::Missing)?;
+        let cached = match &self.credential {
+            Some(credential) => {
+                credential.enrollment() == enrollment
+                    && credential.wallet_id() == wallet_id
+                    && credential.wallet_auth_method_id() == wallet_auth_method_id
+            }
+            None => false,
+        };
+        if !cached {
+            let work = self.clock.work_for(Duration::from_secs(15));
+            let loaded = self
+                .store
+                .load_device_credential(enrollment, wallet_id, wallet_auth_method_id, &work)
+                .map_err(store_error)?;
+            let credential = match loaded {
+                Some(credential) => credential,
+                None if matches!(access, CredentialAccess::CreateIfMissing) => self
+                    .store
+                    .create_device_credential(enrollment, wallet_id, wallet_auth_method_id, &work)
+                    .map_err(store_error)?,
+                None => return Err(NativeError::Missing),
+            };
+            self.credential = Some(credential);
+        }
+        self.credential.as_ref().ok_or(NativeError::Failed)
     }
 
     fn collect_command(
@@ -487,6 +623,7 @@ impl NativeSession {
             return Err(NativeError::Stopped);
         }
         let identity = self.enrollment.ok_or(NativeError::Missing)?;
+        self.credential = None;
         self.install_enrollment(EnrollmentState::Empty)?;
         let work = self.clock.work_for(Duration::from_secs(5));
         if let Err(error) = self.store.delete(identity, &work) {

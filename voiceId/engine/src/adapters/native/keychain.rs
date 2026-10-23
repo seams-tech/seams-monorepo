@@ -17,7 +17,9 @@ use security_framework_sys::keychain_item::{
     SecItemAdd, SecItemCopyMatching, SecItemDelete, SecItemUpdate,
 };
 use sha2::{Digest, Sha256};
+use zeroize::Zeroizing;
 
+use super::device_credential::DeviceCredential;
 use super::ecapa::SpeakerEmbedding;
 use crate::adapters::{StoreError, TemplateStore};
 use crate::domain::{DeviceId, EnrollmentId, EnrollmentRef, ModelId, UnavailableReason};
@@ -105,6 +107,71 @@ impl KeychainStore {
             CFData::from_buffer(&reference_bytes(self.device, expected)).into_CFType(),
         ));
         query
+    }
+
+    /// Create one independent key and factor for a Wallet activation.
+    /// The wallet and method identity select a separate Keychain item.
+    pub(crate) fn create_device_credential(
+        &mut self,
+        enrollment: EnrollmentRef,
+        wallet_id: &str,
+        wallet_auth_method_id: &str,
+        work: &WorkContext<'_>,
+    ) -> Result<DeviceCredential, StoreError> {
+        work.check().map_err(StoreError::Work)?;
+        let credential =
+            DeviceCredential::generate(self.device, enrollment, wallet_id, wallet_auth_method_id)?;
+        let bytes = credential.encode();
+        let mut query = self.credential_query(wallet_id, wallet_auth_method_id);
+        query.push(pair(
+            unsafe { kSecValueData },
+            CFData::from_buffer(&bytes).into_CFType(),
+        ));
+        work.check().map_err(StoreError::Work)?;
+        let status = unsafe {
+            SecItemAdd(
+                dictionary(&query).as_concrete_TypeRef(),
+                std::ptr::null_mut(),
+            )
+        };
+        mutation_result(status)?;
+        Ok(credential)
+    }
+
+    pub(crate) fn load_device_credential(
+        &self,
+        enrollment: EnrollmentRef,
+        wallet_id: &str,
+        wallet_auth_method_id: &str,
+        work: &WorkContext<'_>,
+    ) -> Result<Option<DeviceCredential>, StoreError> {
+        work.check().map_err(StoreError::Work)?;
+        let query = self.credential_query(wallet_id, wallet_auth_method_id);
+        let result = read_data(query)?;
+        work.check().map_err(StoreError::Work)?;
+        match result {
+            None => Ok(None),
+            Some(bytes) => {
+                let bytes = Zeroizing::new(bytes);
+                DeviceCredential::decode(
+                    &bytes,
+                    self.device,
+                    enrollment,
+                    wallet_id,
+                    wallet_auth_method_id,
+                )
+                .map(Some)
+            }
+        }
+    }
+
+    fn credential_query(&self, wallet_id: &str, wallet_auth_method_id: &str) -> Query {
+        let mut digest = Sha256::new();
+        digest.update(wallet_id.as_bytes());
+        digest.update([0]);
+        digest.update(wallet_auth_method_id.as_bytes());
+        let account = format!("wallet-device:{:x}", digest.finalize());
+        base_query(&self.service, &account)
     }
 
     /// Remove an empty namespace's device identifier after a disposable local journey.

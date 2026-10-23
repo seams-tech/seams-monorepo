@@ -51,6 +51,28 @@ async function main() {
     assert.equal(approval.replies[1].outcome, 'approved');
     assert.deepEqual(approval.replies[1].binding, binding);
 
+    const activation = await request({
+      kind: 'activate', binding: nextActivationBinding(),
+    }, WALLET_ORIGIN);
+    assert.deepEqual(activation.replies.map(replyKind), [
+      'device_listening', 'activation_approved',
+    ]);
+    assert.equal(activation.replies[1].factorSecretB64u, 'A'.repeat(43));
+
+    const unlock = await request({
+      kind: 'unlock', binding: nextUnlockBinding(),
+    }, WALLET_ORIGIN);
+    assert.deepEqual(unlock.replies.map(replyKind), [
+      'device_listening', 'unlock_approved',
+    ]);
+    assert.equal(unlock.replies[1].signatureB64u, 'D'.repeat(86));
+
+    const invalidActivation = await request({
+      kind: 'activate',
+      binding: { ...nextActivationBinding(), walletId: 'invalid wallet' },
+    }, WALLET_ORIGIN);
+    assert.equal(invalidActivation.status, 400);
+
     const abortedBinding = nextBinding();
     const controller = new AbortController();
     const response = await fetch(`${ADDRESS}/voiceid`, {
@@ -84,6 +106,8 @@ async function main() {
       keychainAccess: 'none; fake native host',
       unauthorizedOriginRejectedBeforeLaunch: true,
       statusChecksAndApprovalsShareOneNativeProcess: true,
+      voiceGatedActivationAndUnlockMessagesForwarded: true,
+      invalidActivationRejectedBeforeNativeHost: true,
       abandonedCaptureCancelled: true,
       secondWalletOriginRejected: true,
       hostFailureDoesNotRestart: true,
@@ -107,6 +131,36 @@ function nextBinding() {
     attemptId: randomUUID(),
     operationHash: 'a'.repeat(64),
     expiresAtMs: Date.now() + 20_000,
+  };
+}
+
+function nextActivationBinding() {
+  return {
+    attemptId: randomUUID(),
+    walletId: 'wallet:test',
+    walletAuthMethodId: 'wallet-auth-method:test',
+    expiresAtMs: Date.now() + 20_000,
+  };
+}
+
+function nextUnlockBinding() {
+  return {
+    attemptId: randomUUID(),
+    walletId: 'wallet:test',
+    walletAuthMethodId: 'wallet-auth-method:test',
+    challenge: {
+      kind: 'voiceid_wallet_session_challenge_v1',
+      walletId: 'wallet:test',
+      walletAuthMethodId: 'wallet-auth-method:test',
+      walletAuthorityId: 'wallet-authority:test',
+      deviceKeyId: 'C'.repeat(43),
+      challengeId: 'wallet-session-mint:test',
+      nonce: 'N'.repeat(43),
+      requestOrigin: WALLET_ORIGIN,
+      audience: 'https://localhost:4101',
+      issuedAtMs: Date.now(),
+      expiresAtMs: Date.now() + 20_000,
+    },
   };
 }
 
@@ -244,18 +298,42 @@ function receive(request) {
     if (request.id !== active?.attemptId) process.exit(1);
     fs.appendFileSync(process.env.VOICEID_FAKE_CANCELLATIONS, 'cancelled\\n');
     clearTimeout(active.timer);
-    send({ kind: 'result', binding: active.binding, outcome: 'failed' });
+    if (active.kind === 'listen') {
+      send({ kind: 'result', binding: active.binding, outcome: 'failed' });
+    } else {
+      send({ kind: 'device_rejected', id: active.attemptId, outcome: 'cancelled' });
+    }
     active = null;
+    return;
+  }
+  if (request.kind === 'activate' || request.kind === 'unlock') {
+    if (active) process.exit(1);
+    send({ kind: 'device_listening', id: request.binding.attemptId });
+    const timer = setTimeout(approve, 20);
+    active = {
+      kind: request.kind, attemptId: request.binding.attemptId,
+      binding: request.binding, timer,
+    };
     return;
   }
   if (request.kind !== 'listen' || active) process.exit(1);
   send({ kind: 'listening', binding: request.binding });
   const timer = setTimeout(approve, 500);
-  active = { attemptId: request.binding.attemptId, binding: request.binding, timer };
+  active = { kind: 'listen', attemptId: request.binding.attemptId,
+    binding: request.binding, timer };
 }
 
 function approve() {
-  send({ kind: 'result', binding: active.binding, outcome: 'approved' });
+  if (active.kind === 'activate') {
+    send({ kind: 'activation_approved', id: active.attemptId,
+      publicKeyB64u: 'B'.repeat(43), deviceKeyId: 'C'.repeat(43),
+      factorSecretB64u: 'A'.repeat(43) });
+  } else if (active.kind === 'unlock') {
+    send({ kind: 'unlock_approved', id: active.attemptId,
+      signatureB64u: 'D'.repeat(86), factorSecretB64u: 'A'.repeat(43) });
+  } else {
+    send({ kind: 'result', binding: active.binding, outcome: 'approved' });
+  }
   active = null;
 }
 

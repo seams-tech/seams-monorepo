@@ -8,6 +8,8 @@ mod ecapa;
 mod moonshine;
 
 #[cfg(target_os = "macos")]
+pub(crate) mod device_credential;
+#[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
 mod keychain;
 #[cfg(target_os = "macos")]

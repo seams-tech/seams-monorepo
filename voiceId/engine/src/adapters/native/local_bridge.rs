@@ -8,10 +8,13 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use super::Microphone;
 use super::local_host::{CollectionPurpose, LocalClock, SpokenCommand, collect_utterance};
-use super::session::{NativeOutcome, NativeSession, NativeStatus};
+use super::session::{
+    DeviceCaptureOutcome, DeviceUnlockRequest, NativeOutcome, NativeSession, NativeStatus,
+};
 use crate::adapters::AdapterError;
 use crate::runtime::{Cancellation, WorkContext};
 use crate::utterance::SpeechWindow;
@@ -54,11 +57,31 @@ struct Binding {
     expires_at_ms: u64,
 }
 
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ActivationBinding {
+    attempt_id: String,
+    wallet_id: String,
+    wallet_auth_method_id: String,
+    expires_at_ms: u64,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct UnlockBinding {
+    attempt_id: String,
+    wallet_id: String,
+    wallet_auth_method_id: String,
+    challenge: Value,
+}
+
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 enum Request {
     Status { id: String },
     Listen { binding: Binding },
+    Activate { binding: ActivationBinding },
+    Unlock { binding: UnlockBinding },
     Cancel { id: String },
 }
 
@@ -74,6 +97,24 @@ enum Reply {
     },
     Result {
         binding: Binding,
+        outcome: &'static str,
+    },
+    DeviceListening {
+        id: String,
+    },
+    ActivationApproved {
+        id: String,
+        public_key_b64u: String,
+        device_key_id: String,
+        factor_secret_b64u: String,
+    },
+    UnlockApproved {
+        id: String,
+        signature_b64u: String,
+        factor_secret_b64u: String,
+    },
+    DeviceRejected {
+        id: String,
         outcome: &'static str,
     },
 }
@@ -117,6 +158,7 @@ pub fn run(
         let reply = handle_request(
             request,
             native,
+            caller_origin,
             capture,
             cancellation.as_ref(),
             started,
@@ -131,6 +173,7 @@ pub fn run(
 fn handle_request(
     request: Request,
     session: &mut NativeSession,
+    caller_origin: &str,
     capture: &mut impl CommandCapture,
     cancellation: &PortCancellation,
     started: Instant,
@@ -179,6 +222,100 @@ fn handle_request(
             };
             Reply::Result { binding, outcome }
         }
+        Request::Activate { binding } => {
+            let remaining = budget.saturating_sub(started.elapsed());
+            if remaining < Duration::from_millis(250) {
+                return Ok(Reply::DeviceRejected {
+                    id: binding.attempt_id,
+                    outcome: "rejected",
+                });
+            }
+            let id = binding.attempt_id.clone();
+            let mut on_started = || write_device_listening(&id);
+            let result = session.activate_capture(
+                &binding.wallet_id,
+                &binding.wallet_auth_method_id,
+                capture_timeout(remaining),
+                capture,
+                cancellation,
+                &mut on_started,
+            );
+            let outcome = if cancellation.is_cancelled()
+                || started.elapsed() >= budget
+                || now_ms()? >= binding.expires_at_ms
+            {
+                DeviceCaptureOutcome::Rejected
+            } else {
+                result.map_err(error_text)?
+            };
+            match outcome {
+                DeviceCaptureOutcome::Approved(material) => Reply::ActivationApproved {
+                    id: binding.attempt_id,
+                    public_key_b64u: material.public_key_b64u,
+                    device_key_id: material.device_key_id,
+                    factor_secret_b64u: material.factor_secret_b64u,
+                },
+                DeviceCaptureOutcome::Cancelled => Reply::DeviceRejected {
+                    id: binding.attempt_id,
+                    outcome: "cancelled",
+                },
+                DeviceCaptureOutcome::Rejected => Reply::DeviceRejected {
+                    id: binding.attempt_id,
+                    outcome: "rejected",
+                },
+            }
+        }
+        Request::Unlock { binding } => {
+            let remaining = budget.saturating_sub(started.elapsed());
+            if remaining < Duration::from_millis(250) {
+                return Ok(Reply::DeviceRejected {
+                    id: binding.attempt_id,
+                    outcome: "rejected",
+                });
+            }
+            let id = binding.attempt_id.clone();
+            let mut on_started = || write_device_listening(&id);
+            let result = session.unlock_capture(
+                DeviceUnlockRequest {
+                    wallet_id: &binding.wallet_id,
+                    wallet_auth_method_id: &binding.wallet_auth_method_id,
+                    challenge: &binding.challenge,
+                    caller_origin,
+                },
+                capture_timeout(remaining),
+                capture,
+                cancellation,
+                &mut on_started,
+            );
+            let expires_at_ms = binding
+                .challenge
+                .get("expiresAtMs")
+                .and_then(Value::as_u64)
+                .ok_or("VoiceID challenge expiry is invalid")?;
+            let outcome = if cancellation.is_cancelled()
+                || started.elapsed() >= budget
+                || now_ms()? >= expires_at_ms
+            {
+                DeviceCaptureOutcome::Rejected
+            } else {
+                result.map_err(error_text)?
+            };
+            match outcome {
+                DeviceCaptureOutcome::Approved(material) => Reply::UnlockApproved {
+                    id: binding.attempt_id,
+                    signature_b64u: material.signature_b64u,
+                    factor_secret_b64u: material.factor_secret_b64u,
+                },
+                DeviceCaptureOutcome::Cancelled => Reply::DeviceRejected {
+                    id: binding.attempt_id,
+                    outcome: "cancelled",
+                },
+                DeviceCaptureOutcome::Rejected => Reply::DeviceRejected {
+                    id: binding.attempt_id,
+                    outcome: "rejected",
+                },
+            }
+        }
         Request::Cancel { .. } => return Err("VoiceID cancellation was not handled".into()),
     };
     Ok(reply)
@@ -202,9 +339,60 @@ fn validate_request(request: &Request) -> Result<Duration, String> {
             }
             Ok(Duration::from_millis(remaining))
         }
+        Request::Activate { binding } => {
+            if !valid_attempt(&binding.attempt_id)
+                || !valid_wallet_id(&binding.wallet_id)
+                || !valid_method_id(&binding.wallet_auth_method_id)
+            {
+                return Err("VoiceID activation identity is invalid".into());
+            }
+            let remaining = binding.expires_at_ms.saturating_sub(now_ms()?);
+            if !(250..=60_000).contains(&remaining) {
+                return Err("VoiceID activation expired or exceeds its limit".into());
+            }
+            Ok(Duration::from_millis(remaining))
+        }
+        Request::Unlock { binding } => {
+            if !valid_attempt(&binding.attempt_id)
+                || !valid_wallet_id(&binding.wallet_id)
+                || !valid_method_id(&binding.wallet_auth_method_id)
+            {
+                return Err("VoiceID unlock identity is invalid".into());
+            }
+            let expires_at_ms = binding
+                .challenge
+                .get("expiresAtMs")
+                .and_then(Value::as_u64)
+                .ok_or("VoiceID challenge expiry is invalid")?;
+            let remaining = expires_at_ms.saturating_sub(now_ms()?);
+            if !(250..=60_000).contains(&remaining) {
+                return Err("VoiceID challenge expired or exceeds its limit".into());
+            }
+            Ok(Duration::from_millis(remaining))
+        }
         Request::Cancel { .. } => Err("VoiceID cancellation was not handled".into()),
         _ => Err("VoiceID request is invalid".into()),
     }
+}
+
+fn capture_timeout(remaining: Duration) -> u32 {
+    remaining.as_millis().min(25_000) as u32
+}
+
+fn write_device_listening(id: &str) -> Result<(), AdapterError> {
+    write_reply(&Reply::DeviceListening { id: id.to_owned() }).map_err(notification_failed)
+}
+
+fn valid_wallet_id(value: &str) -> bool {
+    !value.is_empty() && value.len() <= 128 && value.bytes().all(is_graphic_ascii)
+}
+
+fn valid_method_id(value: &str) -> bool {
+    valid_wallet_id(value) && value.starts_with("wallet-auth-method:")
+}
+
+fn is_graphic_ascii(value: u8) -> bool {
+    value.is_ascii_graphic()
 }
 
 fn valid_attempt(value: &str) -> bool {
@@ -263,6 +451,8 @@ fn request_id(request: &Request) -> &str {
     match request {
         Request::Status { id } | Request::Cancel { id } => id,
         Request::Listen { binding } => &binding.attempt_id,
+        Request::Activate { binding } => &binding.attempt_id,
+        Request::Unlock { binding } => &binding.attempt_id,
     }
 }
 

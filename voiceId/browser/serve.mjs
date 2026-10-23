@@ -122,6 +122,31 @@ function parseRequest(bytes) {
   if (value.kind === 'status') {
     return exactKeys(value, ['kind', 'id']) && attempt(value.id) ? value : null;
   }
+  if (value.kind === 'activate') {
+    if (!exactKeys(value, ['kind', 'binding'])) return null;
+    const binding = value.binding;
+    if (!record(binding) || !exactKeys(binding, [
+      'attemptId', 'walletId', 'walletAuthMethodId', 'expiresAtMs',
+    ])) return null;
+    const remaining = binding.expiresAtMs - Date.now();
+    return attempt(binding.attemptId) && walletId(binding.walletId) &&
+      methodId(binding.walletAuthMethodId) &&
+      Number.isSafeInteger(binding.expiresAtMs) &&
+      remaining >= 250 && remaining <= 60_000 ? value : null;
+  }
+  if (value.kind === 'unlock') {
+    if (!exactKeys(value, ['kind', 'binding'])) return null;
+    const binding = value.binding;
+    if (!record(binding) || !exactKeys(binding, [
+      'attemptId', 'walletId', 'walletAuthMethodId', 'challenge',
+    ])) return null;
+    if (!record(binding.challenge)) return null;
+    const remaining = binding.challenge.expiresAtMs - Date.now();
+    return attempt(binding.attemptId) && walletId(binding.walletId) &&
+      methodId(binding.walletAuthMethodId) &&
+      Number.isSafeInteger(binding.challenge.expiresAtMs) &&
+      remaining >= 250 && remaining <= 60_000 ? value : null;
+  }
   if (value.kind !== 'listen' || !exactKeys(value, ['kind', 'binding'])) return null;
   const binding = value.binding;
   if (!binding || typeof binding !== 'object' || Array.isArray(binding)) return null;
@@ -136,6 +161,19 @@ function parseRequest(bytes) {
     remaining > 25_000
   ) return null;
   return value;
+}
+
+function record(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function walletId(value) {
+  return typeof value === 'string' && value.length > 0 && value.length <= 128 &&
+    /^[\x21-\x7e]+$/.test(value);
+}
+
+function methodId(value) {
+  return walletId(value) && value.startsWith('wallet-auth-method:');
 }
 
 function exactKeys(value, names) {
@@ -233,6 +271,12 @@ class NativeExchange {
     } catch {
       return false;
     }
+    if (reply.kind === 'device_listening') {
+      if (!['activate', 'unlock'].includes(this.request.kind) ||
+          reply.id !== this.request.binding.attemptId) return false;
+      if (!this.cancelled) this.response.write(`${text}\n`);
+      return true;
+    }
     if (reply.kind === 'listening') {
       if (this.request.kind !== 'listen' || !sameBinding(reply.binding, this.request.binding)) {
         return false;
@@ -240,7 +284,24 @@ class NativeExchange {
       if (!this.cancelled) this.response.write(`${text}\n`);
       return true;
     }
-    if (reply.kind === 'status') {
+    if (reply.kind === 'activation_approved') {
+      if (this.request.kind !== 'activate' ||
+          reply.id !== this.request.binding.attemptId ||
+          Date.now() >= this.request.binding.expiresAtMs ||
+          !base64Url(reply.publicKeyB64u, 43) ||
+          !base64Url(reply.deviceKeyId, 43) ||
+          !base64Url(reply.factorSecretB64u, 43)) return false;
+    } else if (reply.kind === 'unlock_approved') {
+      if (this.request.kind !== 'unlock' ||
+          reply.id !== this.request.binding.attemptId ||
+          Date.now() >= this.request.binding.challenge.expiresAtMs ||
+          !base64Url(reply.signatureB64u, 86) ||
+          !base64Url(reply.factorSecretB64u, 43)) return false;
+    } else if (reply.kind === 'device_rejected') {
+      if (!['activate', 'unlock'].includes(this.request.kind) ||
+          reply.id !== this.request.binding.attemptId ||
+          !['cancelled', 'rejected'].includes(reply.outcome)) return false;
+    } else if (reply.kind === 'status') {
       if (this.request.kind !== 'status' || reply.id !== this.request.id) return false;
       if (reply.enrollment !== 'ready' && reply.enrollment !== 'empty') return false;
     } else if (reply.kind === 'result') {
@@ -274,6 +335,11 @@ class NativeExchange {
     active = null;
     this.response.destroy();
   }
+}
+
+function base64Url(value, length) {
+  return typeof value === 'string' && value.length === length &&
+    /^[A-Za-z0-9_-]+$/.test(value);
 }
 
 function sameBinding(left, right) {

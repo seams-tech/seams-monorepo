@@ -86,10 +86,19 @@ wire contract with server-only signature verification. The verifier rejects
 replay through its atomic challenge-consumption port, but no production
 challenge store or issuance route calls it yet.
 
+The macOS host now creates a separate random authorization key and factor
+secret for each wallet auth method. Its Keychain record binds both to the
+current voice enrollment version. Activation and unlock bridge requests release
+the factor secret only after a matching voice capture. An unlock also checks the
+wallet, method, device key, Wallet origin, and challenge lifetime before it
+signs the canonical challenge. The running host caches one credential after its
+first Keychain read. A fake-host bridge E2E checks message routing, origin
+rejection, and cancellation without microphone or Keychain access.
+
 Fresh-session implementation must extend the canonical Wallet auth-method and
 authority unions together with D1 persistence, session issuance, revocation,
 and signing-lane scope. The current unions support passkey and Email OTP only.
-It must also add the native device key and factor secret, the method-bound
-custody envelope in Rust/WASM, and the Wallet unlock flow. Each change needs
-an end-to-end contract. Do not present the descriptor alone as a working
-VoiceID Wallet auth method.
+It must add the method-bound custody envelope in Rust/WASM and the Wallet
+activation and unlock flow. The native bridge has no SDK caller yet. Each
+change needs an end-to-end contract. Do not present the descriptor alone as a
+working VoiceID Wallet auth method.

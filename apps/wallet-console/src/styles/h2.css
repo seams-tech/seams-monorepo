@@ -2498,6 +2498,14 @@ body:has(.h2-page) {
   text-align: center;
 }
 
+.h2-security__cell:nth-child(even) {
+  border-left: 1px dashed var(--h2-stone);
+}
+
+.h2-security__cell:nth-child(n + 3) {
+  border-top: 1px dashed var(--h2-stone);
+}
+
 .h2-wallet-figure {
   display: block;
   width: 100%;
@@ -2636,6 +2644,10 @@ body:has(.h2-page) {
   .h2-security__grid {
     grid-template-columns: minmax(0, 240px);
     justify-content: center;
+  }
+
+  .h2-security__cell:nth-child(n) {
+    border: 0;
   }
 
   .h2-security__grid:has([data-lead]) .h2-security__cell:not([data-lead]),

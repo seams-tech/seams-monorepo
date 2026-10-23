@@ -9,6 +9,8 @@ import {
   Truck,
   Wheat,
 } from 'lucide-react';
+import { type GrainFieldName } from '@seams-internal/grain-field';
+import { FieldTile } from '@/components/h2/sections';
 
 /* The front page hero's live card: a bakery-café with an online shop, run by
    agents. Tasks arrive at the top, show "Running" for a beat, and land on
@@ -18,7 +20,8 @@ import {
 type TaskTone = 'done' | 'queued' | 'held';
 
 type ShopTask = {
-  icon: React.ComponentType<{ 'aria-hidden'?: boolean }>;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  field: GrainFieldName;
   task: string;
   detail: string;
   result: string;
@@ -28,6 +31,7 @@ type ShopTask = {
 const shopTasks: readonly ShopTask[] = [
   {
     icon: Croissant,
+    field: 'apricot-beam',
     task: 'Bake plan: 120 croissants',
     detail: 'Prep agent · preorders and rain forecast',
     result: 'Planned',
@@ -35,6 +39,7 @@ const shopTasks: readonly ShopTask[] = [
   },
   {
     icon: ShoppingBag,
+    field: 'azure-coral',
     task: 'Online order #2391 · pickup 8:30',
     detail: 'Shop agent · paid on Shopify',
     result: 'Queued',
@@ -42,6 +47,7 @@ const shopTasks: readonly ShopTask[] = [
   },
   {
     icon: Wheat,
+    field: 'slate-amber',
     task: 'Reorder flour 25 kg',
     detail: 'Stock agent · under 2 days left',
     result: 'Ordered',
@@ -49,6 +55,7 @@ const shopTasks: readonly ShopTask[] = [
   },
   {
     icon: Truck,
+    field: 'vermilion-sky',
     task: 'Pay dairy supplier ¥86,000',
     detail: 'Ops agent · over ¥50,000 needs the owner',
     result: 'Held',
@@ -56,6 +63,7 @@ const shopTasks: readonly ShopTask[] = [
   },
   {
     icon: Tag,
+    field: 'mauve-ember',
     task: 'Day-old bread 30% off',
     detail: 'Pricing agent · from 18:00, waste rule',
     result: 'Scheduled',
@@ -63,6 +71,7 @@ const shopTasks: readonly ShopTask[] = [
   },
   {
     icon: Coffee,
+    field: 'copper-mist',
     task: 'Oat milk low at Café 2',
     detail: 'Stock agent · added to morning delivery',
     result: 'Restocked',
@@ -70,6 +79,7 @@ const shopTasks: readonly ShopTask[] = [
   },
   {
     icon: CakeSlice,
+    field: 'coral-tide',
     task: 'Birthday cake · Sat 14:00',
     detail: 'Shop agent · deposit taken online',
     result: 'Booked',
@@ -129,9 +139,7 @@ export function ShopOpsFeed(): React.JSX.Element {
             const fresh = i === 0 && tick > 0;
             return (
               <li key={arrival} className={`h2-ops__row${fresh ? ' is-new' : ''}`}>
-                <span className="h2-ops__icon">
-                  <item.icon aria-hidden />
-                </span>
+                <FieldTile field={item.field} icon={item.icon} vivid />
                 <span className="h2-ops__main">
                   <span className="h2-ops__task">{item.task}</span>
                   <small>{item.detail}</small>

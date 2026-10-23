@@ -704,17 +704,13 @@ body:has(.h2-page) {
   animation: h2-ops-arrive 520ms ease-out both;
 }
 
-.h2-ops__icon {
-  display: grid;
-  place-items: center;
+.h2-ops__row .h2-fieldtile {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: var(--h2-taupe);
-  color: var(--h2-graphite);
 }
 
-.h2-ops__icon svg {
+.h2-ops__row .h2-fieldtile svg {
   width: 15px;
   height: 15px;
 }
@@ -884,23 +880,6 @@ body:has(.h2-page) {
   display: flex;
   align-items: center;
   gap: 13px;
-}
-
-.h2-heroscene__intro-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 9999px;
-  background: var(--h2-bg);
-  box-shadow: 0 0 0 1px var(--h2-stone);
-  color: var(--h2-graphite);
-}
-
-.h2-heroscene__intro-icon svg {
-  width: 18px;
-  height: 18px;
 }
 
 .h2-heroscene__intro-title {
@@ -4538,6 +4517,28 @@ body:has(.h2-page) {
   filter: grayscale(1) contrast(0.55);
   mix-blend-mode: multiply;
   opacity: 0.08;
+}
+
+/* vivid: the full gradient under a white icon, like the navbar menu tiles */
+.h2-fieldtile.h2-fieldtile--vivid {
+  color: #ffffff;
+}
+
+.h2-fieldtile.h2-fieldtile--vivid::after {
+  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+}
+
+.h2-fieldtile.h2-fieldtile--vivid .grain-field {
+  filter: none;
+  mix-blend-mode: normal;
+  opacity: 1;
+}
+
+.h2-fieldtile.h2-fieldtile--vivid svg {
+  width: 18px;
+  height: 18px;
+  color: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
 }
 
 /* ---------- footer ---------- */

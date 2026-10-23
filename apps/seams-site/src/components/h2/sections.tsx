@@ -291,10 +291,19 @@ export function H2DemoHero({
 type TileIcon = React.ComponentType<{ size?: number; strokeWidth?: number }>;
 
 /* An icon on a small tile whose gradient field shows through only as a
-   faint grey wash. */
-function FieldTile({ field, icon: Icon }: { field: GrainFieldName; icon: TileIcon }) {
+   faint grey wash; `vivid` shows the full gradient under a white icon, as
+   the navbar menus do (the front page). */
+export function FieldTile({
+  field,
+  icon: Icon,
+  vivid = false,
+}: {
+  field: GrainFieldName;
+  icon: TileIcon;
+  vivid?: boolean;
+}) {
   return (
-    <span className="h2-fieldtile" aria-hidden>
+    <span className={vivid ? 'h2-fieldtile h2-fieldtile--vivid' : 'h2-fieldtile'} aria-hidden>
       <GrainField field={field} />
       <Icon size={18} strokeWidth={1.7} />
     </span>
@@ -645,7 +654,7 @@ export function H2Pillars(): React.JSX.Element {
                   className={`h2-pillar${i === active ? ' is-active' : ''}`}
                   onClick={() => setActive(i)}
                 >
-                  <FieldTile field={p.field} icon={p.icon} />
+                  <FieldTile field={p.field} icon={p.icon} vivid />
                   {p.label}
                 </button>
               ))}
@@ -1076,7 +1085,7 @@ function SecurityItem({
   const picked = React.useCallback(() => onPick(index), [onPick, index]);
   return (
     <div className={`h2-security__item${active ? ' is-active' : ''}`}>
-      <FieldTile field={capability.field} icon={capability.icon} />
+      <FieldTile field={capability.field} icon={capability.icon} vivid />
       <div>
         <h3>
           <button
@@ -1528,7 +1537,7 @@ export function H2Duo(): React.JSX.Element {
         <div className="h2-duo__grid">
           <a className="h2-duo__panel" href={walletProps.href} onClick={walletProps.onClick}>
             <h3 className="h2-duo__title">
-              <Wallet aria-hidden />
+              <FieldTile field="teal-peach" icon={Wallet} vivid />
               Embedded Wallet
             </h3>
             <p className="h2-duo__panel-copy">
@@ -1545,7 +1554,7 @@ export function H2Duo(): React.JSX.Element {
           </a>
           <a className="h2-duo__panel" href={agentsProps.href} onClick={agentsProps.onClick}>
             <h3 className="h2-duo__title">
-              <Bot aria-hidden />
+              <FieldTile field="azure-coral" icon={Bot} vivid />
               Ecommerce Agents
             </h3>
             <p className="h2-duo__panel-copy">

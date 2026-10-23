@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, Slack, Store, Wallet } from 'lucide-react';
-import { GrainField } from '@seams-internal/grain-field';
+import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import {
   DashboardWindow,
@@ -11,6 +11,7 @@ import { ShopOpsFeed } from '@/components/h2/ShopOpsFeed';
 import { SeamsAuthMenuMock } from '@/components/h2/SeamsAuthMenuMock';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import {
+  FieldTile,
   H2Cta,
   H2Duo,
   H2Ecosystem,
@@ -75,7 +76,8 @@ const HOME_HERO_FIELD_FLOW = 0.5;
 
 type HeroScene = {
   id: string;
-  icon: React.ComponentType<{ 'aria-hidden'?: boolean }>;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  field: GrainFieldName;
   title: string;
   sub: string;
   left: React.ReactNode;
@@ -88,6 +90,7 @@ const heroScenes: HeroScene[] = [
   {
     id: 'dashboard',
     icon: Store,
+    field: 'azure-coral',
     title: 'Ecommerce Agents',
     sub: 'Agents run your store: limits, approvals, and audit built in',
     left: <DashboardWindow />,
@@ -96,6 +99,7 @@ const heroScenes: HeroScene[] = [
   {
     id: 'integrations',
     icon: Slack,
+    field: 'mauve-ember',
     title: 'Integrations',
     sub: 'Approvals land where your team already works',
     left: <IntegrationsWindow />,
@@ -161,9 +165,7 @@ function HomeHeroCurrent(): React.JSX.Element {
             aria-label="Explore Ecommerce Agents"
           >
             <div className="h2-heroscene__intro h2-fadein" key={`intro-${scene.id}`}>
-              <span className="h2-heroscene__intro-icon" aria-hidden>
-                <scene.icon />
-              </span>
+              <FieldTile field={scene.field} icon={scene.icon} vivid />
               <div>
                 <p className="h2-heroscene__intro-title">{scene.title}</p>
                 <p className="h2-heroscene__intro-sub">{scene.sub}</p>
@@ -191,9 +193,7 @@ function HomeHeroCurrent(): React.JSX.Element {
               </div>
             ) : null}
             <div className="h2-heroscene__intro h2-fadein" key={`aside-intro-${scene.wallet.kind}`}>
-              <span className="h2-heroscene__intro-icon" aria-hidden>
-                <Wallet />
-              </span>
+              <FieldTile field="teal-peach" icon={Wallet} vivid />
               <div>
                 <p className="h2-heroscene__intro-title">Embedded Wallet</p>
                 <p className="h2-heroscene__intro-sub">{scene.wallet.sub}</p>

@@ -63,8 +63,9 @@ function renderHeroWalletPreview(preview: HeroWalletPreview): React.JSX.Element 
 
 /* ---------- hero: headline + paged scenes ---------- */
 
-/* The headline panel is teal-peach in a wisp shape: peach wisps cross the
-   teal on a diagonal above the headline, over deep teal at the lower left. */
+/* The headline panel is teal-peach in a wisp shape: peach wisps cross a
+   sky blue on a diagonal above the headline, over deep blue at the lower
+   left. */
 const HOME_HERO_FIELD = 'teal-peach-wisp';
 
 /* half the site pace and flow, so the field stays calm behind the headline

@@ -18,7 +18,7 @@
   --h2-taupe: #f5f3f1;
   --h2-stone: #ebe8e4;
   /* the teal-peach-wisp field's colours, shown until its first frame */
-  --h2-gradient-wisp: linear-gradient(160deg, #e9c6c4 0%, #36a6c4 45%, #0f5873 100%);
+  --h2-gradient-wisp: linear-gradient(160deg, #e9c6c4 0%, #3592cf 45%, #10457a 100%);
   /* structural hairlines (column borders, rules): a half step lighter than
      component outlines so the grid recedes but stays visible */
   --h2-line: #f2f0ed;

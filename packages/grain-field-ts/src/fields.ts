@@ -9,10 +9,9 @@
    bands, the blue shadow of a peak, and dark ridges. The middle half of its
    rows holds the sky down to the horizon, so a wide panel shows the sky and a
    tall one adds the shadow and the ridges.
-   Teal Peach Wisp is teal-peach in another shape: fitted from a card with
-   peach wisps that cross a teal field on a diagonal, over a deep teal at
-   the lower left, with its blues turned toward teal and its pinks toward
-   peach.
+   Teal Peach Wisp is teal-peach in another shape and a bluer key: fitted
+   from a card with peach wisps that cross a sky blue field on a diagonal,
+   over a deep blue at the lower left, with its pinks turned toward peach.
    Onyx Dusk is drawn, not fitted: three folds across near-black that converge
    on the right. The lit edge runs from warm silver to slate blue, and a pale
    blue rim lights one corner; the lower fold is graphite, with no brown.
@@ -80,7 +79,7 @@ const PHOTO_FIELDS = {
   'desert-dawn':
     'scz7ydj/zt381+P/4On84ur94+v/4en82eT/zt39yNT/uMz7s836ydn/0N792OT/4er95Ov95ez/4ur92uT/0N39yNb/us36r8z7yNf/zd382OP/3er84en+4er/3+n72OP/zN39xtP+tsz8uM75y9v/0+L/3Of65ez+6u/+6vD+6O//3+j81uH/ydn/wc/2z9Le29rm4Ob16Ov+6e7+6vH88fP67fD76uv94eLx29bh1NLf2crC6tnO7trG9eLK++fS//Dg9e/k++ra+uHH9NfC7tfL4si867uQ+sSa/c+n/9e+9trH59zP/+LK+NrF+NXD+s6q972T7LaM4plv7qmA+LCM8LaY/7+d/8ih7MCw/8Cl/baT/6mG9KSA6pN07IKE9IN/9IiC/5aJ+ZWVx4+k/6CR85OS9ZCV3oyW4n+N1XuMH0NhKGCRG1+cBWGvAF62AGK9AGK8IGmwM2ucOVmBNVVzJTpRFAAAEAAHKh8sNyQsSi01SScvPSguHhMbJAsOIA4RHAgRHAgRAgcPCw0YBgcSBgsZAw4dBw0YBQsXDg0YDg8aCwoVDAoXAgML',
   'teal-peach-wisp':
-    'ucba/9rP+ePV+eLe4tXqFbTOKLLQFbfSFbXRFbbRFrfSFb3Wl8TY4MbJ99bP48/O//Lok8/qFbvOMbLSNLrUFbzUGrzVHr7Xn8PZ0sLL1cjO3cvQ39rT/+LgmNLpFbXQFbDRFbXTGb/XFb3WesHV6MLN/9/N/+bL/9zT383V/+Lc/9zdq9XmFsnaJbvVMr7YObPHKLXGcLzUXr/aZcLYrMng8MvO3c7a/9fW7NfnFsbdFsbc/9PHEpKwNqC0JaK0Va2+X7PGtrjP4MLJtcnax8nb9dTbqNTmiKe91LnEOpy0MaG8Epa1GaW9I6m+U7TJu7bRuMPZnMTZes7eNJ63EH+bD3iVC1ZvFGR8FXaSEY6oG6C3P6vAgLXKornPwMPcD0xkJl93FU5jE1FmC0xhEFZsGF96FnKOEoKeEpq0E63CFcDVC0FYDFx1DWN9EneSF4ejFZuzE6i+F6/DIbPHLLrLN8bYK8HQDT1WEVFmEV12FnCLE3WOF3aRGHSPGHuYE4qjE6K8E7DBFs/fDEJZC0deEWV+FHmXG42pFZ+3FarBFai9Fa3DGLTGGsrYGsvb',
+    't77a/9jM+eLT+eHc5NTqCovOH43QC43SCovRCo3RDI7SC5PWlLXY4MTH99TN487N//HnjrvqCpPOKI/SK5fUC5LUEJPVFJbXm7bZ0sHK1cfN3crP39rS/+Hek7/pCozQCobRC4vTDpbXC5PWda3V6MDL/93K/+bI/9rQ38zU/+Da/9rbqMfmC57aG5TVKZnYMZTHH5PGa6XUV6TaX6nYqb3g8MnM3c3Z/9XU7NbmC5rdC5vc/9DECW+wL4S0HYO0T5W+WZzGuLTP4MHIs8DayMbb9dLZpcbmhZu91LjDM4G0KYK8CXK1EIG9G4e+TJrJv7XRtrrZmbbZdLfeLYG3CGCbB1qVBj9vD0x8DlqSCGyoEn23N47AfKTKn67Pwb7cCjlkIk13ETxjDj5mBjhhC0JsE0l6D1eOCmOeCXa0CofCC5bVBy9YBkV1B0p9C1uSEGijDXizCoO+DYnDGI/HI5jLLqPYIp3QCS1WDD5mDEZ2D1aLDFqOEFuREVmPEV+YC2qjCXy8CorBC6TfCDBZBzVeC0x+DVuXE22pDHy3C4XBC4O9DIfDDo7GD6HYD6Lb',
 } as const;
 
 export type GrainFieldName = keyof typeof PHOTO_FIELDS;

@@ -130,7 +130,14 @@ without microphone or Keychain access. The HTTP client activates the method,
 requests a challenge, and parses the fresh Wallet Session and exact custody
 envelope. A real-D1 E2E uses that client for activation and unlock.
 
-The Wallet host still needs to call both clients and the custody worker. It
-must install the fresh session and activate signing lanes. A composed E2E with
-the native host and a revocation E2E remain. Production voice-only signing is
-pending those paths.
+The Wallet browser now also has an interruption-safe activation
+operation. It reseals the worker-held wallet seed under the native VoiceID
+factor and saves a public pending record before server activation. The
+existing Wallet IndexedDB app-state store can retain that record. An exact
+retry uses the same ciphertext after a lost response. The real-D1 E2E checks
+this retry and opens the stored envelope in WASM.
+
+The Wallet host still needs a visible VoiceID action that calls this operation.
+It must call the unlock clients, install the fresh session, and activate
+signing lanes. A composed E2E with the native host and a revocation E2E remain.
+Production voice-only signing is pending those paths.

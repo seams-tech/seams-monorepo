@@ -83,7 +83,9 @@ class D1AccountOrganizationDeletion implements AccountOrganizationDeletionPort {
 
   async assertOrganizationCanBeDeleted(ctx: OrganizationAccessContext): Promise<void> {
     try {
-      await this.platform.assertOrganizationCanBeDeleted(ctx);
+      // A product guard can authorize teardown of its own unused native service.
+      // Without one, every provisioned service retains the organization.
+      if (!this.external) await this.platform.assertOrganizationCanBeDeleted(ctx);
     } catch (error) {
       if (error instanceof Error && error.message === 'service_instances_exist') {
         throw new ConsoleAccountError(

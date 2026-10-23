@@ -506,13 +506,6 @@ class InMemoryConsoleAccountService implements ConsoleAccountService {
     if (current.role !== 'OWNER') {
       throw accountError('forbidden', 403, 'Only an owner can delete an organization');
     }
-    if (orgId === ctx.orgId) {
-      throw accountError(
-        'organization_current_context_active',
-        409,
-        'Switch to a different organization before deleting this one',
-      );
-    }
     const memberships = await this.#options.organizationAccess.listMemberships(
       { orgId, actorUserId: ctx.userId },
       { kind: 'all' },

@@ -85,6 +85,21 @@ const OWNER_DELETE_SCOPE_SQL = `EXISTS (
     AND deletion_owner.role = 'OWNER'
 )`;
 
+// Pin service eligibility across the asynchronous product checks. Compare this
+// snapshot inside the batch before removing any provisioning records.
+const ORGANIZATION_SERVICE_SNAPSHOT_SQL = `SELECT json_array(
+  (SELECT json_group_array(json_array(id, project_id, service_id, deployment_id,
+    desired_revision, observed_revision, phase, desired_state, observed_state))
+   FROM (SELECT * FROM platform_service_instances WHERE namespace = ?1 AND org_id = ?2 ORDER BY id)),
+  (SELECT json_group_array(json_array(id, instance_id, status, desired_revision))
+   FROM (SELECT * FROM platform_provision_operations WHERE namespace = ?1 AND org_id = ?2 ORDER BY id)),
+  (SELECT json_group_array(json_array(instance_id, deployment_id, native_namespace,
+    native_org_id, native_project_id, binding_json))
+   FROM (SELECT b.* FROM wallet_service_bindings b
+     JOIN platform_service_instances i ON i.namespace = b.namespace AND i.id = b.instance_id
+     WHERE i.namespace = ?1 AND i.org_id = ?2 ORDER BY b.instance_id))
+) AS snapshot`;
+
 export const CONSOLE_ACCOUNT_D1_SCHEMA_SQL = Object.freeze([
   `
     CREATE TABLE IF NOT EXISTS user_profiles (
@@ -153,6 +168,20 @@ function accountError(code: string, status: number, message: string): ConsoleAcc
 
 function rethrowOrganizationDeletionError(error: unknown): never {
   if (error instanceof Error) {
+    if (error.message.includes('malformed JSON')) {
+      throw accountError(
+        'organization_delete_scope_changed',
+        409,
+        'Organization services changed before deletion; reload the account and retry',
+      );
+    }
+    if (error.message.includes('platform_access_retained')) {
+      throw accountError(
+        'organization_delete_has_service_instances',
+        409,
+        'Service access history retains this organization',
+      );
+    }
     for (const code of [
       'organization_delete_has_other_members',
       'organization_delete_has_billing_history',
@@ -547,10 +576,63 @@ class D1ConsoleAccountServiceImpl implements ConsoleAccountD1Service {
     ctx: ConsoleAccountIdentityContext,
     orgId: string,
   ): Promise<DeleteConsoleAccountOrganizationResult> {
+    const snapshot = await this.database
+      .prepare(ORGANIZATION_SERVICE_SNAPSHOT_SQL)
+      .bind(this.namespace, orgId)
+      .first<string>('snapshot');
+    if (typeof snapshot !== 'string')
+      throw new Error('Organization service snapshot is unavailable');
     const current = await this.#assertOrganizationDeletionAllowed(ctx, orgId);
     const values = [this.namespace, orgId, current.authorizationVersion, ctx.userId];
     const results = await this.database
       .batch<D1ResultLike<{ id: string }>>([
+        this.database
+          .prepare(
+            `SELECT CASE WHEN (${ORGANIZATION_SERVICE_SNAPSHOT_SQL}) = ?3
+             THEN 1 ELSE json('organization_delete_scope_changed') END`,
+          )
+          .bind(this.namespace, orgId, snapshot),
+        this.database
+          .prepare(
+            `DELETE FROM platform_provision_receipts
+             WHERE namespace = ?1 AND operation_id IN (
+               SELECT id FROM platform_provision_operations
+               WHERE namespace = ?1 AND org_id = ?2 AND service_id = 'wallet'
+             ) AND ${OWNER_DELETE_SCOPE_SQL}`,
+          )
+          .bind(...values),
+        this.database
+          .prepare(
+            `DELETE FROM platform_provision_operations
+             WHERE namespace = ?1 AND org_id = ?2 AND service_id = 'wallet'
+               AND ${OWNER_DELETE_SCOPE_SQL}`,
+          )
+          .bind(...values),
+        this.database
+          .prepare(
+            `DELETE FROM wallet_service_bindings
+             WHERE namespace = ?1 AND instance_id IN (
+               SELECT id FROM platform_service_instances
+               WHERE namespace = ?1 AND org_id = ?2 AND service_id = 'wallet'
+             ) AND ${OWNER_DELETE_SCOPE_SQL}`,
+          )
+          .bind(...values),
+        this.database
+          .prepare(
+            `DELETE FROM platform_instance_access
+             WHERE namespace = ?1 AND org_id = ?2 AND instance_id IN (
+               SELECT id FROM platform_service_instances
+               WHERE namespace = ?1 AND org_id = ?2 AND service_id = 'wallet'
+             ) AND ${OWNER_DELETE_SCOPE_SQL}`,
+          )
+          .bind(...values),
+        this.database
+          .prepare(
+            `DELETE FROM platform_service_instances
+             WHERE namespace = ?1 AND org_id = ?2 AND service_id = 'wallet'
+               AND ${OWNER_DELETE_SCOPE_SQL}`,
+          )
+          .bind(...values),
         this.database
           .prepare(
             `DELETE FROM project_billing_bindings
@@ -665,13 +747,6 @@ class D1ConsoleAccountServiceImpl implements ConsoleAccountD1Service {
     const current = await this.#loadOrganization(ctx, organization);
     if (current.role !== 'OWNER') {
       throw accountError('forbidden', 403, 'Only an owner can delete an organization');
-    }
-    if (orgId === ctx.orgId) {
-      throw accountError(
-        'organization_current_context_active',
-        409,
-        'Switch to a different organization before deleting this one',
-      );
     }
     const memberships = await this.organizationAccess.listMemberships(
       { orgId, actorUserId: ctx.userId },

@@ -40,6 +40,22 @@ pnpm -C tests exec playwright test -c playwright.config.ts e2e/console/identity-
 The test uses real Console APIs, creates a local test organization and project,
 and saves `evidence.json` and `workspace.png` in its test-results directory.
 
+### Deleting the current or last workspace
+
+An owner can delete the currently selected organization, including their last one.
+Successful deletion clears the current session cookie and returns the browser to
+sign-in. The browser clears the deleted organization and project selection.
+
+Deletion removes projects and unused local Wallet provisioning records in one D1
+transaction. It retains organizations with other members, wallets, money, billing
+history, native principals, usage, or non-initial service access grants. Remote,
+non-Wallet, and unfinished service instances also block deletion. A service-state
+change during the checks returns HTTP 409 before any cleanup occurs.
+
+The identity-onboarding browser contract now creates and deletes its last workspace.
+The shared-account-onboarding D1 contract checks retained history and a concurrent
+provisioning change. Both produce evidence artifacts.
+
 ### Original split acceptance
 
 Google and GitHub sign-in passed on both Console domains after provider origins

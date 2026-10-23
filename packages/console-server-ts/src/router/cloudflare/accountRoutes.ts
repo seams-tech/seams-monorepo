@@ -474,7 +474,11 @@ export async function handleConsoleAccount(ctx: AccountConsoleContext): Promise<
           source: 'account_settings',
         },
       });
-      return json({ ok: true, deleted }, { status: 200 });
+      const headers = new Headers();
+      if (orgId === auth.claims.orgId && ctx.session) {
+        headers.set('Set-Cookie', ctx.session.buildClearCookie());
+      }
+      return json({ ok: true, deleted }, { status: 200, headers });
     }
 
     if (ctx.method === 'POST' && action === 'switch-context') {

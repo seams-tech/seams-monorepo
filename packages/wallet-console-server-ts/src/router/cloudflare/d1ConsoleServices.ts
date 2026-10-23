@@ -448,12 +448,36 @@ export class D1WalletOrganizationDeletion implements AccountOrganizationDeletion
   constructor(
     private readonly database: D1DatabaseLike,
     private readonly namespace: string,
+    private readonly deploymentId: string | null,
   ) {}
 
   async assertOrganizationCanBeDeleted(ctx: {
     readonly orgId: string;
     readonly actorUserId: string;
   }): Promise<void> {
+    const retainedService = await queryD1One(
+      this.database,
+      `SELECT 1 AS retained FROM platform_service_instances
+       WHERE namespace = ?1 AND org_id = ?2
+         AND (service_id <> 'wallet' OR ?3 IS NULL OR deployment_id <> ?3
+           OR phase NOT IN ('active', 'disabled', 'archived'))
+       UNION ALL SELECT 1 FROM platform_provision_operations
+       WHERE namespace = ?1 AND org_id = ?2 AND status = 'pending'
+       UNION ALL SELECT 1 FROM wallet_service_bindings b
+       JOIN platform_service_instances i ON i.namespace = b.namespace AND i.id = b.instance_id
+       WHERE i.namespace = ?1 AND i.org_id = ?2
+         AND (b.deployment_id <> ?3 OR b.native_namespace <> ?1
+           OR b.native_org_id <> ?2 OR b.native_project_id <> i.project_id)
+       LIMIT 1`,
+      [this.namespace, ctx.orgId, this.deploymentId],
+    );
+    if (retainedService) {
+      throw new ConsoleAccountError(
+        'organization_delete_has_service_instances',
+        409,
+        'Remote or unfinished service instances retain this organization',
+      );
+    }
     const wallet = await queryD1One(
       this.database,
       `SELECT 1 AS retained FROM wallet_index WHERE namespace = ?1 AND org_id = ?2
@@ -972,6 +996,7 @@ async function createCloudflareD1ConsoleCommonServices(
     externalDeletionGuard: new D1WalletOrganizationDeletion(
       normalized.consoleDatabase,
       normalized.namespace,
+      normalized.deploymentId,
     ),
   });
   const baseWalletEnvironments = await createD1ConsoleWalletEnvironmentService({

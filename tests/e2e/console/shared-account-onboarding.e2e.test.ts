@@ -188,6 +188,20 @@ class BillingDuringDeletion implements AccountOrganizationDeletionPort {
   }
 }
 
+class ProvisioningDuringDeletion implements AccountOrganizationDeletionPort {
+  constructor(private readonly database: D1DatabaseLike) {}
+
+  async assertOrganizationCanBeDeleted(ctx: { orgId: string; actorUserId: string }): Promise<void> {
+    await this.database
+      .prepare(
+        `UPDATE platform_service_instances SET desired_revision = desired_revision + 1,
+         phase = 'provisioning' WHERE namespace = ? AND org_id = ?`,
+      )
+      .bind(namespace, ctx.orgId)
+      .run();
+  }
+}
+
 async function verifyDeletion(
   database: D1DatabaseLike,
   services: Awaited<ReturnType<typeof compose>>,
@@ -268,6 +282,29 @@ async function verifyDeletion(
       userId: selectedAccount.userId,
     }),
   ).toMatchObject({ kind: 'authorized', role: 'OWNER' });
+
+  const provisioningRace = await createD1ConsoleAccountService({
+    database,
+    namespace,
+    now,
+    orgProjectEnv: services.projects,
+    organizationAccess: services.access,
+    deletion: new ProvisioningDuringDeletion(database),
+  });
+  await expect(
+    provisioningRace.deleteOrganization(selectedAccount, retained.id),
+  ).rejects.toMatchObject({
+    code: 'organization_delete_scope_changed',
+    status: 409,
+  });
+  expect(
+    await database
+      .prepare(
+        'SELECT desired_revision FROM platform_service_instances WHERE namespace = ? AND id = ?',
+      )
+      .bind(namespace, 'instance_retained_delete')
+      .first<number>('desired_revision'),
+  ).toBe(2);
 
   const racing = await services.account.createOrganization(selectedAccount, {
     id: 'org_billing_delete',

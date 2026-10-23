@@ -17,7 +17,7 @@ import {
   type DashboardTableActionMenuItem,
 } from '../../components/DashboardTable';
 import { DashboardInlineModal } from '../../components/DashboardInlineModal';
-import { useDashboardConsoleSession } from '../../consoleSession';
+import { markDashboardConsoleSignOut, useDashboardConsoleSession } from '../../consoleSession';
 import { consoleSessionHref } from '../../consoleNavigation';
 import { getDashboardProjectLabel } from '../../utils/scopeLabels';
 import {
@@ -324,7 +324,7 @@ export function AccountSettingsPage(props: {
     async (organization: DashboardAccountOrganization) => {
       if (typeof window !== 'undefined') {
         const confirmed = window.confirm(
-          `Delete ${organization.name}? This permanently removes the organization if no other members or wallets exist.`,
+          `Delete ${organization.name}? This permanently removes the organization and its projects if no other members, wallets, or retained history exist. Deleting your current organization signs you out.`,
         );
         if (!confirmed) return;
       }
@@ -332,6 +332,12 @@ export function AccountSettingsPage(props: {
       setActionErrorMessage('');
       try {
         await deleteDashboardAccountOrganization(organization.id);
+        if (organization.isCurrentOrg) {
+          clearDashboardUiState();
+          markDashboardConsoleSignOut();
+          window.location.assign(consoleSessionHref('/dashboard/login'));
+          return;
+        }
         await reloadAccountSettings();
         toast.success(`Deleted ${organization.name}.`);
       } catch (error: unknown) {
@@ -649,11 +655,7 @@ export function AccountSettingsPage(props: {
                         label: deletingOrganizationId === organization.id ? 'Deleting…' : 'Delete',
                         onSelect: () => void onDeleteOrganization(organization),
                         tone: 'danger' as const,
-                        disabled:
-                          deletingOrganizationId === organization.id || organization.isCurrentOrg,
-                        title: organization.isCurrentOrg
-                          ? 'Switch to a different organization before deleting it.'
-                          : undefined,
+                        disabled: deletingOrganizationId === organization.id,
                       },
                     ]
                   : []),

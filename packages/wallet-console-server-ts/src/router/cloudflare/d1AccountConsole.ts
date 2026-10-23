@@ -94,7 +94,11 @@ export async function createD1AccountConsoleComposition(
 ) {
   const services = await createCloudflareD1AccountServiceBundle({
     ...options,
-    externalDeletionGuard: new D1WalletOrganizationDeletion(options.database, options.namespace),
+    externalDeletionGuard: new D1WalletOrganizationDeletion(
+      options.database,
+      options.namespace,
+      options.walletDeploymentId,
+    ),
     // the platform support addresses hear about each new Console sign-up
     teamSignupAlertRecipients: normalizeConsoleEmailList(options.platformSupportEmails ?? []),
     auditCategories: WALLET_CONSOLE_AUDIT_CATEGORIES,

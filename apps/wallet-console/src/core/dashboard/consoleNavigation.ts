@@ -68,6 +68,37 @@ export function sharedAccountHref(pathname: string): string {
     : pathname;
 }
 
+/* The organization and project that a URL requested, kept in this tab until a signed-in
+   dashboard opens. Sign-in carries only this request: a selection that is only saved can
+   come from another account in this browser, and as a request it would block the
+   dashboard instead of giving way. The GitHub callback returns without URL parameters,
+   so the request cannot live in the URL alone. */
+const SIGN_IN_CONTEXT_STORAGE_KEY = 'seams-dashboard-sign-in-context-v1';
+
+type ConsoleContextRequest = Pick<TopbarContextState, 'organization' | 'project'>;
+
+function readSignInContext(): ConsoleContextRequest {
+  try {
+    const parsed: unknown = JSON.parse(
+      window.sessionStorage.getItem(SIGN_IN_CONTEXT_STORAGE_KEY) || 'null',
+    );
+    if (!parsed || typeof parsed !== 'object') return { organization: '', project: '' };
+    const record = parsed as Partial<Record<keyof ConsoleContextRequest, unknown>>;
+    return {
+      organization: typeof record.organization === 'string' ? record.organization : '',
+      project: typeof record.project === 'string' ? record.project : '',
+    };
+  } catch {
+    return { organization: '', project: '' };
+  }
+}
+
+export function forgetConsoleSignInContext(): void {
+  try {
+    window.sessionStorage.removeItem(SIGN_IN_CONTEXT_STORAGE_KEY);
+  } catch {}
+}
+
 export function rememberConsoleContext(): void {
   const parameters = new URLSearchParams(window.location.search);
   const organization = parameters.get(DASHBOARD_UI_QUERY_KEYS.organization);
@@ -77,6 +108,15 @@ export function rememberConsoleContext(): void {
     ...(organization === null ? {} : { organization }),
     ...(project === null ? {} : { project }),
   });
+  if (organization !== null || project !== null) {
+    const request: ConsoleContextRequest = {
+      organization: organization ?? '',
+      project: project ?? '',
+    };
+    try {
+      window.sessionStorage.setItem(SIGN_IN_CONTEXT_STORAGE_KEY, JSON.stringify(request));
+    } catch {}
+  }
   selectNetwork(getActiveFrontendDeployment().network);
 }
 
@@ -103,6 +143,19 @@ export function consoleSessionHref(
     organization: selected.organization ?? '',
     project: selected.project ?? '',
   });
+  return url.pathname + url.search;
+}
+
+/** A page of the sign-in flow, with the organization and project that a URL requested. */
+export function consoleSignInHref(
+  pathname:
+    | '/dashboard'
+    | '/dashboard/login'
+    | '/dashboard/onboarding'
+    | '/dashboard/invitations/accept',
+): string {
+  const url = new URL(pathname, window.location.origin);
+  setConsoleContext(url, readSignInContext());
   return url.pathname + url.search;
 }
 

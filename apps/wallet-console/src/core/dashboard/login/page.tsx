@@ -25,11 +25,7 @@ import {
   fetchDashboardConsoleSession,
 } from '../consoleSession';
 import { readUnscopedConsoleSession } from '../routes/onboarding/initialOrganizationApi';
-import {
-  consoleSessionHref,
-  rememberConsoleContext,
-  walletConsoleHref,
-} from '../consoleNavigation';
+import { consoleSignInHref, rememberConsoleContext, walletConsoleHref } from '../consoleNavigation';
 import { readPendingDashboardInvitation } from '../routes/invitations/invitation';
 import { getDashboardBillingPlan, startDashboardCardSetup } from '../routes/billing/freePlanApi';
 import {
@@ -53,9 +49,9 @@ function normalizeBaseUrl(input: unknown): string {
 
 function loginDestination(pathname: '/dashboard' | '/dashboard/onboarding'): string {
   if (import.meta.env.MODE === 'platform' && readPendingDashboardInvitation()) {
-    return consoleSessionHref('/dashboard/invitations/accept');
+    return consoleSignInHref('/dashboard/invitations/accept');
   }
-  return consoleSessionHref(pathname);
+  return consoleSignInHref(pathname);
 }
 
 /* The page in a whole tab, in the pricing page's sign-in dialog, or in the GitHub popup

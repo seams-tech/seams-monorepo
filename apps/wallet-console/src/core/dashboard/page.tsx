@@ -2,6 +2,8 @@ import {
   sharedAccountHref,
   linksWithConsoleContext,
   consoleSessionHref,
+  consoleSignInHref,
+  forgetConsoleSignInContext,
   rememberConsoleContext,
   platformConsoleHref,
 } from './consoleNavigation';
@@ -1071,9 +1073,14 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       pathname.startsWith('/platform/')
     ) {
       rememberConsoleContext();
-      go(consoleSessionHref(DASHBOARD_LOGIN_ROUTE));
+      go(consoleSignInHref(DASHBOARD_LOGIN_ROUTE));
     }
   }, [consoleSession.claims, consoleSession.loading, go, pathname, sessionForbidden]);
+
+  // Signed in, the dashboard has read any requested context from its URL.
+  React.useEffect(() => {
+    if (consoleSession.claims) forgetConsoleSignInContext();
+  }, [consoleSession.claims]);
 
   const activeRoute = React.useMemo<DashboardRoute | ProductRoute>(() => {
     const resolved = getRouteFromPathname(pathname);
@@ -1295,6 +1302,7 @@ function DashboardEntry<ProductRoute extends string, ProductGroupKey extends str
         if (onboarding) {
           // An identity without an organization cannot retain another account's scope.
           replaceDashboardSelectedContext({ organization: '', project: '', environment: '' });
+          forgetConsoleSignInContext();
           go(consoleSessionHref(DASHBOARD_ONBOARDING_ROUTE));
         }
       })

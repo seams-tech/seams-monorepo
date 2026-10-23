@@ -6822,122 +6822,193 @@ select.dashboard-input {
   overflow-wrap: anywhere;
 }
 
+/* Onboarding: one centred card. A dark band carries the two steps; the body asks one
+   question per step. */
+.dashboard-onboarding {
+  display: grid;
+  justify-items: center;
+  padding-top: 8px;
+}
+
+.dashboard-onboarding-card {
+  width: min(100%, 520px);
+  overflow: hidden;
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius-2xl);
+  background: var(--dashboard-surface);
+  box-shadow: var(--dashboard-shadow-sm);
+}
+
+.dashboard-onboarding-card__band {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  gap: 14px;
+  padding: 22px 24px 20px;
+  background: var(--dashboard-ink);
+  color: #ffffff;
+}
+
+.dashboard-onboarding-card__eyebrow {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: var(--dashboard-text-caption);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .dashboard-onboarding-stepper {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: grid;
-  gap: 8px;
-}
-
-.dashboard-onboarding-stepper__item {
-  border: 1px solid var(--dashboard-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--dashboard-surface) 95%, #f5f3f1 5%);
-  padding: 10px 12px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.dashboard-onboarding-stepper__item--current {
-  border-color: var(--dashboard-active-border);
-  background: var(--dashboard-active);
+/* A short rule joins the steps. */
+.dashboard-onboarding-stepper__item + .dashboard-onboarding-stepper__item::before {
+  content: '';
+  width: 28px;
+  height: 1px;
+  margin-right: 2px;
+  background: rgba(255, 255, 255, 0.32);
 }
 
-.dashboard-onboarding-stepper__item--done {
-  border-color: color-mix(in srgb, var(--dashboard-success) 48%, var(--dashboard-border) 52%);
-}
-
-.dashboard-onboarding-stepper__item--locked {
-  opacity: 0.72;
+.dashboard-onboarding-stepper__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: var(--dashboard-text-compact);
+  font-weight: 500;
 }
 
 .dashboard-onboarding-stepper__index {
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  border: 1px solid var(--dashboard-border);
+  width: 24px;
+  height: 24px;
+  flex: none;
   display: grid;
   place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  border-radius: 999px;
   font-size: var(--dashboard-text-caption);
-  font-weight: 700;
-  color: var(--dashboard-ink-soft);
+  font-weight: 600;
 }
 
-.dashboard-onboarding-stepper__label {
-  font-size: var(--dashboard-text-compact);
-  font-weight: 620;
+.dashboard-onboarding-stepper__item--current {
+  color: #ffffff;
+}
+
+.dashboard-onboarding-stepper__item--current .dashboard-onboarding-stepper__index {
+  border-color: #ffffff;
+  background: #ffffff;
   color: var(--dashboard-ink);
 }
 
-.dashboard-onboarding-stepper__status {
-  font-size: var(--dashboard-text-caption);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--dashboard-ink-soft);
+.dashboard-onboarding-stepper__item--done {
+  color: rgba(255, 255, 255, 0.86);
 }
 
-.dashboard-onboarding-optional {
+.dashboard-onboarding-stepper__item--done .dashboard-onboarding-stepper__index {
+  border-color: rgba(255, 255, 255, 0.86);
+}
+
+.dashboard-onboarding-card__body {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.dashboard-onboarding-form,
+.dashboard-onboarding-form__fieldset {
+  display: grid;
+  gap: 18px;
   min-width: 0;
-  display: grid;
-  gap: 8px;
-  align-content: start;
 }
 
-.dashboard-onboarding-panel {
-  border: 1px solid var(--dashboard-border);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--dashboard-surface) 96%, #f5f3f1 4%);
-  padding: 20px;
-  display: grid;
-  gap: 14px;
-}
-
-.dashboard-onboarding-panel__lead {
-  margin: 2px 0 4px;
-}
-
-.dashboard-onboarding-panel + .dashboard-onboarding-panel {
-  margin-top: 14px;
-}
-
-.dashboard-onboarding-panel--locked {
-  opacity: 0.62;
-}
-
-.dashboard-onboarding-panel__fieldset {
-  grid-column: 1 / -1;
-  border: 0;
+.dashboard-onboarding-form__fieldset {
   margin: 0;
   padding: 0;
-  min-width: 0;
+  border: 0;
 }
 
-.dashboard-onboarding-form {
-  width: min(100%, 760px);
-  gap: 16px;
+.dashboard-onboarding-form__fieldset:disabled {
+  opacity: 0.6;
 }
 
-.dashboard-onboarding-form > *,
-.dashboard-onboarding-form .dashboard-form-field {
-  min-width: 0;
+.dashboard-onboarding-form__head {
+  display: grid;
+  gap: 6px;
 }
 
-.dashboard-onboarding-form .dashboard-input,
-.dashboard-onboarding-form .dashboard-pagination-button {
-  min-height: 44px;
+.dashboard-onboarding-form__head h2 {
+  margin: 0;
+  color: var(--dashboard-ink);
+  font-size: var(--dashboard-text-section-title, 1.375rem);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.dashboard-onboarding-form__head p {
+  margin: 0;
+  color: var(--dashboard-ink-soft);
+  font-size: var(--dashboard-text-compact);
+  line-height: 1.5;
 }
 
 .dashboard-onboarding-form .dashboard-input {
-  min-width: 0;
-  max-width: 100%;
+  width: 100%;
+  min-height: 44px;
   box-sizing: border-box;
 }
 
-.dashboard-onboarding-form .dashboard-form-actions {
-  padding-top: 2px;
+.dashboard-onboarding-form .dashboard-form-hint code {
+  font-family: var(--console-font-mono);
+  font-size: var(--dashboard-text-supporting);
+  border-radius: var(--dashboard-radius-sm);
+  padding: 1px 6px;
+  background: var(--dashboard-alpha-100);
+  color: var(--dashboard-graphite);
+}
+
+.dashboard-onboarding-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dashboard-onboarding-form__actions .dashboard-pagination-button {
+  min-height: 44px;
+  padding-inline: 20px;
+}
+
+/* The card's steps already say that setup unlocks the rest of the Console. */
+.dashboard-shell--onboarding-focus .dashboard-lock-banner {
+  display: none;
+}
+
+/* The card names the page, so the shell title stays for screen readers only. */
+.dashboard-shell--onboarding-focus .dashboard-main__title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .dashboard-onboarding-card__band,
+  .dashboard-onboarding-card__body {
+    padding-inline: 18px;
+  }
+
+  .dashboard-onboarding-form__actions .dashboard-pagination-button {
+    flex: 1;
+  }
 }
 
 .dashboard-shell--onboarding-focus .dashboard-main > * {

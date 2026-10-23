@@ -1,5 +1,7 @@
 import { createInitialOrganization } from './initialOrganizationApi';
 import React from 'react';
+import { Check } from 'lucide-react';
+import { GrainField } from '@seams-internal/grain-field';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import { useDashboardConsoleSession } from '../../consoleSession';
 import { DashboardLoadingState } from '../../components/DashboardLoadingState';
@@ -631,174 +633,162 @@ export function DashboardOnboardingPage({
   const organizationSubmitDisabled = submitting;
   const projectSubmitDisabled = submitting || projectStepLocked || state?.projectReady === true;
 
-  return (
-    <div className="dashboard-view" aria-label="Onboarding wizard page">
-      {!onboardingComplete ? (
-        <section className="dashboard-view__section" aria-label="Onboarding summary">
-          <h2>Set up your workspace</h2>
-          <p>Complete organization and project setup to unlock full dashboard navigation.</p>
-          {session.loading || loading ? (
-            <p className="dashboard-pagination-note">Loading onboarding status...</p>
-          ) : !session.claims && !onOrganizationCreated ? (
-            <p className="dashboard-pagination-note">
-              Onboarding unavailable: {session.errorMessage || 'unauthorized'}.
-            </p>
-          ) : errorMessage ? (
-            <p className="dashboard-pagination-note">
-              Onboarding status unavailable: {errorMessage}
-            </p>
-          ) : state || onOrganizationCreated ? (
-            <ol className="dashboard-onboarding-stepper" aria-label="Onboarding progress">
-              {stepper.map((entry, index) => (
-                <li
-                  key={entry.key}
-                  className={`dashboard-onboarding-stepper__item dashboard-onboarding-stepper__item--${entry.status}`}
-                >
-                  <span className="dashboard-onboarding-stepper__index" aria-hidden="true">
-                    {index + 1}
-                  </span>
-                  <span className="dashboard-onboarding-stepper__label">{entry.label}</span>
-                  <span className="dashboard-onboarding-stepper__status">
-                    {stepperStatusLabel(entry.status)}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          ) : null}
-        </section>
-      ) : null}
+  const statusMessage =
+    session.loading || loading
+      ? 'Loading onboarding status...'
+      : !session.claims && !onOrganizationCreated
+        ? `Onboarding unavailable: ${session.errorMessage || 'unauthorized'}.`
+        : errorMessage
+          ? `Onboarding status unavailable: ${errorMessage}`
+          : '';
 
-      {onboardingComplete ? (
+  if (onboardingComplete) {
+    return (
+      <div className="dashboard-view" aria-label="Onboarding wizard page">
         <DashboardLoadingState title="Opening overview..." />
-      ) : (
-        <section className="dashboard-view__section" aria-label="Onboarding form">
-          {showOrganizationStep ? (
-            <section className="dashboard-onboarding-panel" aria-label="Create organization">
-              <h2>Name your organization</h2>
-              <p className="dashboard-onboarding-panel__lead">
-                Confirm the organization name your team will use in the dashboard.
-              </p>
-              <form
-                className="dashboard-onboarding-form dashboard-view-grid dashboard-view-grid--two"
-                onSubmit={onSubmitOrganization}
+      </div>
+    );
+  }
+
+  /* One card: a dark band with the two steps, then one question per step. */
+  return (
+    <div className="dashboard-view dashboard-onboarding" aria-label="Onboarding wizard page">
+      <section className="dashboard-onboarding-card" aria-label="Set up your workspace">
+        <header className="dashboard-onboarding-card__band">
+          <GrainField field="onyx-black" playing={false} />
+          <p className="dashboard-onboarding-card__eyebrow">Set up your workspace</p>
+          <ol className="dashboard-onboarding-stepper" aria-label="Onboarding progress">
+            {stepper.map((entry, index) => (
+              <li
+                key={entry.key}
+                className={`dashboard-onboarding-stepper__item dashboard-onboarding-stepper__item--${entry.status}`}
+                aria-current={entry.status === 'current' ? 'step' : undefined}
               >
-                <label className="dashboard-form-field">
-                  <span>Organization name</span>
-                  <input
-                    className="dashboard-input"
-                    type="text"
-                    name="organizationName"
-                    autoComplete="organization"
-                    value={orgNameInput}
-                    onChange={onOrganizationNameChange}
-                    onBlur={onOrganizationNameBlur}
-                    placeholder="Acme Wallets"
-                    aria-invalid={Boolean(orgNameValidationMessageForUi)}
-                  />
-                  {orgNameValidationMessageForUi ? (
-                    <p className="dashboard-form-hint dashboard-form-hint--error">
-                      {orgNameValidationMessageForUi}
-                    </p>
-                  ) : null}
-                </label>
+                <span className="dashboard-onboarding-stepper__index" aria-hidden="true">
+                  {entry.status === 'done' ? <Check size={13} strokeWidth={2.5} /> : index + 1}
+                </span>
+                <span className="dashboard-onboarding-stepper__label">{entry.label}</span>
+                <span className="dashboard-visually-hidden">
+                  {stepperStatusLabel(entry.status)}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </header>
 
-                <div className="dashboard-onboarding-optional">
-                  <label className="dashboard-form-field">
-                    <span>Organization slug</span>
-                    <input
-                      className="dashboard-input"
-                      type="text"
-                      name="organizationSlug"
-                      value={orgSlugInput}
-                      disabled
-                      placeholder="acme-wallets"
-                    />
-                  </label>
-                </div>
+        <div className="dashboard-onboarding-card__body">
+          {statusMessage ? <p className="dashboard-pagination-note">{statusMessage}</p> : null}
 
-                <div className="dashboard-form-actions">
-                  <button
-                    type="submit"
-                    className="dashboard-pagination-button"
-                    disabled={organizationSubmitDisabled}
-                  >
-                    {submitting ? 'Saving organization...' : 'Continue to project setup'}
-                  </button>
-                </div>
-              </form>
+          {showOrganizationStep ? (
+            <form
+              className="dashboard-onboarding-form"
+              aria-label="Create organization"
+              onSubmit={onSubmitOrganization}
+            >
+              <div className="dashboard-onboarding-form__head">
+                <h2>Name your organization</h2>
+                <p>Your team sees this name in the Console. You can change it later.</p>
+              </div>
+              <label className="dashboard-form-field">
+                <span>Organization name</span>
+                <input
+                  className="dashboard-input"
+                  type="text"
+                  name="organizationName"
+                  autoComplete="organization"
+                  value={orgNameInput}
+                  onChange={onOrganizationNameChange}
+                  onBlur={onOrganizationNameBlur}
+                  placeholder="Acme Wallets"
+                  aria-invalid={Boolean(orgNameValidationMessageForUi)}
+                />
+                {orgNameValidationMessageForUi ? (
+                  <p className="dashboard-form-hint dashboard-form-hint--error">
+                    {orgNameValidationMessageForUi}
+                  </p>
+                ) : (
+                  <p className="dashboard-form-hint">
+                    Handle: <code>{orgSlugInput || 'acme-wallets'}</code>
+                  </p>
+                )}
+              </label>
+              <div className="dashboard-onboarding-form__actions">
+                <button
+                  type="submit"
+                  className="dashboard-pagination-button dashboard-pagination-button--primary"
+                  disabled={organizationSubmitDisabled}
+                >
+                  {submitting ? 'Saving organization...' : 'Continue'}
+                </button>
+              </div>
               {organizationResult ? (
                 <p className="dashboard-pagination-note">
-                  Organization configured: <strong>{organizationResult.organization.name}</strong>.
+                  Saved as <strong>{organizationResult.organization.name}</strong>.
                 </p>
               ) : null}
-            </section>
+            </form>
           ) : null}
 
           {showProjectStep ? (
-            <section
-              className={`dashboard-onboarding-panel${projectStepLocked ? ' dashboard-onboarding-panel--locked' : ''}`}
+            <form
+              className="dashboard-onboarding-form"
               aria-label="Create project"
-              aria-disabled={projectStepLocked}
+              onSubmit={onSubmitProjectStep}
             >
-              <h2>Create your first project</h2>
-              <p className="dashboard-onboarding-panel__lead">
-                Add your first project. Wallet sets itself up automatically when you open the
-                project in Wallet Console.
-              </p>
-              <form
-                className="dashboard-onboarding-form dashboard-view-grid dashboard-view-grid--two"
-                onSubmit={onSubmitProjectStep}
+              <fieldset
+                className="dashboard-onboarding-form__fieldset"
+                disabled={projectStepLocked}
               >
-                <fieldset
-                  className="dashboard-onboarding-panel__fieldset dashboard-view-grid"
-                  disabled={projectStepLocked}
-                >
-                  <label className="dashboard-form-field dashboard-form-field--full">
-                    <span>Project name</span>
-                    <input
-                      className="dashboard-input"
-                      type="text"
-                      name="projectName"
-                      autoComplete="off"
-                      value={projectNameInput}
-                      onChange={onProjectNameChange}
-                      onBlur={onProjectNameBlur}
-                      placeholder="Consumer App"
-                      aria-invalid={Boolean(projectNameValidationMessageForUi)}
-                    />
-                    <p
-                      className={`dashboard-form-hint${projectNameValidationMessageForUi ? ' dashboard-form-hint--error' : ''}`}
-                    >
-                      {projectNameValidationMessageForUi ||
-                        'Required. You can rename this later from the project dashboard.'}
-                    </p>
-                  </label>
-
-                  <div className="dashboard-form-actions">
-                    <button
-                      type="button"
-                      className="dashboard-pagination-button dashboard-pagination-button--secondary"
-                      onClick={onBackToOrganizationStep}
-                      disabled={submitting}
-                    >
-                      Back
-                    </button>
-                    <button
-                      type="submit"
-                      className="dashboard-pagination-button"
-                      disabled={projectSubmitDisabled}
-                    >
-                      {submitting ? 'Creating project...' : 'Finish onboarding'}
-                    </button>
-                  </div>
-                </fieldset>
-              </form>
+                <div className="dashboard-onboarding-form__head">
+                  <h2>Create your first project</h2>
+                  <p>
+                    A project holds your app&rsquo;s wallets, keys and policies. Wallet sets itself
+                    up when you open the project.
+                  </p>
+                </div>
+                <label className="dashboard-form-field">
+                  <span>Project name</span>
+                  <input
+                    className="dashboard-input"
+                    type="text"
+                    name="projectName"
+                    autoComplete="off"
+                    value={projectNameInput}
+                    onChange={onProjectNameChange}
+                    onBlur={onProjectNameBlur}
+                    placeholder="Consumer App"
+                    aria-invalid={Boolean(projectNameValidationMessageForUi)}
+                  />
+                  <p
+                    className={`dashboard-form-hint${projectNameValidationMessageForUi ? ' dashboard-form-hint--error' : ''}`}
+                  >
+                    {projectNameValidationMessageForUi || 'You can rename it later.'}
+                  </p>
+                </label>
+                <div className="dashboard-onboarding-form__actions">
+                  <button
+                    type="button"
+                    className="dashboard-pagination-button dashboard-pagination-button--secondary"
+                    onClick={onBackToOrganizationStep}
+                    disabled={submitting}
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="dashboard-pagination-button dashboard-pagination-button--primary"
+                    disabled={projectSubmitDisabled}
+                  >
+                    {submitting ? 'Creating project...' : 'Create project'}
+                  </button>
+                </div>
+              </fieldset>
               {projectResult ? (
                 <p className="dashboard-pagination-note">
-                  Project configured: <strong>{projectResult.project.name}</strong>.
+                  Saved as <strong>{projectResult.project.name}</strong>.
                 </p>
               ) : null}
-            </section>
+            </form>
           ) : null}
 
           {mutationError ? (
@@ -816,8 +806,8 @@ export function DashboardOnboardingPage({
               ) : null}
             </div>
           ) : null}
-        </section>
-      )}
+        </div>
+      </section>
     </div>
   );
 }

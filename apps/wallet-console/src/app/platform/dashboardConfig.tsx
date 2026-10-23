@@ -22,6 +22,14 @@ import type {
 } from '@core/dashboard/types';
 import { walletConsoleHref } from '@core/dashboard/consoleNavigation';
 
+function PlatformAccountSettingsPage(): React.JSX.Element {
+  return <AccountSettingsPage />;
+}
+
+function PlatformTeamMembersPage(): React.JSX.Element {
+  return <TeamMembersPage />;
+}
+
 const groups: SidebarGroup[] = [
   {
     key: 'administration',
@@ -32,7 +40,7 @@ const groups: SidebarGroup[] = [
         label: 'Account settings',
         path: '/dashboard/account-settings',
         icon: CogIcon,
-        component: AccountSettingsPage,
+        component: PlatformAccountSettingsPage,
         context: 'account',
       },
       {
@@ -40,7 +48,7 @@ const groups: SidebarGroup[] = [
         label: 'Team members',
         path: '/dashboard/team-members',
         icon: UserCogIcon,
-        component: TeamMembersPage,
+        component: PlatformTeamMembersPage,
         context: 'account',
       },
     ],

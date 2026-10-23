@@ -6,14 +6,15 @@ import {
   readPersistedDashboardSelectedContext,
 } from './useDashboardUiPreferences';
 
-export function isSharedAccountPath(pathname: string): boolean {
+/** Routes that only Platform Console serves. Wallet Console keeps its own account,
+    team, billing account, and invoice pages. */
+export function isPlatformConsolePath(pathname: string): boolean {
+  const path = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
   return (
-    pathname === '/dashboard/onboarding' ||
-    pathname === '/dashboard/account-settings' ||
-    pathname === '/dashboard/team-members' ||
-    pathname === '/dashboard/invitations/accept' ||
-    pathname === '/platform/billing' ||
-    /^\/dashboard\/(?:billing|invoices)(?:\/|$)/.test(pathname)
+    path === '/dashboard/onboarding' ||
+    path === '/dashboard/invitations/accept' ||
+    path === '/dashboard/billing/plan' ||
+    path === '/platform/billing'
   );
 }
 
@@ -63,7 +64,7 @@ export function walletConsoleOverviewHref(
 }
 
 export function sharedAccountHref(pathname: string): string {
-  return import.meta.env.MODE === 'wallet' && isSharedAccountPath(pathname.split('?')[0])
+  return import.meta.env.MODE === 'wallet' && isPlatformConsolePath(pathname.split('?')[0])
     ? platformConsoleHref(pathname)
     : pathname;
 }

@@ -133,3 +133,20 @@ export function BillingMetricsGrid(props: {
     </section>
   );
 }
+
+/** Marks billing state that every product of the organization shares. */
+export function OrganizationSharedNote(props: {
+  readonly serviceLabel: string;
+  readonly subject: 'account' | 'invoices';
+}): React.JSX.Element {
+  return (
+    <div className="dashboard-shared-scope-note" role="note">
+      <span className="dashboard-shared-scope-note__badge">Organization-wide</span>
+      <p>
+        {props.subject === 'account'
+          ? `The card, prepaid balance, plan, and invoices are shared by every product in this organization. Usage costs below count ${props.serviceLabel} only.`
+          : `Invoices and receipts are shared by every product in this organization. They can include usage from products other than ${props.serviceLabel}.`}
+      </p>
+    </div>
+  );
+}

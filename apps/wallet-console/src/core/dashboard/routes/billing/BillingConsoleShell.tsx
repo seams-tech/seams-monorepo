@@ -34,14 +34,19 @@ import {
 } from './consoleBillingApi';
 import {
   BillingMetricsGrid,
+  OrganizationSharedNote,
   buildInvoicePdfFilename,
   parseBillingSubview,
   type BillingMetric,
 } from './billingShared';
+import type { PlatformServiceIdV1 } from '@seams-internal/console-shared/accountPlatform';
+import { platformServiceLabel } from '../services/serviceProjects';
 import { DashboardPageSkeleton } from '../../components/DashboardSkeleton';
 
 export interface BillingConsoleShellProps {
   defaultPath: '/dashboard/billing/account' | '/dashboard/invoices' | '/platform/billing';
+  /** Shows that service's usage only and marks the shared organization billing state. */
+  serviceId?: PlatformServiceIdV1;
 }
 
 const DATE_INPUT_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -189,7 +194,8 @@ function filterInvoices(input: {
 }
 
 export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.Element {
-  const { defaultPath } = props;
+  const { defaultPath, serviceId } = props;
+  const serviceLabel = serviceId ? platformServiceLabel(serviceId) : null;
   const session = useDashboardConsoleSession();
   const selectedContext = useDashboardSelectedContext();
   const { go } = useSiteRouter();
@@ -690,15 +696,20 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
           )
         ) : (
           <>
+            {serviceLabel ? (
+              <OrganizationSharedNote serviceLabel={serviceLabel} subject="account" />
+            ) : null}
             <FreePlanBanners
               variant="billing"
               canManageBilling={canDashboardManageBilling(session.claims)}
               search={search}
             />
-            <p className="dashboard-pagination-note">
-              Billing is organization-scoped. All projects and services use the same prepaid
-              balance.
-            </p>
+            {serviceLabel ? null : (
+              <p className="dashboard-pagination-note">
+                Billing is organization-scoped. All projects and services use the same prepaid
+                balance.
+              </p>
+            )}
             <BillingMetricsGrid
               metrics={summaryMetrics}
               ariaLabel="Billing account summary metrics"
@@ -706,6 +717,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
             <BillingUsageCostsSection
               organizationId={selectedContext.organization || session.claims.orgId}
               state={costs}
+              serviceId={serviceId}
             />
             <BillingAccountView
               canManageBilling={canDashboardManageBilling(session.claims)}
@@ -730,42 +742,54 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
           </>
         )
       ) : subview.kind === 'invoices' ? (
-        <BillingInvoicesView
-          invoiceMetrics={invoiceSummaryMetrics}
-          invoiceListLoading={invoiceListLoading}
-          invoiceListError={invoiceListError}
-          invoiceStatusFilter={invoiceStatusFilter}
-          setInvoiceStatusFilter={setInvoiceStatusFilter}
-          invoiceDocumentTypeFilter={invoiceDocumentTypeFilter}
-          setInvoiceDocumentTypeFilter={setInvoiceDocumentTypeFilter}
-          invoicePeriodStartDateFilter={invoicePeriodStartDateFilter}
-          setInvoicePeriodStartDateFilter={setInvoicePeriodStartDateFilter}
-          invoicePeriodEndDateFilter={invoicePeriodEndDateFilter}
-          setInvoicePeriodEndDateFilter={setInvoicePeriodEndDateFilter}
-          invoices={filteredInvoices}
-          hasAnyInvoices={invoices.length > 0}
-          downloadingInvoicePdfId={downloadingInvoicePdfId}
-          invoiceDownloadError={invoiceDownloadError}
-          onOpenInvoice={(invoiceId) => go(`/dashboard/invoices/${encodeURIComponent(invoiceId)}`)}
-          onDownloadInvoicePdf={onDownloadInvoicePdf}
-        />
+        <>
+          {serviceLabel ? (
+            <OrganizationSharedNote serviceLabel={serviceLabel} subject="invoices" />
+          ) : null}
+          <BillingInvoicesView
+            invoiceMetrics={invoiceSummaryMetrics}
+            invoiceListLoading={invoiceListLoading}
+            invoiceListError={invoiceListError}
+            invoiceStatusFilter={invoiceStatusFilter}
+            setInvoiceStatusFilter={setInvoiceStatusFilter}
+            invoiceDocumentTypeFilter={invoiceDocumentTypeFilter}
+            setInvoiceDocumentTypeFilter={setInvoiceDocumentTypeFilter}
+            invoicePeriodStartDateFilter={invoicePeriodStartDateFilter}
+            setInvoicePeriodStartDateFilter={setInvoicePeriodStartDateFilter}
+            invoicePeriodEndDateFilter={invoicePeriodEndDateFilter}
+            setInvoicePeriodEndDateFilter={setInvoicePeriodEndDateFilter}
+            invoices={filteredInvoices}
+            hasAnyInvoices={invoices.length > 0}
+            downloadingInvoicePdfId={downloadingInvoicePdfId}
+            invoiceDownloadError={invoiceDownloadError}
+            onOpenInvoice={(invoiceId) =>
+              go(`/dashboard/invoices/${encodeURIComponent(invoiceId)}`)
+            }
+            onDownloadInvoicePdf={onDownloadInvoicePdf}
+          />
+        </>
       ) : (
-        <BillingInvoiceDetailView
-          invoiceId={activeInvoiceId}
-          invoice={invoiceDetailRecord}
-          invoiceDetailLoading={invoiceDetailLoading}
-          invoiceDetailError={invoiceDetailError}
-          invoiceActivityLoading={invoiceActivityLoading}
-          invoiceActivityError={invoiceActivityError}
-          invoiceActivity={invoiceActivity}
-          lineItemsLoading={lineItemsLoading}
-          lineItemsError={lineItemsError}
-          lineItems={lineItems}
-          downloadingInvoicePdfId={downloadingInvoicePdfId}
-          invoiceDownloadError={invoiceDownloadError}
-          onBackToInvoices={() => go('/dashboard/invoices')}
-          onDownloadInvoicePdf={onDownloadInvoicePdf}
-        />
+        <>
+          {serviceLabel ? (
+            <OrganizationSharedNote serviceLabel={serviceLabel} subject="invoices" />
+          ) : null}
+          <BillingInvoiceDetailView
+            invoiceId={activeInvoiceId}
+            invoice={invoiceDetailRecord}
+            invoiceDetailLoading={invoiceDetailLoading}
+            invoiceDetailError={invoiceDetailError}
+            invoiceActivityLoading={invoiceActivityLoading}
+            invoiceActivityError={invoiceActivityError}
+            invoiceActivity={invoiceActivity}
+            lineItemsLoading={lineItemsLoading}
+            lineItemsError={lineItemsError}
+            lineItems={lineItems}
+            downloadingInvoicePdfId={downloadingInvoicePdfId}
+            invoiceDownloadError={invoiceDownloadError}
+            onBackToInvoices={() => go('/dashboard/invoices')}
+            onDownloadInvoicePdf={onDownloadInvoicePdf}
+          />
+        </>
       )}
     </div>
   );

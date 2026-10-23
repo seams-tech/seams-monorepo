@@ -5,7 +5,7 @@ import { InvitationAcceptancePage } from '@core/dashboard/routes/invitations/pag
 import { DashboardToaster } from '@core/dashboard/components/DashboardToaster';
 import { DashboardLoadingState } from '@core/dashboard/components/DashboardLoadingState';
 import { normalizePathname } from '@core/router/siteRouting';
-import { isSharedAccountPath, platformConsoleHref } from '@core/dashboard/consoleNavigation';
+import { isPlatformConsolePath, platformConsoleHref } from '@core/dashboard/consoleNavigation';
 import type { DashboardComposition, DashboardRoute, SidebarGroupKey } from '@core/dashboard/types';
 
 function readLocation(): string {
@@ -35,7 +35,7 @@ export function ConsoleApp<Route extends string, Group extends string>({
   const location = React.useSyncExternalStore(subscribeLocation, readLocation, readLocation);
   const pathname = normalizePathname(location);
   const accountRedirect =
-    import.meta.env.MODE === 'wallet' && isSharedAccountPath(pathname)
+    import.meta.env.MODE === 'wallet' && isPlatformConsolePath(pathname)
       ? platformConsoleHref(location)
       : null;
   // eslint-disable-next-line react-hooks/exhaustive-deps -- The bound redirect is the complete effect input.

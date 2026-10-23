@@ -1,4 +1,5 @@
 import React from 'react';
+import type { PlatformServiceIdV1 } from '@seams-internal/console-shared/accountPlatform';
 import { assertNever } from '@seams-internal/console-shared/accountPlatform/boundary';
 import {
   DashboardTable,
@@ -17,6 +18,8 @@ import {
 } from './consoleBillingApi';
 import { BillingMetricsGrid } from './billingShared';
 import { DashboardPageSkeleton } from '../../components/DashboardSkeleton';
+import { platformConsoleHref } from '../../consoleNavigation';
+import { platformServiceLabel } from '../services/serviceProjects';
 
 interface BillingCostGroup {
   readonly id: string;
@@ -61,12 +64,25 @@ function compareCostGroups(left: BillingCostGroup, right: BillingCostGroup): num
   return left.label.localeCompare(right.label);
 }
 
-function buildCostBreakdown(data: DashboardBillingUsageCharges): BillingCostBreakdown {
+/** Keeps the charges attributed to one service; historical charges have no service. */
+function scopedCharges(
+  data: DashboardBillingUsageCharges,
+  serviceId: PlatformServiceIdV1 | undefined,
+): DashboardBillingUsageCharges['charges'] {
+  if (!serviceId) return data.charges;
+  return data.charges.filter(
+    (charge) => charge.kind === 'instance' && charge.attribution.serviceId === serviceId,
+  );
+}
+
+function buildCostBreakdown(
+  charges: DashboardBillingUsageCharges['charges'],
+): BillingCostBreakdown {
   const projects = new Map<string, BillingCostGroup>();
   const services = new Map<string, BillingCostGroup>();
   const meters = new Map<string, BillingCostGroup>();
   let totalMinor = 0;
-  for (const charge of data.charges) {
+  for (const charge of charges) {
     totalMinor += charge.amountMinor;
     switch (charge.kind) {
       case 'instance':
@@ -136,11 +152,14 @@ function BillingCostTable(props: {
   );
 }
 
+/** With `serviceId`, only that service's attributed usage is shown. */
 export function BillingUsageCostsSection(props: {
   readonly organizationId: string;
   readonly state: DashboardBillingCostsState;
+  readonly serviceId?: PlatformServiceIdV1;
 }): React.JSX.Element {
-  const { state, organizationId } = props;
+  const { state, organizationId, serviceId } = props;
+  const serviceLabel = serviceId ? platformServiceLabel(serviceId) : null;
   if (state.kind === 'unavailable' || state.organizationId !== organizationId) {
     return (
       <p className="dashboard-pagination-note">
@@ -165,14 +184,14 @@ export function BillingUsageCostsSection(props: {
           </p>
         );
       }
-      const costs = buildCostBreakdown(state.data);
+      const costs = buildCostBreakdown(scopedCharges(state.data, serviceId));
       return (
         <section
           id="billing-usage-costs"
           className="dashboard-view__section dashboard-view__section--plain"
-          aria-label="Organization usage costs"
+          aria-label={serviceLabel ? `${serviceLabel} usage costs` : 'Organization usage costs'}
         >
-          <h2>Usage costs</h2>
+          <h2>{serviceLabel ? `${serviceLabel} usage costs` : 'Usage costs'}</h2>
           <label className="dashboard-form-field">
             <span>Usage cost month (UTC)</span>
             <input
@@ -192,17 +211,25 @@ export function BillingUsageCostsSection(props: {
               {
                 label: 'Posted usage cost',
                 value: formatUsdMinor(costs.totalMinor),
-                hint: `Organization total for ${state.data.periodMonthUtc}`,
+                hint: `${serviceLabel ?? 'Organization'} total for ${state.data.periodMonthUtc}`,
               },
             ]}
           />
-          <p className="dashboard-pagination-note">
-            Project, service, and meter IDs identify attributable costs. Historical charges without
-            source evidence remain organization charges.
-          </p>
+          {serviceLabel ? (
+            <p className="dashboard-pagination-note">
+              Only {serviceLabel} usage is shown. Usage of other products and historical
+              organization charges are in{' '}
+              <a href={platformConsoleHref('/dashboard/billing/account')}>Platform Console</a>.
+            </p>
+          ) : (
+            <p className="dashboard-pagination-note">
+              Project, service, and meter IDs identify attributable costs. Historical charges
+              without source evidence remain organization charges.
+            </p>
+          )}
           <div className="dashboard-view-grid">
             <BillingCostTable dimension="project" groups={costs.projects} />
-            <BillingCostTable dimension="service" groups={costs.services} />
+            {serviceLabel ? null : <BillingCostTable dimension="service" groups={costs.services} />}
             <BillingCostTable dimension="meter" groups={costs.meters} />
           </div>
         </section>

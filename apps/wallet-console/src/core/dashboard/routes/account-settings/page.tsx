@@ -37,6 +37,8 @@ import {
   type DashboardAccountProfile,
 } from './consoleAccountApi';
 import { DashboardPageSkeleton } from '../../components/DashboardSkeleton';
+import type { PlatformServiceIdV1 } from '@seams-internal/console-shared/accountPlatform';
+import { ServiceProjectsSection } from './ServiceProjectsSection';
 
 function formatTimestamp(value: string): string {
   return formatDashboardTimestamp(value, '—');
@@ -57,7 +59,10 @@ function isProvisionedPlaceholderOrganization(organization: DashboardAccountOrga
   });
 }
 
-export function AccountSettingsPage(): React.JSX.Element {
+/** With `serviceId`, the page also lists the current organization's projects that run it. */
+export function AccountSettingsPage(props: {
+  readonly serviceId?: PlatformServiceIdV1;
+}): React.JSX.Element {
   const { go } = useSiteRouter();
   const session = useDashboardConsoleSession();
   const [loading, setLoading] = React.useState<boolean>(true);
@@ -587,6 +592,10 @@ export function AccountSettingsPage(): React.JSX.Element {
           </div>
         </div>
       </section>
+
+      {props.serviceId && session.claims?.orgId ? (
+        <ServiceProjectsSection organizationId={session.claims.orgId} serviceId={props.serviceId} />
+      ) : null}
 
       <section className="dashboard-account-panel dashboard-account-panel--organizations">
         <div className="dashboard-section-toolbar dashboard-account-section-header dashboard-account-section-header--actions-left">

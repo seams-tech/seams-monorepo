@@ -18,7 +18,9 @@ import {
 import { dashboardStatusLabel, dashboardStatusTone } from '../../utils/statusTone';
 import { DashboardInlineModal } from '../../components/DashboardInlineModal';
 import { DashboardPageActions } from '../../components/DashboardPageActions';
+import type { PlatformServiceIdV1 } from '@seams-internal/console-shared/accountPlatform';
 import { listDashboardProjects, type DashboardConsoleProject } from '../../consoleContextApi';
+import { listServiceProjects, platformServiceLabel } from '../services/serviceProjects';
 import { useDashboardConsoleSession } from '../../consoleSession';
 import { formatDashboardTimestamp } from '../../utils/timestamps';
 import {
@@ -149,33 +151,71 @@ function permissionLabel(permission: DashboardOrganizationAdminPermission): stri
   }
 }
 
-function roleSummary(membership: DashboardOrganizationMembership): string {
+/** The projects of one service. Members outside it are listed only on request. */
+interface ServiceScope {
+  readonly label: string;
+  readonly projectIds: ReadonlySet<string>;
+}
+
+function scopedAccess(
+  assignments: readonly DashboardProjectAccessAssignment[],
+  scope: ServiceScope | null,
+): readonly DashboardProjectAccessAssignment[] {
+  return scope
+    ? assignments.filter((assignment) => scope.projectIds.has(assignment.projectId))
+    : assignments;
+}
+
+function projectAccessSummary(
+  assignments: readonly DashboardProjectAccessAssignment[],
+  scope: ServiceScope | null,
+): string {
+  const count = scopedAccess(assignments, scope).length;
+  const noun = scope ? `${scope.label} project` : 'project';
+  if (count === 0) return `No ${noun} access`;
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
+/** Owners and administrators reach every project, so every scope includes them. */
+function inServiceScope(
+  grant: {
+    readonly role: string;
+    readonly projectAccess: readonly DashboardProjectAccessAssignment[];
+  },
+  scope: ServiceScope | null,
+): boolean {
+  return !scope || grant.role !== 'MEMBER' || scopedAccess(grant.projectAccess, scope).length > 0;
+}
+
+function roleSummary(
+  membership: DashboardOrganizationMembership,
+  scope: ServiceScope | null,
+): string {
   if (membership.role === 'OWNER') return 'Full organization access';
   if (membership.role === 'ADMIN') {
     if (membership.adminPermissions.length === 0) return 'Read-only administrator';
     return membership.adminPermissions.map(permissionLabel).join(', ');
   }
-  if (membership.projectAccess.length === 0) return 'No project access';
-  return `${membership.projectAccess.length} project${
-    membership.projectAccess.length === 1 ? '' : 's'
-  }`;
+  return projectAccessSummary(membership.projectAccess, scope);
 }
 
-function invitationSummary(invitation: DashboardOrganizationInvitation): string {
+function invitationSummary(
+  invitation: DashboardOrganizationInvitation,
+  scope: ServiceScope | null,
+): string {
   if (invitation.role === 'OWNER') return 'Full organization access';
   if (invitation.role === 'ADMIN') {
     return invitation.adminPermissions.length
       ? invitation.adminPermissions.map(permissionLabel).join(', ')
       : 'Read-only administrator';
   }
-  return `${invitation.projectAccess.length} project${
-    invitation.projectAccess.length === 1 ? '' : 's'
-  }`;
+  return projectAccessSummary(invitation.projectAccess, scope);
 }
 
 function membershipMatchesQuery(
   membership: DashboardOrganizationMembership,
   queryRaw: string,
+  scope: ServiceScope | null,
 ): boolean {
   const query = queryRaw.trim().toLowerCase();
   if (!query) return true;
@@ -185,7 +225,7 @@ function membershipMatchesQuery(
     membership.userId,
     membership.role,
     membership.kind,
-    roleSummary(membership),
+    roleSummary(membership, scope),
   ].some((value) =>
     String(value ?? '')
       .toLowerCase()
@@ -299,8 +339,13 @@ function GrantEditor(props: GrantEditorProps): React.JSX.Element {
   );
 }
 
-export function TeamMembersPage(): React.JSX.Element {
+/** With `serviceId`, project access covers that service's projects only. */
+export function TeamMembersPage(props: {
+  readonly serviceId?: PlatformServiceIdV1;
+}): React.JSX.Element {
+  const { serviceId } = props;
   const session = useDashboardConsoleSession();
+  const [showOutsideScope, setShowOutsideScope] = React.useState(false);
   const [memberships, setMemberships] = React.useState<DashboardOrganizationMembership[]>([]);
   const [invitations, setInvitations] = React.useState<DashboardOrganizationInvitation[]>([]);
   const [projects, setProjects] = React.useState<DashboardConsoleProject[]>([]);
@@ -335,10 +380,13 @@ export function TeamMembersPage(): React.JSX.Element {
     let canceled = false;
     setLoading(true);
     setErrorMessage('');
+    const orgId = session.claims.orgId;
     Promise.all([
       listDashboardOrganizationMemberships('all'),
       listDashboardOrganizationInvitations('pending'),
-      listDashboardProjects({ status: 'ACTIVE' }),
+      serviceId
+        ? listServiceProjects(orgId, serviceId).then((rows) => rows.map((row) => row.project))
+        : listDashboardProjects({ status: 'ACTIVE' }),
     ])
       .then(([nextMemberships, nextInvitations, nextProjects]) => {
         if (canceled) return;
@@ -356,23 +404,40 @@ export function TeamMembersPage(): React.JSX.Element {
     return () => {
       canceled = true;
     };
-  }, [canOpenTeamPage, session.claims]);
+  }, [canOpenTeamPage, serviceId, session.claims]);
 
   React.useEffect(() => {
     if (session.loading) return;
     return reload();
   }, [reload, session.loading]);
 
+  const scope = React.useMemo<ServiceScope | null>(
+    () =>
+      serviceId
+        ? {
+            label: platformServiceLabel(serviceId),
+            projectIds: new Set(projects.map((project) => project.id)),
+          }
+        : null,
+    [projects, serviceId],
+  );
+  const outsideScopeCount =
+    memberships.filter((membership) => !inServiceScope(membership, scope)).length +
+    invitations.filter((invitation) => !inServiceScope(invitation, scope)).length;
+  const visibleInvitations = showOutsideScope
+    ? invitations
+    : invitations.filter((invitation) => inServiceScope(invitation, scope));
   const activeMemberships = React.useMemo(
     () =>
       memberships
-        .filter((membership) => membershipMatchesQuery(membership, query))
+        .filter((membership) => showOutsideScope || inServiceScope(membership, scope))
+        .filter((membership) => membershipMatchesQuery(membership, query, scope))
         .sort((left, right) => {
           if (left.role === 'OWNER' && right.role !== 'OWNER') return -1;
           if (right.role === 'OWNER' && left.role !== 'OWNER') return 1;
           return left.email.localeCompare(right.email);
         }),
-    [memberships, query],
+    [memberships, query, scope, showOutsideScope],
   );
   const pagination = useDashboardTablePagination(activeMemberships, {
     disabled: loading || session.loading,
@@ -670,6 +735,26 @@ export function TeamMembersPage(): React.JSX.Element {
             {mutationError}
           </p>
         ) : null}
+        {scope ? (
+          <p className="dashboard-pagination-note">
+            Members with access to {scope.label} projects. Owners and administrators reach every
+            project. Roles and memberships are organization-wide.
+            {outsideScopeCount > 0 ? (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  className="dashboard-inline-link-button"
+                  onClick={() => setShowOutsideScope((current) => !current)}
+                >
+                  {showOutsideScope
+                    ? `Hide people without ${scope.label} access`
+                    : `Show ${outsideScopeCount} more without ${scope.label} access`}
+                </button>
+              </>
+            ) : null}
+          </p>
+        ) : null}
       </section>
 
       {!canOpenTeamPage && !session.loading ? (
@@ -742,10 +827,10 @@ export function TeamMembersPage(): React.JSX.Element {
                         </div>
                       </DashboardTableCell>
                       <DashboardTableCell
-                        title={roleSummary(membership)}
+                        title={roleSummary(membership, scope)}
                         className="dashboard-data-table__cell--nowrap"
                       >
-                        {roleSummary(membership)}
+                        {roleSummary(membership, scope)}
                       </DashboardTableCell>
                       <DashboardTableCell>
                         <DashboardTableStatus tone={dashboardStatusTone(membership.kind)}>
@@ -823,10 +908,10 @@ export function TeamMembersPage(): React.JSX.Element {
               </DashboardTableHeader>
               {loading ? (
                 <DashboardTableSkeletonRows label="Loading invitations" columns={4} rows={2} />
-              ) : invitations.length === 0 ? (
+              ) : visibleInvitations.length === 0 ? (
                 <DashboardTableState>No pending invitations.</DashboardTableState>
               ) : (
-                invitations.map((invitation) => (
+                visibleInvitations.map((invitation) => (
                   <DashboardTableRow
                     className="dashboard-team-members-table__row"
                     key={invitation.id}
@@ -851,8 +936,8 @@ export function TeamMembersPage(): React.JSX.Element {
                         </span>
                       </div>
                     </DashboardTableCell>
-                    <DashboardTableCell title={invitationSummary(invitation)}>
-                      {invitationSummary(invitation)}
+                    <DashboardTableCell title={invitationSummary(invitation, scope)}>
+                      {invitationSummary(invitation, scope)}
                     </DashboardTableCell>
                     <DashboardTableCell>
                       {formatDashboardTimestamp(invitation.expiresAt || '', '—')}

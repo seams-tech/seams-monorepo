@@ -1,5 +1,7 @@
-import { platformConsoleHref } from '@core/dashboard/consoleNavigation';
+import { AccountSettingsPage } from '@core/dashboard/routes/account-settings/page';
 import { ApiKeyManagementPage } from '@core/dashboard/routes/api-keys/page';
+import { BillingConsoleShell } from '@core/dashboard/routes/billing/BillingConsoleShell';
+import { TeamMembersPage } from '@core/dashboard/routes/team-members/page';
 import type { ApiCredentialScopeCatalog } from '@core/dashboard/routes/api-keys/apiKeyScopeCatalog';
 import { AuditLogsPage, type AuditApprovalIntegration } from '@core/dashboard/routes/audit/page';
 import { GasSponsorshipPage } from '@wallet-product/gas-sponsorship/page';
@@ -62,7 +64,7 @@ export type WalletDashboardRoute =
   | '/dashboard/deployment-status'
   | '/dashboard/gas-sponsorship';
 export type ComposedDashboardRoute = DashboardRoute | WalletDashboardRoute;
-export type ComposedSidebarGroupKey = SidebarGroupKey | 'operationsSecurity';
+export type ComposedSidebarGroupKey = SidebarGroupKey | 'operationsSecurity' | 'account';
 type ComposedSidebarItem = SidebarItem<ComposedDashboardRoute>;
 type ComposedSidebarGroup = SidebarGroup<ComposedDashboardRoute, ComposedSidebarGroupKey>;
 
@@ -128,6 +130,22 @@ const walletWebhookEventCategoryOptions: readonly WebhookEventCategoryOption[] =
     value,
     ...walletWebhookEventCategoryCopy[value],
   }));
+
+function WalletAccountSettingsPage(): React.JSX.Element {
+  return <AccountSettingsPage serviceId="wallet" />;
+}
+
+function WalletTeamMembersPage(): React.JSX.Element {
+  return <TeamMembersPage serviceId="wallet" />;
+}
+
+function WalletBillingAccountPage(): React.JSX.Element {
+  return <BillingConsoleShell defaultPath="/dashboard/billing/account" serviceId="wallet" />;
+}
+
+function WalletInvoicesPage(): React.JSX.Element {
+  return <BillingConsoleShell defaultPath="/dashboard/invoices" serviceId="wallet" />;
+}
 
 function WalletApiKeyManagementPage(): React.JSX.Element {
   return (
@@ -370,6 +388,45 @@ const sidebarGroups: ComposedSidebarGroup[] = [
     label: 'Wallet operations',
     items: operationsSecurityItems,
   },
+  {
+    // 'platform' is the platform-admin group, which only support accounts see.
+    key: 'account',
+    label: 'Platform',
+    items: [
+      {
+        key: 'account-settings',
+        label: 'Account settings',
+        path: '/dashboard/account-settings',
+        icon: CogIcon,
+        component: WalletAccountSettingsPage,
+        context: 'account',
+      },
+      {
+        key: 'team-members',
+        label: 'Team members',
+        path: '/dashboard/team-members',
+        icon: UserCogIcon,
+        component: WalletTeamMembersPage,
+        context: 'account',
+      },
+      {
+        key: 'billing-account',
+        label: 'Billing account',
+        path: '/dashboard/billing/account',
+        icon: CreditCardIcon,
+        component: WalletBillingAccountPage,
+        context: 'account',
+      },
+      {
+        key: 'invoices',
+        label: 'Invoices',
+        path: '/dashboard/invoices',
+        icon: FileTextIcon,
+        component: WalletInvoicesPage,
+        context: 'account',
+      },
+    ],
+  },
 ];
 
 export const SIDEBAR_GROUPS: ComposedSidebarGroup[] = sidebarGroups.filter(
@@ -388,6 +445,7 @@ export const DEFAULT_EXPANDED_SIDEBAR_GROUPS: ExpandedSidebarGroupsState<Compose
     overview: true,
     administration: true,
     operationsSecurity: true,
+    account: true,
     billing: true,
     platform: true,
   };
@@ -409,6 +467,10 @@ export const DEFAULT_DASHBOARD_ROUTE: ComposedDashboardRoute =
 export function getRouteFromPathname(pathname: string): ComposedDashboardRoute | null {
   const normalizedPathname =
     pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+  if (normalizedPathname === '/dashboard/billing') return '/dashboard/billing/account';
+  if (/^\/dashboard\/(?:billing\/)?invoices(?:\/[^/]+)?$/.test(normalizedPathname)) {
+    return '/dashboard/invoices';
+  }
 
   for (const group of SIDEBAR_GROUPS) {
     for (const item of group.items) {
@@ -450,24 +512,6 @@ export const DASHBOARD_COMPOSITION: DashboardComposition<
   defaultProductId: DEFAULT_DASHBOARD_PRODUCT_ID,
   defaultRoute: DEFAULT_DASHBOARD_ROUTE,
   sidebarGroups: SIDEBAR_GROUPS,
-  externalLinks: [
-    {
-      label: 'Account settings',
-      href: platformConsoleHref('/dashboard/account-settings'),
-      icon: CogIcon,
-    },
-    {
-      label: 'Team members',
-      href: platformConsoleHref('/dashboard/team-members'),
-      icon: UserCogIcon,
-    },
-    {
-      label: 'Billing account',
-      href: platformConsoleHref('/dashboard/billing/account'),
-      icon: CreditCardIcon,
-    },
-    { label: 'Invoices', href: platformConsoleHref('/dashboard/invoices'), icon: FileTextIcon },
-  ],
   defaultExpandedSidebarGroups: DEFAULT_EXPANDED_SIDEBAR_GROUPS,
   sidebarGroupKeys: SIDEBAR_GROUP_KEYS,
   getRouteFromPathname,

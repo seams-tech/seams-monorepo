@@ -11,6 +11,7 @@ import {
 } from '@/components/h2/sections';
 import '@/styles/h2.css';
 import { ComponentShowcase } from './ComponentShowcase';
+import { RegionalGlobe } from './RegionalGlobe';
 
 export function WalletPage(): React.JSX.Element {
   return (
@@ -26,6 +27,7 @@ export function WalletPage(): React.JSX.Element {
         <ComponentShowcase />
         <H2Start />
         <H2Security />
+        <RegionalGlobe />
         <H2Cta />
         <H2Footer />
       </div>

@@ -1,0 +1,147 @@
+.wallet-regions {
+  padding: var(--h2-inset);
+}
+
+.wallet-regions__card {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  min-height: 520px;
+  overflow: hidden;
+  border: 1px solid var(--h2-line);
+  border-radius: var(--h2-radius-card);
+  background: var(--h2-taupe);
+}
+
+.wallet-regions__copy {
+  z-index: 1;
+  padding: 48px 0 40px 46px;
+}
+
+.wallet-regions h2 {
+  margin: 68px 0 22px;
+  font-size: clamp(34px, 3.5vw, 48px);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+}
+
+.wallet-regions h2 span {
+  color: var(--h2-smoke);
+}
+
+.wallet-regions__description {
+  max-width: 310px;
+  color: var(--h2-graphite);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.wallet-regions__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.wallet-regions__choices button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 15px;
+  border: 1px solid #ddd9d3;
+  border-radius: 24px;
+  background: transparent;
+  color: var(--h2-graphite);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wallet-regions__choices button[aria-pressed='true'] {
+  border-color: var(--h2-graphite);
+  background: var(--h2-graphite);
+  color: white;
+}
+
+.wallet-regions__choices svg {
+  width: 14px;
+  height: 14px;
+}
+
+.wallet-regions :focus-visible {
+  outline: 2px solid #366dc7;
+  outline-offset: 4px;
+}
+
+.wallet-regions__hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 30px 0 0;
+  font-size: 11px;
+  color: var(--h2-smoke);
+}
+
+.wallet-regions__hint svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.wallet-regions__visual {
+  min-width: 0;
+  position: relative;
+}
+
+.wallet-regions canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 112%;
+  height: 100%;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.wallet-regions canvas:active {
+  cursor: grabbing;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wallet-regions__choices button:not([aria-pressed='true']):hover {
+    background: #ffffff;
+  }
+}
+
+@media (max-width: 700px) {
+  .wallet-regions__card {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-regions__copy {
+    padding: 30px 26px 0;
+  }
+
+  .wallet-regions h2 {
+    margin-top: 36px;
+  }
+
+  .wallet-regions__description {
+    max-width: 360px;
+  }
+
+  .wallet-regions__hint {
+    margin-top: 20px;
+  }
+
+  .wallet-regions__visual {
+    height: 340px;
+  }
+
+  .wallet-regions canvas {
+    width: 100%;
+  }
+}

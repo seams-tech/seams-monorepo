@@ -26,7 +26,13 @@ const { GatewayRequestEvidence } = await import(
     .href
 );
 
-type Timing = { at: number; event: string; stage: string | null; durationMs: number };
+type Timing = {
+  at: number;
+  event: string;
+  operationId: string | null;
+  stage: string | null;
+  durationMs: number;
+};
 type AssetRequest = { request: Request; observedAt: number };
 class NearEvidence {
   readonly timings: Timing[] = [];
@@ -72,6 +78,7 @@ class NearEvidence {
     this.timings.push({
       at: performance.now(),
       event: value.event,
+      operationId: typeof value.operationId === 'string' ? value.operationId : null,
       stage: value.stage ?? null,
       durationMs: value.durationMs,
     });

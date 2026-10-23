@@ -726,18 +726,25 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 /* global HL, hairline */
 // Threshold signing in line only. Two plates each hold half of one circle; the
 // half a plate lacks is a dashed outline. Hover traces both paths, slides the
-// halves along them until they meet as one circle, passes it through the
-// aligned holes of three upright policy plates, and lands it on the last plate,
-// where hatching fills it in: the signature. Drawn in x-ray, in place of rule
-// 06: nothing is opaque, and a line that a plate hides is dashed.
+// halves along them until they meet as one circle, turns three upright policy
+// plates about the path until their slits lie level and in line, passes the
+// circle through the slits edge-on, and lands it on the last plate, where
+// hatching fills it in: the signature. Drawn in x-ray, in place of rule 06:
+// nothing is opaque, and a line that a plate hides is dashed.
 const DURATION = 2400;
 // Every flat plate and every path lies at height Z; the circle has radius R.
-const [Z, R, HOLE] = [6, 10, 12.5];
+const [Z, R] = [6, 10];
 const [PLATE_X, PLATE_Y] = [26, 18];
 const SHARES = [-50, 50];
 const [MERGE, CLEAR, RESULT] = [86, 152, 220];
 const GATES = [108, 120, 132];
+// At rest each policy plate is turned in its own plane about the path, so the
+// slits are out of line and not level.
+const TURNED = [50, -35, 20];
 const [GATE_Y, GATE_Z] = [18, 16];
+// Each policy plate's slit: half its length and half its width. The circle
+// passes through it edge-on.
+const SLIT = [12.5, 1.6];
 // Phases on one play head, in ms: the solid trace, the halves gathering, the
 // checks, the way out, then the signature.
 const TRACE = [0, 520];
@@ -745,6 +752,9 @@ const GATHER = [220, 1000];
 const CHECK = [1000, 1520];
 const OUT = [1520, 1950];
 const SIGN = [1950, DURATION];
+// The plates turn into place one after another, towards the result, before the
+// joined circle reaches the first of them.
+const [TURN_AT, TURN_STEP, TURN_MS] = [150, 140, 480];
 const EASE = HL.bezier(0.65, 0, 0.35, 1);
 const text = (key, english) => window.walletFigureText?.(key) ?? english;
 const span = (t, [a, b]) => HL.clamp((t - a) / (b - a), 0, 1);
@@ -768,21 +778,34 @@ function hidden(state, w) {
       p.c,
     );
     const [a, b] = [dot(q, p.u), dot(q, p.v)];
-    if (Math.abs(a) < p.hu && Math.abs(b) < p.hv && Math.hypot(a, b) >= p.hole) return true;
+    const inSlit = Math.abs(a) < p.slit[0] && Math.abs(b) < p.slit[1];
+    if (Math.abs(a) < p.hu && Math.abs(b) < p.hv && !inSlit) return true;
   }
   return false;
 }
-// A world polyline in x-ray, as [solid, dashed] path strings that meet.
+// A world polyline in x-ray, as [solid, dashed] path strings. Each run ends
+// exactly where a plate's edge crosses it, found by bisecting the step between
+// the last sample on one side and the first on the other.
 function xray(state, points) {
   const flags = points.map((w) => hidden(state, w));
   const out = ['', ''];
-  for (let start = 0, i = 1; i <= points.length; i++) {
-    if (i < points.length && flags[i] === flags[start]) continue;
-    out[flags[start] ? 1 : 0] += HL.open(
-      points.slice(Math.max(0, start - 1), i).map((w) => state.P(...w)),
-    );
-    start = i;
+  const close = (run, flag) => (out[flag ? 1 : 0] += HL.open(run.map((w) => state.P(...w))));
+  let run = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    if (flags[i] !== flags[i - 1]) {
+      let [a, b] = [points[i - 1], points[i]];
+      for (let step = 0; step < 10; step++) {
+        const middle = a.map((value, k) => (value + b[k]) / 2);
+        if (hidden(state, middle) === flags[i - 1]) a = middle;
+        else b = middle;
+      }
+      const crossing = a.map((value, k) => (value + b[k]) / 2);
+      close([...run, crossing], flags[i - 1]);
+      run = [crossing];
+    }
+    run.push(points[i]);
   }
+  close(run, flags.at(-1));
   return out;
 }
 function pair(parent, cls = 'nf sil') {
@@ -792,27 +815,37 @@ function draw([solid, dashed], [d0, d1]) {
   solid.setAttribute('d', d0);
   dashed.setAttribute('d', d1);
 }
-function edge(a, b, n = 16) {
+function edge(a, b, n = 24) {
   return Array.from({ length: n + 1 }, (_, i) => a.map((value, k) => HL.lerp(value, b[k], i / n)));
 }
 // A closed outline through corners, sampled along each side.
-const outline = (corners) =>
+const outlineOf = (corners) =>
   corners.flatMap((a, i) => edge(a, corners[(i + 1) % corners.length]).slice(i ? 1 : 0));
-// A flat plate at height Z, or an upright one across the path at x.
+// A flat plate at height Z, or an upright one across the path at x, turned by
+// angle degrees in its own plane about the path.
 function flat(cx, cy) {
   const corners = [-1, 1, 1, -1].map((a, i) => [
     cx + a * PLATE_X,
     cy + (i < 2 ? -1 : 1) * PLATE_Y,
     Z,
   ]);
-  return { c: [cx, cy, Z], n: UP, u: X, v: Y, hu: PLATE_X, hv: PLATE_Y, hole: 0, corners };
+  return { c: [cx, cy, Z], n: UP, u: X, v: Y, hu: PLATE_X, hv: PLATE_Y, slit: [0, 0], corners };
 }
-function upright(x) {
-  const corners = [-1, 1, 1, -1].map((a, i) => [x, a * GATE_Y, Z + (i < 2 ? -1 : 1) * GATE_Z]);
-  return { c: [x, 0, Z], n: X, u: Y, v: UP, hu: GATE_Y, hv: GATE_Z, hole: HOLE, corners };
+function upright(x, angle = 0) {
+  const [cos, sin] = [Math.cos(HL.rad(angle)), Math.sin(HL.rad(angle))];
+  const p = { c: [x, 0, Z], n: X, u: [0, cos, sin], v: [0, -sin, cos], hu: GATE_Y, hv: GATE_Z };
+  p.slit = SLIT;
+  p.corners = box(p, GATE_Y, GATE_Z);
+  return p;
 }
+// The corners of a rectangle round a plate's centre, in the plate's plane.
+const box = (p, a, b) =>
+  [-1, 1, 1, -1].map((sa, i) => {
+    const sb = i < 2 ? -1 : 1;
+    return p.c.map((value, k) => value + sa * a * p.u[k] + sb * b * p.v[k]);
+  });
 // A circle in a plate's plane, round the local point (a, b).
-function circle(p, a, b, r, from = 0, to = 360, n = 48) {
+function circle(p, a, b, r, from = 0, to = 360, n = 72) {
   return Array.from({ length: n + 1 }, (_, i) => {
     const angle = HL.rad(HL.lerp(from, to, i / n));
     const [la, lb] = [a + r * Math.cos(angle), b + r * Math.sin(angle)];
@@ -821,16 +854,9 @@ function circle(p, a, b, r, from = 0, to = 360, n = 48) {
 }
 // Half the circle as a closed D round (x, y); side -1 is the half towards -y.
 function half(x, y, side) {
-  const arc = circle(
-    { c: [x, y, Z], u: X, v: Y },
-    0,
-    0,
-    R,
-    side < 0 ? 180 : 0,
-    side < 0 ? 360 : 180,
-    24,
-  );
-  return [...arc, ...edge(arc.at(-1), arc[0], 12).slice(1)];
+  const [from, plane] = [side < 0 ? 180 : 0, { c: [x, y, Z], u: X, v: Y }];
+  const arc = circle(plane, 0, 0, R, from, from + 180, 36);
+  return [...arc, ...edge(arc.at(-1), arc[0]).slice(1)];
 }
 
 // A path through world points, measured so part of it can be drawn or walked.
@@ -888,6 +914,27 @@ function frame(state, t) {
       ? HL.lerp(MERGE, CLEAR, EASE(span(t, CHECK)))
       : HL.lerp(CLEAR, RESULT, EASE(span(t, OUT)));
   const signed = t >= SIGN[0];
+  // The policy plates first: every x-ray below looks through them as they turn.
+  const gates = GATES.map((gx, i) => {
+    const start = TURN_AT + i * TURN_STEP;
+    return upright(gx, TURNED[i] * (1 - EASE(span(t, [start, start + TURN_MS]))));
+  });
+  state.plates = [...state.flats, ...gates];
+  const checks = ['', ''];
+  gates.forEach((p, i) => {
+    const [outline, slit, ring] = state.gates[i];
+    draw(outline, xray(state, outlineOf(p.corners)));
+    draw(slit, xray(state, outlineOf(box(p, ...SLIT))));
+    draw(ring, xray(state, circle(p, -12, 11, 2.2)));
+    // Each policy plate ticks its ring as the circle passes it.
+    const part = HL.clamp((x - GATES[i]) / 12, 0, 1);
+    if (part > 0) {
+      const tick = xray(state, walk(route(circle(p, -12, 11, 1.1, 90, 450)), part).upto);
+      checks[0] += tick[0];
+      checks[1] += tick[1];
+    }
+  });
+  draw(state.checks, checks);
   state.shares.forEach((share, i) => {
     draw(share.trace, xray(state, walk(share.path, EASE(span(t, TRACE))).upto));
     const at = t < CHECK[0] ? walk(share.path, gathered[i]).tip : [x, 0];
@@ -898,13 +945,6 @@ function frame(state, t) {
   // The way out traces just ahead of the circle.
   const lead = Math.min(RESULT, x + 16 * span(t, [CHECK[0], CHECK[0] + 160]));
   draw(state.way, t < CHECK[0] ? ['', ''] : xray(state, edge([MERGE, 0, Z], [lead, 0, Z], 40)));
-  // Each policy plate ticks its ring as the circle passes it.
-  let checks = '';
-  state.ticks.forEach((ring, i) => {
-    const part = HL.clamp((x - GATES[i]) / 12, 0, 1);
-    if (part > 0) checks += screen(walk(ring, part).upto);
-  });
-  state.checks.setAttribute('d', checks);
   const sign = span(t, SIGN);
   state.hatch.setAttribute('d', sign > 0 ? screen(walk(state.lines, sign).upto) : '');
   let read = text('rest', 'rest');
@@ -962,16 +1002,15 @@ function mount({ stage, svg, read }, lag) {
   const C = HL.Cam(45, 0.5, 1.45);
   HL.fit(C, [[0, 0, 0]], 185, 88);
   const P = HL.proj(C);
-  const [sources, gates, last] = [
-    SHARES.map((y) => flat(0, y)),
-    GATES.map(upright),
-    flat(RESULT, 0),
-  ];
+  const [sources, last] = [SHARES.map((y) => flat(0, y)), flat(RESULT, 0)];
+  // Both poses of the policy plates, for the label that must clear them both.
+  const poses = GATES.flatMap((x, i) => [upright(x), upright(x, TURNED[i])]);
   const state = { stage, read, P, lag, t: 0, active: false, loop: null };
-  state.plates = [...sources, ...gates, last];
+  state.flats = [...sources, last];
+  state.plates = state.flats;
   // Construction first: an axis across each flat plate, and the paths, dashed.
   const guides = HL.mk('path', { class: 'nf lo dash' }, svg);
-  const shape = (parent, plate) => draw(pair(parent), xray(state, outline(plate.corners)));
+  const shape = (parent, plate) => draw(pair(parent), xray(state, outlineOf(plate.corners)));
   const slot = (parent, p, part) => {
     const d = HL.poly(circle(p, 0, 0, R).map((w) => P(...w)));
     return HL.mk('path', { class: 'nf lo dash', d, 'data-part': part }, parent);
@@ -984,13 +1023,9 @@ function mount({ stage, svg, read }, lag) {
   }
   state.shares = SHARES.map((y) => ({ path: sharePath(y) }));
   const gate = HL.mk('g', {}, svg);
-  state.ticks = gates.map((p) => {
-    shape(gate, p);
-    draw(pair(gate), xray(state, circle(p, 0, 0, HOLE)));
-    draw(pair(gate, 'nf lo'), xray(state, circle(p, -12, 11, 2.2)));
-    return route(circle(p, -12, 11, 1.1, 90, 450));
-  });
-  state.checks = HL.mk('path', { class: 'nf sil', 'data-part': 'check' }, gate);
+  state.gates = GATES.map(() => [pair(gate), pair(gate), pair(gate, 'nf lo')]);
+  state.checks = pair(gate);
+  state.checks[0].dataset.part = 'check';
   const result = HL.mk('g', {}, svg);
   shape(result, last);
   slot(result, last, 'slot');
@@ -1014,7 +1049,7 @@ function mount({ stage, svg, read }, lag) {
   const labels = [
     [[sources[0]], -1, text('userDevice', 'User’s device')],
     [[sources[1]], -1, text('yourInfrastructure', 'Your infrastructure')],
-    [gates, 1, text('policyChecks', 'Policy checks')],
+    [poses, 1, text('policyChecks', 'Policy checks')],
     [[last], 1, text('signedTransaction', 'Signed transaction')],
   ].map(([plates, side, words]) => {
     const ys = plates.flatMap((p) => p.corners.map((w) => P(...w)[1]));

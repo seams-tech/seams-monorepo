@@ -58,6 +58,11 @@ The bundle matched the CLI pin. Snapshot version 1 records an `issuedAt` value o
 verification. These facts describe that checkpoint. Verify whether a later
 snapshot exists before every future restore.
 
+On 2026-10-23, the archived `seams-sdk` repository held 13 unexpired recovery
+trust artifacts. One was the matching version 1 snapshot. The other 12 were
+signer certificates. This inventory found no later signed snapshot in that
+repository. Other stores may still hold a later snapshot.
+
 The GitHub staging and mainnet trust variables held invalid two-byte values before
 the Wallet 0.21.0 rollout. The rollout restored the verified backup values. A live
 Worker readback matched each backup. The rollout then passed [staging activation],
@@ -73,11 +78,25 @@ and host deployment smoke tests also passed.
 The signing workflow is `.github/workflows/sign-recovery-trust.yml`. It expects
 `SEAMS_RECOVERY_SIGNING_KEY` and `SEAMS_RECOVERY_SIGNER_KEY_ID` in the protected
 `recovery-signing` GitHub environment. That environment did not appear in the
-repository environment list on 2026-10-23. A targeted search found no identifiable
-private recovery signing-key backup under `~/.seams`. This finding does not prove
-that the key is lost. Find the original key and verify its protected backup before
-issuing another certificate or revocation snapshot. A bridged root rotation also
-needs the original key.
+current repository's environment list on 2026-10-23.
+
+The archived `seams-tech/seams-sdk` repository still has a `recovery-signing`
+environment with both named secrets. Its [2026-09-08 signing run] produced a
+snapshot that matches the local backup byte for byte. That artifact's signature
+verifies against Wallet's pinned recovery root. This proves the archived secret
+worked with the pinned root during that run. GitHub returned secret metadata,
+not the private value, so the current secret value remains unverified. GitHub's
+[environment secret API] does not reveal stored secret values.
+
+[2026-09-08 signing run]: https://github.com/seams-tech/seams-sdk/actions/runs/34184937949
+[environment secret API]: https://docs.github.com/en/rest/actions/secrets#get-an-environment-secret
+
+A targeted search found no identifiable private recovery signing-key backup under
+`~/.seams` or `~/.config/seams`. Do not generate a new root solely because the
+current repository lacks this environment. Find the original offline key or plan
+an authorized migration from the archived secret. Verify the key against the
+pinned public root before issuing another certificate or revocation snapshot.
+A bridged root rotation also needs the original key.
 
 Keep any private-key backup encrypted and access-controlled. Do not place the key in
 this repository, a runtime Worker, or an ordinary deployment environment file.

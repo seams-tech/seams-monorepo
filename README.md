@@ -49,8 +49,8 @@ deployment instructions before applying secrets or deploying.
 
 ## Documentation and release baseline
 
-The private applications pin published `@seams/wallet@0.15.4` and
-`@seams/wallet-server@0.15.4`. The recovery CLI remains `0.15.0`. The wallet
+The private applications pin published `@seams/wallet@0.21.0` and
+`@seams/wallet-server@0.21.0`. The recovery CLI remains `0.20.0`. The wallet
 iframe protocol is `16.0.0`. Recheck publication and deployment before updating pins.
 
 Public docs live in `seams-wallet/apps/docs`. This repository publishes their

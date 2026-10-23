@@ -151,9 +151,13 @@ that disabling the plugin blocks reuse after a prior load. Replacing the host
 registry loader replaces the implementation under the same device-proof
 protocol.
 
-The host still needs a VoiceID unlock action. It must request a challenge,
-capture the device assertion, install the fresh server session, open the seed
-envelope, and activate signing lanes. The browser now has a typed handoff from
+The trusted plugin now has an unlock hook with a required core session
+installer. It selects the active local method, fetches a challenge, and shows
+an Unlock button on the Wallet origin. Its surface expires with the challenge.
+An embedded-frame E2E verifies unlock capture and expiry without Keychain access.
+The app-facing unlock dispatch and core NEAR installer remain pending. The
+installer must open custody and activate signing before returning success.
+The browser has a typed handoff from
 the selected method and server challenge through native capture and server
 verification. It erases the factor secret after a custody installer returns.
 A real-D1 E2E verifies the handoff and proves that revoking VoiceID blocks

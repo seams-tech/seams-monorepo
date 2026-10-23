@@ -17,7 +17,8 @@
   --h2-radius-card: 22px;
   --h2-taupe: #f5f3f1;
   --h2-stone: #ebe8e4;
-  --h2-gradient-sage: linear-gradient(160deg, #919690 0%, #c7d0cf 100%);
+  /* the desert-dawn field's colours, shown until its first frame */
+  --h2-gradient-dawn: linear-gradient(180deg, #dfe6fc 0%, #f6d3b4 42%, #f0a08c 70%, #4b6d9e 100%);
   /* structural hairlines (column borders, rules): a half step lighter than
      component outlines so the grid recedes but stays visible */
   --h2-line: #f2f0ed;
@@ -502,19 +503,19 @@ body:has(.h2-page) {
   }
 }
 
-/* Sage variant: the hero content sits on a rounded panel with light ink on
-   top. The home page draws a moving sage GrainField as the shell's first
-   child, with the headline at the left and the policy card at the right; the
-   flat sage gradient shows until the field's first frame. */
-.h2-hero-simple--sage {
+/* Panel variant: the hero content sits on a rounded panel. The home page
+   draws the desert-dawn GrainField as the shell's first child, with the
+   headline in ink at the left and the policy card at the right; the flat
+   dawn gradient shows until the field's first frame. */
+.h2-hero-simple--panel {
   padding: 2rem 0 1rem;
 }
 
-.h2-hero-simple.h2-hero-simple--sage {
+.h2-hero-simple.h2-hero-simple--panel {
   padding-top: 2rem;
 }
 
-.h2-hero-simple--sage > .h2-shell {
+.h2-hero-simple--panel > .h2-shell {
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -523,73 +524,68 @@ body:has(.h2-page) {
   align-items: center;
   gap: 48px;
   min-height: 560px;
-  background: var(--h2-gradient-sage);
+  background: var(--h2-gradient-dawn);
   border-radius: var(--h2-radius-card);
   /* the top clears the floating navbar pill */
   padding: 112px 56px 56px;
 }
 
-.h2-hero-simple--sage .h2-hero-simple__title {
-  color: #ffffff;
+.h2-hero-simple--panel .h2-hero-simple__title {
+  color: var(--h2-ink);
 }
 
 /* each sentence starts its own line; the second one is quieter */
-.h2-hero-simple--sage .h2-hero-simple__title > span {
+.h2-hero-simple--panel .h2-hero-simple__title > span {
   display: block;
   text-wrap: balance;
 }
 
-.h2-hero-simple--sage .h2-hero-simple__title-muted {
-  color: rgba(255, 255, 255, 0.66);
+.h2-hero-simple--panel .h2-hero-simple__title-muted {
+  color: rgba(10, 10, 10, 0.5);
 }
 
-.h2-hero-simple--sage .h2-hero-simple__sub {
-  color: rgba(255, 255, 255, 0.9);
+.h2-hero-simple--panel .h2-hero-simple__sub {
+  color: var(--h2-graphite);
 }
 
-.h2-hero-simple--sage .h2-hero-simple__title,
-.h2-hero-simple--sage .h2-hero-simple__sub {
-  text-shadow: 0 1px 12px rgba(10, 10, 10, 0.12);
-}
-
-.h2-hero-simple--sage .h2-hero-simple__ctas {
+.h2-hero-simple--panel .h2-hero-simple__ctas {
   margin-top: 28px;
 }
 
 /* white on the field: the outline button needs no grey border */
-.h2-hero-simple--sage .h2-btn--outline {
+.h2-hero-simple--panel .h2-btn--outline {
   border-color: transparent;
 }
 
 @media (max-width: 1000px) {
-  .h2-hero-simple--sage > .h2-shell {
+  .h2-hero-simple--panel > .h2-shell {
     grid-template-columns: minmax(0, 1fr);
     gap: 40px;
     min-height: 0;
   }
 
-  .h2-hero-simple--sage .h2-policy {
+  .h2-hero-simple--panel .h2-policy {
     justify-self: start;
   }
 }
 
 @media (max-width: 900px) {
-  .h2-hero-simple--sage {
+  .h2-hero-simple--panel {
     padding: 64px 0 14px;
   }
 
-  .h2-hero-simple--sage > .h2-shell {
+  .h2-hero-simple--panel > .h2-shell {
     padding: 76px 28px 28px;
   }
 }
 
 @media (max-width: 560px) {
-  .h2-hero-simple--sage > .h2-shell {
+  .h2-hero-simple--panel > .h2-shell {
     gap: 32px;
     padding: 64px 16px 16px;
   }
 
-  .h2-hero-simple--sage .h2-hero-simple__copy {
+  .h2-hero-simple--panel .h2-hero-simple__copy {
     padding: 0 4px;
   }
 }
@@ -803,7 +799,7 @@ body:has(.h2-page) {
 
 /* Grain variant: the sage panel's layout on a moving GrainField, which the
    page renders as the shell's first child. A shorter panel than the home hero. */
-.h2-hero-simple--sage.h2-hero-simple--grain > .h2-shell {
+.h2-hero-simple--panel.h2-hero-simple--grain > .h2-shell {
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -812,7 +808,7 @@ body:has(.h2-page) {
 }
 
 @media (max-width: 900px) {
-  .h2-hero-simple--sage.h2-hero-simple--grain > .h2-shell {
+  .h2-hero-simple--panel.h2-hero-simple--grain > .h2-shell {
     padding: 76px 28px 40px;
   }
 }

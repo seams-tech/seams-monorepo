@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, Slack, Store, Wallet } from 'lucide-react';
-import { GrainField, type GeneratedField } from '@seams-internal/grain-field';
+import { GrainField } from '@seams-internal/grain-field';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import {
   DashboardWindow,
@@ -63,17 +63,14 @@ function renderHeroWalletPreview(preview: HeroWalletPreview): React.JSX.Element 
 
 /* ---------- hero: headline + paged scenes ---------- */
 
-/* The headline panel keeps the sage of the old flat gradient as a moving
-   field: white to near-black through sage, dark under the headline at the
-   lower left and light behind the policy card at the upper right. */
-const HOME_HERO_FIELD: GeneratedField = {
-  accents: ['#c2d4ca', '#6e8d80'],
-  angle: 240,
-  seed: 11,
-};
+/* The headline panel is a desert sunrise: lavender sky, peach and pink
+   bands, and the blue shadow of a peak at the bottom edge. */
+const HOME_HERO_FIELD = 'desert-dawn';
 
-/* half the site pace, so the field stays calm behind the headline */
+/* half the site pace and flow, so the field stays calm behind the headline
+   and the shadow stays at the bottom edge */
 const HOME_HERO_FIELD_PACE = 0.5;
+const HOME_HERO_FIELD_FLOW = 0.5;
 
 type HeroScene = {
   id: string;
@@ -116,9 +113,13 @@ function HomeHeroCurrent(): React.JSX.Element {
 
   return (
     <>
-      <header className="h2-hero-simple h2-hero-simple--sage" aria-labelledby="h2-home-title">
+      <header className="h2-hero-simple h2-hero-simple--panel" aria-labelledby="h2-home-title">
         <div className="h2-shell">
-          <GrainField field={HOME_HERO_FIELD} pace={HOME_HERO_FIELD_PACE} />
+          <GrainField
+            field={HOME_HERO_FIELD}
+            flow={HOME_HERO_FIELD_FLOW}
+            pace={HOME_HERO_FIELD_PACE}
+          />
           <div className="h2-hero-simple__copy">
             <h1 id="h2-home-title" className="h2-display h2-hero-simple__title">
               <span>Ecommerce on autopilot.</span>{' '}

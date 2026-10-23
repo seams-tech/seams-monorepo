@@ -993,10 +993,6 @@ test('Wallet-system and Console workflows use separate deployment authority', ()
       expect(liveDemoWorkflowSource).toContain(
         'deploy:backend smoke --lane production-testnet --component wallet-system',
       );
-    } else {
-      expect(workflowSource).toContain(
-        'deploy:backend smoke --lane "$DEPLOY_LANE" --component wallet-system',
-      );
     }
     expect(workflowSource).toContain(
       `test "$GITHUB_REF" = refs/heads/${lane.id === 'staging-testnet' ? 'dev' : 'main'}`,

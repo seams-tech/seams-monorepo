@@ -302,7 +302,7 @@ export function PricingPage(): React.JSX.Element {
 
           <PlanBanner plans={plans} />
 
-          <H2Faq audience="pricing" />
+          <H2Faq />
         </main>
         <H2Footer />
       </div>

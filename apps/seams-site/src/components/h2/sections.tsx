@@ -6,6 +6,7 @@ import React from 'react';
 import {
   Bot,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Fingerprint,
@@ -282,35 +283,114 @@ export function H2DemoHero({
   );
 }
 
-/* ---------- ecosystem (commerce-stack lattice + networks) ---------- */
+/* ---------- banners and gradient tiles (as on the wallet site) ---------- */
+
+type TileIcon = React.ComponentType<{ size?: number; strokeWidth?: number }>;
+
+/* An icon on a small tile whose gradient field shows through only as a
+   faint grey wash. */
+function FieldTile({ field, icon: Icon }: { field: GrainFieldName; icon: TileIcon }) {
+  return (
+    <span className="h2-fieldtile" aria-hidden>
+      <GrainField field={field} />
+      <Icon size={18} strokeWidth={1.7} />
+    </span>
+  );
+}
+
+/* A wide banner spreads each colour over its width, so the site's flow barely
+   shows on it; this much more keeps its movement subtle but visible. */
+const BANNER_FLOW = 3;
+
+/* A grey banner that fades into a moving gradient while it is in view, and
+   back to grey once it leaves. */
+function FieldBanner({
+  field,
+  children,
+}: {
+  field: GrainFieldName;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [lit, setLit] = React.useState(false);
+
+  React.useEffect(() => {
+    const banner = ref.current;
+    if (!banner || typeof IntersectionObserver === 'undefined') return undefined;
+    /* the viewport's bottom edge counts as 12rem higher, so the fade starts
+       once the banner has scrolled that much further in */
+    const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const observer = new IntersectionObserver(([entry]) => setLit(entry.isIntersecting), {
+      rootMargin: `0px 0px ${-12 * rem}px 0px`,
+      threshold: 0.5,
+    });
+    observer.observe(banner);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className={`h2-banner h2-banner--field${lit ? ' is-lit' : ''}`}>
+      <GrainField field={field} playing={lit} flow={BANNER_FLOW} />
+      {children}
+    </div>
+  );
+}
+
+/* A band heading: the banner card on its own ruled row, one inset inside
+   the rules, with the heading left and the actions right. */
+function BannerSection({
+  id,
+  field,
+  title,
+  sub,
+  children,
+}: {
+  id: string;
+  field: GrainFieldName;
+  title: string;
+  sub?: string;
+  children?: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <section className="h2-section h2-section--banner h2-rule" aria-labelledby={id}>
+      <FieldBanner field={field}>
+        <div>
+          <h2 id={id} className="h2-display h2-banner__title">
+            {title}
+          </h2>
+          {sub ? <p className="h2-banner__sub">{sub}</p> : null}
+        </div>
+        {children ? <div className="h2-banner__actions">{children}</div> : null}
+      </FieldBanner>
+    </section>
+  );
+}
+
+/* ---------- ecosystem (commerce-stack lattice) ---------- */
 
 export function H2Ecosystem(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const docsProps = linkProps('/docs/concepts/');
 
   return (
-    <section className="h2-section h2-rule" aria-labelledby="h2-eco-title">
-      <div className="h2-shell">
-        <div className="h2-eco__head">
-          <div>
-            <p className="h2-kicker" style={{ marginBottom: 11 }}>
-              Ecosystem
-            </p>
-            <h2 id="h2-eco-title" className="h2-display h2-eco__title">
-              Plugs into the tools stores already run
-            </h2>
-            <p className="h2-eco__copy">
-              Storefronts, payments, messaging, and support, connected through scoped credentials,
-              so every action stays inside policy.
-            </p>
-          </div>
-          <a className="h2-btn h2-btn--outline" href={docsProps.href} onClick={docsProps.onClick}>
-            Read the docs
-          </a>
+    <>
+      <BannerSection
+        id="h2-eco-title"
+        field="teal-peach"
+        title="Plugs into the tools stores already run"
+        sub="Storefronts, payments, messaging, and support, connected through scoped credentials."
+      >
+        <a className="h2-btn h2-btn--outline" href={docsProps.href} onClick={docsProps.onClick}>
+          Read the docs
+          <ArrowRightAnim size={12} />
+        </a>
+      </BannerSection>
+      <section className="h2-section h2-section--band h2-rule" aria-labelledby="h2-eco-title">
+        <div className="h2-shell">
+          <EcosystemLattice />
         </div>
-        <EcosystemLattice />
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 
@@ -567,7 +647,8 @@ export function SplitKeyVisual(): React.JSX.Element {
 type Pillar = {
   id: string;
   label: string;
-  icon: React.ComponentType<{ 'aria-hidden'?: boolean }>;
+  icon: TileIcon;
+  field: GrainFieldName;
   copy: React.ReactNode;
   mock: React.ReactNode;
 };
@@ -577,6 +658,7 @@ const pillars: Pillar[] = [
     id: 'auth',
     label: 'Authentication',
     icon: Fingerprint,
+    field: 'sky-sand',
     copy: (
       <>
         <strong>Passkeys, biometric login, and account recovery.</strong> One identity layer for
@@ -614,6 +696,7 @@ const pillars: Pillar[] = [
     id: 'wallets',
     label: 'Embedded Wallets',
     icon: Wallet,
+    field: 'teal-peach',
     copy: (
       <>
         <strong>Non-custodial embedded wallets and signed customer actions.</strong> Keys are split
@@ -626,6 +709,7 @@ const pillars: Pillar[] = [
     id: 'permissions',
     label: 'Credentials & permissions',
     icon: ListChecks,
+    field: 'azure-coral',
     copy: (
       <>
         <strong>Limits, approvals, roles, and audit.</strong> Configurable policy decides what each
@@ -663,6 +747,7 @@ const pillars: Pillar[] = [
     id: 'delegated',
     label: 'Delegated access',
     icon: Share2,
+    field: 'mauve-ember',
     copy: (
       <>
         <strong>Credential delegation for staff, and agent identity for attribution.</strong> The
@@ -699,27 +784,29 @@ const pillars: Pillar[] = [
 ];
 
 export function H2Pillars(): React.JSX.Element {
+  const { linkProps } = useSiteRouter();
+  const docsProps = linkProps('/docs/concepts/');
   const [active, setActive] = React.useState(0);
   const pillar = pillars[active];
 
   return (
-    <section className="h2-section h2-rule" aria-labelledby="h2-pillars-title">
-      <div className="h2-shell">
-        <div className="h2-split-head">
-          <p className="h2-kicker">Platform</p>
-          <h2 id="h2-pillars-title" className="h2-display">
-            One SDK for the whole account stack
-          </h2>
-          <p className="h2-split-head__copy">
-            Authentication, wallets, credentials, and delegated access share one policy model, so
-            nothing acts on your store outside the rules you set.
-          </p>
-        </div>
-        <div className="h2-pillars">
-          <div className="h2-pillars__list" role="tablist" aria-label="Platform pillars">
-            {pillars.map((p, i) => {
-              const Icon = p.icon;
-              return (
+    <>
+      <BannerSection
+        id="h2-pillars-title"
+        field="teal-peach"
+        title="One SDK for the whole account stack"
+        sub="Authentication, wallets, credentials, and delegated access share one policy model."
+      >
+        <a className="h2-btn h2-btn--primary" href={docsProps.href} onClick={docsProps.onClick}>
+          Explore documentation
+          <ArrowRightAnim size={12} />
+        </a>
+      </BannerSection>
+      <section className="h2-section h2-section--band h2-rule" aria-labelledby="h2-pillars-title">
+        <div className="h2-shell">
+          <div className="h2-pillars">
+            <div className="h2-pillars__list" role="tablist" aria-label="Platform pillars">
+              {pillars.map((p, i) => (
                 <button
                   key={p.id}
                   type="button"
@@ -728,21 +815,19 @@ export function H2Pillars(): React.JSX.Element {
                   className={`h2-pillar${i === active ? ' is-active' : ''}`}
                   onClick={() => setActive(i)}
                 >
-                  <span className="h2-pillar__icon" aria-hidden>
-                    <Icon />
-                  </span>
+                  <FieldTile field={p.field} icon={p.icon} />
                   {p.label}
                 </button>
-              );
-            })}
-          </div>
-          <div className="h2-pillars__panel" role="tabpanel" aria-label={pillar.label}>
-            <p className="h2-pillars__panel-copy">{pillar.copy}</p>
-            <div className="h2-pillars__mock">{pillar.mock}</div>
+              ))}
+            </div>
+            <div className="h2-pillars__panel" role="tabpanel" aria-label={pillar.label}>
+              <p className="h2-pillars__panel-copy">{pillar.copy}</p>
+              <div className="h2-pillars__mock">{pillar.mock}</div>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 
@@ -803,101 +888,98 @@ function ApprovalGateMock(): React.JSX.Element {
 
 export function H2Bento(): React.JSX.Element {
   return (
-    <section className="h2-section h2-section--bento h2-rule" aria-labelledby="h2-bento-title">
-      <div className="h2-shell">
-        <div className="h2-split-head">
-          <p className="h2-kicker">Control plane</p>
-          <h2 id="h2-bento-title" className="h2-display">
-            Agents act only inside policy
-          </h2>
-          <p className="h2-split-head__copy">
-            Every action from an agent or staff member runs through the same checks: permissions,
-            limits, thresholds, expiry. Risky actions route to a human.
-          </p>
-        </div>
-        <div className="h2-bento">
-          <div className="h2-bento__card h2-bento__card--lg">
-            <div className="h2-bento__visual">
-              <PreflightMock />
+    <>
+      <BannerSection
+        id="h2-bento-title"
+        field="mauve-ember"
+        title="Agents act only inside policy"
+        sub="Every action runs through the same checks: permissions, limits, thresholds, expiry. Risky actions route to a human."
+      />
+      <section className="h2-section h2-section--bento h2-rule" aria-labelledby="h2-bento-title">
+        <div className="h2-shell">
+          <div className="h2-bento">
+            <div className="h2-bento__card h2-bento__card--lg">
+              <div className="h2-bento__visual">
+                <PreflightMock />
+              </div>
+              <div>
+                <h3 className="h2-bento__title">Checks before execution</h3>
+                <p className="h2-bento__copy">
+                  The Seams harness verifies credentials, identity, and permissions before an action
+                  runs and emits a log either way.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="h2-bento__title">Checks before execution</h3>
-              <p className="h2-bento__copy">
-                The Seams harness verifies credentials, identity, and permissions before an action
-                runs and emits a log either way.
-              </p>
+            <div className="h2-bento__card h2-bento__card--lg">
+              <div className="h2-bento__visual">
+                <ApprovalGateMock />
+              </div>
+              <div>
+                <h3 className="h2-bento__title">Human approval where it matters</h3>
+                <p className="h2-bento__copy">
+                  Funds, pricing, and public actions can require passkey or biometric confirmation
+                  from the owner before they go through.
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="h2-bento__card h2-bento__card--lg">
-            <div className="h2-bento__visual">
-              <ApprovalGateMock />
+            <div className="h2-bento__card h2-bento__card--sm">
+              <FieldTile field="azure-coral" icon={ListChecks} />
+              <div>
+                <h3 className="h2-bento__title">Roles &amp; limits</h3>
+                <p className="h2-bento__copy">
+                  Scope what support, ops, and agents can each do: amounts, actions, expiry.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="h2-bento__title">Human approval where it matters</h3>
-              <p className="h2-bento__copy">
-                Funds, pricing, and public actions can require passkey or biometric confirmation
-                from the owner before they go through.
-              </p>
+            <div className="h2-bento__card h2-bento__card--sm">
+              <FieldTile field="mauve-ember" icon={ScrollText} />
+              <div>
+                <h3 className="h2-bento__title">Audit trail</h3>
+                <p className="h2-bento__copy">
+                  Every decision, allowed, held, or blocked, lands in an evidence trail you can
+                  export.
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="h2-bento__card h2-bento__card--sm">
-            <span className="h2-bento__icon h2-bento__icon--blue-red" aria-hidden>
-              <ListChecks />
-            </span>
-            <div>
-              <h3 className="h2-bento__title">Roles &amp; limits</h3>
-              <p className="h2-bento__copy">
-                Scope what support, ops, and agents can each do: amounts, actions, expiry.
-              </p>
-            </div>
-          </div>
-          <div className="h2-bento__card h2-bento__card--sm">
-            <span className="h2-bento__icon h2-bento__icon--ember-moss" aria-hidden>
-              <ScrollText />
-            </span>
-            <div>
-              <h3 className="h2-bento__title">Audit trail</h3>
-              <p className="h2-bento__copy">
-                Every decision, allowed, held, or blocked, lands in an evidence trail you can
-                export.
-              </p>
-            </div>
-          </div>
-          <div className="h2-bento__card h2-bento__card--sm">
-            <span className="h2-bento__icon h2-bento__icon--sage-charcoal" aria-hidden>
-              <KeyRound />
-            </span>
-            <div>
-              <h3 className="h2-bento__title">Recovery built in</h3>
-              <p className="h2-bento__copy">
-                Accounts recover through email and linked devices: no seed phrases, no lockouts.
-              </p>
+            <div className="h2-bento__card h2-bento__card--sm">
+              <FieldTile field="aqua-evergreen" icon={KeyRound} />
+              <div>
+                <h3 className="h2-bento__title">Recovery built in</h3>
+                <p className="h2-bento__copy">
+                  Accounts recover through email and linked devices: no seed phrases, no lockouts.
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 
 /* ---------- workflows (canvas + use-case covers) ---------- */
 
-const useCases = [
+const useCases: readonly {
+  title: string;
+  field: GrainFieldName;
+  coverLabel: string;
+  copy: string;
+}[] = [
   {
     title: 'Automate storefront ops',
-    coverClass: 'h2-case__cover--ops',
+    field: 'sky-sand',
     coverLabel: 'Storefront ops',
     copy: 'Let an agent watch cart abandonment, inventory alerts, and support tickets, then follow up, prepare refunds, and update listings inside the limits you set.',
   },
   {
     title: 'Delegate to staff safely',
-    coverClass: 'h2-case__cover--staff',
+    field: 'aqua-evergreen',
     coverLabel: 'Staff delegation',
     copy: 'Give part-time staff and contractors scoped credentials instead of shared logins. Limits and roles apply automatically; access expires on schedule.',
   },
   {
     title: 'Agent checkout with mandates',
-    coverClass: 'h2-case__cover--checkout',
+    field: 'azure-coral',
     coverLabel: 'Agent checkout',
     copy: 'Buyer-side agents purchase under signed mandates with per-week budgets: merchants see verified identity and a clean audit trail on every order.',
   },
@@ -961,36 +1043,41 @@ export function H2WorkflowCanvas(): React.JSX.Element {
 }
 
 export function H2Cases(): React.JSX.Element {
+  const { linkProps } = useSiteRouter();
+  const docsProps = linkProps('/docs/concepts/policy/mandates');
+
   return (
-    <section className="h2-section h2-rule" aria-labelledby="h2-cases-title">
-      <div className="h2-shell">
-        <div className="h2-split-head">
-          <p className="h2-kicker">Workflows</p>
-          <h2 id="h2-cases-title" className="h2-display">
-            Turn store operations into governed workflows
-          </h2>
-          <p className="h2-split-head__copy">
-            The Seams harness turns commerce events into policy-checked actions: agents watch the
-            store, prepare responses, and act inside the limits you set, with human approval where
-            it matters.
-          </p>
-        </div>
+    <>
+      <BannerSection
+        id="h2-cases-title"
+        field="mauve-ember"
+        title="Turn store operations into governed workflows"
+        sub="Agents watch the store, prepare responses, and act inside the limits you set."
+      >
+        <a className="h2-btn h2-btn--primary" href={docsProps.href} onClick={docsProps.onClick}>
+          Explore documentation
+          <ArrowRightAnim size={12} />
+        </a>
+      </BannerSection>
+      <section className="h2-section h2-section--band h2-rule" aria-labelledby="h2-cases-title">
+        <div className="h2-shell">
+          <H2WorkflowCanvas />
 
-        <H2WorkflowCanvas />
-
-        <div className="h2-cases">
-          {useCases.map((c) => (
-            <div className="h2-case" key={c.title}>
-              <div className={`h2-case__cover ${c.coverClass}`} aria-hidden>
-                <span>{c.coverLabel}</span>
+          <div className="h2-cases">
+            {useCases.map((c) => (
+              <div className="h2-case" key={c.title}>
+                <div className="h2-case__cover" aria-hidden>
+                  <GrainField field={c.field} />
+                  <span>{c.coverLabel}</span>
+                </div>
+                <h3 className="h2-case__title">{c.title}</h3>
+                <p className="h2-case__copy">{c.copy}</p>
               </div>
-              <h3 className="h2-case__title">{c.title}</h3>
-              <p className="h2-case__copy">{c.copy}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 
@@ -1499,63 +1586,62 @@ export function H2Duo(): React.JSX.Element {
   const agentsProps = linkProps('/ecommerce');
 
   return (
-    <section className="h2-section h2-section--snug h2-rule" aria-labelledby="h2-duo-title">
-      <div className="h2-shell">
-        <div className="h2-duo__head">
-          <h2 id="h2-duo-title" className="h2-display">
-            Two products, one account layer
-          </h2>
-          <p className="h2-duo__copy">
-            Built on the same keys, credentials, and policy engine: one product for embedding
-            wallets, another for putting agents to work on your store.
-          </p>
-        </div>
-        <div className="h2-duo__grid">
-          <a className="h2-duo__panel" href={walletProps.href} onClick={walletProps.onClick}>
-            <h3 className="h2-duo__title">
-              <Wallet aria-hidden />
-              Embedded Wallet
-            </h3>
-            <p className="h2-duo__panel-copy">
-              Passkey-secured, non-custodial wallets for your users: recovery built in, every action
-              signed, keys split so neither side can sign alone.
-            </p>
-            <div className="h2-duo__visual">
-              <SplitKeyVisual />
-            </div>
-            <span className="h2-duo__cta">
-              Explore Embedded Wallet
-              <ArrowRightAnim size={12} />
-            </span>
-          </a>
-          <a className="h2-duo__panel" href={agentsProps.href} onClick={agentsProps.onClick}>
-            <h3 className="h2-duo__title">
-              <Bot aria-hidden />
-              Ecommerce Agents
-            </h3>
-            <p className="h2-duo__panel-copy">
-              Give AI agents and staff scoped credentials to run your store: limits, approvals, and
-              an audit trail on every action.
-            </p>
-            <div className="h2-duo__visual">
-              <div className="h2-chat" style={{ maxWidth: 324 }}>
-                <div className="h2-chat__bubble">
-                  <small>Seams Harness · 09:14</small>
-                  Held: 12% discount for cart #8841 needs owner approval.
-                </div>
-                <div className="h2-chat__bubble h2-chat__bubble--reply">
-                  Approved ✓ signed and sent
+    <>
+      <BannerSection
+        id="h2-duo-title"
+        field="teal-peach"
+        title="Two products, one account layer"
+        sub="Built on the same keys, credentials, and policy engine."
+      />
+      <section className="h2-section h2-section--band h2-rule" aria-labelledby="h2-duo-title">
+        <div className="h2-shell">
+          <div className="h2-duo__grid">
+            <a className="h2-duo__panel" href={walletProps.href} onClick={walletProps.onClick}>
+              <h3 className="h2-duo__title">
+                <FieldTile field="teal-peach" icon={Wallet} />
+                Embedded Wallet
+              </h3>
+              <p className="h2-duo__panel-copy">
+                Passkey-secured, non-custodial wallets for your users: recovery built in, every
+                action signed, keys split so neither side can sign alone.
+              </p>
+              <div className="h2-duo__visual">
+                <SplitKeyVisual />
+              </div>
+              <span className="h2-duo__cta">
+                Explore Embedded Wallet
+                <ArrowRightAnim size={12} />
+              </span>
+            </a>
+            <a className="h2-duo__panel" href={agentsProps.href} onClick={agentsProps.onClick}>
+              <h3 className="h2-duo__title">
+                <FieldTile field="mauve-ember" icon={Bot} />
+                Ecommerce Agents
+              </h3>
+              <p className="h2-duo__panel-copy">
+                Give AI agents and staff scoped credentials to run your store: limits, approvals,
+                and an audit trail on every action.
+              </p>
+              <div className="h2-duo__visual">
+                <div className="h2-chat" style={{ maxWidth: 324 }}>
+                  <div className="h2-chat__bubble">
+                    <small>Seams Harness · 09:14</small>
+                    Held: 12% discount for cart #8841 needs owner approval.
+                  </div>
+                  <div className="h2-chat__bubble h2-chat__bubble--reply">
+                    Approved ✓ signed and sent
+                  </div>
                 </div>
               </div>
-            </div>
-            <span className="h2-duo__cta">
-              Explore Ecommerce Agents
-              <ArrowRightAnim size={12} />
-            </span>
-          </a>
+              <span className="h2-duo__cta">
+                Explore Ecommerce Agents
+                <ArrowRightAnim size={12} />
+              </span>
+            </a>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 
@@ -1564,50 +1650,71 @@ export function H2Duo(): React.JSX.Element {
 type FaqItem = {
   q: string;
   a: string;
+  more?: { label: string; to: string };
 };
 
-type H2FaqProps = {
-  audience: 'home' | 'wallet' | 'pricing';
+/* one footer column: a grey heading over its questions */
+type FaqGroup = {
+  heading: string;
+  items: readonly FaqItem[];
 };
 
-const faqs: Record<Exclude<H2FaqProps['audience'], 'pricing'>, readonly FaqItem[]> = {
+const whatIsSeams: FaqItem = {
+  q: 'What is Seams?',
+  a: 'Seams is key and credential infrastructure for ecommerce: one SDK for authentication, non-custodial wallets, a credentials and permissions layer, and delegated access for staff and AI agents.',
+  more: { label: 'Documentation', to: '/docs/concepts/' },
+};
+
+const agentsFaq: FaqItem = {
+  q: 'What can AI agents do with Seams?',
+  a: 'Agents get their own identity and scoped credentials. They can act on commerce events: follow-ups, refunds, listing updates, but only inside the merchant’s policy. Risky actions route to a human approval gate with passkey or biometric confirmation.',
+  more: { label: 'Ecommerce Agents', to: '/ecommerce' },
+};
+
+const controlFaq: FaqItem = {
+  q: 'How do merchants stay in control?',
+  a: 'Policy runs before anything executes: roles, amount limits, thresholds, expiry, and revocation. Every decision is attributed and logged, and delegated credentials can be revoked at any time.',
+  more: { label: 'Permissions & policy', to: '/docs/concepts/policy/mandates' },
+};
+
+const custodyFaq: FaqItem = {
+  q: 'Is Seams custodial?',
+  a: 'No. Signing keys are split between the user’s device and your infrastructure: neither side can sign alone, and exporting a key always requires a fresh authorized flow from the owner.',
+  more: { label: 'Custody model', to: '/docs/concepts/custody/' },
+};
+
+const apiAuthFaq: FaqItem = {
+  q: 'How does API authentication work?',
+  a: 'Your backend authenticates with API keys; end users and agents authenticate with passkeys and scoped credentials. Signing always requires the user-side key share, so API keys alone can never move funds or export keys.',
+  more: { label: 'Sign-in methods', to: '/docs/concepts/auth-methods/' },
+};
+
+const startFaq: FaqItem = {
+  q: 'How do we get started?',
+  a: 'The SDK is self-serve: install it, register an account with a passkey, and apply a policy template. For marketplaces and merchant fleets, contact us and we’ll plan the rollout together.',
+  more: { label: 'Guides', to: '/docs/guides/' },
+};
+
+const meteringFaq: FaqItem = {
+  q: 'How is usage metered?',
+  a: 'Plans are based on monthly active users. Each user includes 300 signatures a month, pooled across your app. The first 300 users are free. See the pricing page for details.',
+  more: { label: 'See pricing', to: '/pricing/' },
+};
+
+const footerFaqs = {
   home: [
-    {
-      q: 'What is Seams?',
-      a: 'Seams is key and credential infrastructure for ecommerce: one SDK for authentication, non-custodial wallets, a credentials and permissions layer, and delegated access for staff and AI agents.',
-    },
-    {
-      q: 'What can AI agents do with Seams?',
-      a: 'Agents get their own identity and scoped credentials. They can act on commerce events: follow-ups, refunds, listing updates, but only inside the merchant’s policy. Risky actions route to a human approval gate with passkey or biometric confirmation.',
-    },
-    {
-      q: 'How do merchants stay in control?',
-      a: 'Policy runs before anything executes: roles, amount limits, thresholds, expiry, and revocation. Every decision is attributed and logged, and delegated credentials can be revoked at any time.',
-    },
-    {
-      q: 'How do we get started?',
-      a: 'The SDK is self-serve: install it, register an account with a passkey, and apply a policy template. For marketplaces and merchant fleets, contact us and we’ll plan the rollout together.',
-    },
+    { heading: 'Product', items: [whatIsSeams, agentsFaq] },
+    { heading: 'Security', items: [controlFaq, custodyFaq] },
+    { heading: 'Getting started', items: [startFaq, meteringFaq] },
   ],
-  wallet: [
-    {
-      q: 'Is Seams custodial?',
-      a: 'No. Signing keys are split between the user’s device and your infrastructure: neither side can sign alone, and exporting a key always requires a fresh authorized flow from the owner.',
-    },
-    {
-      q: 'How does API authentication work?',
-      a: 'Your backend authenticates with API keys; end users and agents authenticate with passkeys and scoped credentials. Signing always requires the user-side key share, so API keys alone can never move funds or export keys.',
-    },
-    {
-      q: 'Which networks does Seams support?',
-      a: 'Ethereum and EVM networks, NEAR, Stripe Tempo, Circle Arc, Hyperliquid, and Polygon today, with more networks added as merchant demand grows.',
-    },
-    {
-      q: 'How is usage metered?',
-      a: 'Plans are based on monthly active users. Each user includes 300 signatures a month, pooled across your app. The first 300 users are free. See the pricing page for details.',
-    },
+  ecommerce: [
+    { heading: 'Agents', items: [agentsFaq, controlFaq] },
+    { heading: 'Security', items: [custodyFaq, apiAuthFaq] },
+    { heading: 'Getting started', items: [startFaq, meteringFaq] },
   ],
-};
+} satisfies Record<string, readonly FaqGroup[]>;
+
+type FooterFaqAudience = keyof typeof footerFaqs;
 
 function pricingFaqs(locale: Locale): readonly FaqItem[] {
   const t = translate.bind(null, locale);
@@ -1652,10 +1759,11 @@ function renderFaqItem(item: FaqItem): React.JSX.Element {
   );
 }
 
-export function H2Faq({ audience }: H2FaqProps): React.JSX.Element {
+/* The pricing page's FAQ section; the product pages carry theirs in the
+   footer. */
+export function H2Faq(): React.JSX.Element {
   const t = useTranslation();
   const page = useSitePage();
-  const items = audience === 'pricing' ? pricingFaqs(page.locale) : faqs[audience];
   return (
     <section className="h2-section h2-rule" aria-labelledby="h2-faq-title">
       <div className="h2-shell">
@@ -1663,7 +1771,237 @@ export function H2Faq({ audience }: H2FaqProps): React.JSX.Element {
           <h2 id="h2-faq-title" className="h2-display h2-faq__title">
             {t('faqTitle')}
           </h2>
-          <div className="h2-faq__list">{items.map(renderFaqItem)}</div>
+          <div className="h2-faq__list">{pricingFaqs(page.locale).map(renderFaqItem)}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type FaqPopFrame = { left: number; top: number; w: number; h: number };
+
+/* The footer FAQ, set like the link columns under it: a grey heading over
+   each column, and each question a row with a chevron. Every answer opens
+   below its question in one shared popover that moves and resizes between
+   questions, as the navbar menus do. A hover opens the card and the
+   pointer can move into it to reach its link; a click pins it open. */
+function H2FooterFaq({ groups }: { groups: readonly FaqGroup[] }): React.JSX.Element {
+  const CLOSE_DELAY_MS = 120;
+  /* the card's inner padding, so the answer text lines up with the question */
+  const POP_INSET_PX = 20;
+
+  const { linkProps } = useSiteRouter();
+  const baseId = React.useId();
+  const entries = React.useMemo(
+    () => groups.flatMap((group) => group.items.map((item) => ({ ...item, group: group.heading }))),
+    [groups],
+  );
+  const rootRef = React.useRef<HTMLElement | null>(null);
+  const triggerRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
+  const paneRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+  const closeTimerRef = React.useRef<number | null>(null);
+  const prevOpenRef = React.useRef<number | null>(null);
+  const lastPointerRef = React.useRef<string>('mouse');
+  const [open, setOpen] = React.useState<number | null>(null);
+  const [pinned, setPinned] = React.useState<boolean>(false);
+  const [frame, setFrame] = React.useState<FaqPopFrame | null>(null);
+  // Move and resize only between questions; a first open snaps into place.
+  const [morph, setMorph] = React.useState<boolean>(false);
+  const [layoutTick, setLayoutTick] = React.useState<number>(0);
+
+  const cancelClose = React.useCallback(() => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleClose = React.useCallback(() => {
+    cancelClose();
+    closeTimerRef.current = window.setTimeout(() => {
+      setOpen(null);
+      setPinned(false);
+      closeTimerRef.current = null;
+    }, CLOSE_DELAY_MS);
+  }, [cancelClose]);
+
+  React.useEffect(() => cancelClose, [cancelClose]);
+
+  React.useLayoutEffect(() => {
+    const previous = prevOpenRef.current;
+    prevOpenRef.current = open;
+    // Keep the last frame while closing so the card fades out in place.
+    if (open === null) {
+      setMorph(false);
+      return;
+    }
+    const root = rootRef.current;
+    const trigger = triggerRefs.current[open];
+    const pane = paneRefs.current[open];
+    if (!root || !trigger || !pane) return;
+    const rootRect = root.getBoundingClientRect();
+    const triggerRect = trigger.getBoundingClientRect();
+    const w = pane.offsetWidth;
+    const h = pane.offsetHeight;
+    const left = Math.max(
+      -POP_INSET_PX,
+      Math.min(triggerRect.left - rootRect.left - POP_INSET_PX, rootRect.width - w + POP_INSET_PX),
+    );
+    // No gap: the card's padded top bridges the question to the card, so the
+    // pointer never crosses the question below on its way in.
+    const top = triggerRect.bottom - rootRect.top;
+    setMorph(previous !== null && previous !== open);
+    setFrame({ left, top, w, h });
+  }, [open, layoutTick]);
+
+  React.useEffect(() => {
+    if (open === null) return;
+    const onResize = () => setLayoutTick((tick) => tick + 1);
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && rootRef.current?.contains(event.target)) return;
+      setOpen(null);
+      setPinned(false);
+    };
+    window.addEventListener('resize', onResize);
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      document.removeEventListener('pointerdown', onPointerDown);
+    };
+  }, [open]);
+
+  const closeOnLeave = (event: React.PointerEvent) => {
+    if (event.pointerType !== 'mouse' || pinned) return;
+    scheduleClose();
+  };
+
+  const close = () => {
+    setOpen(null);
+    setPinned(false);
+  };
+
+  let entryIndex = 0;
+
+  return (
+    <section
+      ref={rootRef}
+      className="h2-footer__faq"
+      aria-labelledby={`${baseId}-title`}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || open === null) return;
+        triggerRefs.current[open]?.focus();
+        close();
+      }}
+      onBlurCapture={(event) => {
+        const next = event.relatedTarget;
+        if (next instanceof Node && rootRef.current?.contains(next)) return;
+        close();
+      }}
+    >
+      <h2 id={`${baseId}-title`} className="h2-footer__faq-title">
+        FAQs
+      </h2>
+
+      <div className="h2-footer__links">
+        {groups.map((group) => (
+          <div className="h2-footer__col" key={group.heading}>
+            <h3>{group.heading}</h3>
+            {group.items.map((item) => {
+              const index = entryIndex++;
+              return (
+                <button
+                  key={item.q}
+                  ref={(el) => {
+                    triggerRefs.current[index] = el;
+                  }}
+                  type="button"
+                  id={`${baseId}-q-${index}`}
+                  className={`h2-footer__faq-q${open === index ? ' is-open' : ''}`}
+                  aria-expanded={open === index}
+                  aria-controls={`${baseId}-a-${index}`}
+                  onPointerEnter={(event) => {
+                    if (event.pointerType !== 'mouse') return;
+                    cancelClose();
+                    // a pinned card stays put while the pointer travels to it
+                    if (pinned && open === index) return;
+                    setPinned(false);
+                    setOpen(index);
+                  }}
+                  onPointerLeave={closeOnLeave}
+                  onPointerDown={(event) => {
+                    lastPointerRef.current = event.pointerType;
+                  }}
+                  onClick={(event) => {
+                    cancelClose();
+                    // A mouse click pins the hover preview; a second click,
+                    // like a keyboard or touch press, toggles it closed.
+                    const isMouse = lastPointerRef.current === 'mouse' && event.detail > 0;
+                    if (open === index && (pinned || !isMouse)) {
+                      close();
+                      return;
+                    }
+                    setOpen(index);
+                    setPinned(true);
+                  }}
+                >
+                  <span>{item.q}</span>
+                  <ChevronDown size={14} strokeWidth={1.75} aria-hidden="true" />
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      <div
+        className={`h2-faq-pop${open !== null ? ' is-open' : ''}${morph ? ' is-morphing' : ''}`}
+        style={frame ? { left: frame.left, top: frame.top } : undefined}
+        onPointerEnter={(event) => {
+          if (event.pointerType === 'mouse') cancelClose();
+        }}
+        onPointerLeave={closeOnLeave}
+      >
+        <div className="h2-faq-pop__card">
+          <div
+            className="h2-faq-pop__shell"
+            style={frame ? { width: frame.w, height: frame.h } : undefined}
+          >
+            {entries.map((item, index) => {
+              const state =
+                open === index
+                  ? 'is-active'
+                  : open !== null && index < open
+                    ? 'is-before'
+                    : 'is-after';
+              const moreProps = item.more ? linkProps(item.more.to) : null;
+              return (
+                <div
+                  key={`${item.group}-${item.q}`}
+                  ref={(el) => {
+                    paneRefs.current[index] = el;
+                  }}
+                  id={`${baseId}-a-${index}`}
+                  role="region"
+                  aria-labelledby={`${baseId}-q-${index}`}
+                  className={`h2-faq-pop__pane ${state}`}
+                >
+                  <p className="h2-faq-pop__heading">{item.group}</p>
+                  <p className="h2-faq-pop__answer">{item.a}</p>
+                  {item.more && moreProps ? (
+                    <a
+                      className="h2-faq-pop__more"
+                      href={moreProps.href}
+                      onClick={moreProps.onClick}
+                      tabIndex={open === index ? 0 : -1}
+                    >
+                      {item.more.label}
+                      <ArrowRightAnim size={10} />
+                    </a>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
@@ -1732,45 +2070,59 @@ function getFooterGroups(t: Translate): { heading: string; links: H2FooterLink[]
   ];
 }
 
-/* ---------- closing call to action ---------- */
+/* ---------- closing call to action: the shared banner ---------- */
 
-/* A cream band fading into the sky-sand grain. */
-export function H2Cta(): React.JSX.Element {
+const ctaCopy = {
+  home: {
+    field: 'teal-peach',
+    title: 'Build with the Seams SDK',
+    sub: 'Passkey sign-in, split-key wallets, and account recovery. Free for up to 300 users.',
+    secondary: { label: 'Explore docs', to: '/docs/' },
+    primary: { label: 'Start building', to: '/dashboard' },
+  },
+  ecommerce: {
+    field: 'mauve-ember',
+    title: 'Put agents to work on your store',
+    sub: 'Scoped credentials, approvals, and an audit trail on every action.',
+    secondary: { label: 'Talk to us', to: CONTACT_LINK_TARGET },
+    primary: { label: 'Start building', to: '/docs/concepts/policy/mandates' },
+  },
+} satisfies Record<
+  string,
+  {
+    field: GrainFieldName;
+    title: string;
+    sub: string;
+    secondary: { label: string; to: string };
+    primary: { label: string; to: string };
+  }
+>;
+
+export function H2Cta({ audience }: { audience: keyof typeof ctaCopy }): React.JSX.Element {
   const { linkProps } = useSiteRouter();
-  const docsProps = linkProps('/docs/');
-  const startProps = linkProps('/dashboard');
-  const content = (
-    <>
-      <div>
-        <h2 id="h2-cta-title" className="h2-display h2-cta__title">
-          Build with the Seams SDK
-        </h2>
-        <p className="h2-cta__sub">
-          Passkey sign-in, split-key wallets, and account recovery. Free for up to 300 users.
-        </p>
-      </div>
-      <div className="h2-cta__actions">
-        <a className="h2-btn h2-btn--outline" href={docsProps.href} onClick={docsProps.onClick}>
-          Explore docs
-        </a>
-        <a className="h2-btn h2-btn--primary" href={startProps.href} onClick={startProps.onClick}>
-          Start building
-        </a>
-      </div>
-    </>
-  );
+  const copy = ctaCopy[audience];
+  const secondaryProps = linkProps(copy.secondary.to);
+  const primaryProps = linkProps(copy.primary.to);
 
   return (
-    <section className="h2-cta h2-rule" aria-labelledby="h2-cta-title">
-      <div className="h2-cta__grain" aria-hidden="true">
-        <GrainField field="sky-sand" />
-      </div>
-      <div className="h2-shell h2-cta__inner">{content}</div>
-    </section>
+    <BannerSection id="h2-cta-title" field={copy.field} title={copy.title} sub={copy.sub}>
+      <a
+        className="h2-btn h2-btn--outline"
+        href={secondaryProps.href}
+        onClick={secondaryProps.onClick}
+      >
+        {copy.secondary.label}
+        <ArrowRightAnim size={12} />
+      </a>
+      <a className="h2-btn h2-btn--primary" href={primaryProps.href} onClick={primaryProps.onClick}>
+        {copy.primary.label}
+        <ArrowRightAnim size={12} />
+      </a>
+    </BannerSection>
   );
 }
 
-export function H2Footer(): React.JSX.Element {
+export function H2Footer({ faq }: { faq?: FooterFaqAudience } = {}): React.JSX.Element {
   const t = useTranslation();
   const page = useSitePage();
   const footerGroups = getFooterGroups(t);
@@ -1780,37 +2132,37 @@ export function H2Footer(): React.JSX.Element {
   return (
     <footer className="h2-footer h2-rule" aria-label={t('siteFooter')}>
       <div className="h2-footer__inner">
-        <div className="h2-footer__grid">
-          <div className="h2-footer__brand">
-            <a href={homeProps.href} onClick={homeProps.onClick} aria-label={t('seamsHome')}>
-              <SeamsWordmark height={20} />
-            </a>
-            {page.kind === 'translated' ? (
-              <LanguageSelector page={page.page} placement="footer" />
-            ) : null}
-          </div>
-
-          <div className="h2-footer__links">
-            {footerGroups.map((group) => (
-              <div className="h2-footer__col" key={group.heading}>
-                <h3>{group.heading}</h3>
-                {group.links.map((link) => {
-                  const props = linkProps(link.to);
-                  return (
-                    <a
-                      key={link.label}
-                      href={props.href}
-                      onClick={props.onClick}
-                      {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : null)}
-                    >
-                      {link.label}
-                    </a>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+        <div className="h2-footer__brand">
+          <a href={homeProps.href} onClick={homeProps.onClick} aria-label={t('seamsHome')}>
+            <SeamsWordmark height={20} />
+          </a>
+          {page.kind === 'translated' ? (
+            <LanguageSelector page={page.page} placement="footer" />
+          ) : null}
         </div>
+
+        {faq ? <H2FooterFaq groups={footerFaqs[faq]} /> : null}
+
+        <nav className="h2-footer__main h2-footer__links" aria-label={t('footerNavigation')}>
+          {footerGroups.map((group) => (
+            <div className="h2-footer__col" key={group.heading}>
+              <h3>{group.heading}</h3>
+              {group.links.map((link) => {
+                const props = linkProps(link.to);
+                return (
+                  <a
+                    key={link.label}
+                    href={props.href}
+                    onClick={props.onClick}
+                    {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : null)}
+                  >
+                    {link.label}
+                  </a>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
       </div>
     </footer>
   );

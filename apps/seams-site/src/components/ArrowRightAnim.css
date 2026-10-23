@@ -43,8 +43,6 @@
   .navbar-static__menu-footer-link:hover .stripe-arrow > .HoverArrow .HoverArrow__linePath,
   .h2-door:hover .stripe-arrow > .HoverArrow .HoverArrow__linePath,
   .h2-duo__panel:hover .stripe-arrow > .HoverArrow .HoverArrow__linePath,
-  .h2-heroscene__stage:hover .stripe-arrow > .HoverArrow .HoverArrow__linePath,
-  .h2-heroscene__aside:hover .stripe-arrow > .HoverArrow .HoverArrow__linePath,
   .h2-fork:hover .stripe-arrow > .HoverArrow .HoverArrow__linePath {
     opacity: 1;
     filter: blur(0);
@@ -63,8 +61,6 @@
   .navbar-static__menu-footer-link:hover .stripe-arrow > .HoverArrow .HoverArrow__tipPath,
   .h2-door:hover .stripe-arrow > .HoverArrow .HoverArrow__tipPath,
   .h2-duo__panel:hover .stripe-arrow > .HoverArrow .HoverArrow__tipPath,
-  .h2-heroscene__stage:hover .stripe-arrow > .HoverArrow .HoverArrow__tipPath,
-  .h2-heroscene__aside:hover .stripe-arrow > .HoverArrow .HoverArrow__tipPath,
   .h2-fork:hover .stripe-arrow > .HoverArrow .HoverArrow__tipPath {
     transform: translateX(3px) scale(1.06);
   }

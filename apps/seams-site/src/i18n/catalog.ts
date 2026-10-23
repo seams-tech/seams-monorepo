@@ -253,6 +253,7 @@ export const messages = {
   about: { en: 'About', ja: '会社概要' },
   blog: { en: 'Blog', ja: 'ブログ' },
   siteFooter: { en: 'Site footer', ja: 'サイトフッター' },
+  footerNavigation: { en: 'Footer navigation', ja: 'フッターナビゲーション' },
   seamsHome: { en: 'Seams home', ja: 'Seamsホーム' },
   primary: { en: 'Primary', ja: 'メインナビゲーション' },
   dashboard: { en: 'Dashboard', ja: 'ダッシュボード' },

@@ -1,10 +1,10 @@
 import { ChevronRight, Fingerprint, Lock, QrCode, ShieldCheck } from 'lucide-react';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 
-// Display-only hero artwork; the enclosing panel links to the wallet demo.
+// Display-only hero artwork: the wallet create screen, drawn in HTML.
 export function SeamsAuthMenuMock() {
   return (
-    <div className="h2-heroscene__shell" aria-hidden="true">
+    <div className="h2-scene__shell" aria-hidden="true">
       <div className="h2-auth-mock">
         <div className="h2-auth-mock__origin">
           <Lock size={13} />

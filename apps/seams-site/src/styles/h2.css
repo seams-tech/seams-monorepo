@@ -10,6 +10,9 @@
   --h2-col-max: 1120px;
   /* canvas + surfaces */
   --h2-bg: #ffffff;
+  /* the gap between a card and the rules and column borders around it:
+     banners and the band headings */
+  --h2-inset: 0.5rem;
   /* section-level card/panel rounding (hero card, duo panels, pillars, flow) */
   --h2-radius-card: 22px;
   --h2-taupe: #f5f3f1;
@@ -181,6 +184,11 @@ body:has(.h2-page) {
 /* Kept 4px taller than the base button, as before: hero CTAs pair an --lg
    primary with a plain outline, and widening the step makes the mismatched
    pair read as a mistake. */
+/* the stripe arrow trails the label at the button's own 7px gap */
+.h2-btn .stripe-arrow > .HoverArrow {
+  margin-left: 0;
+}
+
 .h2-btn--lg {
   height: 44px;
   padding: 0 22px;
@@ -373,6 +381,17 @@ body:has(.h2-page) {
   margin-bottom: 28px;
 }
 
+/* variant for a section that holds a banner card: the card sits one inset in
+   from the rules */
+.h2-section--banner {
+  padding-block: var(--h2-inset);
+}
+
+/* variant for the content row under a banner heading */
+.h2-section--band {
+  padding: 56px 0;
+}
+
 /* variant for sections whose last row carries its own bottom spacing */
 .h2-section--flush-bottom {
   padding-bottom: 0;
@@ -416,7 +435,7 @@ body:has(.h2-page) {
   }
 }
 
-/* ---------- simple hero (umbrella + ecommerce): calm type-first opening ---------- */
+/* ---------- simple hero (pricing + company): calm type-first opening ---------- */
 
 .h2-hero-simple {
   position: relative;
@@ -477,211 +496,16 @@ body:has(.h2-page) {
   margin-top: 22px;
 }
 
-.h2-hero-simple__cross {
-  margin: 24px 0 0;
-  font-size: var(--h2-text-lg);
-  color: var(--h2-smoke);
-}
-
-.h2-hero-simple__cross .h2-fork {
-  margin-left: 5px;
-}
-
 @media (max-width: 900px) {
   .h2-hero-simple {
     padding: 128px 0 44px;
   }
 }
 
-/* Sage variant: the hero content sits on a rounded panel carrying an
-   Andon-style sage gradient with light ink on top. */
-.h2-hero-simple--sage {
-  padding: 2rem 0 1rem;
-}
-
-.h2-hero-simple.h2-hero-simple--sage {
-  padding-top: 2rem;
-}
-
-.h2-hero-simple--sage > .h2-shell {
-  background: var(--h2-gradient-sage);
-  border-radius: var(--h2-radius-card);
-  padding: 10rem 56px 72px;
-}
-
-.h2-hero-simple--sage .h2-hero-simple__title {
-  color: #ffffff;
-}
-
-.h2-hero-simple--sage .h2-hero-simple__sub {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-@media (max-width: 900px) {
-  .h2-hero-simple--sage {
-    padding: 64px 0 14px;
-  }
-
-  .h2-hero-simple--sage > .h2-shell {
-    padding: 76px 28px 54px;
-  }
-}
-
-/* Grain variant: the sage panel's layout on a moving GrainField, which the
-   page renders as the shell's first child. A shorter panel than the home hero. */
-.h2-hero-simple--sage.h2-hero-simple--grain > .h2-shell {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  background: var(--h2-ink);
-  padding: 6rem 56px 40px;
-}
-
-@media (max-width: 900px) {
-  .h2-hero-simple--sage.h2-hero-simple--grain > .h2-shell {
-    padding: 76px 28px 40px;
-  }
-}
-
-/* ---------- hero scenes: paged two-panel product band ---------- */
-
-/* Scene band under the umbrella headline: an app-window mock on the left,
-   a floating card on the right; the pager at the bottom junction cycles
-   dashboard / integrations / wallet scenes. Mocks are placeholders with the
-   same footprint as the real screenshots/videos that will replace them. */
-.h2-heroscene__split {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-.h2-heroscene__stage {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  min-width: 0;
-  /* fixed so the two columns stay level: must exceed the aside's natural
-     height (~527px with the 0.8-scaled login shell) or the row stretches.
-     No bottom padding: the window mock crops at the band's bottom edge. */
-  height: 488px;
-  padding: 28px 44px 0 36px;
-  transition: background-color 150ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .h2-heroscene__stage:hover {
-    background-color: color-mix(in srgb, var(--h2-taupe) 62%, transparent);
-  }
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .h2-heroscene__stage:hover .h2-fork,
-  .h2-heroscene__aside:hover .h2-fork {
-    color: var(--h2-ink);
-  }
-}
-
-.h2-heroscene__intro {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-}
-
-.h2-heroscene__intro-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 9999px;
-  background: var(--h2-bg);
-  box-shadow: 0 0 0 1px var(--h2-stone);
-  color: var(--h2-graphite);
-}
-
-.h2-heroscene__intro-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.h2-heroscene__intro-title {
-  margin: 0;
-  font-size: var(--h2-text-title);
-  font-weight: 600;
-  color: var(--h2-ink);
-}
-
-.h2-heroscene__intro-sub {
-  margin: 2px 0 0;
-  font-size: var(--h2-text-lg);
-  color: var(--h2-smoke);
-}
-
-/* Window anchored to the panel's bottom-right like the reference hero:
-   inset from the left and top, bleeding past the column divider and the
-   band's bottom edge, cropped by the frame. */
-.h2-heroscene__frame {
-  flex: 1;
-  position: relative;
-  min-height: 0;
-  margin-top: 26px;
-  margin-left: 58px;
-  /* run to the column divider (cancels the stage's right padding) */
-  margin-right: -44px;
-  overflow: hidden;
-}
-
-.h2-heroscene__frame .h2-window {
-  /* wider + taller than the frame: right corner and bottom edge get cropped */
-  width: calc(100% + 36px);
-  min-height: 464px;
-  border-radius: 13px 0 0 0;
-}
-
-.h2-heroscene__aside {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
-  padding: 28px 36px 28px;
-  /* inter-panel dividers read a step stronger than the outer grid lines */
-  border-left: 1px solid var(--h2-stone);
-  /* the tinted background paints over the section rule's hairline; restore it */
-  border-top: 1px solid var(--h2-stone);
-  background-color: color-mix(in srgb, var(--h2-taupe) 55%, var(--h2-bg) 45%);
-  transition: background-color 150ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .h2-heroscene__aside:hover {
-    /* hover just deepens the panel's own warm tint to full taupe (base is
-       taupe 55% / bg 45%) rather than mixing in stone, so it lifts a touch
-       without reading dark grey */
-    background-color: var(--h2-taupe);
-  }
-}
-
-.h2-heroscene__aside-body {
-  flex: 1;
-  display: grid;
-  place-items: center;
-  /* slight top bias so the card sits optically centered under the header */
-  padding-top: 9px;
-}
-
-/* the confirmer scene bottom-anchors: its drawer docks to the band edge */
-.h2-heroscene__aside:has(.h2-wallet-confirm) {
-  padding-bottom: 0;
-}
-
-.h2-heroscene__aside-body:has(.h2-wallet-confirm) {
-  place-items: end center;
-  padding-top: 0;
-}
+/* ---------- hero scene cards (mocks on the hero's gradient) ---------- */
 
 /* Display-only artwork matches the wallet's create screen. */
-.h2-heroscene__shell {
+.h2-scene__shell {
   pointer-events: none;
   filter: drop-shadow(0 22px 40px rgba(15, 23, 42, 0.14));
   width: min(384px, 100%);
@@ -848,89 +672,17 @@ body:has(.h2-page) {
   }
 }
 
-/* Confirmer scene: the signing drawer docked at the band's bottom edge,
-   overlaying the blurred dashboard that fills the panel behind it. */
+/* Confirmer scene: the transaction confirmer as a floating card. */
 .h2-wallet-confirm {
-  justify-self: center;
   pointer-events: none;
-  position: relative;
-  width: min(344px, 100%);
-  /* drawer bottom-docks via the body's place-items:end, so this top margin
-     only sets the panel's min-content floor; keep it under the stage height
-     (546px) so both paged scenes settle at the same band height */
-  margin: 14px 0 0;
+  width: min(360px, 100%);
 }
 
 .h2-wallet-confirm__card {
   background: #ffffff;
   border: 1px solid #ddd8d1;
-  border-radius: 20px;
-  padding: 18px 16px;
-}
-
-/* the drawer screenshot is a bottom sheet (drag handle up top): dock it to
-   the band's bottom edge with top-only rounding and an upward shadow */
-.h2-wallet-confirm__card--front {
-  position: relative;
-  z-index: 2;
-  border-radius: 16px 16px 0 0;
-  border-bottom: none;
-  padding-bottom: 24px;
-  filter: drop-shadow(0 -14px 32px rgba(15, 23, 42, 0.1));
-}
-
-/* app canvas behind the drawer: the merchant dashboard fills the whole
-   panel, blurred and dimmed like the page under a live bottom sheet. */
-.h2-heroscene__aside:has(.h2-heroscene__aside-appback) {
-  overflow: hidden;
-}
-
-.h2-heroscene__aside-appback {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.h2-heroscene__aside-appback .h2-window {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  /* ground the app in the panel's own tint (the sign-in scene's backdrop)
-     instead of card white, so both scenes share one warm tone */
-  background: color-mix(in srgb, var(--h2-taupe) 55%, var(--h2-bg) 45%);
-  /* slight scale keeps the blur from feathering the panel edges; a touch of
-     brightness keeps the frosted app from reading dim */
-  filter: blur(6px) brightness(1.05);
-  transform: scale(1.04);
-}
-
-/* cream/light-grey veil over the app, like a page dimmed under a live bottom
-   sheet — neutral with only a hint of warmth, not sandy. The opaque backdrop
-   hides the aside's own taupe hover, so the veil carries the hover response
-   on this scene: a slow shift one step deeper into the same grey. */
-.h2-heroscene__aside-appback::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: color-mix(in srgb, #f9f8f6 58%, transparent);
-  transition: background-color 350ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .h2-heroscene__aside:hover .h2-heroscene__aside-appback::after {
-    background: color-mix(in srgb, #efedea 58%, transparent);
-  }
-}
-
-/* panel header and body stack above the backdrop */
-.h2-heroscene__aside > .h2-heroscene__intro,
-.h2-heroscene__aside > .h2-heroscene__aside-body {
-  position: relative;
-  z-index: 1;
+  border-radius: 16px;
+  box-shadow: 0 22px 40px -16px rgba(15, 23, 42, 0.28);
 }
 
 /* HTML replica of the confirmer drawer (editable, unlike the screenshots);
@@ -939,15 +691,6 @@ body:has(.h2-page) {
   padding: 14px 20px 18px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   color: #0a0a0a;
-}
-
-.h2-txmock__handle {
-  display: block;
-  width: 40px;
-  height: 5px;
-  margin: 0 auto 7px;
-  border-radius: 9999px;
-  background: #e7e4df;
 }
 
 .h2-txmock__title {
@@ -1266,106 +1009,12 @@ body:has(.h2-page) {
   box-shadow: none;
 }
 
-/* floating aside card */
-.h2-scenecard {
-  display: grid;
-  justify-items: center;
-  gap: 9px;
-  width: min(272px, 100%);
-  padding: 22px 20px;
-  border-radius: 18px;
-  background: var(--h2-bg);
-  box-shadow:
-    0 0 0 1px var(--h2-stone),
-    0 18px 44px -28px rgba(15, 23, 42, 0.28);
-  text-align: center;
-}
-
-.h2-scenecard__avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 9999px;
-  background-size: cover;
-  background-position: center;
-  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
-}
-
-.h2-scenecard__avatar--harness {
-  background-image: url('/gradients/web/cyan-lime.jpg');
-}
-
-.h2-scenecard__avatar--wallet {
-  background-image: url('/gradients/web/sky-sand.jpg');
-}
-
-.h2-scenecard__title {
-  margin: 0;
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--h2-ink);
-}
-
-.h2-scenecard__sub {
-  margin: 0;
-  font-size: var(--h2-text-md);
-  line-height: 1.5;
-  color: var(--h2-smoke);
-}
-
-.h2-scenecard .h2-mockrow {
-  width: 100%;
-  font-size: var(--h2-text-sm);
-}
-
 @media (max-width: 980px) {
-  .h2-heroscene__split {
-    grid-template-columns: 1fr;
-  }
-
-  .h2-heroscene__stage {
-    height: auto;
-    /* bottom padding: the contained window is a bordered card, not a crop */
-    padding: 28px 22px 26px;
-  }
-
-  .h2-heroscene__frame {
-    min-height: 288px;
-    margin: 18px 0 0;
-  }
-
-  /* stacked layout: contained, fully rounded window */
-  .h2-heroscene__frame .h2-window {
-    width: 100%;
-    min-height: 320px;
-    border-radius: 13px;
-  }
-
   .h2-window {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .h2-window__side {
-    display: none;
-  }
-
-  .h2-heroscene__aside {
-    border-left: none;
-    border-top: 1px solid var(--h2-stone);
-    padding: 36px 22px 50px;
-  }
-
-  .h2-heroscene__shell {
-    min-width: 0;
-    max-width: min(386px, 100%);
-  }
-
-  /* narrow columns: keep the readable drawer, drop the app backdrop */
-  .h2-wallet-confirm {
-    width: min(384px, 100%);
-    margin: 0;
-  }
-
-  .h2-heroscene__aside-appback {
     display: none;
   }
 }
@@ -1398,24 +1047,6 @@ body:has(.h2-page) {
 }
 
 /* ---------- two products, one account layer (duo panels) ---------- */
-
-.h2-duo__head {
-  max-width: 576px;
-  margin: 0 auto 36px;
-  text-align: center;
-}
-
-.h2-duo__head h2 {
-  font-size: clamp(27px, 3vw, 39.5px);
-}
-
-.h2-duo__copy {
-  margin: 16px auto 0;
-  max-width: 488px;
-  font-size: 14.5px;
-  line-height: 1.6;
-  color: var(--h2-smoke);
-}
 
 .h2-duo__grid {
   display: grid;
@@ -1458,12 +1089,6 @@ body:has(.h2-page) {
   color: var(--h2-ink);
 }
 
-.h2-duo__title svg {
-  width: 20px;
-  height: 20px;
-  color: var(--h2-graphite);
-}
-
 .h2-duo__panel-copy {
   margin: 0;
   max-width: 46ch;
@@ -1501,8 +1126,9 @@ body:has(.h2-page) {
 }
 
 @media (max-width: 900px) {
+  /* minmax: the split-key visual must not widen the panel past the screen */
   .h2-duo__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -1567,6 +1193,8 @@ body:has(.h2-page) {
 }
 
 .h2-fork {
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -1574,13 +1202,72 @@ body:has(.h2-page) {
   font-weight: 600;
   color: var(--h2-graphite);
   text-decoration: none;
+  /* the press state below is the tap feedback; no grey system flash */
+  -webkit-tap-highlight-color: transparent;
   transition: color 150ms ease;
 }
 
+/* A pill behind the chip and label. It is drawn from the row's centre, not
+   the padding box, so the taller touch hit area does not stretch it. */
+.h2-fork::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: -6px;
+  right: -9px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--h2-taupe);
+  opacity: 0;
+  transform: translateY(-50%) scale(0.92);
+  transition:
+    opacity 150ms ease,
+    transform 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.h2-fork:hover {
+  color: var(--h2-ink);
+}
+
+.h2-fork:focus-visible {
+  outline: none;
+  color: var(--h2-ink);
+}
+
+.h2-fork:focus-visible::before {
+  opacity: 1;
+  transform: translateY(-50%);
+  box-shadow: 0 0 0 2px var(--h2-ink);
+}
+
 @media (hover: hover) and (pointer: fine) {
-  .h2-fork:hover {
-    color: var(--h2-ink);
+  .h2-fork:hover::before {
+    opacity: 1;
+    transform: translateY(-50%);
   }
+
+  .h2-fork:hover .h2-fork__chip {
+    transform: scale(1.12) rotate(-4deg);
+  }
+}
+
+/* Press: the pill flashes in at once, a shade darker, and fades out over
+   150ms on release, so a quick tap still shows. */
+.h2-fork:active {
+  color: var(--h2-ink);
+}
+
+.h2-fork:active::before {
+  opacity: 1;
+  background: color-mix(in srgb, var(--h2-ink) 10%, var(--h2-taupe));
+  transform: translateY(-50%) scale(0.96);
+  transition: none;
+}
+
+.h2-fork:active .h2-fork__chip {
+  transform: scale(0.88);
+  transition-duration: 80ms;
 }
 
 .h2-fork__chip {
@@ -1591,6 +1278,19 @@ body:has(.h2-page) {
   overflow: hidden;
   border-radius: 5px;
   box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+  transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h2-fork::before,
+  .h2-fork__chip {
+    transition: opacity 150ms ease;
+  }
+
+  .h2-fork:hover .h2-fork__chip,
+  .h2-fork:active .h2-fork__chip {
+    transform: none;
+  }
 }
 
 .h2-hero__note {
@@ -1881,6 +1581,78 @@ body:has(.h2-page) {
   }
 }
 
+/* Scene hero (umbrella + ecommerce): the split hero with product mocks on
+   the moving gradient instead of the live demo. The hero runs under the
+   floating navbar, so the gradient reaches the top of the page. */
+.h2-hero--scene .h2-hero__split {
+  --h2-hero-min-height: 600px;
+}
+
+.h2-hero--scene .h2-hero__main {
+  align-self: start;
+  min-height: var(--h2-hero-min-height);
+}
+
+/* the cell grows to its tallest scene instead of a fixed demo height; the
+   minimum keeps the pager still while the scenes change */
+.h2-hero--scene .h2-hero__demo {
+  height: auto;
+  min-height: var(--h2-hero-min-height);
+  padding: 78px 36px 40px;
+  /* keeps the gradient canvas's negative z-index inside this cell */
+  isolation: isolate;
+}
+
+.h2-hero__scene {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  flex: 1;
+}
+
+.h2-hero__scene .h2-window {
+  width: min(480px, 100%);
+  height: auto;
+  border: none;
+  box-shadow: 0 22px 40px -16px rgba(15, 23, 42, 0.32);
+}
+
+.h2-hero--scene .h2-themeswitch {
+  margin-top: 22px;
+}
+
+.h2-hero--scene .h2-themeswitch__btn svg {
+  color: var(--h2-ash);
+}
+
+.h2-hero--scene .h2-themeswitch__btn.is-active svg {
+  color: var(--h2-ink);
+}
+
+/* on phones the two buttons grow to fill the row together; a button that
+   wraps fills its own row, so the pair never sits at two ragged widths */
+@media (max-width: 560px) {
+  .h2-hero--scene .h2-hero__ctas {
+    align-self: stretch;
+  }
+
+  .h2-hero--scene .h2-hero__ctas > .h2-btn {
+    flex: 1 1 auto;
+    height: 44px;
+  }
+}
+
+@media (max-width: 980px) {
+  .h2-hero--scene .h2-hero__main {
+    min-height: 0;
+  }
+
+  .h2-hero--scene .h2-hero__demo {
+    min-height: 0;
+    padding: 44px 16px 50px;
+  }
+}
+
 /* ---------- ecosystem (network logos) ---------- */
 
 .h2-eco__head {
@@ -1910,7 +1682,6 @@ body:has(.h2-page) {
 .h2-lattice {
   position: relative;
   height: clamp(360px, 33vw, 420px);
-  margin-top: 36px;
   overflow: hidden;
   mask-image: radial-gradient(ellipse 72% 82% at 50% 46%, #000 52%, transparent 97%);
 }
@@ -2057,22 +1828,11 @@ body:has(.h2-page) {
   background: var(--h2-taupe);
 }
 
-.h2-pillar__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: var(--h2-bg);
-  border: 1px solid var(--h2-stone);
-  color: var(--h2-graphite);
+.h2-pillar .h2-fieldtile {
   flex: none;
-}
-
-.h2-pillar__icon svg {
-  width: 15px;
-  height: 15px;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
 }
 
 .h2-pillars__panel {
@@ -2634,55 +2394,6 @@ body:has(.h2-page) {
   color: var(--h2-smoke);
 }
 
-.h2-bento__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
-  background: var(--h2-bg);
-  border: 1px solid var(--h2-stone);
-  color: var(--h2-graphite);
-  margin-bottom: 5px;
-}
-
-.h2-bento__icon svg {
-  width: 16px;
-  height: 16px;
-}
-
-/* Gradient chip variants (public/gradients set): darker picks so the white
-   icon keeps contrast at 40px */
-.h2-bento__icon--blue-red,
-.h2-bento__icon--ember-moss,
-.h2-bento__icon--sage-charcoal {
-  border: none;
-  color: #ffffff;
-  background-size: cover;
-  background-position: center;
-}
-
-.h2-bento__icon--blue-red svg,
-.h2-bento__icon--ember-moss svg,
-.h2-bento__icon--sage-charcoal svg {
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28));
-}
-
-.h2-bento__icon--blue-red {
-  background-image: url('/gradients/web/blue-red.jpg');
-}
-
-.h2-bento__icon--ember-moss {
-  background-image: url('/gradients/web/ember-moss.jpg');
-}
-
-.h2-bento__icon--sage-charcoal {
-  background-image: url('/gradients/web/sage-charcoal.jpg');
-  /* sage-charcoal runs light at the top; anchor the darker lower half */
-  background-position: center 75%;
-}
-
 /* mock approval buttons inside bento mocks */
 .h2-mockbtns {
   display: flex;
@@ -2708,6 +2419,10 @@ body:has(.h2-page) {
   background: var(--h2-bg);
   color: var(--h2-graphite);
   box-shadow: 0 0 0 1px var(--h2-stone);
+}
+
+.h2-bento__card--sm .h2-fieldtile {
+  margin-bottom: 5px;
 }
 
 @media (max-width: 980px) {
@@ -2742,8 +2457,9 @@ body:has(.h2-page) {
   aspect-ratio: 4 / 3;
   margin-bottom: 16px;
   border-radius: 14px;
-  background-size: cover;
-  background-position: center;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   /* hairline holds the edge where the fabric runs light */
   box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.06);
 }
@@ -2757,35 +2473,6 @@ body:has(.h2-page) {
   text-align: center;
   text-wrap: balance;
   text-shadow: 0 1px 14px rgba(0, 0, 0, 0.22);
-}
-
-/* Each cover crops its fabric differently: full field, zoomed weave, corner
-   drift, so the three cards don't read as one repeated treatment. */
-.h2-case__cover--ops {
-  background-image:
-    url('/gradients/web/sky-sand.jpg'),
-    linear-gradient(135deg, #247fc4 0%, #67bdd4 42%, #efbd71 72%, #c66c54 100%);
-  background-size: cover, cover;
-}
-
-.h2-case__cover--staff {
-  background-image:
-    url('/gradients/web/cyan-lime.jpg'),
-    linear-gradient(135deg, #117a96 0%, #298b72 44%, #85b938 72%, #d3e967 100%);
-  background-size: 165%, cover;
-  background-position:
-    22% 38%,
-    center;
-}
-
-.h2-case__cover--checkout {
-  background-image:
-    url('/gradients/web/dusk-blue-mauve.jpg'),
-    linear-gradient(135deg, #103e70 0%, #26375b 50%, #796174 74%, #df9870 100%);
-  background-size: 140%, cover;
-  background-position:
-    85% 82%,
-    center;
 }
 
 .h2-case__title {
@@ -3953,27 +3640,186 @@ body:has(.h2-page) {
   }
 }
 
-/* ---------- footer ---------- */
+/* ---------- banners (band headings and the closing call to action) ---------- */
 
-.h2-footer {
+/* Banner rows share one height. It fits a banner row (two insets, 52px
+   paddings) around the taller of a two-line heading and a one-line heading
+   over the 36px subtitle. At 760px and below each band keeps its own
+   height. */
+.h2-page {
+  --h2-band-title: clamp(27px, 2.9vw, 38px);
+  --h2-band-h: calc(
+    2 * var(--h2-inset) + 104px + 1.08 * var(--h2-band-title) +
+      max(1.08 * var(--h2-band-title), 36px)
+  );
+}
+
+/* A quiet grey card with the heading on the left and the actions on the
+   right. */
+.h2-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  /* one inset from the column borders, as from the rules */
+  margin-inline: var(--h2-inset);
+  padding: 52px 56px;
+  border-radius: var(--h2-radius-card);
+  background: color-mix(in srgb, var(--h2-taupe) 60%, var(--h2-bg));
+}
+
+/* on the grey card the outline button needs its own white ground */
+.h2-banner .h2-btn--outline {
   background: var(--h2-bg);
 }
 
+.h2-banner__title {
+  margin: 0;
+  max-width: 620px;
+  font-size: var(--h2-band-title);
+}
+
+.h2-banner__sub {
+  margin: 12px 0 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--h2-smoke);
+  text-wrap: pretty;
+}
+
+.h2-banner__actions {
+  display: flex;
+  flex: none;
+  gap: 10px;
+}
+
+/* The banner keeps its grey card at rest and fades into a moving gradient
+   field, with white copy, while it is in view (FieldBanner). */
+.h2-banner--field {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.h2-banner--field .grain-field {
+  opacity: 0;
+  transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.h2-banner--field.is-lit .grain-field {
+  opacity: 1;
+}
+
+.h2-banner--field .h2-banner__title,
+.h2-banner--field .h2-banner__sub {
+  transition:
+    color 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    text-shadow 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.h2-banner--field.is-lit .h2-banner__title {
+  color: #ffffff;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.22);
+}
+
+.h2-banner--field.is-lit .h2-banner__sub {
+  color: rgba(255, 255, 255, 0.86);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h2-banner--field .grain-field,
+  .h2-banner--field .h2-banner__title,
+  .h2-banner--field .h2-banner__sub {
+    transition: none;
+  }
+}
+
+@media (min-width: 761px) {
+  /* the card centres its copy in the band; the smaller paddings let a
+     heading that wraps below 860px still fit */
+  .h2-banner {
+    min-height: calc(var(--h2-band-h) - 2 * var(--h2-inset));
+    padding-block: 24px;
+  }
+}
+
+@media (max-width: 760px) {
+  .h2-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 32px 24px;
+  }
+}
+
+/* An icon on a small tile; its gradient shows only as a faint grey wash */
+.h2-fieldtile {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #fbfaf7;
+  color: var(--h2-ash);
+}
+
+.h2-fieldtile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px #ffffff;
+  pointer-events: none;
+}
+
+.h2-fieldtile .grain-field {
+  filter: grayscale(1) contrast(0.55);
+  mix-blend-mode: multiply;
+  opacity: 0.08;
+}
+
+/* ---------- footer ---------- */
+
+/* the footer runs 1px past the column on each side, so its white ground
+   covers the column borders: no vertical dividers beside the footer */
+.h2-footer {
+  margin-inline: -1px;
+  padding-bottom: 2rem;
+  background: var(--h2-bg);
+  isolation: isolate;
+}
+
 .h2-footer__inner {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 72px 32px;
+  align-items: start;
   padding: 72px 36px 64px;
 }
 
-.h2-footer__grid {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(0, 3fr);
-  gap: 48px;
-  align-items: start;
+.h2-footer__inner > .h2-footer__faq,
+.h2-footer__main {
+  grid-column: 2 / -1;
+  min-width: 0;
 }
 
+/* the links sit closer under the FAQ than the grid gap */
+.h2-footer__faq + .h2-footer__main {
+  margin-top: -1rem;
+}
+
+/* the logo sits one inset in from the column border, in line with the banner
+   card's edge above, rather than at the footer's 36px inset */
 .h2-footer__brand {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+  margin-left: calc(var(--h2-inset) - 36px);
 }
 
 .h2-footer__brand a {
@@ -3983,7 +3829,7 @@ body:has(.h2-page) {
 
 .h2-footer__links {
   display: grid;
-  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 48px 32px;
 }
 
@@ -3993,13 +3839,12 @@ body:has(.h2-page) {
   align-items: start;
 }
 
+/* grey sentence-case headings over plain ink rows */
 .h2-footer__col h3 {
-  margin: 0 0 14px;
-  font-family: var(--h2-label);
-  font-size: var(--h2-text-xs);
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  margin: 0 0 10px;
+  font-size: var(--h2-text-body);
+  font-weight: 400;
+  line-height: 1.3;
   color: var(--h2-ash);
 }
 
@@ -4017,14 +3862,232 @@ body:has(.h2-page) {
   }
 }
 
+html:lang(ja) .h2-footer__col a {
+  line-height: 1.7;
+}
+
+/* ---------- footer FAQ ---------- */
+
+/* The FAQ uses the link columns' grid, so its columns line up with them */
+.h2-footer__faq {
+  position: relative;
+}
+
+/* a small subtitle over the FAQ columns, darker than the column headings */
+.h2-footer__faq-title {
+  margin: 0 0 18px;
+  font-family: var(--h2-label);
+  font-size: var(--h2-text-base);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--h2-graphite);
+}
+
+/* each question reads as a footer link with a chevron, like a menu row */
+.h2-footer__faq-q {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--h2-text-body);
+  line-height: 1.3;
+  text-align: left;
+  color: var(--h2-ink);
+  cursor: pointer;
+}
+
+.h2-footer__faq-q svg {
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: -2px;
+  color: var(--h2-ash);
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 150ms ease;
+}
+
+.h2-footer__faq-q:hover,
+.h2-footer__faq-q.is-open {
+  color: var(--h2-smoke);
+}
+
+.h2-footer__faq-q.is-open svg {
+  transform: rotate(180deg);
+  color: var(--h2-ink);
+}
+
+.h2-footer__faq-q:focus-visible {
+  outline: 2px solid var(--h2-ink);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* One card for all answers. It opens with the navbar's soft scale and drop;
+   between questions it moves and resizes in place while the answers
+   crossfade with a short slide in the direction of travel. */
+.h2-faq-pop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  /* an invisible bridge from the question to the card, as in the navbar */
+  padding-top: 8px;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top left;
+  pointer-events: none;
+  transition:
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.h2-faq-pop.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* the open card takes the pointer, so the pointer can reach its link */
+.h2-faq-pop.is-open,
+.h2-faq-pop.is-open .h2-faq-pop__pane.is-active {
+  pointer-events: auto;
+}
+
+.h2-faq-pop.is-morphing {
+  transition:
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    left 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    top 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.h2-faq-pop__card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.h2-faq-pop__card {
+  border: 1px solid var(--h2-stone);
+  background: var(--h2-bg);
+  box-shadow:
+    0 18px 48px -20px rgba(4, 3, 14, 0.28),
+    0 6px 18px -10px rgba(4, 3, 14, 0.16);
+}
+
+.h2-faq-pop__shell {
+  position: relative;
+}
+
+.h2-faq-pop.is-morphing .h2-faq-pop__shell {
+  transition:
+    width 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.h2-faq-pop__pane {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(340px, calc(100vw - 48px));
+  padding: 16px 20px 18px;
+  opacity: 0;
+  filter: blur(3px);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform 250ms cubic-bezier(0.5, 1, 0.89, 1),
+    opacity 180ms ease,
+    filter 180ms ease,
+    visibility 0s linear 200ms;
+}
+
+.h2-faq-pop__pane.is-active {
+  opacity: 1;
+  filter: blur(0);
+  visibility: visible;
+  transform: translateX(0);
+  z-index: 2;
+  transition:
+    transform 250ms cubic-bezier(0.5, 1, 0.89, 1),
+    opacity 180ms ease,
+    filter 180ms ease,
+    visibility 0s;
+}
+
+.h2-faq-pop__pane.is-before {
+  transform: translateX(-16px);
+}
+
+.h2-faq-pop__pane.is-after {
+  transform: translateX(16px);
+}
+
+.h2-faq-pop__heading {
+  margin: 0 0 8px;
+  font-size: var(--h2-text-xl);
+  line-height: 1.3;
+  color: var(--h2-ash);
+}
+
+.h2-faq-pop__answer {
+  margin: 0;
+  font-size: var(--h2-text-body);
+  line-height: 1.6;
+  color: var(--h2-graphite);
+  text-wrap: pretty;
+}
+
+.h2-faq-pop__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: var(--h2-text-lg);
+  font-weight: 500;
+  color: var(--h2-ink);
+}
+
+.h2-faq-pop__more:hover {
+  color: var(--h2-smoke);
+}
+
+html:lang(ja) .h2-faq-pop__answer {
+  line-height: 1.85;
+  overflow-wrap: break-word;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h2-faq-pop,
+  .h2-faq-pop.is-morphing,
+  .h2-faq-pop.is-morphing .h2-faq-pop__shell,
+  .h2-faq-pop__pane,
+  .h2-faq-pop__pane.is-active {
+    transition: none;
+  }
+}
+
 @media (max-width: 860px) {
   .h2-footer__inner {
+    grid-template-columns: 1fr;
+    row-gap: 36px;
     padding: 48px 24px 44px;
   }
 
-  .h2-footer__grid {
-    grid-template-columns: 1fr;
-    gap: 36px;
+  .h2-footer__inner > .h2-footer__faq,
+  .h2-footer__main {
+    grid-column: auto;
+  }
+
+  .h2-footer__brand {
+    margin-left: 0;
   }
 
   .h2-footer__links {
@@ -4035,5 +4098,10 @@ body:has(.h2-page) {
 @media (max-width: 520px) {
   .h2-footer__links {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* questions are too long for two phone columns */
+  .h2-footer__faq .h2-footer__links {
+    grid-template-columns: 1fr;
   }
 }

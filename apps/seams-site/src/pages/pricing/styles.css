@@ -24,7 +24,7 @@
 .pricing-plans {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 22px;
+  gap: 1rem;
 }
 
 /* cards break out of the shell inset while the column borders are visible */

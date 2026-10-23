@@ -33,6 +33,14 @@ records the transaction, signature digest, funding, and cleanup. Its
 [confirmed transaction](https://testnet.nearblocks.io/txns/5FDPRQykY9XXRfBJBh5UQ3ifQnWdBem8uBTdFc34piZE)
 is independently visible on testnet.
 
+A separate Wallet contract checks unavailable broadcast replies with deterministic
+voice and RPC boundaries. It observed one MPC finalization and five attempts with
+identical signed bytes. The failed submission retained its spent quota use.
+A fresh review required another voice check, and cancellation prevented another
+signature. The [broadcast-failure evidence](../verifier-spike/reports/browser-wallet-broadcast-failure-2026-10-23.json)
+records both the app error and the detailed Wallet receipt. This check opens no
+microphone and establishes no on-chain outcome.
+
 Spoof detection, camera evidence, authenticated capture, and a new server factor
 remain outside this MVP. The user controls the device and OS.
 
@@ -151,6 +159,8 @@ The public MPC contract is
 `seams-wallet`. Run it through the existing intended-test service runner.
 It uses a deterministic voice transport and RPC response. It writes
 `voiceid-near-mpc.json` under its Playwright result directory.
+It also checks unavailable broadcast replies, spent quota, and fresh voice
+cancellation after the failed send.
 
 The composed journey uses the synthetic fixtures produced by the existing
 `local_host_journey`. Build and run that journey if `local-host.e2e.media` is absent.

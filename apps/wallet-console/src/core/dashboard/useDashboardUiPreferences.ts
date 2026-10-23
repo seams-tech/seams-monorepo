@@ -346,16 +346,24 @@ function mergeSelectedContextState(
   const normalize = (value: unknown): string => String(value || '').trim();
   const hasSelectedContextKey = (key: keyof TopbarContextState): boolean =>
     Object.prototype.hasOwnProperty.call(next, key);
+  const organization = hasSelectedContextKey('organization')
+    ? normalize(next.organization)
+    : normalize(current?.organization);
+  // A project belongs to one organization and an environment to one project, so a
+  // new organization or project drops the old child unless `next` names one.
+  const project = hasSelectedContextKey('project')
+    ? normalize(next.project)
+    : organization === normalize(current?.organization)
+      ? normalize(current?.project)
+      : '';
   return {
-    organization: hasSelectedContextKey('organization')
-      ? normalize(next.organization)
-      : normalize(current?.organization),
-    project: hasSelectedContextKey('project')
-      ? normalize(next.project)
-      : normalize(current?.project),
+    organization,
+    project,
     environment: hasSelectedContextKey('environment')
       ? normalize(next.environment)
-      : normalize(current?.environment),
+      : project === normalize(current?.project)
+        ? normalize(current?.environment)
+        : '',
     accountSettings: hasSelectedContextKey('accountSettings')
       ? normalize(next.accountSettings)
       : normalize(current?.accountSettings),
@@ -404,6 +412,19 @@ export function readPersistedDashboardSelectedContext(): Partial<TopbarContextSt
   return readExplicitSelectedContext(selected);
 }
 
+/** The organization and project that the page URL names. Read it before the dashboard
+    clears the URL parameters. */
+export function readDashboardUrlContext(): Partial<
+  Pick<TopbarContextState, 'organization' | 'project'>
+> {
+  if (typeof window === 'undefined') return {};
+  const params = new URLSearchParams(window.location.search);
+  return readExplicitSelectedContext({
+    organization: params.get(DASHBOARD_UI_QUERY_KEYS.organization) || undefined,
+    project: params.get(DASHBOARD_UI_QUERY_KEYS.project) || undefined,
+  });
+}
+
 type UseDashboardUiPreferencesResult<GroupKey extends string> = {
   isSidebarExpanded: boolean;
   expandedGroups: ExpandedSidebarGroupsState<GroupKey>;
@@ -448,10 +469,8 @@ export function useDashboardUiPreferences<GroupKey extends string>(
   const onSelectContext = React.useCallback(
     (menu: TopbarMenuKey, value: string) => {
       if (!hasTopbarOption(menu, value, dropdownOptions)) return;
-      setSelectedContext((current) => ({
-        ...current,
-        [menu]: value,
-      }));
+      const next: Partial<TopbarContextState> = { [menu]: value };
+      setSelectedContext((current) => mergeSelectedContextState(current, next));
     },
     [dropdownOptions],
   );

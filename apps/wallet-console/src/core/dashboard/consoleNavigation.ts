@@ -70,11 +70,12 @@ export function sharedAccountHref(pathname: string): string {
 
 export function rememberConsoleContext(): void {
   const parameters = new URLSearchParams(window.location.search);
-  const previous = readPersistedDashboardSelectedContext();
+  const organization = parameters.get(DASHBOARD_UI_QUERY_KEYS.organization);
+  const project = parameters.get(DASHBOARD_UI_QUERY_KEYS.project);
+  // Names only what the URL gives, so a new organization drops the saved project.
   persistDashboardSelectedContext({
-    organization:
-      parameters.get(DASHBOARD_UI_QUERY_KEYS.organization) ?? previous.organization ?? '',
-    project: parameters.get(DASHBOARD_UI_QUERY_KEYS.project) ?? previous.project ?? '',
+    ...(organization === null ? {} : { organization }),
+    ...(project === null ? {} : { project }),
   });
   selectNetwork(getActiveFrontendDeployment().network);
 }

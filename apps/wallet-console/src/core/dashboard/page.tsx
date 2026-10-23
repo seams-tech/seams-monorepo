@@ -49,6 +49,7 @@ import {
 } from './routes/onboarding/consoleOnboardingApi';
 import {
   clearDashboardUiState,
+  readDashboardUrlContext,
   readPersistedDashboardSelectedContext,
   replaceDashboardSelectedContext,
   useDashboardUiPreferences,
@@ -293,6 +294,12 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   const persistedOrganizationId = String(persistedSelectedContext.organization || '').trim();
   const persistedProjectId = String(persistedSelectedContext.project || '').trim();
   const persistedEnvironmentId = String(persistedSelectedContext.environment || '').trim();
+  /* A saved selection is only a preference and gives way when this account cannot open
+     it. A selection that the URL requests does not: opening another project instead
+     would act on the wrong one. */
+  const urlContext = React.useMemo(() => readDashboardUrlContext(), []);
+  const urlOrganizationId = String(urlContext.organization || '').trim();
+  const urlProjectId = String(urlContext.project || '').trim();
   const [onboardingLoading, setOnboardingLoading] = React.useState<boolean>(false);
   const [onboardingState, setOnboardingState] = React.useState<DashboardOnboardingState | null>(
     null,
@@ -562,10 +569,16 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         setOrganizationOptions(nextOrganizationOptions);
         setAccountOrganizationsResolved(true);
         if (!currentOrgId) return;
+        // Another account left this saved organization, so the session's organization replaces it.
+        const savedOrganizationUnavailable =
+          organizationsResult.status === 'fulfilled' &&
+          persistedOrganizationId !== urlOrganizationId &&
+          !nextOrganizationOptions.some((entry) => entry.value === persistedOrganizationId);
         if (
           initialContextResolution.current === 'pending' &&
           persistedOrganizationId &&
-          persistedOrganizationId !== currentOrgId
+          persistedOrganizationId !== currentOrgId &&
+          !savedOrganizationUnavailable
         ) {
           if (organizationsResult.status === 'rejected') {
             setProjectResolution(unavailableDashboardProjects(claims, 'load_failed'));
@@ -582,18 +595,22 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
             label: entry.name || entry.id,
           })),
         );
-        let requestedProjectId = scopedPersistedProjectId;
+        let savedProjectId = scopedPersistedProjectId;
         if (initialContextResolution.current === 'applied') {
           const selected = readPersistedDashboardSelectedContext();
-          requestedProjectId =
-            selected.organization === currentOrgId ? (selected.project ?? '') : '';
+          savedProjectId = selected.organization === currentOrgId ? (selected.project ?? '') : '';
         }
-        if (requestedProjectId && !projects.some((project) => project.id === requestedProjectId)) {
-          setProjectResolution(unavailableDashboardProjects(claims, 'selection_unavailable'));
-          return;
+        const savedProjectUnavailable =
+          Boolean(savedProjectId) && !projects.some((project) => project.id === savedProjectId);
+        if (savedProjectUnavailable) {
+          if (initialContextResolution.current === 'pending' && savedProjectId === urlProjectId) {
+            setProjectResolution(unavailableDashboardProjects(claims, 'selection_unavailable'));
+            return;
+          }
+          savedProjectId = '';
         }
         const nextSelectedProjectId =
-          requestedProjectId ||
+          savedProjectId ||
           (scopedOnboardingSelectedProjectId &&
             nextProjectOptions.find((entry) => entry.value === scopedOnboardingSelectedProjectId)
               ?.value) ||
@@ -602,7 +619,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
               ?.value) ||
           nextProjectOptions[0]?.value ||
           '';
-        if (initialContextResolution.current === 'pending') {
+        if (initialContextResolution.current === 'pending' || savedProjectUnavailable) {
           replaceDashboardSelectedContext({
             organization: currentOrgId,
             project: nextSelectedProjectId,
@@ -631,6 +648,8 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     persistedOrganizationId,
     scopedPersistedProjectId,
     scopedPersistedEnvironmentId,
+    urlOrganizationId,
+    urlProjectId,
   ]);
 
   const switchOrganizationContext = React.useCallback(

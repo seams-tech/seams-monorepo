@@ -1,5 +1,4 @@
 import React from 'react';
-import { ArrowUpRight } from 'lucide-react';
 import { t } from '@/marketing/i18n/browser';
 import geography from './globe-geography.json';
 import './regional-globe.css';
@@ -7,7 +6,6 @@ import './regional-globe.css';
 type Region = 'europe' | 'apac' | 'us';
 type Position = { latitude: number; longitude: number };
 type Drag = { kind: 'idle' } | { kind: 'dragging'; pointerId: number; x: number };
-type Motion = { kind: 'rotating' } | { kind: 'focusing'; target: number; velocity: number };
 
 const REGIONS: Record<Region, Position> = {
   europe: { latitude: 49, longitude: 10 },
@@ -134,11 +132,9 @@ function traceCoastline(
   }
 }
 
-export class RegionalGlobe extends React.Component<object, { region: Region }> {
-  state: { region: Region } = { region: 'apac' };
+export class RegionalGlobe extends React.Component {
   private canvas = React.createRef<HTMLCanvasElement>();
   private camera: Position = { latitude: 25, longitude: REGIONS.apac.longitude };
-  private motion: Motion = { kind: 'rotating' };
   private drag: Drag = { kind: 'idle' };
   private frame = 0;
   private previousTime = 0;
@@ -168,15 +164,9 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
     this.reducedMotion?.removeEventListener('change', this.onMotionChange);
   }
 
-  componentDidUpdate(): void {
-    this.draw();
-  }
-
   private onMotionChange = (): void => {
     if (this.reducedMotion?.matches) {
       this.stop();
-      if (this.motion.kind === 'focusing') this.camera.longitude = this.motion.target;
-      this.motion = { kind: 'rotating' };
       this.draw();
     } else {
       this.start();
@@ -211,52 +201,13 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
     this.previousTime = 0;
   }
 
-  private selectRegion(region: Region, event: React.MouseEvent<HTMLButtonElement>): void {
-    this.setState({ region });
-    this.stop();
-    const target =
-      this.camera.longitude + wrapLongitude(REGIONS[region].longitude - this.camera.longitude);
-    // Keyboard activation and reduced motion move directly to the chosen region.
-    if (event.detail === 0 || this.reducedMotion?.matches) {
-      this.camera.longitude = target;
-      this.motion = { kind: 'rotating' };
-      this.draw();
-      this.start();
-      return;
-    }
-    this.motion = { kind: 'focusing', target, velocity: 0 };
-    this.start();
-  }
-
-  private selectEurope = (event: React.MouseEvent<HTMLButtonElement>): void => {
-    this.selectRegion('europe', event);
-  };
-
-  private selectApac = (event: React.MouseEvent<HTMLButtonElement>): void => {
-    this.selectRegion('apac', event);
-  };
-
-  private selectUs = (event: React.MouseEvent<HTMLButtonElement>): void => {
-    this.selectRegion('us', event);
-  };
-
   private animate = (time: number): void => {
     const delta =
       this.previousTime === 0 ? 1 / 60 : Math.min((time - this.previousTime) / 1000, 1 / 30);
     this.previousTime = time;
-    if (this.motion.kind === 'focusing') {
-      const distance = this.motion.target - this.camera.longitude;
-      this.motion.velocity += (distance * 100 - this.motion.velocity * 20) * delta;
-      this.camera.longitude += this.motion.velocity * delta;
-      if (Math.abs(distance) < 0.02 && Math.abs(this.motion.velocity) < 0.05) {
-        this.camera.longitude = this.motion.target;
-        this.motion = { kind: 'rotating' };
-      }
-    } else {
-      this.camera.longitude = wrapLongitude(
-        this.camera.longitude + ROTATION_DEGREES_PER_SECOND * delta,
-      );
-    }
+    this.camera.longitude = wrapLongitude(
+      this.camera.longitude + ROTATION_DEGREES_PER_SECOND * delta,
+    );
     this.draw();
     this.frame = requestAnimationFrame(this.animate);
   };
@@ -264,7 +215,6 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
   private onPointerDown = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     if (!event.isPrimary || event.button !== 0) return;
     this.stop();
-    this.motion = { kind: 'rotating' };
     this.drag = {
       kind: 'dragging',
       pointerId: event.pointerId,
@@ -310,7 +260,6 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
     }
     event.preventDefault();
     this.stop();
-    this.motion = { kind: 'rotating' };
     this.camera.longitude = wrapLongitude(this.camera.longitude + longitude);
     this.draw();
     this.start();
@@ -361,13 +310,16 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
     context.arc(centerX, centerY, radius, 0, Math.PI * 2);
     context.strokeStyle = HAIRLINE.edge;
     context.stroke();
-    for (const region of ['europe', 'apac', 'us'] as const) {
-      const point = project(REGIONS[region], this.camera);
-      if (point.depth < 0.12) continue;
+    const regions = (['europe', 'apac', 'us'] as const)
+      .map((region) => ({ region, point: project(REGIONS[region], this.camera) }))
+      .filter(({ point }) => point.depth >= 0.12);
+    const nearest = Math.max(...regions.map(({ point }) => point.depth));
+    for (const { region, point } of regions) {
       const x = centerX + point.x * radius;
       const y = centerY - point.y * radius;
-      const selected = region === this.state.region;
-      // Only the chosen region carries the bright stroke, as each figure has one highlight.
+      // Only the region nearest the viewer carries the bright stroke, as each
+      // figure has one highlight; every visible region keeps its caption.
+      const selected = point.depth === nearest;
       const ringColors = selected
         ? [HAIRLINE.hi, HAIRLINE.edge, HAIRLINE.mid]
         : [HAIRLINE.edge, HAIRLINE.mid, HAIRLINE.lo];
@@ -381,7 +333,6 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
       context.arc(x, y, 2.25, 0, Math.PI * 2);
       context.fillStyle = selected ? HAIRLINE.hi : HAIRLINE.edge;
       context.fill();
-      if (!selected) continue;
       const leaderStart = y - RING_DEGREES[RING_DEGREES.length - 1] * RADIANS * radius - 4;
       const leaderEnd = leaderStart - 36;
       context.beginPath();
@@ -410,32 +361,6 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
               <span>{t('globeTitleMuted')}</span>
             </h2>
             <p className="wallet-regions__description">{t('globeDescription')}</p>
-            <div className="wallet-regions__choices" role="group" aria-label={t('globeRegions')}>
-              <button
-                type="button"
-                aria-pressed={this.state.region === 'europe'}
-                onClick={this.selectEurope}
-              >
-                {t('globeEurope')}
-                <ArrowUpRight aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                aria-pressed={this.state.region === 'apac'}
-                onClick={this.selectApac}
-              >
-                {t('globeApac')}
-                <ArrowUpRight aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                aria-pressed={this.state.region === 'us'}
-                onClick={this.selectUs}
-              >
-                {t('globeUs')}
-                <ArrowUpRight aria-hidden="true" />
-              </button>
-            </div>
           </div>
           <div className="wallet-regions__visual">
             <canvas

@@ -77,7 +77,6 @@ export const catalog = {
   globeEurope: { en: 'Europe', ja: 'ヨーロッパ' },
   globeApac: { en: 'APAC', ja: 'アジア太平洋' },
   globeUs: { en: 'US', ja: '米国' },
-  globeRegions: { en: 'Explore regions', ja: 'リージョンを表示' },
   globeAccessibleName: {
     en: 'Rotatable globe showing Europe, Asia Pacific, and US regions',
     ja: 'ヨーロッパ、アジア太平洋、米国のリージョンを表示する回転可能な地球儀',

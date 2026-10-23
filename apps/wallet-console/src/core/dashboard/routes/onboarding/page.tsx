@@ -663,16 +663,26 @@ export function DashboardOnboardingPage({
     lastStepRef.current = shownStep;
     if (!last || !shownStep || last === shownStep) return;
     setLeavingStep(last);
-    const timer = window.setTimeout(() => setLeavingStep(null), ONBOARDING_STEP_LEAVE_MS);
+    const timer = window.setTimeout(() => {
+      setLeavingStep(null);
+      setStepMorphing(false);
+    }, ONBOARDING_STEP_LEAVE_MS);
     return () => window.clearTimeout(timer);
   }, [shownStep]);
 
   const stepsRef = React.useRef<HTMLDivElement | null>(null);
   const [stepsHeight, setStepsHeight] = React.useState<number | null>(null);
+  /* Only a step change morphs the height; loading and first paint snap. */
+  const [stepMorphing, setStepMorphing] = React.useState(false);
+  const measuredStepRef = React.useRef(shownStep);
   // A step change sets the new height before paint, so the morph starts at once.
   React.useLayoutEffect(() => {
     const element = stepsRef.current;
-    if (element) setStepsHeight(element.offsetHeight);
+    if (!element) return;
+    const previous = measuredStepRef.current;
+    measuredStepRef.current = shownStep;
+    if (previous && shownStep && previous !== shownStep) setStepMorphing(true);
+    setStepsHeight(element.offsetHeight);
   }, [shownStep, statusMessage, mutationError]);
   React.useEffect(() => {
     const element = stepsRef.current;
@@ -825,7 +835,7 @@ export function DashboardOnboardingPage({
 
         <div className="dashboard-onboarding-card__body">
           <div
-            className="dashboard-onboarding-card__steps"
+            className={`dashboard-onboarding-card__steps${stepMorphing ? ' dashboard-onboarding-card__steps--morphing' : ''}`}
             style={stepsHeight === null ? undefined : { height: stepsHeight }}
           >
             <div ref={stepsRef} className="dashboard-onboarding-card__step">

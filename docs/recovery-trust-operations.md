@@ -58,6 +58,23 @@ The four deployment files also contain unrelated secrets. Parse only the needed
 values; do not execute or print an entire file. Their pre-rotation copies are in
 `~/.seams/backups/recovery-root-prelaunch-20261023/`.
 
+On 2026-10-23, two AES-256 ZIP backups were verified in `~/Documents`:
+
+- `seams-secrets-recovery-bundle-20261023T071808Z-aes256.zip` contains all 1,234
+  files under `~/.seams` and the owner-supplied Cloudflare, R2, and NEAR values.
+  Its SHA-256 is `ee3e2e5ea97e6ab616540a29672b26d54f3863d5a9aedd87c7465db56d93a9fe`.
+- `seams-current-deployment-secrets-20261023T085337Z-aes256.zip` contains 19
+  current deployment files and the same owner-supplied values. It excludes
+  historical backups, database dumps, old environment files, and local Docker
+  state. Its SHA-256 is `8cb747590fd3157204ae86cfad7f7e02fa663e6108bcac446068842e906fbc56`.
+
+The ZIP passwords differ. Store them separately in a password manager. They are
+absent from the ZIPs and this repository. Verify a ZIP's SHA-256 and its encrypted
+`BACKUP-MANIFEST.json` before using a restored file. The owner-supplied values
+were archived as given; their current validity was not checked. GitHub-only
+write-only secrets, including `SEAMS_RELEASE_SIGNING_KEY`, are absent from both
+ZIPs. These archives cannot recreate every GitHub environment secret.
+
 The control-plane environment variables are
 `ROUTER_AB_TENANT_ROOT_RECOVERY_TRUST_BUNDLE_JSON` and
 `ROUTER_AB_TENANT_ROOT_RECOVERY_TRUST_SNAPSHOT_JSON`. Their deployed Worker

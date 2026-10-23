@@ -63,12 +63,12 @@ function renderHeroWalletPreview(preview: HeroWalletPreview): React.JSX.Element 
 
 /* ---------- hero: headline + paged scenes ---------- */
 
-/* The headline panel is a desert sunrise: lavender sky, peach and pink
-   bands, and the blue shadow of a peak at the bottom edge. */
-const HOME_HERO_FIELD = 'desert-dawn';
+/* The headline panel is teal-peach in a wisp shape: peach wisps cross the
+   teal on a diagonal above the headline, over deep teal at the lower left. */
+const HOME_HERO_FIELD = 'teal-peach-wisp';
 
 /* half the site pace and flow, so the field stays calm behind the headline
-   and the shadow stays at the bottom edge */
+   and the wisps keep their shape */
 const HOME_HERO_FIELD_PACE = 0.5;
 const HOME_HERO_FIELD_FLOW = 0.5;
 

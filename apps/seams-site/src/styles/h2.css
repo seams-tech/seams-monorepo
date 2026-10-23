@@ -17,8 +17,8 @@
   --h2-radius-card: 22px;
   --h2-taupe: #f5f3f1;
   --h2-stone: #ebe8e4;
-  /* the desert-dawn field's colours, shown until its first frame */
-  --h2-gradient-dawn: linear-gradient(180deg, #dfe6fc 0%, #f6d3b4 42%, #f0a08c 70%, #4b6d9e 100%);
+  /* the teal-peach-wisp field's colours, shown until its first frame */
+  --h2-gradient-wisp: linear-gradient(160deg, #e9c6c4 0%, #36a6c4 45%, #0f5873 100%);
   /* structural hairlines (column borders, rules): a half step lighter than
      component outlines so the grid recedes but stays visible */
   --h2-line: #f2f0ed;
@@ -504,9 +504,9 @@ body:has(.h2-page) {
 }
 
 /* Panel variant: the hero content sits on a rounded panel. The home page
-   draws the desert-dawn GrainField as the shell's first child, with the
-   headline in ink at the left and the policy card at the right; the flat
-   dawn gradient shows until the field's first frame. */
+   draws the teal-peach-wisp GrainField as the shell's first child, with
+   the headline in white at the left and the policy card at the right; the
+   flat wisp gradient shows until the field's first frame. */
 .h2-hero-simple--panel {
   padding: 2rem 0 1rem;
 }
@@ -524,14 +524,14 @@ body:has(.h2-page) {
   align-items: center;
   gap: 48px;
   min-height: 560px;
-  background: var(--h2-gradient-dawn);
+  background: var(--h2-gradient-wisp);
   border-radius: var(--h2-radius-card);
   /* the top clears the floating navbar pill */
   padding: 112px 56px 56px;
 }
 
 .h2-hero-simple--panel .h2-hero-simple__title {
-  color: var(--h2-ink);
+  color: #ffffff;
 }
 
 /* each sentence starts its own line; the second one is quieter */
@@ -541,11 +541,17 @@ body:has(.h2-page) {
 }
 
 .h2-hero-simple--panel .h2-hero-simple__title-muted {
-  color: rgba(10, 10, 10, 0.5);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .h2-hero-simple--panel .h2-hero-simple__sub {
-  color: var(--h2-graphite);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* a soft shadow keeps the white type clear where a peach wisp passes */
+.h2-hero-simple--panel .h2-hero-simple__title,
+.h2-hero-simple--panel .h2-hero-simple__sub {
+  text-shadow: 0 1px 14px rgba(8, 45, 60, 0.22);
 }
 
 .h2-hero-simple--panel .h2-hero-simple__ctas {
@@ -566,6 +572,25 @@ body:has(.h2-page) {
 
   .h2-hero-simple--panel .h2-policy {
     justify-self: start;
+  }
+
+  /* a taller panel shows the light wisps at the top of the field, so the
+     type turns to ink */
+  .h2-hero-simple--panel .h2-hero-simple__title {
+    color: var(--h2-ink);
+  }
+
+  .h2-hero-simple--panel .h2-hero-simple__title-muted {
+    color: rgba(10, 10, 10, 0.55);
+  }
+
+  .h2-hero-simple--panel .h2-hero-simple__sub {
+    color: var(--h2-graphite);
+  }
+
+  .h2-hero-simple--panel .h2-hero-simple__title,
+  .h2-hero-simple--panel .h2-hero-simple__sub {
+    text-shadow: none;
   }
 }
 

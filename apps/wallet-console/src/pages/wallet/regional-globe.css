@@ -9,7 +9,8 @@
   overflow: hidden;
   border: 1px solid var(--h2-line);
   border-radius: var(--h2-radius-card);
-  background: var(--h2-taupe);
+  /* the closing banner's background: 60% taupe on white */
+  background: color-mix(in srgb, var(--h2-taupe) 60%, var(--h2-bg));
 }
 
 .wallet-regions__copy {

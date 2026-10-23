@@ -49,10 +49,10 @@ by that method.
    authorization. Commit the method only when both records can be used.
 6. Mark the local activation ready only after the server confirms the method.
 
-An interrupted activation leaves no active VoiceID auth method. Retrying uses
-the same activation identity or starts a fresh one. Replacement and removal
-require another active owner method. A voice result alone cannot replace the
-device key or enroll a new wallet.
+An interrupted activation leaves a local pending record. The server may have
+committed even if its reply was lost. Retrying uses the same method identity
+and ciphertext. Replacement and removal require another active owner method.
+A voice result alone cannot replace the device key or enroll a new wallet.
 
 ## Unlock
 
@@ -81,12 +81,10 @@ an enabled request. Disabled applications fetch no VoiceID module and make no
 loopback request. The native host and model assets are separate local files.
 
 The Wallet branch has the descriptor, config boundary, on-demand browser
-chunk, the earlier per-transaction approval flow, and an exact device-assertion
-wire contract with server-only signature verification. The verifier rejects
-replay through its atomic challenge-consumption port. The Wallet server now has
-a tenant-scoped D1 store that issues exact challenges and consumes each one
-once. Its E2E verifies replay rejection and concurrent consumption with two
-store instances. No production issuance route calls the store yet.
+chunk, and the earlier per-transaction approval flow. The server has an exact
+device-assertion contract and a tenant-scoped D1 challenge store. Its active
+issuance route consumes each challenge once. E2Es verify replay rejection and
+concurrent consumption with two store instances.
 
 The macOS host now creates a separate random authorization key and factor
 secret for each wallet auth method. Its Keychain record binds both to the
@@ -137,7 +135,13 @@ existing Wallet IndexedDB app-state store can retain that record. An exact
 retry uses the same ciphertext after a lost response. The real-D1 E2E checks
 this retry and opens the stored envelope in WASM.
 
-The Wallet host still needs a visible VoiceID action that calls this operation.
-It must call the unlock clients, install the fresh session, and activate
-signing lanes. A composed E2E with the native host and a revocation E2E remain.
-Production voice-only signing is pending those paths.
+The Wallet SDK now exposes `registration.addVoiceId({ walletId })`. The host
+loads the activation operation only when the VoiceID plugin is enabled. It
+requires an exact owner session, shows an Activate button on the Wallet origin,
+and starts native capture from that button's click. A fake-host browser E2E
+verifies the click and cancellation without Keychain access.
+
+The host still needs a VoiceID unlock action. It must request a challenge,
+capture the device assertion, install the fresh server session, open the seed
+envelope, and activate signing lanes. A composed native/browser E2E and a
+revocation E2E remain. Production voice-only signing is pending those paths.

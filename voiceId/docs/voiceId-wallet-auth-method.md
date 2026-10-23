@@ -106,9 +106,16 @@ version. A cross-language E2E reseals a generated test seed in Rust, opens the
 envelope in browser WASM, and rejects the wrong factor secret. It writes a
 repeatable JSON report with no seed or factor secret.
 
-A fresh Wallet Session still needs an owner-authorized activation transaction,
-a production challenge and verification route, session issuance, revocation,
-and signing-lane scope. The SDK must call the native bridge and custody worker
-during activation and unlock. The native bridge has no SDK caller yet. The
-method remains unavailable for production unlock and signing until those paths
-are complete. Each new path needs an end-to-end contract.
+The Wallet now has an activation HTTP route under an active full-owner
+Passkey or Email OTP Wallet Session and the configured hosted wallet origin.
+It binds the device public key to the method-bound seed envelope and commits
+both in one D1 transaction. Commit-time guards recheck the source method,
+authority, session, and quota. An exact retry returns the committed method.
+The real-D1 E2E opens the stored envelope in browser WASM and proves that a
+duplicate device key or retired source session rolls both writes back.
+
+Fresh Wallet Sessions still need production challenge and verification routes,
+session issuance, revocation integration, and signing-lane scope. The SDK must
+call the native bridge and custody worker during activation and unlock. The
+native bridge has no SDK caller yet. The method remains unavailable for
+production unlock and signing until those paths are complete.

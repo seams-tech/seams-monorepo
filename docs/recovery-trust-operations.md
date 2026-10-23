@@ -2,104 +2,134 @@
 
 Read this file before you restore recovery trust settings or rotate a recovery signer.
 
-## Purpose
+## Current authority
 
 The recovery trust bundle holds the public root key that Wallet recovery verifiers trust.
-The current bundle has one root and no rotation bridges. Wallet CLI pins this bundle in
-`seams-wallet/crates/seams-cli/trust/recovery-trust-bundle.json`.
+Wallet CLI pins it in `seams-wallet/crates/seams-cli/trust/recovery-trust-bundle.json`.
+The current root is `seams-recovery-root-production-2026-10`, with public fingerprint
+`010e1a5aeadb6afb`. The bundle has one root and no rotation bridge.
 
-The root signs certificates for the two Derivers and the control plane. These three
-signers sign tenant-root recovery artifacts. The root also signs a revocation snapshot.
-The snapshot records retired or compromised recovery signer keys. A root-rotation
-bridge requires signatures from both the old and new root keys.
+On 2026-10-23, the prelaunch recovery root was replaced with a new Ed25519 root.
+The owner chose to discard prelaunch recovery history. Recovery packages and signer
+certificates issued under the old root do not verify under the new CLI pin. Existing
+wallet records remain in D1; this change did not delete them. Do not attempt to
+restore one of their old recovery packages with the new root.
 
-The bundle is public trust data. The certificates, snapshot, and any rotation bridges
-carry signatures. The root's **private recovery signing key** issues those signatures.
-It does not sign ordinary wallet transactions. Runtime Workers receive public trust
-data, never this private key. The recovery signing key is distinct from the CLI
-release signing key and from every tenant root.
+The root signs certificates for Deriver A, Deriver B, and the control plane. These
+signers issue tenant-root recovery artifacts. The root also signs revocation
+snapshots. The snapshot records retired or compromised recovery signer keys.
+A rotation bridge requires signatures from both the old and new root keys.
 
-Current recovery verification needs the public bundle and signed records. Future
-certificate issuance, signer revocation, or bridged root rotation needs the private
-recovery signing key. If that key is lost, existing records remain verifiable. A new
-revocation or a bridge from the current root cannot be signed.
+The bundle is public trust data. The certificates and snapshot carry signatures.
+The root's **private recovery signing key** issues those signatures. It does not
+sign ordinary wallet transactions. Runtime Workers receive public trust data,
+never this private key. The recovery signing key is distinct from the CLI release
+signing key and from every tenant root.
 
 ## Backups and deployed settings
 
-These local deployment backups contain the public bundle and signed snapshot:
+The private key is saved in `~/.seams/recovery-signing-2026-10.env` with mode `0600`.
+The `~/.seams` directory has mode `0700`. This file contains
+`SEAMS_RECOVERY_SIGNING_KEY` and `SEAMS_RECOVERY_SIGNER_KEY_ID`. Never print,
+commit, or pass the key to a runtime Worker. The protected `recovery-signing`
+GitHub environment in `seams-tech/seams-monorepo` holds the same two values.
+Its [signing run] produced a snapshot that verifies against the new CLI pin.
+GitHub does not return the private value after storage.
 
-| Lane | Backup | GitHub environment |
-| --- | --- | --- |
-| Staging testnet | `~/.seams/staging-deployment.env` | `staging-tenant-root-control-plane` |
-| Production mainnet | `~/.seams/production-deployment.env` | `production-tenant-root-control-plane` |
+[signing run]: https://github.com/seams-tech/seams-monorepo/actions/runs/39909176129
 
-Each backup stores the public records under names ending in
+Public signed records and their SHA-256 manifest are in
+`~/.seams/recovery-trust-2026-10/` with mode `0700` for the directory and `0600`
+for the files. `bundle.json` holds the public root. `snapshot.json` is the
+workflow-signed version 1 snapshot with zero revocation entries. The staging and
+production certificate files bind the current signer keys in those lanes.
+`manifest.json` records the source signing run and file hashes. The local
+signer and an independent Ed25519 verifier accepted all seven signed records.
+
+The following local deployment backups contain the public bundle, signed snapshot,
+and lane-specific certificates:
+
+| Lane | Control-plane backup | Console backup | GitHub environments |
+| --- | --- | --- | --- |
+| Staging testnet | `~/.seams/staging-deployment.env` | `~/.seams/console/staging-testnet-deployment.env` | `staging-tenant-root-control-plane`, `staging-console` |
+| Production mainnet | `~/.seams/production-deployment.env` | `~/.seams/console/production-mainnet-deployment.env` | `production-tenant-root-control-plane`, `production-console` |
+
+The four deployment files also contain unrelated secrets. Parse only the needed
+values; do not execute or print an entire file. Their pre-rotation copies are in
+`~/.seams/backups/recovery-root-prelaunch-20261023/`.
+
+The control-plane environment variables are
 `ROUTER_AB_TENANT_ROOT_RECOVERY_TRUST_BUNDLE_JSON` and
-`ROUTER_AB_TENANT_ROOT_RECOVERY_TRUST_SNAPSHOT_JSON`. The values are JSON text inside
-quoted environment-file values. Parse the outer quoting and then parse the JSON.
-Do not execute or print the whole environment file. It also contains other deployment
-values.
+`ROUTER_AB_TENANT_ROOT_RECOVERY_TRUST_SNAPSHOT_JSON`. Their deployed Worker
+bindings omit the `ROUTER_AB_` prefix. Console uses
+`TENANT_ROOT_RECOVERY_CERTIFICATES_JSON`. Staging testnet and production mainnet
+require these settings. Production testnet does not require the trust bundle or
+snapshot.
 
-The GitHub environment variables use those two `ROUTER_AB_...` names. The deployed
-control-plane Worker bindings omit the `ROUTER_AB_` prefix. Current deployment policy
-requires both bindings in staging testnet and production mainnet. Production testnet
-does not require them.
+Before any restore, compare the candidate bundle with the Wallet CLI pin. Verify
+the snapshot's canonical JSON and Ed25519 signature against that bundle. Compare
+its version and every revocation entry with the latest signed artifact and the
+deployed snapshot. Never replace a newer snapshot with an older one. Never use
+an empty snapshot to erase later revocations. Verify every certificate against
+the lane's current signer keyset. After deployment, compare live Worker bindings
+with the verified files byte for byte.
 
-Before any restore, compare the candidate bundle with the Wallet CLI pin. Verify the
-snapshot's canonical JSON and Ed25519 signature against the bundle's current root.
-Compare its version and complete revocation entries with the latest signed artifact
-and deployed snapshot. Never replace a newer snapshot with an older one. Never use
-an empty snapshot to erase revocation history. After deployment, read the Worker
-bindings and compare them byte for byte with the verified files.
+## Deployment record
 
-On 2026-10-23, both backups contained the same canonical bundle and signed snapshot.
-The bundle matched the CLI pin. Snapshot version 1 records an `issuedAt` value of
-2026-09-08T03:51:10.365Z. It had zero revocation entries and passed signature
-verification. These facts describe that checkpoint. Verify whether a later
-snapshot exists before every future restore.
+The new public CLI trust pin and version 0.21.0 are in `seams-wallet` commit
+`2c98a28b46cd0024377cdfcb917c6309a49d64f0`. Its [native build] and
+the private [release-signing run] passed. The [GitHub release] and npm package
+`@seams/wallet-cli@0.21.0` are public. A fresh npm install ran the signed native
+CLI and reported version 0.21.0.
 
-On 2026-10-23, the archived `seams-sdk` repository held 13 unexpired recovery
-trust artifacts. One was the matching version 1 snapshot. The other 12 were
-signer certificates. This inventory found no later signed snapshot in that
-repository. Other stores may still hold a later snapshot.
+[native build]: https://github.com/seams-tech/seams-wallet/actions/runs/39909039762
+[release-signing run]: https://github.com/seams-tech/seams-monorepo/actions/runs/39909273330
+[GitHub release]: https://github.com/seams-tech/seams-wallet/releases/tag/seams-cli-v0.21.0
 
-The GitHub staging and mainnet trust variables held invalid two-byte values before
-the Wallet 0.21.0 rollout. The rollout restored the verified backup values. A live
-Worker readback matched each backup. The rollout then passed [staging activation],
-[production-testnet cutover], and [mainnet activation]. The Wallet site, Console,
-and host deployment smoke tests also passed.
+Staging control-plane and Console deployed with the new public trust data.
+The [staging activation] and [updated staging activation] passed their health
+checks. Both public staging Console domains served a recovery trust bundle
+that matched `bundle.json` exactly after the GET relay fix deployed. The
+staging [Wallet Console], [Wallet site], and [Wallet host] deployments passed.
 
-[staging activation]: https://github.com/seams-tech/seams-monorepo/actions/runs/39893914984
-[production-testnet cutover]: https://github.com/seams-tech/seams-monorepo/actions/runs/39895678604
-[mainnet activation]: https://github.com/seams-tech/seams-monorepo/actions/runs/39897232098
+The [production-testnet rollout] passed backend, Console, cutover, and smoke
+checks. Production testnet does not require a recovery trust bundle. The
+mainnet [backend deployment], [Console backend deployment], and [activation]
+passed. The live mainnet control-plane bundle and snapshot matched their
+saved signed files byte for byte. Both public mainnet Console domains served
+the new bundle exactly. The Wallet site, Wallet Console, and both production
+Wallet hosts passed their frontend deployment checks: [production site],
+[production Console], and [production hosts].
 
-## Private signing key status
+All deployment workflows used private repository commit
+`50e351dde25b5bcf3fc1f1aaa19fc830dc7b7572`. Mainnet signer certificates
+were checked against each active role's public key before deployment. A
+read-only query found no pending tenant-root operations or recovery-generation
+steps in the mainnet Console D1 database before the rollout.
 
-The signing workflow is `.github/workflows/sign-recovery-trust.yml`. It expects
-`SEAMS_RECOVERY_SIGNING_KEY` and `SEAMS_RECOVERY_SIGNER_KEY_ID` in the protected
-`recovery-signing` GitHub environment. That environment did not appear in the
-current repository's environment list on 2026-10-23.
+[staging activation]: https://github.com/seams-tech/seams-monorepo/actions/runs/39911004361
+[updated staging activation]: https://github.com/seams-tech/seams-monorepo/actions/runs/39912377307
+[Wallet Console]: https://github.com/seams-tech/seams-monorepo/actions/runs/39912979576
+[Wallet site]: https://github.com/seams-tech/seams-monorepo/actions/runs/39913113665
+[Wallet host]: https://github.com/seams-tech/seams-monorepo/actions/runs/39913261823
+[production-testnet rollout]: https://github.com/seams-tech/seams-monorepo/actions/runs/39913409945
+[backend deployment]: https://github.com/seams-tech/seams-monorepo/actions/runs/39914391000
+[Console backend deployment]: https://github.com/seams-tech/seams-monorepo/actions/runs/39914780797
+[activation]: https://github.com/seams-tech/seams-monorepo/actions/runs/39915083523
+[production site]: https://github.com/seams-tech/seams-monorepo/actions/runs/39914426200
+[production Console]: https://github.com/seams-tech/seams-monorepo/actions/runs/39915114320
+[production hosts]: https://github.com/seams-tech/seams-monorepo/actions/runs/39914666899
 
-The archived `seams-tech/seams-sdk` repository still has a `recovery-signing`
-environment with both named secrets. Its [2026-09-08 signing run] produced a
-snapshot that matches the local backup byte for byte. That artifact's signature
-verifies against Wallet's pinned recovery root. This proves the archived secret
-worked with the pinned root during that run. GitHub returned secret metadata,
-not the private value, so the current secret value remains unverified. GitHub's
-[environment secret API] does not reveal stored secret values.
+## Future signer operations
 
-[2026-09-08 signing run]: https://github.com/seams-tech/seams-sdk/actions/runs/34184937949
-[environment secret API]: https://docs.github.com/en/rest/actions/secrets#get-an-environment-secret
+The signing workflow is `.github/workflows/sign-recovery-trust.yml`. It uses the
+protected `recovery-signing` environment. To issue a new certificate or
+revocation snapshot, start from the latest signed snapshot and preserve its
+revocation entries. Verify the output against the CLI pin before updating any
+deployment values.
 
-A targeted search found no identifiable private recovery signing-key backup under
-`~/.seams` or `~/.config/seams`. Do not generate a new root solely because the
-current repository lacks this environment. Find the original offline key or plan
-an authorized migration from the archived secret. Verify the key against the
-pinned public root before issuing another certificate or revocation snapshot.
-A bridged root rotation also needs the original key.
-
-Keep any private-key backup encrypted and access-controlled. Do not place the key in
-this repository, a runtime Worker, or an ordinary deployment environment file.
-Do not substitute the separate CLI release signing key. If the original recovery
-signing key cannot be recovered, plan a new trust root and a Wallet release. The
-old root cannot sign a continuity bridge after its private key is lost.
+If the private root key is lost, existing artifacts stay verifiable. A new
+revocation or bridge from this root cannot be signed. The file in `~/.seams`
+meets the requested local backup requirement. An encrypted off-device copy is
+still needed for recovery from loss of this computer. Keep that copy separate
+from ordinary deployment environment files.

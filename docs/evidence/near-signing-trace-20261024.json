@@ -1,0 +1,308 @@
+{
+  "source": "20261024-p0/hosted-diagnostic",
+  "operations": 7,
+  "gatewayRouterJoins": 14,
+  "sources": [
+    {
+      "path": "20261024-p0/hosted-diagnostic/near-1.json",
+      "sha256": "55c382b3b05cb6df875bd1b7c2eba9253f9306a1e0212cb49339f7a9db1a796e"
+    },
+    {
+      "path": "20261024-p0/protected-diagnostic/seams-sdk-d1-gateway-staging.log",
+      "sha256": "6646f1bcd07016448a9367f4e7e1f5b5385329350b7af0b9a21a8a285655c547"
+    },
+    {
+      "path": "20261024-p0/protected-diagnostic/router-ab-mpc-router-staging.log",
+      "sha256": "72e5b382efd715b014d72c86a8f087bb7d17573c5c8c1785925ceb8452249efc"
+    },
+    {
+      "path": "20261024-p2/analyze.py",
+      "sha256": "247a3955de8873b4158cec4d06034973a039bf23069fe1792c9a31c340b6a4cd"
+    }
+  ],
+  "routerDistributions": {
+    "prepare": {
+      "count": 7,
+      "wallMedianMs": 45,
+      "wallMaxMs": 303,
+      "cpuMedianMs": 16,
+      "cpuMaxMs": 72
+    },
+    "finalize": {
+      "count": 7,
+      "wallMedianMs": 137,
+      "wallMaxMs": 320,
+      "cpuMedianMs": 13,
+      "cpuMaxMs": 108
+    }
+  },
+  "rows": [
+    {
+      "operationId": "near-transaction-sign:YuU726C7UJcN1JYghx31z6mki-LYLyYMHH2KZRhZ3EY",
+      "phase": "prepare",
+      "cfRay": "a4f209601e2a815c-NRT",
+      "browserMs": 630.568,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=7.0, ed25519_sign_admit;dur=33.0, ed25519_sign_proxy;dur=384.0, ed25519_sign_total;dur=424.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 452,
+        "cpuMs": 28,
+        "eventTimestamp": 1792772085815
+      },
+      "router": {
+        "wallMs": 303,
+        "cpuMs": 65,
+        "eventTimestamp": 1792772085893
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:YuU726C7UJcN1JYghx31z6mki-LYLyYMHH2KZRhZ3EY",
+      "phase": "finalize",
+      "cfRay": "a4f209639f17815c-NRT",
+      "browserMs": 393.382,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=12.0, ed25519_sign_admit;dur=9.0, ed25519_sign_proxy;dur=226.0, ed25519_sign_complete;dur=12.0, ed25519_sign_total;dur=259.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 293,
+        "cpuMs": 28,
+        "eventTimestamp": 1792772086376
+      },
+      "router": {
+        "wallMs": 137,
+        "cpuMs": 56,
+        "eventTimestamp": 1792772086437
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:0Mw4kEanMtsH3CHB5IIrGNdEFrpzo3sRyoBSedyz-q8",
+      "phase": "prepare",
+      "cfRay": "a4f2096e5a3f815c-NRT",
+      "browserMs": 870.934,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=18.0, ed25519_sign_admit;dur=29.0, ed25519_sign_proxy;dur=410.0, ed25519_sign_total;dur=457.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 546,
+        "cpuMs": 107,
+        "eventTimestamp": 1792772088095
+      },
+      "router": {
+        "wallMs": 303,
+        "cpuMs": 62,
+        "eventTimestamp": 1792772088416
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:0Mw4kEanMtsH3CHB5IIrGNdEFrpzo3sRyoBSedyz-q8",
+      "phase": "finalize",
+      "cfRay": "a4f20973cb56815c-NRT",
+      "browserMs": 566.235,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=18.0, ed25519_sign_admit;dur=12.0, ed25519_sign_proxy;dur=348.0, ed25519_sign_complete;dur=13.0, ed25519_sign_total;dur=391.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 459,
+        "cpuMs": 60,
+        "eventTimestamp": 1792772088986
+      },
+      "router": {
+        "wallMs": 320,
+        "cpuMs": 5,
+        "eventTimestamp": 1792772089093
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:9pliA_Bh2Opkkcl4efuaXblFSf8vuzXXlLZdMRbJvTA",
+      "phase": "prepare",
+      "cfRay": "a4f2097fadc9815c-NRT",
+      "browserMs": 253.426,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=14.0, ed25519_sign_admit;dur=33.0, ed25519_sign_proxy;dur=47.0, ed25519_sign_total;dur=94.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 135,
+        "cpuMs": 27,
+        "eventTimestamp": 1792772090897
+      },
+      "router": {
+        "wallMs": 39,
+        "cpuMs": 3,
+        "eventTimestamp": 1792772090986
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:9pliA_Bh2Opkkcl4efuaXblFSf8vuzXXlLZdMRbJvTA",
+      "phase": "finalize",
+      "cfRay": "a4f209814e44815c-NRT",
+      "browserMs": 286.592,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=41.0, ed25519_sign_admit;dur=10.0, ed25519_sign_proxy;dur=66.0, ed25519_sign_complete;dur=20.0, ed25519_sign_total;dur=137.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 192,
+        "cpuMs": 39,
+        "eventTimestamp": 1792772091127
+      },
+      "router": {
+        "wallMs": 60,
+        "cpuMs": 13,
+        "eventTimestamp": 1792772091233
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:hgikMu-Rm0snbFdDy7OaX5afuNQZs-CeJO5pOZyzrzI",
+      "phase": "prepare",
+      "cfRay": "a4f209a5dff4815c-NRT",
+      "browserMs": 226.412,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=13.0, ed25519_sign_admit;dur=27.0, ed25519_sign_proxy;dur=50.0, ed25519_sign_total;dur=90.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 135,
+        "cpuMs": 36,
+        "eventTimestamp": 1792772096978
+      },
+      "router": {
+        "wallMs": 45,
+        "cpuMs": 16,
+        "eventTimestamp": 1792772097065
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:hgikMu-Rm0snbFdDy7OaX5afuNQZs-CeJO5pOZyzrzI",
+      "phase": "finalize",
+      "cfRay": "a4f209a74841815c-NRT",
+      "browserMs": 396.56,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=12.0, ed25519_sign_admit;dur=13.0, ed25519_sign_proxy;dur=211.0, ed25519_sign_complete;dur=14.0, ed25519_sign_total;dur=250.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 281,
+        "cpuMs": 21,
+        "eventTimestamp": 1792772097227
+      },
+      "router": {
+        "wallMs": 204,
+        "cpuMs": 16,
+        "eventTimestamp": 1792772097284
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:ZSLV4-j1MWabY-34-_LsLojw4Quwlufjz_0c_AQDCZA",
+      "phase": "prepare",
+      "cfRay": "a4f209c90941815c-NRT",
+      "browserMs": 263.731,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=17.0, ed25519_sign_admit;dur=58.0, ed25519_sign_proxy;dur=51.0, ed25519_sign_total;dur=126.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 165,
+        "cpuMs": 19,
+        "eventTimestamp": 1792772102612
+      },
+      "router": {
+        "wallMs": 40,
+        "cpuMs": 5,
+        "eventTimestamp": 1792772102730
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:ZSLV4-j1MWabY-34-_LsLojw4Quwlufjz_0c_AQDCZA",
+      "phase": "finalize",
+      "cfRay": "a4f209cac9ac815c-NRT",
+      "browserMs": 269.695,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=14.0, ed25519_sign_admit;dur=15.0, ed25519_sign_proxy;dur=69.0, ed25519_sign_complete;dur=12.0, ed25519_sign_total;dur=110.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 154,
+        "cpuMs": 23,
+        "eventTimestamp": 1792772102888
+      },
+      "router": {
+        "wallMs": 54,
+        "cpuMs": 5,
+        "eventTimestamp": 1792772102961
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:Prt1FDaXlzQiKcwX3gANNw4q0Iw4CcuPHB55SMY9z_o",
+      "phase": "prepare",
+      "cfRay": "a4f209d41bb2815c-NRT",
+      "browserMs": 203.333,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=10.0, ed25519_sign_admit;dur=26.0, ed25519_sign_proxy;dur=41.0, ed25519_sign_total;dur=77.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 107,
+        "cpuMs": 16,
+        "eventTimestamp": 1792772104377
+      },
+      "router": {
+        "wallMs": 35,
+        "cpuMs": 5,
+        "eventTimestamp": 1792772104445
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:Prt1FDaXlzQiKcwX3gANNw4q0Iw4CcuPHB55SMY9z_o",
+      "phase": "finalize",
+      "cfRay": "a4f209d56c1f815c-NRT",
+      "browserMs": 184.45,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=13.0, ed25519_sign_admit;dur=8.0, ed25519_sign_proxy;dur=37.0, ed25519_sign_complete;dur=11.0, ed25519_sign_total;dur=69.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 96,
+        "cpuMs": 13,
+        "eventTimestamp": 1792772104583
+      },
+      "router": {
+        "wallMs": 33,
+        "cpuMs": 6,
+        "eventTimestamp": 1792772104629
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:tC4zeTNcxalcTs_q29fGOg0nfto9nkpqXU8JLBmT_ds",
+      "phase": "prepare",
+      "cfRay": "a4f209ddce55815c-NRT",
+      "browserMs": 762.602,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=15.0, ed25519_sign_admit;dur=37.0, ed25519_sign_proxy;dur=307.0, ed25519_sign_total;dur=359.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 448,
+        "cpuMs": 92,
+        "eventTimestamp": 1792772105926
+      },
+      "router": {
+        "wallMs": 223,
+        "cpuMs": 72,
+        "eventTimestamp": 1792772106283
+      }
+    },
+    {
+      "operationId": "near-transaction-sign:tC4zeTNcxalcTs_q29fGOg0nfto9nkpqXU8JLBmT_ds",
+      "phase": "finalize",
+      "cfRay": "a4f209e29f37815c-NRT",
+      "browserMs": 624.007,
+      "gatewayServerTiming": "ed25519_sign_authorize;dur=37.0, ed25519_sign_admit;dur=9.0, ed25519_sign_proxy;dur=375.0, ed25519_sign_complete;dur=10.0, ed25519_sign_total;dur=431.0, cfExtPri",
+      "gatewayPlacement": null,
+      "d1": null,
+      "gateway": {
+        "wallMs": 464,
+        "cpuMs": 24,
+        "eventTimestamp": 1792772106692
+      },
+      "router": {
+        "wallMs": 274,
+        "cpuMs": 108,
+        "eventTimestamp": 1792772106779
+      }
+    }
+  ],
+  "limitation": "SigningWorker and wallet-object events do not retain this Ray ID. Cross-worker event timestamps do not establish additive timing boundaries."
+}

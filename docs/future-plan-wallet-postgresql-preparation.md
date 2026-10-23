@@ -1,6 +1,7 @@
 # Wallet PostgreSQL preparation
 
 The Wallet role store now has a native PostgreSQL backend with E2E evidence from a real local database.
+Its adapter also builds for Workers and passes a local transaction E2E through workerd and Workers sockets.
 [Wallet storage portability](../../seams-wallet/docs/storage-portability.md)
 describes the public implementation and the remaining storage work.
 This verifies the Rust role-store backend. The private Console and Gateway stores still require separate PostgreSQL implementations.
@@ -45,7 +46,8 @@ The Wallet repository stores verification evidence beside the migration note.
 
 ## Potential latency upgrade: PostgreSQL through Hyperdrive
 
-Status, October 22, 2026: proposed upgrade path. No hosted latency improvement is established.
+Status, October 24, 2026: the library adapter and local Worker connection pass their checks.
+Deployed Derivers still use D1. No hosted latency improvement is established.
 
 The Workers and Durable Objects can stay on Cloudflare while PostgreSQL replaces their D1 stores.
 Amazon RDS and Google Cloud SQL are possible PostgreSQL hosts.
@@ -90,7 +92,12 @@ That evidence establishes role-store correctness. It establishes no latency adva
   See [pooling behavior](https://developers.cloudflare.com/hyperdrive/concepts/how-hyperdrive-works/#pooling-mode).
 
 The [public portability note](../../seams-wallet/docs/storage-portability.md#cloudflare-workers-with-hyperdrive)
-records the remaining Rust/WASM connection work. The Workers-to-Hyperdrive role-store path is not implemented or tested.
+records the WASM adapter and connection fixture.
+The [October 24 E2E evidence](../../seams-wallet/docs/evidence/postgres-role-worker-20261024.md)
+verifies rollback, coherent reads, conditional claims, serialization retries, and role identity through local Workers sockets.
+That fixture uses local Hyperdrive bindings against disposable PostgreSQL.
+Hosted pooling, origin TLS, and the complete Worker lifecycle remain unverified.
+The Deriver runtime still needs PostgreSQL connection setup and store construction.
 Gateway, SigningWorker, and Console stores also need PostgreSQL ports.
 For TypeScript stores, Hyperdrive documents `node-postgres` and `postgres.js` with the `nodejs_compat` flag.
 Data import and production cutover remain separate work.

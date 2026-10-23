@@ -195,6 +195,46 @@ P0 remains open for warm-message distributions, dedicated step-up latency,
 bounded NEAR concurrency, and broader factor/device/geographic coverage.
 The original signing target is not accepted across all workloads.
 
+## Gateway-to-Router trace follow-up
+
+All 14 diagnostic requests now match one Gateway POST and one Router POST by request ID and path.
+These are the same seven verified signatures from the diagnostic workflow above.
+The [generated trace evidence](near-signing-trace-20261024.json) retains the joins, source hashes, and individual timings.
+This follow-up adds no signing samples or latency comparison.
+
+| Router invocation, ms | Count | Wall median | Wall maximum | CPU median | CPU maximum |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Prepare | 7 | 45 | 303 | 16 | 72 |
+| Finalize | 7 | 137 | 320 | 13 | 108 |
+
+SigningWorker requests lack the corresponding Ray identifier.
+All 14 browser records have null D1 and Gateway placement fields.
+The evidence therefore cannot split downstream persistence, dispatch, and response delivery.
+
+Cross-worker timestamps also fail a synchronized, nested-timeline interpretation.
+For Ray `a4f2096e5a3f815c`, Router timestamp plus wall duration ends 78 ms after the corresponding Gateway sum.
+For `a4f209ddce55815c`, that difference is 132 ms.
+These arithmetic contradictions constrain the measurement model. They are not measured network delays.
+Do not subtract browser, Gateway, Router, or object durations to assign a removable cost.
+
+| Candidate explanation | Observation | Remaining conclusion |
+| --- | --- | --- |
+| Missing Gateway-to-Router correlation prevents attribution | Each of 14 request IDs matches both Workers. | This gap is closed. Downstream correlation remains missing. |
+| Cross-worker duration differences measure network overhead | The two timestamp-plus-wall examples violate the expected nesting. | The proposed arithmetic attribution is unsupported. |
+| D1 dominates these signing requests | The diagnostic records contain no D1 timing or trip observations. | Unknown. Existing standalone D1 probes describe a separate workload. |
+| SigningWorker persistence or dispatch dominates | The request identifier does not reach those events. | Unknown. Extend existing identifiers and measure those boundaries. |
+| Runtime startup explains the slower samples | A fresh browser context does not identify Worker cold state. | Unknown. A correlated runtime observation and matched control are required. |
+
+An independent review reproduced every join and confirmed the timestamp contradiction from the raw records.
+The trace supports further instrumentation. It does not justify a routing or persistence change yet.
+The next implementation should propagate the existing identifier through SigningWorker and its object calls.
+Record persistence and dispatch boundaries without logging request bodies or secret material.
+Then repeat a bounded signing cohort with failures retained.
+
+The independent PostgreSQL work completed WASM adapter and retry-timer support.
+Its [native and local Worker E2Es](../../../seams-wallet/docs/evidence/postgres-role-worker-20261024.md) pass.
+Deployed Derivers still use D1. Hosted Hyperdrive correctness and performance remain unverified.
+
 ## Reproduction and artifacts
 
 Public artifacts: `seams-wallet/.artifacts/optimization-11-near/20261024-p0/`.
@@ -216,6 +256,7 @@ From `seams-monorepo`, verify the retained public signatures and regenerate the 
 node .artifacts/optimization-11-near/20261024-p0/verify-proofs.mjs
 node .artifacts/optimization-11-near/20261024-p0/verify-reviewed.mjs
 python3 .artifacts/optimization-11-near/20261024-p0/analyze.py
+python3 .artifacts/optimization-11-near/20261024-p2/analyze.py
 ```
 
 Protected Worker tails stay in the private artifact directory.

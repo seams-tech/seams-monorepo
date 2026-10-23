@@ -22,6 +22,8 @@ agent session. When working under `tests/`, also read `tests/AGENTS.md`.
   `tests/e2e/`, `tests/relayer/`, `tests/wallet-iframe/`, ...) — never co-located with
   sources in `packages/*`.
 - Wallet Rust and pure SDK tests run in `seams-wallet`; keep Console and composed acceptance tests private.
+- Before changing tenant-root recovery trust or deploying its control plane, read
+  `docs/recovery-trust-operations.md`. Preserve the latest signed revocation history.
 
 ## Custody vocabulary (each term names exactly one thing)
 

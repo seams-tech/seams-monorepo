@@ -16,6 +16,8 @@ This package is not signed for public distribution or notarized.
    requests it. Keep Terminal open until the page says Voice enrolled. The page
    receives no audio. Only the voice template stays in your local Keychain.
    The package contains no enrollment, recordings, transcripts, or evaluation fixtures.
+   The local page closes after 15 minutes without a Record click. Run the command
+   again to reopen it.
 
 3. Register the host for the browser's user data directory. For normal Chrome:
 

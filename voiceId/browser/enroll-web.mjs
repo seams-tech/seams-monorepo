@@ -20,10 +20,18 @@ let child = null;
 let stdout = '';
 let stderr = '';
 let state = { kind: 'loading' };
+let idleTimer;
 
 server.listen(0, '127.0.0.1', start);
+renewIdle();
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
+
+function renewIdle() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(stop, 15 * 60_000);
+  idleTimer.unref();
+}
 
 function start() {
   const address = server.address();
@@ -93,9 +101,16 @@ function finishHost(code) {
   child = null;
   if (state.kind === 'complete' && code === 0) return;
   const error = /Error: "([^"]+)"/.exec(stderr);
+  let message = error ? error[1] : 'The voice host stopped. Restart enrollment.';
+  if (
+    (state.kind === 'starting' || state.kind === 'listening') &&
+    message.includes('InvalidInput(LimitExceeded)')
+  ) {
+    message = 'Recording reached ten seconds without a quiet pause. Mute nearby audio and try a short sentence near the Mac microphone.';
+  }
   state = {
     kind: 'failed',
-    message: error ? error[1] : 'The voice host stopped. Restart enrollment.',
+    message,
   };
 }
 
@@ -130,12 +145,14 @@ function serve(request, response) {
   }
   request.resume();
   if (request.url === '/capture' && state.kind === 'ready' && child) {
+    renewIdle();
     state = { kind: 'starting', sample: state.sample };
     child.stdin.write('\n');
     respond(response, 202, 'application/json; charset=utf-8', JSON.stringify(state));
     return;
   }
   if (request.url === '/restart' && state.kind === 'failed' && child === null) {
+    renewIdle();
     startHost();
     respond(response, 202, 'application/json; charset=utf-8', JSON.stringify(state));
     return;
@@ -153,6 +170,7 @@ function respond(response, status, contentType, body) {
 }
 
 function stop() {
+  clearTimeout(idleTimer);
   if (child) child.kill('SIGTERM');
   server.close();
 }

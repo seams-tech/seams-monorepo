@@ -45,7 +45,7 @@ A rebased Wallet 0.21.0 run passed the same contract. Its
 records fresh owner signing and the unavailable broadcast replies.
 
 The local enrollment page starts one native microphone capture per Record click.
-The [web enrollment journey](../verifier-spike/reports/browser-web-enrollment-2026-10-23.json)
+The [web enrollment journey](../verifier-spike/reports/browser-web-enrollment-idle-2026-10-23.json)
 checks the relocated package in Chromium. It exercises three separate clicks and
 rejects a request from another origin. This automated journey uses a controlled
 host and opens no microphone. Live speech qualification remains open.
@@ -99,6 +99,8 @@ Each click starts the native microphone. The page receives no audio. Grant
 microphone permission when macOS requests it. Only the template remains in the
 local Keychain. `voiceid-host status` checks enrollment. `voiceid-host delete`
 removes it.
+The local page closes after 15 minutes without a Record click. Run the command
+again to reopen it.
 
 Choose the Chrome or Chromium user data directory that will run the prototype.
 It contains the `Default` and `Profile 1` directories. Register the native host:

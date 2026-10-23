@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "voiceid_web_enrollment_evidence_v1",
+  "evaluatedAt": "2026-10-23T05:05:31.140Z",
+  "status": "passed",
+  "branchBase": "021e5cc5b41d58495f52c2c6da392b8af8d6e64e",
+  "sourceFiles": [
+    {
+      "path": "voiceId/browser/enroll-web.mjs",
+      "sha256": "9a0cb0f6cba320ae57e8f004fd410c1ba41c54d0f6f8d2bb7d0cf1492f47ff69"
+    },
+    {
+      "path": "voiceId/browser/enroll-web.html",
+      "sha256": "9c1b8fac685a7bc96ba04b197d0313b94cd5a219c8fa60af50ebcfb0c5af6a54"
+    },
+    {
+      "path": "voiceId/browser/package.mjs",
+      "sha256": "baddc07cc6e01b41b36ccb6f11147c46a6c208595c1e438d7f63eea329bf9ca9"
+    },
+    {
+      "path": "tests/e2e/voiceid-web-enrollment.e2e.mjs",
+      "sha256": "2bb3de40253c06b19fe49a83e39369752fd76feeac55dafb52f3f1db865ec7fb"
+    }
+  ],
+  "rawReportSha256": "5703a9173ac143b05b1374b987ce9229a072f48af0835f7b241d3bb3d5b50205",
+  "journey": {
+    "schemaVersion": "voiceid_web_enrollment_journey_v1",
+    "status": "passed",
+    "capture": "controlled_host_boundary_without_microphone",
+    "browser": "real_chromium",
+    "relocation": "outside_checkouts_with_spaces_and_apostrophe",
+    "unrelatedOriginBlocked": true,
+    "separateRecordClicks": 3,
+    "nativeHostInputWrites": 3,
+    "audioTransferredToPage": false,
+    "archiveSha256": "6c3b3ef53caa59dca17f360cb2b32231058a739dca652c5ea1c8f2f52a64fba6"
+  }
+}

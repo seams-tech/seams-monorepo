@@ -2120,8 +2120,11 @@ textarea {
   font-weight: 600;
 }
 
+/* a link, not a button: without a flex line box its text sits at the top */
 .dashboard-plan-banner__link {
   flex: none;
+  display: inline-flex;
+  align-items: center;
   white-space: nowrap;
   text-decoration: none;
 }

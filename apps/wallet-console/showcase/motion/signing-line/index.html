@@ -727,8 +727,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 // Threshold signing in line only. Two plates each hold half of one circle; the
 // half a plate lacks is a dashed outline. Hover traces both paths, slides the
 // halves along them until they meet as one circle, turns a stack of four
-// upright policy plates until their off-centre holes line up on the path,
-// passes the circle through the holes edge-on, and lands it on the last plate,
+// upright policy plates about the path until their slits lie level and in
+// line, passes the circle through the slits edge-on, lands it on the last plate,
 // where hatching fills it in: the signature. Drawn in x-ray, in place of rule
 // 06: nothing is opaque, and a line that a plate hides is dashed.
 const DURATION = 2400;
@@ -738,13 +738,12 @@ const [PLATE_X, PLATE_Y] = [26, 18];
 const SHARES = [-50, 50];
 const [MERGE, CLEAR, RESULT] = [86, 156, 220];
 // The policy plates: the permissions figure's stack laid on its side, along the
-// path. Each is a square of half side GATE with a round hole off its centre;
-// HOLE is the hole's place in the plate and its radius, wide enough for the
-// circle to pass edge-on. The stack's axis runs through the plates' centres,
-// beside the path, so turning a plate about it moves its hole off the path.
+// path, which is the stack's axis. Each is a square of half side GATE with a
+// slit through its centre; SLIT is the slit's half length and half width, long
+// enough for the circle to pass through edge-on.
 const GATES = [102, 114, 126, 138];
 const GATE = 25;
-const HOLE = [10, -7, 11];
+const SLIT = [12.5, 1.6];
 // At rest each plate is turned a little further than the one before.
 const TURNED = [12, 24, 36, 48];
 // Phases on one play head, in ms: the solid trace, the halves gathering, the
@@ -780,8 +779,8 @@ function hidden(state, w) {
       p.c,
     );
     const [a, b] = [dot(q, p.u), dot(q, p.v)];
-    const inHole = p.hole && Math.hypot(a - p.hole[0], b - p.hole[1]) < p.hole[2];
-    if (Math.abs(a) < p.hu && Math.abs(b) < p.hv && !inHole) return true;
+    const inSlit = p.slit && Math.abs(a) < p.slit[0] && Math.abs(b) < p.slit[1];
+    if (Math.abs(a) < p.hu && Math.abs(b) < p.hv && !inSlit) return true;
   }
   return false;
 }
@@ -831,13 +830,12 @@ function flat(cx, cy) {
     cy + (i < 2 ? -1 : 1) * PLATE_Y,
     Z,
   ]);
-  return { c: [cx, cy, Z], n: UP, u: X, v: Y, hu: PLATE_X, hv: PLATE_Y, hole: null, corners };
+  return { c: [cx, cy, Z], n: UP, u: X, v: Y, hu: PLATE_X, hv: PLATE_Y, slit: null, corners };
 }
 function upright(x, angle = 0) {
   const [cos, sin] = [Math.cos(HL.rad(angle)), Math.sin(HL.rad(angle))];
-  // Unturned, the hole's centre sits on the path at (x, 0, Z).
-  const c = [x, -HOLE[0], Z - HOLE[1]];
-  const p = { c, n: X, u: [0, cos, sin], v: [0, -sin, cos], hu: GATE, hv: GATE, hole: HOLE };
+  const c = [x, 0, Z];
+  const p = { c, n: X, u: [0, cos, sin], v: [0, -sin, cos], hu: GATE, hv: GATE, slit: SLIT };
   p.corners = box(p, GATE, GATE);
   return p;
 }
@@ -924,9 +922,9 @@ function frame(state, t) {
   });
   state.plates = [...state.flats, ...gates];
   gates.forEach((p, i) => {
-    const [outline, hole] = state.gates[i];
+    const [outline, slit] = state.gates[i];
     draw(outline, xray(state, outlineOf(p.corners)));
-    draw(hole, xray(state, circle(p, ...HOLE)));
+    draw(slit, xray(state, outlineOf(box(p, ...SLIT))));
   });
   state.shares.forEach((share, i) => {
     draw(share.trace, xray(state, walk(share.path, EASE(span(t, TRACE))).upto));

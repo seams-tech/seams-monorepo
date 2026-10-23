@@ -2,6 +2,7 @@ import { AccountSettingsPage } from '@core/dashboard/routes/account-settings/pag
 import { ApiKeyManagementPage } from '@core/dashboard/routes/api-keys/page';
 import { BillingConsoleShell } from '@core/dashboard/routes/billing/BillingConsoleShell';
 import { TeamMembersPage } from '@core/dashboard/routes/team-members/page';
+import { DashboardOnboardingPage } from '@core/dashboard/routes/onboarding/page';
 import type { ApiCredentialScopeCatalog } from '@core/dashboard/routes/api-keys/apiKeyScopeCatalog';
 import { AuditLogsPage, type AuditApprovalIntegration } from '@core/dashboard/routes/audit/page';
 import { GasSponsorshipPage } from '@wallet-product/gas-sponsorship/page';
@@ -464,9 +465,19 @@ function resolveDefaultDashboardRoute(groups: ComposedSidebarGroup[]): ComposedD
 export const DEFAULT_DASHBOARD_ROUTE: ComposedDashboardRoute =
   resolveDefaultDashboardRoute(SIDEBAR_GROUPS);
 
+const onboarding: ComposedSidebarItem = {
+  key: 'onboarding',
+  label: 'Onboarding',
+  path: '/dashboard/onboarding',
+  icon: LayoutDashboardIcon,
+  component: DashboardOnboardingPage,
+  context: 'account',
+};
+
 export function getRouteFromPathname(pathname: string): ComposedDashboardRoute | null {
   const normalizedPathname =
     pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+  if (normalizedPathname === onboarding.path) return onboarding.path;
   if (normalizedPathname === '/dashboard/billing') return '/dashboard/billing/account';
   if (/^\/dashboard\/(?:billing\/)?invoices(?:\/[^/]+)?$/.test(normalizedPathname)) {
     return '/dashboard/invoices';
@@ -481,6 +492,7 @@ export function getRouteFromPathname(pathname: string): ComposedDashboardRoute |
 }
 
 export function getViewForRoute(route: ComposedDashboardRoute): ComposedSidebarItem {
+  if (route === onboarding.path) return onboarding;
   for (const group of SIDEBAR_GROUPS) {
     for (const item of group.items) {
       if (item.path === route) return item;

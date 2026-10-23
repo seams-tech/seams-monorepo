@@ -217,9 +217,9 @@ export function DashboardLoginPage(): React.JSX.Element {
   const [planIntent] = React.useState(() =>
     presentation === 'github_popup' ? null : captureDashboardPlanIntentLink(),
   );
-  const [preparingPlan, setPreparingPlan] = React.useState<
-    'setup' | 'stripe' | 'dashboard' | null
-  >(null);
+  const [preparingPlan, setPreparingPlan] = React.useState<'setup' | 'stripe' | 'dashboard' | null>(
+    null,
+  );
 
   React.useEffect(rememberConsoleContext, []);
 
@@ -280,8 +280,7 @@ export function DashboardLoginPage(): React.JSX.Element {
     [openPage, relayerBaseUrl],
   );
 
-  /* Continues a session that exists already: on load, and after the GitHub popup. Wallet
-     Console sets up an identity without an organization only for a plan intent. */
+  /* Continue an existing workspace or resume organization setup on this origin. */
   const resumeSignedInSession = React.useCallback(
     async (isCancelled: () => boolean): Promise<void> => {
       const scoped = await fetchDashboardConsoleSession().then(
@@ -290,7 +289,6 @@ export function DashboardLoginPage(): React.JSX.Element {
       );
       if (isCancelled()) return;
       if (scoped) return await continueSignedIn('/dashboard');
-      if (import.meta.env.MODE === 'wallet' && !readPendingDashboardPlanIntent()) return;
       const unscoped = await readUnscopedConsoleSession(relayerBaseUrl).catch(() => false);
       if (unscoped && !isCancelled()) await continueSignedIn('/dashboard/onboarding');
     },

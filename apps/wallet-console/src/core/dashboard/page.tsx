@@ -1272,12 +1272,12 @@ function DashboardEntry<ProductRoute extends string, ProductGroupKey extends str
     readUnscopedConsoleSession(requireConsoleBaseUrl())
       .then((onboarding) => {
         if (cancelled) return;
-        if (onboarding && import.meta.env.MODE === 'wallet') {
-          go(consoleSessionHref(DASHBOARD_LOGIN_ROUTE));
-          return;
-        }
         setEntry(onboarding ? 'onboarding' : 'workspace');
-        if (onboarding) go(consoleSessionHref(DASHBOARD_ONBOARDING_ROUTE));
+        if (onboarding) {
+          // An identity without an organization cannot retain another account's scope.
+          replaceDashboardSelectedContext({ organization: '', project: '', environment: '' });
+          go(consoleSessionHref(DASHBOARD_ONBOARDING_ROUTE));
+        }
       })
       .catch(() => {
         if (!cancelled) setEntry('workspace');

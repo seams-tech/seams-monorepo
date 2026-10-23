@@ -6,12 +6,11 @@ import {
   readPersistedDashboardSelectedContext,
 } from './useDashboardUiPreferences';
 
-/** Routes that only Platform Console serves. Wallet Console keeps its own account,
-    team, billing account, and invoice pages. */
+/** Routes that only Platform Console serves. Onboarding stays on the Console
+    origin that owns the signed-in session. */
 export function isPlatformConsolePath(pathname: string): boolean {
   const path = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
   return (
-    path === '/dashboard/onboarding' ||
     path === '/dashboard/invitations/accept' ||
     path === '/dashboard/billing/plan' ||
     path === '/platform/billing'

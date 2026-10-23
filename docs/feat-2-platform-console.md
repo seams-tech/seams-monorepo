@@ -18,6 +18,30 @@ release outputs, and domains without duplicating identity, billing, or shared UI
 
 ## Recorded acceptance and limits
 
+### Wallet sign-in and onboarding (October 23, 2026)
+
+Each Console origin owns a host-only session cookie. Wallet sign-in and initial
+organization/project setup stay on the Wallet Console origin. The shared onboarding
+page serves both consoles. A signed-in identity without an organization resumes
+onboarding and clears any previous account's selected organization and project.
+Organization creation upgrades that identity to a workspace session. Existing
+Platform sessions remain separate.
+
+The browser contract is `tests/e2e/console/identity-onboarding.e2e.test.ts`. Run it
+against the local Wallet Console with a fresh identity-only session cookie supplied
+as `SEAMS_HANDOFF_IDENTITY_COOKIE`. The fixture user ID must start with
+`github:handoff-`. Set `SEAMS_HANDOFF_APP_ORIGIN` when the local Console uses a port
+other than 4001. Run:
+
+```sh
+pnpm -C tests exec playwright test -c playwright.config.ts e2e/console/identity-onboarding.e2e.test.ts
+```
+
+The test uses real Console APIs, creates a local test organization and project,
+and saves `evidence.json` and `workspace.png` in its test-results directory.
+
+### Original split acceptance
+
 Google and GitHub sign-in passed on both Console domains after provider origins
 and callbacks were configured. Invitation acceptance, product setup, and an existing
 Satyr workspace passed the recorded checks.

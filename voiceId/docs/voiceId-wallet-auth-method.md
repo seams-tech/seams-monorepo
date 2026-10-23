@@ -122,8 +122,13 @@ The E2E retires the original owner session, then uses a generated test key to
 issue and read a new VoiceID session. A changed origin and replayed assertion
 fail. This test uses no microphone or Keychain access.
 
-The SDK still needs to call the native bridge and custody worker during
-activation and unlock. It must activate signing lanes under the new session.
-A composed E2E with the native host and a revocation E2E remain. The native
-bridge has no SDK caller yet, so production voice-only signing remains
-unavailable.
+The Wallet browser now has a typed activation and unlock capture client
+for the local native host. It checks the device key digest, Wallet origin,
+challenge signature shape, expiry, and cancellation. The existing transaction
+approval flow uses the same NDJSON transport. A fake-host browser E2E tests
+all three flows without microphone or Keychain access.
+
+The Wallet host still needs to call this capture client and custody worker
+during activation and unlock. It must install the fresh session and activate
+signing lanes. A composed E2E with the native host and a revocation E2E remain.
+Production voice-only signing is pending those paths.

@@ -796,6 +796,52 @@
   backdrop-filter: blur(4px);
 }
 
+/* The dialog rises and fades in over a fading backdrop, and settles out when it
+   closes. Browsers without @starting-style or discrete transitions open and
+   close it at once. */
+.h2-page.plan-signup,
+.plan-signup::backdrop {
+  transition:
+    opacity 200ms ease,
+    translate 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    scale 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 200ms ease,
+    backdrop-filter 200ms ease,
+    overlay 260ms allow-discrete,
+    display 260ms allow-discrete;
+}
+
+.h2-page.plan-signup:not([open]) {
+  opacity: 0;
+  translate: 0 8px;
+  scale: 0.98;
+}
+
+.plan-signup:not([open])::backdrop {
+  background-color: rgba(10, 10, 10, 0);
+  backdrop-filter: blur(0);
+}
+
+@starting-style {
+  .h2-page.plan-signup[open] {
+    opacity: 0;
+    translate: 0 16px;
+    scale: 0.98;
+  }
+
+  .plan-signup[open]::backdrop {
+    background-color: rgba(10, 10, 10, 0);
+    backdrop-filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h2-page.plan-signup,
+  .plan-signup::backdrop {
+    transition: none;
+  }
+}
+
 html:has(.plan-signup[open]) {
   overflow: hidden;
 }

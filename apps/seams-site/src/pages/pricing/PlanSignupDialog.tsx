@@ -60,6 +60,13 @@ export function PlanSignupDialog({
   const frameRef = React.useRef<HTMLIFrameElement>(null);
   const [frameHeight, setFrameHeight] = React.useState(FRAME_DEFAULT_HEIGHT);
   const open = offer !== null;
+  /* The dialog keeps its last plan while it fades out, and each opening loads a
+     fresh frame. */
+  const shownOffer = React.useRef<SignupOffer | null>(offer);
+  const openings = React.useRef(0);
+  if (offer && offer !== shownOffer.current) openings.current += 1;
+  if (offer) shownOffer.current = offer;
+  const shown = shownOffer.current;
 
   // Escape closes the dialog natively; keep the state in step
   React.useEffect(() => {
@@ -72,9 +79,11 @@ export function PlanSignupDialog({
   React.useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      setFrameHeight(FRAME_DEFAULT_HEIGHT);
+      dialog.showModal();
+    }
     if (!open && dialog.open) dialog.close();
-    if (!open) setFrameHeight(FRAME_DEFAULT_HEIGHT);
   }, [open]);
 
   // Back from Stripe restores this page as it was left; start again from the cards
@@ -110,19 +119,19 @@ export function PlanSignupDialog({
     <dialog
       ref={dialogRef}
       className="h2-page plan-signup"
-      aria-label={offer ? t('signupDialogLabel').replace('{plan}', offer.name) : undefined}
+      aria-label={shown ? t('signupDialogLabel').replace('{plan}', shown.name) : undefined}
       onClick={(event) => {
         // a click on the backdrop lands on the dialog element itself
         if (event.target === event.currentTarget) dialogRef.current?.close();
       }}
     >
-      {offer ? (
+      {shown ? (
         <div className="plan-signup__panel">
           <div className="plan-signup__band">
-            <GrainField field={offer.field} />
-            <span className="plan-signup__plan">{offer.name}</span>
+            <GrainField field={shown.field} playing={open} />
+            <span className="plan-signup__plan">{shown.name}</span>
             <span className="plan-signup__price">
-              <strong>{offer.price}</strong> {offer.unit}
+              <strong>{shown.price}</strong> {shown.unit}
             </span>
           </div>
           <button
@@ -141,9 +150,10 @@ export function PlanSignupDialog({
             </svg>
           </button>
           <iframe
+            key={openings.current}
             ref={frameRef}
             className="plan-signup__frame"
-            src={planSignupHref(offer.id, 'dialog')}
+            src={planSignupHref(shown.id, 'dialog')}
             title={t('signupFrameTitle')}
             // Google sign-in runs in the frame through FedCM
             allow="identity-credentials-get"

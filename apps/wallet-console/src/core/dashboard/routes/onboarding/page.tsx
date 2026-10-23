@@ -1,7 +1,6 @@
 import { createInitialOrganization } from './initialOrganizationApi';
 import React from 'react';
 import { Check } from 'lucide-react';
-import { GrainField } from '@seams-internal/grain-field';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import { useDashboardConsoleSession } from '../../consoleSession';
 import { DashboardLoadingState } from '../../components/DashboardLoadingState';
@@ -650,12 +649,11 @@ export function DashboardOnboardingPage({
     );
   }
 
-  /* One card: a dark band with the two steps, then one question per step. */
+  /* One card: a light slate band with the two steps, then one question per step. */
   return (
     <div className="dashboard-view dashboard-onboarding" aria-label="Onboarding wizard page">
       <section className="dashboard-onboarding-card" aria-label="Set up your workspace">
         <header className="dashboard-onboarding-card__band">
-          <GrainField field="onyx-black" playing={false} />
           <p className="dashboard-onboarding-card__eyebrow">Set up your workspace</p>
           <ol className="dashboard-onboarding-stepper" aria-label="Onboarding progress">
             {stepper.map((entry, index) => (
@@ -681,7 +679,7 @@ export function DashboardOnboardingPage({
 
           {showOrganizationStep ? (
             <form
-              className="dashboard-onboarding-form"
+              className="dashboard-onboarding-form dashboard-onboarding-form--organization"
               aria-label="Create organization"
               onSubmit={onSubmitOrganization}
             >
@@ -731,7 +729,7 @@ export function DashboardOnboardingPage({
 
           {showProjectStep ? (
             <form
-              className="dashboard-onboarding-form"
+              className="dashboard-onboarding-form dashboard-onboarding-form--project"
               aria-label="Create project"
               onSubmit={onSubmitProjectStep}
             >

@@ -16,16 +16,16 @@ const DURATION = 2400;
 const [Z, R] = [6, 10];
 const [PLATE_X, PLATE_Y] = [26, 18];
 const SHARES = [-50, 50];
-const [MERGE, CLEAR, RESULT] = [86, 156, 220];
+const [MERGE, CLEAR, RESULT] = [86, 152, 220];
 // The policy plates: the permissions figure's stack laid on its side, along the
 // path, which is the stack's axis. Each is a square of half side GATE with a
 // slit through its centre; SLIT is the slit's half length and half width, long
 // enough for the circle to pass through edge-on.
-const GATES = [102, 114, 126, 138];
-const GATE = 25;
+const GATES = [104, 114, 124, 134];
+const GATE = 20;
 const SLIT = [12.5, 1.6];
 // At rest each plate is turned a little further than the one before.
-const TURNED = [12, 24, 36, 48];
+const TURNED = [6, 12, 18, 24];
 // Phases on one play head, in ms: the solid trace, the halves gathering, the
 // checks, the way out, then the signature.
 const TRACE = [0, 520];

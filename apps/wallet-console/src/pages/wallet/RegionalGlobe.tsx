@@ -16,6 +16,15 @@ const REGIONS: Record<Region, Position> = {
 };
 const RADIANS = Math.PI / 180;
 const ROTATION_DEGREES_PER_SECOND = 3;
+// The Hairline figures' light palette and stroke: one bright stroke, a
+// silhouette, a default stroke and a dim stroke for dashed guides.
+const HAIRLINE = { hi: '#232327', edge: '#a4a4ac', mid: '#c3c3c9', lo: '#e0e0e4' };
+const HAIRLINE_STROKE = 0.65;
+const HAIRLINE_DASH = [1, 3];
+const CAPTION_COLOR = '#777169';
+const CAPTION_FONT = '12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+// Angular radii in degrees of the rings that lie on the globe around each region.
+const RING_DEGREES = [1, 2, 3.2] as const;
 
 function regionName(region: Region): string {
   switch (region) {
@@ -48,6 +57,36 @@ function wrapLongitude(longitude: number): number {
 // Source: https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_land.geojson
 const COASTLINES = geography.coastlines.map(toCoastline);
 const OCEAN_GRID = geography.oceanGrid.map(toPosition);
+
+// A small circle on the sphere, so each ring foreshortens with the surface
+// as the drawn rings of the Hairline figures do.
+function surfaceRing(center: Position, degrees: number): Position[] {
+  const latitude = center.latitude * RADIANS;
+  const distance = degrees * RADIANS;
+  const ring: Position[] = [];
+  for (let step = 0; step <= 48; step += 1) {
+    const bearing = (step / 48) * Math.PI * 2;
+    const pointLatitude = Math.asin(
+      Math.sin(latitude) * Math.cos(distance) +
+        Math.cos(latitude) * Math.sin(distance) * Math.cos(bearing),
+    );
+    const longitude = Math.atan2(
+      Math.sin(bearing) * Math.sin(distance) * Math.cos(latitude),
+      Math.cos(distance) - Math.sin(latitude) * Math.sin(pointLatitude),
+    );
+    ring.push({
+      latitude: pointLatitude / RADIANS,
+      longitude: center.longitude + longitude / RADIANS,
+    });
+  }
+  return ring;
+}
+
+const REGION_RINGS: Record<Region, Position[][]> = {
+  europe: RING_DEGREES.map((degrees) => surfaceRing(REGIONS.europe, degrees)),
+  apac: RING_DEGREES.map((degrees) => surfaceRing(REGIONS.apac, degrees)),
+  us: RING_DEGREES.map((degrees) => surfaceRing(REGIONS.us, degrees)),
+};
 
 function toCoastline(coordinates: number[][]): Position[] {
   return coordinates.map(toPosition);
@@ -297,66 +336,66 @@ export class RegionalGlobe extends React.Component<object, { region: Region }> {
     const radius = width * 0.46;
     const centerX = width * 0.53;
     const centerY = height * 0.6;
-    context.lineWidth = 0.75;
+    context.lineWidth = HAIRLINE_STROKE;
     context.lineJoin = 'round';
     context.lineCap = 'round';
-    context.fillStyle = '#c7c5ca';
+    // The ocean grid is a dashed guide: dots one degree apart along each line.
+    context.fillStyle = HAIRLINE.mid;
     context.beginPath();
     for (const position of OCEAN_GRID) {
       const point = project(position, this.camera);
       if (point.depth <= 0) continue;
       const x = centerX + point.x * radius;
       const y = centerY - point.y * radius;
-      context.moveTo(x + 0.55, y);
-      context.arc(x, y, 0.55, 0, Math.PI * 2);
+      context.moveTo(x + 0.45, y);
+      context.arc(x, y, 0.45, 0, Math.PI * 2);
     }
     context.fill();
     context.beginPath();
     for (const coastline of COASTLINES) {
       traceCoastline(context, coastline, this.camera, centerX, centerY, radius);
     }
-    context.strokeStyle = '#77757e';
+    context.strokeStyle = HAIRLINE.edge;
     context.stroke();
     context.beginPath();
     context.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    context.strokeStyle = '#a5a3ab';
+    context.strokeStyle = HAIRLINE.edge;
     context.stroke();
     for (const region of ['europe', 'apac', 'us'] as const) {
       const point = project(REGIONS[region], this.camera);
       if (point.depth < 0.12) continue;
       const x = centerX + point.x * radius;
       const y = centerY - point.y * radius;
+      const selected = region === this.state.region;
+      // Only the chosen region carries the bright stroke, as each figure has one highlight.
+      const ringColors = selected
+        ? [HAIRLINE.hi, HAIRLINE.edge, HAIRLINE.mid]
+        : [HAIRLINE.edge, HAIRLINE.mid, HAIRLINE.lo];
+      REGION_RINGS[region].forEach((ring, index) => {
+        context.beginPath();
+        traceCoastline(context, ring, this.camera, centerX, centerY, radius);
+        context.strokeStyle = ringColors[index];
+        context.stroke();
+      });
       context.beginPath();
-      context.arc(x, y, 13, 0, Math.PI * 2);
-      context.strokeStyle = '#c7c5ca';
-      context.stroke();
-      context.beginPath();
-      context.arc(x, y, 8, 0, Math.PI * 2);
-      context.strokeStyle = '#a5a3ab';
-      context.stroke();
-      context.beginPath();
-      context.arc(x, y, 4, 0, Math.PI * 2);
-      context.fillStyle = '#44403b';
+      context.arc(x, y, 2.25, 0, Math.PI * 2);
+      context.fillStyle = selected ? HAIRLINE.hi : HAIRLINE.edge;
       context.fill();
-      if (region !== this.state.region) continue;
+      if (!selected) continue;
+      const leaderStart = y - RING_DEGREES[RING_DEGREES.length - 1] * RADIANS * radius - 4;
+      const leaderEnd = leaderStart - 36;
       context.beginPath();
-      context.moveTo(x, y - 13);
-      context.lineTo(x, y - 57);
-      context.strokeStyle = '#77757e';
+      context.moveTo(x, leaderStart);
+      context.lineTo(x, leaderEnd);
+      context.setLineDash(HAIRLINE_DASH);
+      context.strokeStyle = HAIRLINE.edge;
       context.stroke();
-      context.font = '500 14px "Hanken Grotesk", sans-serif';
-      const label = regionName(region);
-      const labelWidth = context.measureText(label).width + 32;
-      context.beginPath();
-      context.roundRect(x - labelWidth / 2, y - 91, labelWidth, 34, 17);
-      context.fillStyle = '#ffffff';
-      context.fill();
-      context.strokeStyle = '#dedbd7';
-      context.stroke();
-      context.fillStyle = '#44403b';
+      context.setLineDash([]);
+      context.font = CAPTION_FONT;
+      context.fillStyle = CAPTION_COLOR;
       context.textAlign = 'center';
-      context.textBaseline = 'middle';
-      context.fillText(label, x, y - 74);
+      context.textBaseline = 'alphabetic';
+      context.fillText(regionName(region), x, leaderEnd - 8);
     }
   };
 

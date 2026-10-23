@@ -1,10 +1,10 @@
-//! Chrome native messaging for one local voice check. No wallet secrets cross this boundary.
+//! One local voice check over a bounded pipe from the loopback Wallet bridge.
 
 use std::io::{self, Read, Write};
 use std::path::Path;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{SyncSender, sync_channel};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,7 @@ use crate::adapters::AdapterError;
 use crate::runtime::{Cancellation, WorkContext};
 use crate::utterance::SpeechWindow;
 
-const EXTENSION_ORIGIN: &str = "chrome-extension://ackhkimailmgolplljlhgoclgdjcgdba/";
+const WALLET_ORIGINS: [&str; 2] = ["https://localhost:4002", "http://localhost:4313"];
 const MAXIMUM_MESSAGE_BYTES: usize = 4096;
 
 /// Local capture port. The browser protocol never accepts audio or an audio file path.
@@ -59,6 +59,7 @@ struct Binding {
 enum Request {
     Status { id: String },
     Listen { binding: Binding },
+    Cancel { id: String },
 }
 
 #[derive(Serialize)]
@@ -84,32 +85,57 @@ impl Cancellation for PortCancellation {
     }
 }
 
-/// Serve one Chrome connection on standard input/output. The first argument is
-/// Chrome's caller origin, checked against the pinned prototype extension.
-/// Disconnects, extra messages, malformed framing, and expiry prevent approval.
+/// Keep one local session open while the loopback bridge is running. The caller
+/// origin is pinned to one Wallet origin. A cancelled or duplicate request cannot
+/// approve an operation. Audio and wallet keys stay local.
 pub fn run(
     models: &Path,
     namespace: &str,
     caller_origin: &str,
     capture: &mut impl CommandCapture,
 ) -> Result<(), String> {
-    if caller_origin != EXTENSION_ORIGIN || !models.is_absolute() {
+    if !WALLET_ORIGINS.contains(&caller_origin) || !models.is_absolute() {
         return Err("VoiceID native host caller or model path is invalid".into());
     }
     let cancellation = Arc::new(PortCancellation(AtomicBool::new(false)));
     let (sender, receiver) = sync_channel(1);
     let reader_cancellation = Arc::clone(&cancellation);
-    std::thread::spawn(move || read_connection(sender, reader_cancellation));
-    let request = receiver
-        .recv_timeout(Duration::from_secs(5))
-        .map_err(error_text)??;
-    let started = Instant::now();
-    let budget = validate_request(&request)?;
-    let mut session =
-        NativeSession::open(models, namespace, cancellation.as_ref()).map_err(error_text)?;
-    if cancellation.is_cancelled() {
-        return Err("VoiceID connection closed".into());
+    let current = Arc::new(Mutex::new(None));
+    let reader_current = Arc::clone(&current);
+    std::thread::spawn(move || read_connection(sender, reader_cancellation, reader_current));
+    let mut session = None;
+    while let Ok(request) = receiver.recv() {
+        let started = Instant::now();
+        let budget = validate_request(&request)?;
+        if session.is_none() {
+            session = Some(
+                NativeSession::open(models, namespace, cancellation.as_ref())
+                    .map_err(error_text)?,
+            );
+        }
+        let native = session.as_mut().ok_or("VoiceID session is unavailable")?;
+        let reply = handle_request(
+            request,
+            native,
+            capture,
+            cancellation.as_ref(),
+            started,
+            budget,
+        )?;
+        current.lock().map_err(error_text)?.take();
+        write_reply(&reply)?;
     }
+    Ok(())
+}
+
+fn handle_request(
+    request: Request,
+    session: &mut NativeSession,
+    capture: &mut impl CommandCapture,
+    cancellation: &PortCancellation,
+    started: Instant,
+    budget: Duration,
+) -> Result<Reply, String> {
     let reply = match request {
         Request::Status { id } => {
             let enrollment = match session.status().map_err(error_text)? {
@@ -121,7 +147,7 @@ pub fn run(
         }
         Request::Listen { binding } => {
             let remaining = budget.saturating_sub(started.elapsed());
-            let outcome = if remaining < Duration::from_millis(250) {
+            let outcome = if cancellation.is_cancelled() || remaining < Duration::from_millis(250) {
                 "failed"
             } else {
                 let mut on_started = || {
@@ -133,7 +159,7 @@ pub fn run(
                 let checked = session.listen_capture(
                     remaining.as_millis() as u32,
                     capture,
-                    cancellation.as_ref(),
+                    cancellation,
                     &mut on_started,
                 );
                 match checked {
@@ -143,18 +169,19 @@ pub fn run(
                     Err(_) => "failed",
                 }
             };
-            let outcome = if started.elapsed() >= budget || now_ms()? >= binding.expires_at_ms {
+            let outcome = if cancellation.is_cancelled()
+                || started.elapsed() >= budget
+                || now_ms()? >= binding.expires_at_ms
+            {
                 "failed"
             } else {
                 outcome
             };
             Reply::Result { binding, outcome }
         }
+        Request::Cancel { .. } => return Err("VoiceID cancellation was not handled".into()),
     };
-    if cancellation.is_cancelled() {
-        return Err("VoiceID connection closed".into());
-    }
-    write_reply(&reply)
+    Ok(reply)
 }
 
 fn validate_request(request: &Request) -> Result<Duration, String> {
@@ -175,6 +202,7 @@ fn validate_request(request: &Request) -> Result<Duration, String> {
             }
             Ok(Duration::from_millis(remaining))
         }
+        Request::Cancel { .. } => Err("VoiceID cancellation was not handled".into()),
         _ => Err("VoiceID request is invalid".into()),
     }
 }
@@ -198,21 +226,44 @@ fn now_ms() -> Result<u64, String> {
 }
 
 fn read_connection(
-    sender: SyncSender<Result<Request, String>>,
+    sender: SyncSender<Request>,
     cancellation: Arc<PortCancellation>,
+    current: Arc<Mutex<Option<String>>>,
 ) {
     let input = io::stdin();
     let mut input = input.lock();
-    let first = read_request(&mut input);
-    if sender.send(first).is_err() {
-        cancellation.0.store(true, Ordering::Release);
-        return;
+    while let Ok(request) = read_request(&mut input) {
+        let Ok(mut active) = current.lock() else {
+            break;
+        };
+        match request {
+            Request::Cancel { id } => {
+                if active.as_deref() != Some(&id) {
+                    break;
+                }
+                cancellation.0.store(true, Ordering::Release);
+            }
+            request => {
+                if active.is_some() {
+                    break;
+                }
+                *active = Some(request_id(&request).to_owned());
+                cancellation.0.store(false, Ordering::Release);
+                drop(active);
+                if sender.send(request).is_err() {
+                    break;
+                }
+            }
+        }
     }
-    // The connection admits exactly one request. EOF cancels capture. Any further
-    // byte also invalidates the request, including a duplicate listen message.
-    let mut byte = [0];
-    let _ = input.read(&mut byte);
     cancellation.0.store(true, Ordering::Release);
+}
+
+fn request_id(request: &Request) -> &str {
+    match request {
+        Request::Status { id } | Request::Cancel { id } => id,
+        Request::Listen { binding } => &binding.attempt_id,
+    }
 }
 
 fn read_request(input: &mut impl Read) -> Result<Request, String> {
@@ -238,7 +289,7 @@ fn write_reply(reply: &Reply) -> Result<(), String> {
 }
 
 fn error_text(error: impl std::fmt::Debug) -> String {
-    format!("VoiceID native messaging: {error:?}")
+    format!("VoiceID local bridge: {error:?}")
 }
 
 fn notification_failed(_error: String) -> AdapterError {

@@ -10,7 +10,7 @@ use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
-use super::browser_host::CommandCapture;
+use super::local_bridge::CommandCapture;
 use super::local_host::{
     CollectionPurpose, HOST_CHUNK_SAMPLES, HOST_MAXIMUM_SAMPLES, LocalClock, LocalModels,
     SpokenCommand, collect_utterance, enroll_captures, spoken_command,
@@ -110,7 +110,6 @@ type NativeRuntime = AudioRuntime<MoonshineTranscriber, SharedMatcher>;
 struct Attempt {
     request: RequestId,
     utterance: UtteranceId,
-    owner: EnrollmentRef,
     deadline: CaptureTime,
 }
 struct Setup {
@@ -141,6 +140,7 @@ enum RequestState {
 pub(crate) struct NativeSession {
     clock: LocalClock,
     store: KeychainStore,
+    enrollment: Option<EnrollmentRef>,
     matcher: Rc<RefCell<EcapaMatcher>>,
     runtime: NativeRuntime,
     ready: CaptureReady<AudioFormat>,
@@ -165,6 +165,7 @@ impl NativeSession {
         work.check().map_err(work_error)?;
         let mut store = KeychainStore::open(namespace, &work).map_err(store_error)?;
         let enrollment = store.load(&work).map_err(store_error)?;
+        let identity = enrollment_identity(&enrollment);
         let ready = clock.capture_ready(ProfileId(
             Sha256::digest(
                 b"voiceid-c-abi-capture-v1\0mono-f32;16000hz;host-timestamps;25ms-bound\0",
@@ -183,6 +184,7 @@ impl NativeSession {
         Ok(Self {
             clock,
             store,
+            enrollment: identity,
             matcher,
             runtime,
             ready,
@@ -203,13 +205,9 @@ impl NativeSession {
                 RuntimeStatus::Completed(_) => Ok(NativeStatus::Completed),
                 RuntimeStatus::Idle | RuntimeStatus::Stopped(_) => Ok(NativeStatus::Stopped),
             },
-            RequestState::Idle => match self
-                .store
-                .load(&self.clock.work_for(Duration::from_secs(5)))
-                .map_err(store_error)?
-            {
-                EnrollmentState::Empty => Ok(NativeStatus::Empty),
-                EnrollmentState::Enrolled(_) => Ok(NativeStatus::Ready),
+            RequestState::Idle => match self.enrollment {
+                None => Ok(NativeStatus::Empty),
+                Some(_) => Ok(NativeStatus::Ready),
             },
         }
     }
@@ -219,20 +217,17 @@ impl NativeSession {
         if !(250..=30_000).contains(&timeout_ms) {
             return Err(NativeError::InvalidInput);
         }
-        let work = self
+        self.enrollment.ok_or(NativeError::Missing)?;
+        let deadline = self
             .clock
-            .work_for(Duration::from_millis(u64::from(timeout_ms)));
-        let enrollment = self.store.load(&work).map_err(store_error)?;
-        let deadline = work.deadline;
-        let owner = enrollment_ref(&enrollment)?;
-        self.install_enrollment(enrollment)?;
+            .work_for(Duration::from_millis(u64::from(timeout_ms)))
+            .deadline;
         let work = context(deadline, &self.clock);
         let request = RequestId(allocate_id()?);
         let utterance = self.runtime.begin(&work).map_err(adapter_error)?;
         self.state = RequestState::Attempt(Attempt {
             request,
             utterance,
-            owner,
             deadline: work.deadline,
         });
         Ok(request)
@@ -346,7 +341,6 @@ impl NativeSession {
     pub(crate) fn take(&mut self, request: RequestId) -> Result<NativeResult, NativeError> {
         let attempt = self.attempt(request)?;
         let utterance = attempt.utterance;
-        let owner = attempt.owner;
         let work = context(attempt.deadline, &self.clock);
         if let Err(error) = work.check() {
             self.runtime.cancel(utterance).map_err(adapter_error)?;
@@ -355,23 +349,6 @@ impl NativeSession {
         }
         if !matches!(self.runtime.status(), RuntimeStatus::Completed(_)) {
             return Err(NativeError::NotReady);
-        }
-        match self.store.load(&work).map_err(store_error) {
-            Ok(current) if enrollment_ref(&current) == Ok(owner) => {}
-            Ok(current) => {
-                self.install_enrollment(current)?;
-                return Err(NativeError::Conflict);
-            }
-            Err(error @ (NativeError::Expired | NativeError::Cancelled)) => {
-                self.runtime.cancel(utterance).map_err(adapter_error)?;
-                self.state = RequestState::Idle;
-                return Err(error);
-            }
-            Err(error) => {
-                self.runtime.stop(StopReason::Closed);
-                self.state = RequestState::Stopped;
-                return Err(error);
-            }
         }
         let result = self
             .runtime
@@ -412,10 +389,7 @@ impl NativeSession {
     pub(crate) fn enrollment_begin(&mut self) -> Result<RequestId, NativeError> {
         self.require_idle()?;
         let work = self.clock.work_for(Duration::from_secs(90));
-        if !matches!(
-            self.store.load(&work).map_err(store_error)?,
-            EnrollmentState::Empty
-        ) {
+        if self.enrollment.is_some() {
             return Err(NativeError::Conflict);
         }
         let request = RequestId(allocate_id()?);
@@ -490,18 +464,7 @@ impl NativeSession {
                     self.state = RequestState::Stopped;
                     return Err(store_error(error));
                 }
-                let installed = self
-                    .store
-                    .load(&self.clock.work_for(Duration::from_secs(5)));
-                let installed = match installed {
-                    Ok(installed) => installed,
-                    Err(error) => {
-                        self.runtime.stop(StopReason::Closed);
-                        self.state = RequestState::Stopped;
-                        return Err(store_error(error));
-                    }
-                };
-                self.install_enrollment(installed)?;
+                self.install_enrollment(EnrollmentState::Enrolled(record))?;
                 return Ok(0);
             }
         };
@@ -523,10 +486,9 @@ impl NativeSession {
         if matches!(self.state, RequestState::Stopped) {
             return Err(NativeError::Stopped);
         }
+        let identity = self.enrollment.ok_or(NativeError::Missing)?;
         self.install_enrollment(EnrollmentState::Empty)?;
         let work = self.clock.work_for(Duration::from_secs(5));
-        let loaded = self.store.load(&work).map_err(store_error)?;
-        let identity = enrollment_ref(&loaded)?;
         if let Err(error) = self.store.delete(identity, &work) {
             self.runtime.stop(StopReason::Closed);
             self.state = RequestState::Stopped;
@@ -553,11 +515,13 @@ impl NativeSession {
 
     fn install_enrollment(&mut self, enrollment: EnrollmentState) -> Result<(), NativeError> {
         self.state = RequestState::Idle;
+        let identity = enrollment_identity(&enrollment);
         if let Err(error) = self.runtime.reload_enrollment(enrollment) {
             self.runtime.stop(StopReason::Closed);
             self.state = RequestState::Stopped;
             return Err(adapter_error(error));
         }
+        self.enrollment = identity;
         Ok(())
     }
     fn attempt(&self, request: RequestId) -> Result<&Attempt, NativeError> {
@@ -658,10 +622,10 @@ fn context(deadline: CaptureTime, clock: &LocalClock) -> WorkContext<'_> {
         cancellation: clock,
     }
 }
-fn enrollment_ref(state: &EnrollmentState) -> Result<EnrollmentRef, NativeError> {
+fn enrollment_identity(state: &EnrollmentState) -> Option<EnrollmentRef> {
     match state {
-        EnrollmentState::Empty => Err(NativeError::Missing),
-        EnrollmentState::Enrolled(record) => Ok(record.identity),
+        EnrollmentState::Empty => None,
+        EnrollmentState::Enrolled(record) => Some(record.identity),
     }
 }
 fn nanoseconds(duration: Duration) -> Result<u64, NativeError> {

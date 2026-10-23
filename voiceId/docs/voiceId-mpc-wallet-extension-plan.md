@@ -54,7 +54,7 @@ provider implementation remain in `seams-monorepo/voiceId` and are delivered as
 versioned proprietary native/WASM artifacts with any required host bindings.
 
 The wallet origin controls the required VoiceID setting. The prototype invokes
-its pinned Chrome extension through a versioned native-messaging port. Public
+a loopback service and a persistent native host through a bounded local protocol. Public
 SDK builds and contract tests work without private source, models, or release
 credentials. Importing the base SDK loads no private engine or biometric model
 assets. The existing authentication and signing runtime retain their authority.
@@ -327,23 +327,23 @@ actual method recorded accurately. The first MVP requires no PAD result.
 The private native boundary now exists. ABI 1 exposes bounded session, capture,
 enrollment, cancellation, and single-use perception results. Its compiled C journey
 passes with real models, protected storage, and real elapsed-time expiry.
-The Chrome prototype now composes that engine with the public wallet review gate.
+The browser prototype composes that engine with the public wallet review gate.
 The [runbook](../browser/README.md) records setup and repeatable evidence.
 
 Repository inspection on 2026-10-23 established these integration boundaries:
 
 | Concern | Existing owner | Integration requirement |
 | --- | --- | --- |
-| Signing orchestration | `seams-wallet/packages/wallet/src/core/runtime` | The existing browser wallet invokes the local Chrome native-messaging bridge. |
+| Signing orchestration | `seams-wallet/packages/wallet/src/core/runtime` | The existing browser wallet invokes the local loopback bridge. |
 | Operation identity | Frozen wallet-iframe request and execution configuration | SHA-256 covers the wallet, exact transfer, network, review identity, generation, and expiry. The existing signer retains its canonical intent/display digest and operation state. |
 | Existing authority | Selected lane identity, `WalletSessionRef`, quota, and threshold-session types | Voice success cannot construct or replace those values. |
 | Presentation lifecycle | `TransactionReviewWire` and `TransactionReviewAdmission` | Preserve connection/request/surface/generation identity, activation, expiry, cancellation, and the signing boundary. |
 | Local voice result | Private native ABI 1 request/result handles | Consume once within the same pending wallet operation. Reject another operation, generation, session, or host lifetime. |
 | Native wallet orchestration | No embedded wallet SDK crate exists in this checkout | The runtime README's embedded-SDK statement is stale. A standalone native wallet needs orchestration work beyond the C perception interface. |
 
-The selected host is the existing browser wallet with a Chrome extension and a
-Chrome-launched native process. The wallet origin owns admission. The bridge
-checks its caller, versioned port, operation binding, cancellation, and lifecycle.
+The selected host is the existing browser wallet with a loopback service and a
+persistent native process. The wallet origin owns admission. The bridge checks
+its caller, protocol version, operation binding, cancellation, and lifecycle.
 The native process owns its microphone, models, and Keychain enrollment lease.
 
 The first profile implements one reviewed NEAR testnet transfer. It uses the

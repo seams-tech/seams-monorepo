@@ -30,7 +30,7 @@ mod host {
     use voiceid_engine::utterance::TranscriptOutcome;
 
     const SERVICE: &str = "com.seams.voiceid.prototype";
-    const USAGE: &str = "voiceid-host devices | status | delete | enroll <native-inputs.json> | check <native-inputs.json> | browser <native-inputs.json> <namespace> <caller-origin>";
+    const USAGE: &str = "voiceid-host devices | status | delete | enroll <native-inputs.json> | check <native-inputs.json> | bridge <native-inputs.json> <namespace> <wallet-origin>";
 
     enum Command {
         Devices,
@@ -38,17 +38,17 @@ mod host {
         Delete,
         Enroll(PathBuf),
         Check(PathBuf),
-        Browser(PathBuf, String, String),
+        Bridge(PathBuf, String, String),
     }
 
     pub fn run() -> Result<(), String> {
         let command = parse_command()?;
-        if let Command::Browser(models, namespace, origin) = command {
-            return voiceid_engine::adapters::native::browser_host::run(
+        if let Command::Bridge(models, namespace, origin) = command {
+            return voiceid_engine::adapters::native::local_bridge::run(
                 &models,
                 &namespace,
                 &origin,
-                &mut voiceid_engine::adapters::native::browser_host::MicrophoneCommand,
+                &mut voiceid_engine::adapters::native::local_bridge::MicrophoneCommand,
             );
         }
         if matches!(command, Command::Devices) {
@@ -60,7 +60,7 @@ mod host {
             .map_err(store_error)?;
         match command {
             Command::Devices => unreachable!(),
-            Command::Browser(..) => unreachable!(),
+            Command::Bridge(..) => unreachable!(),
             Command::Status => {
                 match store
                     .load(&clock.work_for(Duration::from_secs(10)))
@@ -104,7 +104,7 @@ mod host {
             Some("delete") => Command::Delete,
             Some("enroll") => Command::Enroll(PathBuf::from(arguments.next().ok_or(USAGE)?)),
             Some("check") => Command::Check(PathBuf::from(arguments.next().ok_or(USAGE)?)),
-            Some("browser") => Command::Browser(
+            Some("bridge") => Command::Bridge(
                 PathBuf::from(arguments.next().ok_or(USAGE)?),
                 arguments
                     .next()

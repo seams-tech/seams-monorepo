@@ -1,8 +1,8 @@
 Seams VoiceID — Apple Silicon macOS prototype
 
 This internal prototype runs from this directory. Keep the directory in a stable
-location. The installer needs Node.js. The host needs no Python, Rust, or source
-checkout. Install the extension in Chrome or Chromium with Developer mode.
+location. The local service needs Node.js. The host needs no Python, Rust, or source
+checkout. The browser Wallet connects to the service on this Mac.
 This package is not signed for public distribution or notarized.
 
 1. Open Terminal in this package directory.
@@ -19,39 +19,30 @@ This package is not signed for public distribution or notarized.
    The local page closes after 15 minutes without a Record click. Run the command
    again to reopen it.
 
-3. Register the host for the browser's user data directory. For normal Chrome:
+3. Start the local VoiceID service:
 
-   node install.mjs install --user-data-dir "$HOME/Library/Application Support/Google/Chrome"
+   node serve.mjs "$PWD"
 
-   Select the user data directory, which contains Default or Profile 1. Do not
-   select the Default or Profile 1 subdirectory itself. Custom browser instances
-   must use the same directory in their --user-data-dir launch argument.
+   Keep Terminal open while using the Wallet. The service listens only on
+   127.0.0.1:4318. Its native process starts on the first Wallet request and
+   stays open for later checks. A failed native process does not restart itself.
+   Restart the service deliberately after fixing a failure.
 
-4. Open chrome://extensions in that browser. Enable Developer mode. Select
-   Load unpacked, then select this package's extension directory. Its ID is
-   ackhkimailmgolplljlhgoclgdjcgdba.
+4. Open https://localhost:4002/sdk/voiceid.html or
+   http://localhost:4313/sdk/voiceid.html in a separate tab. Select Enable VoiceID.
+   This requires the VoiceID Wallet build and existing local Wallet services.
 
-5. Open https://localhost:4002/sdk/voiceid.html in a separate tab. Select Enable
-   VoiceID. This requires the VoiceID Wallet build and existing local Wallet
-   services. The package supplies the local voice host only.
-
-6. Review a NEAR testnet transfer. Select Confirm. Wait for Microphone is ready.
+5. Review a NEAR testnet transfer. Select Confirm. Wait for Microphone is ready.
    Say exactly "I approve this operation" or "I cancel this operation".
 
-For a local voice check with no Wallet action:
-
-   ./bin/voiceid-host check "$PWD/native-inputs.json"
-
-To remove browser registration, first disable VoiceID in the Wallet settings.
-Then run:
-
-   node install.mjs remove --user-data-dir "$HOME/Library/Application Support/Google/Chrome"
-
-Removal preserves enrollment. To delete your enrollment deliberately:
+To stop using VoiceID, disable it in the Wallet settings and stop the local
+service. This preserves enrollment. Stop the service before enrolling again or
+deleting the template; it holds the Keychain namespace while it runs.
+To delete your enrollment deliberately:
 
    ./bin/voiceid-host delete
 
-Moving the package requires registering the host again. Live microphone accuracy
+Moving the package requires restarting the service from its new location. Live microphone accuracy
 and a clean Mac remain acceptance checks. The MVP trusts your device and OS.
 Spoof detection is outside this profile. See NOTICE.txt and licenses/ for
 third-party attribution.

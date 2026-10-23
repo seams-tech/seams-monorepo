@@ -189,7 +189,7 @@ Scaffolding steps 1 and 2, plus the domain/adapter contracts in step 3, are comp
   require L0 qualification.
 - The native deliverables include a shared library (`cdylib`), `rlib` output,
   and the development CLI. ABI 1 has a compiled C journey. The CLI also hosts
-  one Chrome stdio connection for the browser prototype. Chrome owns its lifetime.
+  one persistent stdio session for the browser prototype's loopback service.
 - Moonshine stays a native dependency behind `adapters::native`. The runtime
   uses pinned Moonshine 0.1.5, C ABI `30000`, Tiny Streaming models, and native
   ECAPA inference. Native fixture and browser journeys pass with network access
@@ -596,11 +596,11 @@ selected and measured, label the system experimental.
 ### L6 — Release the proprietary native package
 
 An internal Apple Silicon macOS package now contains the native host, ABI 1
-library and header, verified runtime assets, extension, installer, and notices.
+library and header, verified runtime assets, loopback service, and notices.
 The builder writes an archive and checksum. Its runtime metadata excludes research
-templates and fixtures. The package journey extracts it outside the checkouts,
-denies source reads, and runs real-model C and Chromium installation checks.
-This is a development-Mac result. Live capture, clean-host qualification,
+templates and fixtures. The package journey checks relocation, asset hashes,
+signatures, and idle service behavior without opening Keychain. Real-model
+native and browser checks remain separate. Live capture, clean-host qualification,
 Developer ID signing, notarization, and publication remain open.
 
 - [ ] Build and publish a versioned artifact from `seams-monorepo` using the

@@ -97,12 +97,10 @@ async function main() {
   execFileSync('/usr/bin/codesign', ['--force', '--sign', '-', library], { stdio: 'pipe' });
   await copy(output, 'include/voiceid.h', path.join(ENGINE, 'include/voiceid.h'));
   for (const file of [
-    'install.mjs',
+    'serve.mjs',
     'enroll-web.mjs',
     'enroll-web.html',
     'SETUP.txt',
-    'extension/manifest.json',
-    'extension/bridge.js',
   ]) {
     await copy(output, file, path.join(ROOT, file));
   }

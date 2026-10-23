@@ -3,6 +3,7 @@
 // Run through the Wallet's tsx command and intended-test TypeScript configuration.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import net from 'node:net';
 import { spawn, execFileSync } from 'node:child_process';
@@ -18,14 +19,12 @@ const MODEL_INPUTS = path.join(
   'voiceId/verifier-spike/.cache/native-models/native-inputs.json',
 );
 const MEDIA = path.join(ENGINE, 'target/local-host.e2e.media');
-const EXAMPLE = path.join(ENGINE, 'target/release/examples/browser_host_journey');
+const EXAMPLE = path.join(ENGINE, 'target/release/examples/local_bridge_journey');
 const OUTPUT = path.join(ENGINE, 'target/browser-journey');
-const HOST_NAME = 'com.seams.voiceid.prototype';
-const EXTENSION_ID = 'ackhkimailmgolplljlhgoclgdjcgdba';
 const APP_ORIGIN = 'http://localhost:4312';
 const WALLET_ORIGIN = 'http://localhost:4313';
 const GATEWAY_ORIGIN = 'http://127.0.0.1:4510';
-const NAMESPACE = `com.seams.voiceid.browser-journey.${randomUUID()}`;
+const NAMESPACE = `com.seams.voiceid.local-journey.${randomUUID()}`;
 
 function quote(value) {
   return `'${value.replaceAll("'", "'\"'\"'")}'`;
@@ -45,30 +44,24 @@ async function main() {
   const signingModule = await import(
     pathToFileURL(path.join(wallet, 'tests/e2e/intended-behaviours/voiceid-near-signing.ts')).href
   );
-  for (const port of [4312, 4313, 4510, 4512, 4513, 4514, 4515, 4516]) await requireFreePort(port);
+  for (const port of [4312, 4313, 4318, 4510, 4512, 4513, 4514, 4515, 4516]) await requireFreePort(port);
   await fs.mkdir(OUTPUT, { recursive: true });
   await fs.writeFile(path.join(OUTPUT, 'native-errors.log'), '');
   const profile = await fs.mkdtemp(path.join(OUTPUT, 'chromium-'));
+  const packageRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'voiceid-composed-'));
   const serviceRoot = path.join(profile, 'wallet-services');
-  const launcher = path.join(profile, 'native-host');
-  const extension = path.join(ROOT, 'voiceId/browser/extension');
+  const launcher = path.join(packageRoot, 'bin/voiceid-host');
+  const selectedCapture = path.join(packageRoot, 'selected.f32');
   let services;
+  let bridge;
   let context;
   let report;
   try {
     await run(EXAMPLE, ['init', MODEL_INPUTS, NAMESPACE, MEDIA], wallet);
-    await fs.mkdir(path.join(profile, 'NativeMessagingHosts'));
-    await fs.writeFile(
-      path.join(profile, 'NativeMessagingHosts', `${HOST_NAME}.json`),
-      JSON.stringify({
-        name: HOST_NAME,
-        description: 'Disposable VoiceID wallet journey',
-        path: launcher,
-        type: 'stdio',
-        allowed_origins: [`chrome-extension://${EXTENSION_ID}/`],
-      }),
-    );
-    await selectCapture(launcher, 'approve');
+    await fs.mkdir(path.dirname(launcher));
+    await fs.writeFile(path.join(packageRoot, 'native-inputs.json'), '{}\n');
+    await installCaptureHost(launcher, selectedCapture);
+    await selectCapture(selectedCapture, 'approve');
     Object.assign(process.env, {
       SEAMS_INTENDED_APP_URL: APP_ORIGIN,
       SEAMS_INTENDED_WALLET_ORIGIN: WALLET_ORIGIN,
@@ -96,11 +89,21 @@ async function main() {
     await waitReady(`${GATEWAY_ORIGIN}/readyz`, services);
     await waitReady(`${APP_ORIGIN}/__intended-e2e`, services);
     await waitReady(`${WALLET_ORIGIN}/wallet-service`, services);
+    const bridgeLog = await fs.open(path.join(OUTPUT, 'bridge.log'), 'w', 0o600);
+    try {
+      bridge = spawn(
+        process.execPath,
+        [path.join(ROOT, 'voiceId/browser/serve.mjs'), packageRoot],
+        { cwd: wallet, detached: true, stdio: ['ignore', bridgeLog.fd, bridgeLog.fd] },
+      );
+    } finally {
+      await bridgeLog.close();
+    }
+    await waitReady('http://127.0.0.1:4318/readyz', bridge);
     process.stdout.write('VoiceID journey: isolated Wallet services ready.\n');
     context = await chromium.launchPersistentContext(profile, {
       channel: 'chromium',
       headless: true,
-      args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
     });
     const page = await context.newPage();
     const harness = new harnessModule.IntendedBehaviourHarness({
@@ -111,7 +114,7 @@ async function main() {
       networkMode: 'managed_local',
     });
     await harness.initialize();
-    const voice = { select: selectCapture.bind(null, launcher) };
+    const voice = { select: selectCapture.bind(null, selectedCapture) };
     const signing = await signingModule.verifyVoiceIdNearSigning({
       context,
       page,
@@ -166,7 +169,7 @@ async function main() {
       status: 'passed',
       capture: 'real_time_synthetic_pcm_replay',
       models: 'real_native_moonshine_and_ecapa',
-      browser: 'real_chromium_extension_and_native_messaging',
+      browser: 'real_chromium_wallet_and_loopback_native_bridge',
       nativeNetworkAccess: 'denied_by_macos_sandbox',
       signing,
       testnet: {
@@ -178,7 +181,7 @@ async function main() {
         explorerUrl: `https://testnet.nearblocks.io/txns/${transfer.transactionId}`,
       },
       nativeHostSha256: await sha256(EXAMPLE),
-      extensionBridgeSha256: await sha256(path.join(extension, 'bridge.js')),
+      loopbackBridgeSha256: await sha256(path.join(ROOT, 'voiceId/browser/serve.mjs')),
       walletScenarioSha256: await sha256(
         path.join(wallet, 'tests/e2e/intended-behaviours/voiceid-near-signing.ts'),
       ),
@@ -189,9 +192,11 @@ async function main() {
     };
   } finally {
     if (context) await context.close();
+    if (bridge) await stopServices(bridge);
     if (services) await stopServices(services);
     await run(EXAMPLE, ['delete', MODEL_INPUTS, NAMESPACE], wallet);
     await fs.rm(profile, { recursive: true, force: true });
+    await fs.rm(packageRoot, { recursive: true, force: true });
   }
   report.disposableAuthorityAndEnrollmentDeleted = true;
   await fs.writeFile(
@@ -222,7 +227,7 @@ function voiceOutcomes() {
   return window.voiceBridgeObservation.outcomes();
 }
 
-async function selectCapture(launcher, command) {
+async function selectCapture(link, command) {
   let name;
   switch (command) {
     case 'approve':
@@ -240,7 +245,12 @@ async function selectCapture(launcher, command) {
     default:
       throw new Error(`Unknown voice command fixture: ${command}`);
   }
-  const script = `#!/bin/sh\nexec /usr/bin/sandbox-exec -p '(version 1) (allow default) (deny network*)' ${quote(EXAMPLE)} serve ${quote(MODEL_INPUTS)} ${quote(NAMESPACE)} ${quote(path.join(MEDIA, `${name}.canonical.f32`))} "$@" 2>> ${quote(path.join(OUTPUT, 'native-errors.log'))}\n`;
+  await fs.rm(link, { force: true });
+  await fs.symlink(path.join(MEDIA, `${name}.canonical.f32`), link);
+}
+
+async function installCaptureHost(launcher, selectedCapture) {
+  const script = `#!/bin/sh\nexec /usr/bin/sandbox-exec -p '(version 1) (allow default) (deny network*)' ${quote(EXAMPLE)} serve ${quote(MODEL_INPUTS)} ${quote(NAMESPACE)} ${quote(selectedCapture)} "$4" 2>> ${quote(path.join(OUTPUT, 'native-errors.log'))}\n`;
   await fs.writeFile(launcher, script, { mode: 0o700 });
   await fs.chmod(launcher, 0o700);
 }

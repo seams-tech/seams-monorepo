@@ -1,8 +1,8 @@
-//! Synthetic-audio provider for the real Chrome/native/wallet journey. Never used by the installed host.
+//! Synthetic-audio provider for the local bridge journey. Never used by the installed host.
 
 #[cfg(not(target_os = "macos"))]
 fn main() {
-    eprintln!("browser_host_journey requires macOS");
+    eprintln!("local_bridge_journey requires macOS");
     std::process::exit(1);
 }
 
@@ -19,7 +19,7 @@ mod journey {
     use std::time::Duration;
 
     use voiceid_engine::adapters::native::KeychainStore;
-    use voiceid_engine::adapters::native::browser_host::{CommandCapture, run as serve};
+    use voiceid_engine::adapters::native::local_bridge::{CommandCapture, run as serve};
     use voiceid_engine::adapters::native::local_host::{
         CollectionPurpose, LocalClock, LocalModels, collect_utterance, enroll_captures,
     };
@@ -105,7 +105,7 @@ mod journey {
         let command = args.next().ok_or("expected init, serve, or delete")?;
         let models = PathBuf::from(args.next().ok_or("expected model metadata")?);
         let namespace = args.next().ok_or("expected disposable namespace")?;
-        if !namespace.starts_with("com.seams.voiceid.browser-journey.") {
+        if !namespace.starts_with("com.seams.voiceid.local-journey.") {
             return Err("journey only uses a disposable Keychain namespace".into());
         }
         match command.as_str() {
@@ -115,7 +115,7 @@ mod journey {
             }
             "serve" => {
                 let fixture = PathBuf::from(args.next().ok_or("expected synthetic PCM")?);
-                let origin = args.next().ok_or("expected Chrome extension origin")?;
+                let origin = args.next().ok_or("expected Wallet origin")?;
                 serve(&models, &namespace, &origin, &mut SyntheticCommand(fixture))
             }
             "delete" => cleanup(&namespace),

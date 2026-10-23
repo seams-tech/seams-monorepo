@@ -13,9 +13,9 @@ mod keychain;
 #[cfg(target_os = "macos")]
 pub use keychain::KeychainStore;
 #[cfg(target_os = "macos")]
-pub mod browser_host;
-#[cfg(target_os = "macos")]
 mod capture;
+#[cfg(target_os = "macos")]
+pub mod local_bridge;
 #[cfg(target_os = "macos")]
 pub mod local_host;
 #[cfg(target_os = "macos")]

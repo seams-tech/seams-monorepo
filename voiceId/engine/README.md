@@ -6,11 +6,12 @@ continuity, deadlines, output correlation, enrollment changes, and result consum
 Native Moonshine Tiny and ECAPA adapters process local fixture PCM.
 The macOS development host adds capture, enrollment collection, Keychain storage,
 deletion, and command checks. ABI 1 exposes those engine lifecycles to a native
-C caller. The development executable also hosts one Chrome native-messaging
-connection. The [browser prototype](../browser/README.md) reaches the wallet's
-existing signing boundary with real native models and synthetic speech. It also
-confirms a funded NEAR testnet transfer. A relocatable package now includes the
-host, shared library, runtime assets, extension, and installer.
+C caller. The development executable also serves the persistent local bridge
+used by the [browser prototype](../browser/README.md). The earlier composed
+journey reached the wallet's signing boundary with real models and synthetic
+speech, then confirmed a funded NEAR testnet transfer. The loopback transport
+still needs a fresh composed run. A relocatable package includes the host,
+shared library, runtime assets, and loopback service.
 Live microphone qualification, clean-Mac installation, and robot actions remain open.
 
 The first MVP assumes a user-controlled, authorized device. It uses speaker
@@ -30,11 +31,11 @@ and assurance-aware admission remain unimplemented contract work.
 | --- | --- |
 | Production language | Rust, edition 2024. Keep the existing Python package as evaluation/reference tooling. |
 | First native host | The current Apple Silicon macOS development host, `aarch64-apple-darwin`. Target-robot hardware and sensor qualification remain open. |
-| First artifact | An embedded native shared library, built as `cdylib`, plus the development CLI. An `rlib` supports Rust composition and tests. Chrome owns each stdio host process. |
+| First artifact | An embedded native shared library, built as `cdylib`, plus the development CLI. An `rlib` supports Rust composition and tests. The loopback service owns one persistent stdio host process. |
 | Speech backend | Moonshine 0.1.5, C ABI 30000, Tiny Streaming quantized models, and ONNX Runtime 1.23.2. The host supplies utterance boundaries. |
 | Speaker backend | Full-waveform ECAPA ONNX export from the pinned SpeechBrain reference. CPU inference uses ONNX Runtime through `ort`. |
-| Browser direction | The prototype uses Chrome native messaging on macOS. The portable engine also compiles for `wasm32-unknown-unknown`; browser model execution remains separate work. |
-| Package boundary | One unpublished private crate in `seams-monorepo/voiceId/engine`. Its Chrome host transports opaque perception bindings. Wallet operation construction, authentication, and signing remain in the public Wallet repository. |
+| Browser direction | The prototype uses a local loopback service on macOS. The portable engine also compiles for `wasm32-unknown-unknown`; browser model execution remains separate work. |
+| Package boundary | One unpublished private crate in `seams-monorepo/voiceId/engine`. Its native host transports opaque perception bindings. Wallet operation construction, authentication, and signing remain in the public Wallet repository. |
 
 Native model paths resolve from the metadata file's directory. The loader verifies
 each model and library before inference. The package uses relative asset paths.
@@ -350,6 +351,9 @@ live evaluation in quiet and noisy rooms.
 The Keychain store holds an exclusive application-namespace lease throughout
 each host operation. Another VoiceID process receives a conflict while it is held.
 This serializes reads, replacement, deletion, capture, and result consumption.
+The persistent bridge keeps one native session and its loaded enrollment under
+that lease. Status checks and approval attempts reuse the loaded enrollment.
+Stopping the service releases the lease before enrollment can change.
 The expected enrollment version also enters the Security query. The login
 Keychain API alone does not establish an atomic conditional update.
 [Apple's implementation](https://github.com/apple-oss-distributions/Security/blob/main/OSX/libsecurity_keychain/lib/SecItem.cpp#L5017-L5113)
@@ -400,9 +404,9 @@ This supports the selected phrase. It does not establish a population accuracy r
 ## Next checkpoint
 
 The runtime, native models, local host flows, and C boundary are implemented.
-Next, complete a deliberate live user journey and measure capture timing, endpoint
-behavior, and command recognition. Wallet W0 must select the native-consumer bridge
-before W1 gates signing under existing device/session authority.
+Next, complete a deliberate live user journey through the local bridge and
+measure capture timing, endpoint behavior, and command recognition. The Wallet
+already gates the selected NEAR signing path under existing device/session authority.
 
 Keep unimplemented capabilities unavailable. Test doubles stay inside the
 integration test; no production adapter returns placeholder identity success.

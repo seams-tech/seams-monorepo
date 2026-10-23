@@ -5,10 +5,10 @@ runtime. It will combine current speech with recent visual and spatial context
 when available. Raw media, biometric templates, and inference stay on the local
 device. ZK and hosted biometric verification are outside the selected design.
 
-The proprietary engine and wallet provider will be developed here and shipped
-as versioned compiled artifacts: native first, with WASM as a separately
-qualified target. The optional public provider contract and wallet extension
-belong in `seams-wallet`; its SDK can integrate VoiceID without private source.
+The proprietary engine and native host are developed here and shipped as
+versioned compiled artifacts: native first, with WASM as a separately
+qualified target. The public Wallet approval integration belongs in
+`seams-wallet`; its SDK can integrate VoiceID without private source.
 The retained Python package is the evaluation baseline.
 
 The former browser recording, upload service, HTTP verifier, hosted deployment,
@@ -30,14 +30,14 @@ Native Moonshine Tiny and ECAPA adapters process real local fixture PCM.
 A macOS development host adds microphone acquisition, deliberate three-capture
 enrollment, local Keychain storage, deletion, and exact spoken-command checks.
 The macOS shared library exports ABI 1 for native consumers. A compiled C caller
-verifies its lifecycle. The [browser prototype](browser/README.md) now connects
-the wallet-owned review gate to the native engine through Chrome native messaging.
-The real-model browser journey now runs Ed25519 Yao MPC, verifies the resulting
-signature, and confirms a reviewed NEAR transfer on testnet.
-An internal macOS package now includes the host, shared library, runtime assets,
-extension, installer, and notices. Relocation and source-denied native/browser
-checks pass on the development Mac. Live microphone and clean-Mac qualification
-remain open. See the [package setup](browser/SETUP.txt).
+verifies its lifecycle. The [browser prototype](browser/README.md) connects the
+wallet-owned review gate to a native process through a local loopback service.
+The earlier synthetic journey confirmed MPC signing and a testnet transfer.
+The loopback transport now passes an offline end-to-end test. Its full native
+and Wallet journey still needs a fresh run. The internal macOS package includes
+the host, shared library, runtime assets, local service, and notices. Live
+microphone and clean-Mac qualification remain open. See the
+[package setup](browser/SETUP.txt).
 Engine results carry no robot or signing authority.
 
 The first MVP assumes a user-controlled, authorized device. It checks the enrolled
@@ -48,7 +48,7 @@ authority. Spoof detection, visual confirmation, and authenticated capture are d
 
 `engine/` is one unpublished Rust package with modules for domain values, runtime
 coordination, utterances, presence, attribution, enrollment, adapters, and robot
-consumers. Native adapter code has its own target-specific module. The Chrome
+consumers. Native adapter code has its own target-specific module. The local
 host transports opaque perception bindings. Wallet operation construction,
 authentication, and signing remain in the public Wallet repository.
 
@@ -103,10 +103,10 @@ provisioned, checksum-verified model assets. Inference must not silently downloa
 a model or use a remote fallback.
 
 Use the [macOS local host](engine/README.md#macos-local-host) for deliberate enrollment
-and voice checks. The next step is live enrollment and recognition qualification
-through the browser prototype. Native fixture replay, synthetic host composition,
-a compiled C caller, and the funded browser-to-MPC testnet journey have repeatable
-reports. Live recognition quality and resource budgets remain open.
+and voice checks. The next step is live recognition qualification through the
+loopback browser prototype. Native fixture replay, synthetic host composition,
+a compiled C caller, and the previous funded browser-to-MPC testnet journey
+have repeatable reports. Live recognition quality and resource budgets remain open.
 L0 owns the MVP
 microphone profile and measured resource/error budgets. L1 coordinates the minimal
 public provider contract with wallet W0. Wallet W1 now has a confirmed synthetic

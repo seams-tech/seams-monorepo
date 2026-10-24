@@ -14,7 +14,8 @@ The public Wallet integration lives on `codex/voiceid-browser` in
 The Wallet activation, fresh-session unlock, and NEAR MPC contracts pass with
 generated device keys and deterministic voice replies. The loopback transport
 also passes a fake-host end-to-end test. It confirms origin rejection, one
-persistent native process, attempt cancellation, and response binding.
+persistent native process, attempt cancellation, and response binding. Approval
+replies come from the production Rust serializer with synthetic values.
 
 The current native host supports device-key activation and unlock. The manual
 Wallet page uses the existing local enrollment and deliberate capture buttons.
@@ -145,3 +146,10 @@ persisted. The user's live activation returned a generic native rejection.
 The original browser error incorrectly called every rejection a speaker mismatch.
 The SDK now reports an unverified spoken approval. Exact live failure attribution,
 voice unlock, and the user's reviewed transfer remain open.
+
+The [native wire check](../../docs/evidence/voiceid-native-wire-20261024.json)
+reproduced a truncated HTTP stream when approved native replies used snake_case
+fields. The browser bridge requires camelCase fields. The native serializer now
+emits that exact shape. The same bridge journey passes activation and unlock with
+production serialization. It opens no Keychain session and captures no audio.
+The live service was restarted once after its previous native child had exited.

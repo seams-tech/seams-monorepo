@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import net from 'node:net';
@@ -18,6 +18,12 @@ async function main() {
   await requireFreePort();
   await fs.mkdir(OUTPUT, { recursive: true });
   const packageRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'voiceid-bridge-'));
+  const fixtureFile = path.join(packageRoot, 'native-replies.json');
+  const replies = execFileSync('cargo', [
+    'run', '--offline', '--locked', '--quiet', '--example', 'bridge_wire_fixtures',
+    '--manifest-path', path.join(ROOT, 'voiceId/engine/Cargo.toml'),
+  ], { cwd: path.resolve(ROOT, '../seams-wallet'), encoding: 'utf8' });
+  await fs.writeFile(fixtureFile, replies);
   const countFile = path.join(packageRoot, 'native-launches.txt');
   const cancelFile = path.join(packageRoot, 'native-cancellations.txt');
   await fs.mkdir(path.join(packageRoot, 'bin'));
@@ -28,6 +34,7 @@ async function main() {
     env: {
       ...process.env,
       VOICEID_FAKE_LAUNCHES: countFile,
+      VOICEID_FAKE_REPLIES: fixtureFile,
       VOICEID_FAKE_CANCELLATIONS: cancelFile,
     },
   });
@@ -103,7 +110,8 @@ async function main() {
     const report = {
       schemaVersion: 'voiceid_local_bridge_journey_v1',
       status: 'passed',
-      keychainAccess: 'none; fake native host',
+      keychainAccess: 'none; fake capture host',
+      nativeReplySerialization: 'production Rust serializer with synthetic values',
       unauthorizedOriginRejectedBeforeLaunch: true,
       statusChecksAndApprovalsShareOneNativeProcess: true,
       voiceGatedActivationAndUnlockMessagesForwarded: true,
@@ -272,6 +280,18 @@ function schedule(milliseconds, resolve) {
 
 const FAKE_HOST = `#!/usr/bin/env node
 const fs = require('node:fs');
+const replies = JSON.parse(fs.readFileSync(process.env.VOICEID_FAKE_REPLIES, 'utf8'));
+const activation = replies.find(isActivation);
+const unlock = replies.find(isUnlock);
+
+function isActivation(reply) {
+  return reply.kind === 'activation_approved';
+}
+
+function isUnlock(reply) {
+  return reply.kind === 'unlock_approved';
+}
+
 fs.appendFileSync(process.env.VOICEID_FAKE_LAUNCHES, 'launched\\n');
 let pending = Buffer.alloc(0);
 let active = null;
@@ -325,12 +345,11 @@ function receive(request) {
 
 function approve() {
   if (active.kind === 'activate') {
-    send({ kind: 'activation_approved', id: active.attemptId,
-      publicKeyB64u: 'B'.repeat(43), deviceKeyId: 'C'.repeat(43),
-      factorSecretB64u: 'A'.repeat(43) });
+    activation.id = active.attemptId;
+    send(activation);
   } else if (active.kind === 'unlock') {
-    send({ kind: 'unlock_approved', id: active.attemptId,
-      signatureB64u: 'D'.repeat(86), factorSecretB64u: 'A'.repeat(43) });
+    unlock.id = active.attemptId;
+    send(unlock);
   } else {
     send({ kind: 'result', binding: active.binding, outcome: 'approved' });
   }

@@ -19,6 +19,9 @@ use crate::adapters::AdapterError;
 use crate::runtime::{Cancellation, WorkContext};
 use crate::utterance::SpeechWindow;
 
+mod wire;
+use wire::{Binding, Reply};
+
 const WALLET_ORIGINS: [&str; 2] = ["https://localhost:4002", "http://localhost:4313"];
 const MAXIMUM_MESSAGE_BYTES: usize = 4096;
 
@@ -51,14 +54,6 @@ impl CommandCapture for MicrophoneCommand {
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct Binding {
-    attempt_id: String,
-    operation_hash: String,
-    expires_at_ms: u64,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ActivationBinding {
     attempt_id: String,
     wallet_id: String,
@@ -83,40 +78,6 @@ enum Request {
     Activate { binding: ActivationBinding },
     Unlock { binding: UnlockBinding },
     Cancel { id: String },
-}
-
-#[derive(Serialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-enum Reply {
-    Listening {
-        binding: Binding,
-    },
-    Status {
-        id: String,
-        enrollment: &'static str,
-    },
-    Result {
-        binding: Binding,
-        outcome: &'static str,
-    },
-    DeviceListening {
-        id: String,
-    },
-    ActivationApproved {
-        id: String,
-        public_key_b64u: String,
-        device_key_id: String,
-        factor_secret_b64u: String,
-    },
-    UnlockApproved {
-        id: String,
-        signature_b64u: String,
-        factor_secret_b64u: String,
-    },
-    DeviceRejected {
-        id: String,
-        outcome: &'static str,
-    },
 }
 
 pub(crate) struct PortCancellation(AtomicBool);

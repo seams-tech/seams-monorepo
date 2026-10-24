@@ -112,6 +112,15 @@ export const messages = {
   },
   contactUs: { en: 'Contact us', ja: 'お問い合わせ' },
   seePricing: { en: 'See pricing', ja: '料金を見る' },
+  startFree: { en: 'Start free', ja: '無料で始める' },
+  pricingBannerTitle: {
+    en: 'Free to start. Pay per active user.',
+    ja: '無料で開始。アクティブユーザー数に応じた料金。',
+  },
+  pricingBannerCopy: {
+    en: 'The first 300 monthly active users are free, and development is always free. As you grow, you pay per active user, with signing included.',
+    ja: '月間アクティブユーザー300人までは無料。開発環境はいつでも無料です。利用が増えたら、署名を含むアクティブユーザー数に応じた料金で使えます。',
+  },
 } satisfies Record<string, Record<Locale, string>>;
 
 export type MessageKey = keyof typeof messages;

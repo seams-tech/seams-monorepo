@@ -162,6 +162,7 @@
 /* break Japanese headings between phrases, not inside a word */
 html:lang(ja) .features-hero .h2-hero-simple__title,
 html:lang(ja) .features-anchor .h2-display,
-html:lang(ja) .features-card__title {
+html:lang(ja) .features-card__title,
+html:lang(ja) #features-pricing-title {
   word-break: auto-phrase;
 }

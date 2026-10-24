@@ -49,7 +49,8 @@ const documentationDropdownPane: DropdownPane = {
   },
   footerLinks: [
     { label: t('allFeatures'), to: '/features/' },
-    { label: t('planPricing'), to: '/pricing/' },
+    // the front page's hero holds the live wallet demo
+    { label: t('liveDemo'), to: '/wallet' },
   ],
 };
 

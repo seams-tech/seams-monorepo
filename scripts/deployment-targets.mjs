@@ -38,7 +38,7 @@ const CONSOLE_LANE_IDS = Object.freeze([
   'production-testnet',
   'production-mainnet',
 ]);
-const FRONTEND_SITE_IDS = Object.freeze(['staging', 'production', 'getsignal']);
+const FRONTEND_SITE_IDS = Object.freeze(['staging', 'production']);
 const CONSOLE_FRONTEND_SITE_IDS = Object.freeze(['staging', 'production']);
 
 export const BACKEND_COMPONENTS = Object.freeze([
@@ -365,7 +365,6 @@ export function parseDeploymentTargets(
     frontendSites.production,
   );
   backendLanes[customer.lane.id] = customer.lane;
-  frontendSites[customer.site.id] = customer.site;
   const platformSites = [];
   const applicationOrigins = [];
   for (const site of Object.values(frontendSites)) {
@@ -566,7 +565,6 @@ function parseCustomerDeployment(value, backendLanes, branding) {
       'gatewayOrigin',
       'walletOrigin',
       'consoleOrigin',
-      'walletPagesProjectEnv',
       'resources',
       'capabilities',
       'provisioning',
@@ -607,6 +605,9 @@ function parseCustomerDeployment(value, backendLanes, branding) {
     sourcePath + '.applicationOrigin',
   );
   const walletOrigin = requireHttpsOrigin(source.walletOrigin, sourcePath + '.walletOrigin');
+  if (walletOrigin !== control.walletOrigin) {
+    throw new Error(sourcePath + '.walletOrigin must use the existing Seams signing host');
+  }
   const allowedOrigins = parseBrowserOrigins(source.allowedOrigins, sourcePath + '.allowedOrigins');
   if (!allowedOrigins.includes(applicationOrigin) || !allowedOrigins.includes(walletOrigin)) {
     throw new Error(sourcePath + '.allowedOrigins must include the application and hosted wallet');
@@ -664,10 +665,6 @@ function parseCustomerDeployment(value, backendLanes, branding) {
     console: consoleTarget,
     gatewayOrigin: requireHttpsOrigin(source.gatewayOrigin, sourcePath + '.gatewayOrigin'),
     walletOrigin,
-    walletPagesProjectEnv: requireEnvironmentName(
-      source.walletPagesProjectEnv,
-      sourcePath + '.walletPagesProjectEnv',
-    ),
     emailOtpDelivery: Object.freeze({
       kind: 'email_provider',
       provider: Object.freeze({ kind: 'resend', fromAddress: 'confirm@seams.sh' }),
@@ -693,7 +690,7 @@ function parseCustomerDeployment(value, backendLanes, branding) {
     assertLaneOrigins(lane);
     assertGatewayDeploymentConfigMatchesLane(lane);
   }
-  return { lane, site: Object.freeze({ ...site, lanes: Object.freeze([lane]) }) };
+  return { lane };
 }
 
 function parseSite(value, releaseId, branch) {
@@ -1093,11 +1090,19 @@ function assertUniqueSiteOrigins(sites) {
 }
 
 function assertUniqueLaneOrigins(lanes) {
-  const origins = [];
-  for (const lane of lanes) origins.push(lane.gatewayOrigin, lane.walletOrigin);
-  assertUnique(origins, 'backend lane origins');
+  const gatewayOrigins = lanes.map((lane) => lane.gatewayOrigin);
+  const platformWalletOrigins = lanes
+    .filter((lane) => lane.kind === 'platform')
+    .map((lane) => lane.walletOrigin);
+  assertUnique([...gatewayOrigins, ...platformWalletOrigins], 'backend lane origins');
+  const walletOrigins = new Set(lanes.map((lane) => lane.walletOrigin));
+  for (const origin of gatewayOrigins) {
+    if (walletOrigins.has(origin)) {
+      throw new Error('gateway origin ' + origin + ' must not equal a hosted wallet origin');
+    }
+  }
   const siteOrigins = new Set(lanes.flatMap((lane) => [lane.site.origin, lane.site.docsOrigin]));
-  for (const origin of origins) {
+  for (const origin of [...gatewayOrigins, ...walletOrigins]) {
     if (siteOrigins.has(origin)) {
       throw new Error('backend origin ' + origin + ' must not equal a frontend site origin');
     }

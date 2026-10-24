@@ -759,12 +759,11 @@
       "allowedOrigins": [
         "https://getsignal.now",
         "http://127.0.0.1:4318",
-        "https://getsignal.sign.seams.sh"
+        "https://sign.seams.sh"
       ],
       "gatewayOrigin": "https://getsignal.api.wallet.seams.sh",
-      "walletOrigin": "https://getsignal.sign.seams.sh",
+      "walletOrigin": "https://sign.seams.sh",
       "consoleOrigin": "https://getsignal.console.seams.sh",
-      "walletPagesProjectEnv": "CF_PAGES_PROJECT_GETSIGNAL_WALLET",
       "resources": {
         "gateway": {
           "workerName": "seams-sdk-d1-gateway-getsignal"

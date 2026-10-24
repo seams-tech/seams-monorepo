@@ -64,8 +64,9 @@ A voice result alone cannot replace the device key or enroll a new wallet.
    device key and releases the scoped factor secret to the Wallet origin.
 4. The server verifies the key, signature, challenge, expiry, origin, wallet,
    method status, and single use. It issues a fresh Wallet Session and quota.
-5. The Wallet custody worker opens the matching method-bound seed envelope.
-   It verifies the wallet key manifest before activating owner signing roots.
+5. The core opens the method-bound seed envelope and the same-device NEAR
+   custody cache in WASM. It registers the live signer and exact session before
+   reporting success. The custody worker retains its session-scoped handle.
 
 The unlock result reports `authMethod: 'voiceid'` only after both server
 issuance and custody activation succeed. A missing native host, lost device
@@ -155,12 +156,25 @@ The trusted plugin now has an unlock hook with a required core session
 installer. It selects the active local method, fetches a challenge, and shows
 an Unlock button on the Wallet origin. Its surface expires with the challenge.
 An embedded-frame E2E verifies unlock capture and expiry without Keychain access.
-The app-facing unlock dispatch and core NEAR installer remain pending. The
-installer must open custody and activate signing before returning success.
+The SDK now dispatches
+`auth.unlockWithAuthMethod({ walletId, walletAuthMethodId, method: 'voiceid' })`.
+The core installer opens the existing seed-encrypted NEAR custody cache with
+this method's envelope and factor. It registers a live Yao client, stores the
+fresh server credential, and publishes the exact NEAR lane before success.
+It checks the lock generation before installation and before unlock commit.
+A lock during server verification rejects the delayed unlock. Session reads
+after reload require a new VoiceID unlock because the live signer is gone.
 The browser has a typed handoff from
 the selected method and server challenge through native capture and server
 verification. It erases the factor secret after a custody installer returns.
 A real-D1 E2E verifies the handoff and proves that revoking VoiceID blocks
 pending and new challenges while the original owner method stays active. A
-composed native/browser E2E and full removal-flow E2E remain. Production
-voice-only signing is pending those paths.
+live native/browser journey and full removal-flow E2E remain. The composed
+Wallet contract uses a generated device key and factor, real local MPC, and a
+deterministic NEAR RPC. It verifies the NEAR signature and writes public JSON
+evidence. This test avoids microphone capture and Keychain prompts.
+
+This installer supports NEAR on the activated device. Missing custody cache
+requires a passkey or Email OTP owner unlock. ECDSA signing and key export
+require their supported owner methods. Live microphone and clean-device
+qualification remain before a production release.

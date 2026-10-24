@@ -37,8 +37,16 @@ This package is not signed for public distribution or notarized.
    build and existing local Wallet services. The Wallet loads the browser
    VoiceID code on the first enabled request.
 
-5. Review a NEAR testnet transfer. Select Confirm. Wait for Microphone is ready.
-   Say exactly "I approve this operation" or "I cancel this operation".
+5. Unlock the Wallet once with a passkey or Email OTP. Activate VoiceID through
+   registration.activateAuthMethod({ walletId, method: 'voiceid' }). Select
+   Activate in the Wallet, wait for listening, and say "I approve this operation".
+
+6. Lock the Wallet. Use auth.unlockWithAuthMethod with the registered VoiceID
+   method ID. Select Unlock in the Wallet and speak the same approval phrase.
+   The server issues a fresh session and the SDK installs the NEAR signer.
+
+7. Review a funded NEAR testnet transfer. Select Confirm. Wait for microphone
+   readiness. Say exactly "I approve this operation" or "I cancel this operation".
 
 To stop using VoiceID, remove it from SDK configuration and stop the local
 service. This preserves enrollment. Stop the service before enrolling again or
@@ -52,6 +60,7 @@ and a clean Mac remain acceptance checks. The MVP trusts your device and OS.
 Spoof detection is outside this profile. See NOTICE.txt and licenses/ for
 third-party attribution.
 
-The current package gates one reviewed transfer. Voice-only Wallet Session
-unlock still needs a registered device key, server verification, and a custody
-envelope. The SDK plugin descriptor alone does not issue a Wallet Session.
+Use the current VoiceID host and matching Wallet SDK. The approval-only host
+cannot activate a device key or sign an unlock challenge. The SDK plugin needs
+the native service, server verification, and method-bound custody envelope.
+The manual /voiceid page in the Wallet test app exposes each live-test step.

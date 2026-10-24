@@ -11,19 +11,19 @@ The public Wallet integration lives on `codex/voiceid-browser` in
 
 ## Current state
 
-The Wallet's browser boundary and real MPC contract pass with deterministic
-voice replies. The new loopback transport passes an end-to-end test with a fake
-native host. That test confirms origin rejection, one persistent native process,
-attempt cancellation, and response binding. It opens no Keychain or microphone.
+The Wallet activation, fresh-session unlock, and NEAR MPC contracts pass with
+generated device keys and deterministic voice replies. The loopback transport
+also passes a fake-host end-to-end test. It confirms origin rejection, one
+persistent native process, attempt cancellation, and response binding.
 
-The native bridge compiles. A direct live status check reached the enrolled
-template before the persistent-host change. Live spoken approval through the
-new service remains to be checked. The synthetic full Wallet-to-native journey
-has been updated for the loopback service and has not been rerun. The packaged
-service has not been qualified on a clean Mac.
+The current native host supports device-key activation and unlock. The manual
+Wallet page uses the existing local enrollment and deliberate capture buttons.
+Live spoken activation, unlock, and transfer remain qualification steps. A
+clean-Mac package run remains open.
 
-The first MVP assumes an authorized user controls the device. Spoof detection,
-camera evidence, and a new server VoiceID factor remain outside this profile.
+The first MVP assumes an authorized user controls the device. Spoof detection
+and camera evidence remain outside this profile. Device-key activation and
+fresh-session unlock use the server contracts in the Wallet SDK plugin.
 
 ## Local setup
 
@@ -112,3 +112,22 @@ The protocol carries no audio, wallet key, template, or speaker score. A browser
 abort sends cancellation to the native session. An expired or mismatched result
 cannot approve the review. The native process holds an exclusive namespace
 lease, so another VoiceID process cannot change the enrollment during a check.
+
+## Manual Wallet test
+
+The Wallet worktree includes `/voiceid` in `tests/intended-app`. Enable the
+plugin with `authMethod=voiceid` and select a test wallet with `walletId`.
+The page exposes owner registration, VoiceID activation, lock, voice unlock,
+and a reviewed one-yoctoNEAR transfer to the same testnet account.
+
+Use the current `voiceid-host` binary. The older approval-only package cannot
+activate a device key or sign an unlock challenge. Build the host from the
+Wallet worktree before a live test, then run one persistent loopback service.
+Keep the existing enrollment namespace. A status request confirms enrollment
+without recording. All capture starts from a user click inside the Wallet.
+
+Create the wallet with a passkey and save its recovery codes. Activate VoiceID
+once under that owner session. After testnet funding, lock the wallet, unlock
+with VoiceID, and review the transfer. Say “I approve this operation” when the
+Wallet reports that the microphone is listening. The native host keeps its
+Keychain session and device credential in memory for subsequent attempts.

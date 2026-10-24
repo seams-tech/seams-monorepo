@@ -13,6 +13,7 @@ on:
           - inspect
           - allocate-resources
           - deploy-runtime
+          - activate
 
 permissions:
   contents: read
@@ -107,8 +108,12 @@ jobs:
     secrets: inherit
 
   activate:
-    if: inputs.operation == 'deploy-runtime'
-    needs: deploy_runtime
+    if: >-
+      always() && !cancelled() &&
+      needs.inspect.result == 'success' && needs.validate.result == 'success' &&
+      (inputs.operation == 'activate' ||
+      (inputs.operation == 'deploy-runtime' && needs.deploy_runtime.result == 'success'))
+    needs: [inspect, validate, deploy_runtime]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:

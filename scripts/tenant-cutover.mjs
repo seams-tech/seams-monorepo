@@ -70,7 +70,7 @@ async function run() {
   if (
     lane.kind === 'customer' &&
     options.kind === 'cutover' &&
-    options.environmentId !== lane.identity.environmentId
+    options.body.environmentId !== lane.identity.environmentId
   ) {
     throw new Error('GetSignal activation requires its exact recorded project environment');
   }

@@ -20,10 +20,14 @@ import {
   GATEWAY_WORKER_COMPATIBILITY_FLAGS,
   gatewayRuntimeProfileNearNetwork,
 } from './gateway-deployment-config.mjs';
-import { readBackendLane, readConsoleFrontendSite } from '../../../scripts/deployment-targets.mjs';
+import {
+  backendLaneIds,
+  readBackendLane,
+  readConsoleFrontendSite,
+} from '../../../scripts/deployment-targets.mjs';
 import { isDirectInvocation } from './d1-staging-config.mjs';
 
-const VALID_LANES = new Set(['staging-testnet', 'production-testnet', 'production-mainnet']);
+const VALID_LANES = new Set(backendLaneIds());
 
 const require = createRequire(import.meta.url);
 
@@ -44,7 +48,7 @@ function main() {
       ? buildConsoleConfig(
           deployment,
           lane.console,
-          lane.site.walletSiteOrigin,
+          lane.kind === 'customer' ? lane.applicationOrigin : lane.site.walletSiteOrigin,
           lane.walletOrigin,
           lane.gatewayOrigin,
           lane.emailOtpDelivery,
@@ -115,7 +119,7 @@ function parseArguments(args) {
     throw new Error(`Unknown argument: ${argument}`);
   }
   if (!VALID_LANES.has(lane)) {
-    throw new Error('--lane must be staging-testnet, production-testnet, or production-mainnet');
+    throw new Error('--lane must be ' + [...VALID_LANES].join(', '));
   }
   if (!output) throw new Error('--output is required');
   if (!['gateway', 'console', 'wallet-runtime'].includes(worker)) {
@@ -169,18 +173,19 @@ function buildConsoleConfig(
 ) {
   const resources = deployment.resources;
   const consoleOrigin = consoleTarget.origin;
+  const customerReplica = consoleTarget.walletServiceDeploymentId !== deployment.lane;
   const consoleSite = readConsoleFrontendSite(
     deployment.lane === 'staging-testnet' ? 'staging' : 'production',
   );
   const frontendOrigins =
-    deployment.lane === 'production-testnet'
+    deployment.lane === 'production-testnet' || customerReplica
       ? []
       : [consoleSite.platformOrigin, consoleSite.walletConsoleOrigin];
   const production = deployment.lane !== 'staging-testnet';
   const consoleBaseUrl = new URL(consoleSite.platformOrigin);
   consoleBaseUrl.searchParams.set(
     'db_network',
-    deployment.lane === 'production-mainnet' ? 'mainnet' : 'testnet',
+    consoleTarget.walletServiceDeploymentId === 'production-mainnet' ? 'mainnet' : 'testnet',
   );
   let regionalWalletConfigured = true;
   for (const region of WALLET_REGIONS) {
@@ -191,6 +196,8 @@ function buildConsoleConfig(
   const vars = {
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
+    SEAMS_WALLET_SERVICE_DEPLOYMENT_ID: consoleTarget.walletServiceDeploymentId,
+    SEAMS_TENANT_BROWSER_CREDENTIAL_JSON: browserCredentialConfiguration(deployment.lane),
     TENANT_DEPLOYMENT_SURFACES_JSON: JSON.stringify({
       applicationOrigin: walletSiteOrigin,
       hostedWalletOrigin: walletOrigin,
@@ -203,9 +210,13 @@ function buildConsoleConfig(
       consoleSite.platformOrigin,
       consoleSite.walletConsoleOrigin,
     ].join(','),
-    CONSOLE_STEP_UP_RP_ID: new URL(walletSiteOrigin).hostname,
+    CONSOLE_STEP_UP_RP_ID: new URL(
+      customerReplica ? consoleSite.walletConsoleOrigin : walletSiteOrigin,
+    ).hostname,
     CONSOLE_STEP_UP_ORIGIN:
-      frontendOrigins.length > 0 ? consoleSite.walletConsoleOrigin : walletSiteOrigin,
+      frontendOrigins.length > 0 || customerReplica
+        ? consoleSite.walletConsoleOrigin
+        : walletSiteOrigin,
     CONSOLE_SESSION_COOKIE_NAME: DEFAULT_CONSOLE_SESSION_COOKIE_NAME,
     CONSOLE_SESSION_ISSUER: `${consoleOrigin}/console`,
     CONSOLE_SESSION_AUDIENCE: DEFAULT_CONSOLE_SESSION_AUDIENCE,
@@ -266,7 +277,8 @@ function buildConsoleConfig(
       },
     ],
     triggers: {
-      crons: ['* * * * *', '0 3 * * *'],
+      // Account-wide jobs stay with the original account authority.
+      crons: customerReplica ? [] : ['* * * * *', '0 3 * * *'],
     },
     observability: {
       enabled: true,
@@ -276,6 +288,18 @@ function buildConsoleConfig(
     },
     vars,
   };
+}
+
+function browserCredentialConfiguration(laneId) {
+  const lane = readBackendLane(laneId);
+  if (lane.kind === 'platform') {
+    return JSON.stringify({ kind: 'create_managed_publishable_key' });
+  }
+  const publishableKey = String(process.env.SEAMS_TENANT_BOOTSTRAP_PUBLISHABLE_KEY || '').trim();
+  if (!/^pk_dev_[A-Za-z0-9_-]+$/u.test(publishableKey)) {
+    throw new Error('GetSignal requires its verified Development publishable key');
+  }
+  return JSON.stringify({ kind: 'adopt_publishable_key', publishableKey });
 }
 
 function buildConsoleRoutes(consoleOrigin, walletSiteOrigin, frontendOrigins) {

@@ -152,6 +152,7 @@ async function prepare(): Promise<void> {
   const environment = consoleWorkerEnvironment({
     namespace: 'console-celld-acceptance',
     deploymentLane: 'console-preflight',
+    walletServiceDeploymentId: 'console-preflight',
     accountId: '0123456789abcdef0123456789abcdef',
     databaseId,
   });

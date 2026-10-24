@@ -22,13 +22,9 @@ const ENVIRONMENT_LOOKUP = `
    LIMIT 257`;
 
 export async function inspectGetSignalDeployment(input) {
-  const lane = readBackendLane('getsignal-testnet');
-  const control = readBackendLane(lane.controlPlaneLane);
-  if (control.provisioning.kind !== 'provisioned') {
-    throw new Error('The recorded account control plane is unavailable');
-  }
-  const namespace = control.provisioning.gatewayDeploymentConfig.tenant.namespace;
-  const result = await input.provider.query(control.console.database.id, ENVIRONMENT_LOOKUP, [
+  const lane = input.lane;
+  const namespace = lane.accountNamespace;
+  const result = await input.provider.query(lane.console.database.id, ENVIRONMENT_LOOKUP, [
     namespace,
     lane.identity.organizationId,
     lane.identity.projectId,
@@ -73,7 +69,7 @@ export async function inspectGetSignalDeployment(input) {
     lane: lane.id,
     namespace,
     identity: lane.identity,
-    accountDatabaseId: control.console.database.id,
+    accountDatabaseId: lane.console.database.id,
     state: bindings.some(isActiveBinding) ? 'assigned' : 'unassigned',
     bindings,
     deploymentChanged: false,
@@ -86,6 +82,7 @@ function isActiveBinding(binding) {
 
 async function main() {
   const record = await inspectGetSignalDeployment({
+    lane: readBackendLane('getsignal-testnet'),
     provider: new CloudflareD1Operator({
       accountId: requireEnvironmentValue('CLOUDFLARE_ACCOUNT_ID'),
       apiToken: requireEnvironmentValue('CLOUDFLARE_API_TOKEN'),

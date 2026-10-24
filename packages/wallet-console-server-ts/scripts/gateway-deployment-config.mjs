@@ -161,7 +161,7 @@ export function parseGatewayDeploymentConfig(source, expectedLaneId) {
     laneDefinition.runtimeProfileKind,
     `runtimeProfile.kind for ${lane}`,
   );
-  const resources = parseResources(root.resources);
+  const resources = parseGatewayDeploymentResources(root.resources);
   const tenant = parseTenant(root.tenant);
   const origins = parseOrigins(root.origins);
   const session = parseSession(root.session);
@@ -279,14 +279,14 @@ function knownNearNetworkForRpcUrl(rpcUrl) {
 
 export const WALLET_REGIONS = Object.freeze(['US', 'WEUR', 'APAC', 'OC']);
 
-function parseResources(value) {
+export function parseGatewayDeploymentResources(value) {
   const resources = requireObject(value, 'resources');
   requireExactKeys(resources, ['workerName', 'ingressRegion', 'consoleD1', 'regions'], 'resources');
   const rawRegions = requireObject(resources.regions, 'resources.regions');
   requireExactKeys(rawRegions, WALLET_REGIONS, 'resources.regions');
   const regions = {};
   const names = new Set();
-  const consoleD1 = parseD1Resource(resources.consoleD1, 'resources.consoleD1');
+  const consoleD1 = parseGatewayD1Resource(resources.consoleD1, 'resources.consoleD1');
   const ids = new Set([consoleD1.id]);
   names.add(consoleD1.name);
   for (const region of WALLET_REGIONS) {
@@ -353,7 +353,7 @@ function parseD1Allocation(value, label) {
   };
 }
 
-function parseD1Resource(value, path) {
+export function parseGatewayD1Resource(value, path) {
   const resource = requireObject(value, path);
   requireExactKeys(resource, ['name', 'id'], path);
   return {

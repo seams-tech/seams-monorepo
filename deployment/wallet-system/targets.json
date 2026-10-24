@@ -7,9 +7,7 @@
       "walletSiteOrigin": "https://staging.wallet.seams.sh",
       "googleOidcClientId": "971053349716-p52bppo1gmlei9i88naa8eta5f3ebu2l.apps.googleusercontent.com",
       "defaultNetwork": "testnet",
-      "availableNetworks": [
-        "testnet"
-      ],
+      "availableNetworks": ["testnet"],
       "pagesProjectEnv": "CF_PAGES_PROJECT_VITE",
       "walletSitePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_SITE"
     },
@@ -81,9 +79,7 @@
           "signingSessionSeal": {
             "enabled": true,
             "owner": "gateway",
-            "secrets": [
-              "SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"
-            ]
+            "secrets": ["SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"]
           }
         },
         "provisioning": {
@@ -168,9 +164,7 @@
               "algorithm": "shamir3pass-v2",
               "groupId": "rfc2409-group2",
               "currentKeyVersion": "signing-session-seal-staging-r3",
-              "acceptedWarmKeyVersions": [
-                "signing-session-seal-staging-r3"
-              ]
+              "acceptedWarmKeyVersions": ["signing-session-seal-staging-r3"]
             },
             "emailOtpServerSeal": {
               "acceptedWarmKeyVersions": [
@@ -261,10 +255,7 @@
       "walletSiteOrigin": "https://wallet.seams.sh",
       "googleOidcClientId": "971053349716-p10qdg7lsjh24lcocbsckt4f85is5igs.apps.googleusercontent.com",
       "defaultNetwork": "testnet",
-      "availableNetworks": [
-        "testnet",
-        "mainnet"
-      ],
+      "availableNetworks": ["testnet", "mainnet"],
       "pagesProjectEnv": "CF_PAGES_PROJECT_VITE",
       "walletSitePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_SITE"
     },
@@ -340,9 +331,7 @@
           "signingSessionSeal": {
             "enabled": true,
             "owner": "gateway",
-            "secrets": [
-              "SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"
-            ]
+            "secrets": ["SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"]
           }
         },
         "provisioning": {
@@ -427,9 +416,7 @@
               "algorithm": "shamir3pass-v2",
               "groupId": "rfc2409-group2",
               "currentKeyVersion": "signing-session-seal-production-testnet-r3",
-              "acceptedWarmKeyVersions": [
-                "signing-session-seal-production-testnet-r3"
-              ]
+              "acceptedWarmKeyVersions": ["signing-session-seal-production-testnet-r3"]
             },
             "emailOtpServerSeal": {
               "acceptedWarmKeyVersions": [
@@ -579,9 +566,7 @@
           "signingSessionSeal": {
             "enabled": true,
             "owner": "gateway",
-            "secrets": [
-              "SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"
-            ]
+            "secrets": ["SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"]
           }
         },
         "provisioning": {
@@ -665,9 +650,7 @@
               "algorithm": "shamir3pass-v2",
               "groupId": "rfc2409-group2",
               "currentKeyVersion": "signing-session-seal-production-r3",
-              "acceptedWarmKeyVersions": [
-                "signing-session-seal-production-r3"
-              ]
+              "acceptedWarmKeyVersions": ["signing-session-seal-production-r3"]
             },
             "emailOtpServerSeal": {
               "acceptedWarmKeyVersions": [
@@ -756,11 +739,7 @@
         "environmentId": "proj_13e170e650494645b3ef5f8087d50dda:dev"
       },
       "applicationOrigin": "https://getsignal.now",
-      "allowedOrigins": [
-        "https://getsignal.now",
-        "http://127.0.0.1:4318",
-        "https://sign.seams.sh"
-      ],
+      "allowedOrigins": ["https://getsignal.now", "http://127.0.0.1:4318", "https://sign.seams.sh"],
       "gatewayOrigin": "https://getsignal.api.wallet.seams.sh",
       "walletOrigin": "https://sign.seams.sh",
       "consoleOrigin": "https://getsignal.console.seams.sh",
@@ -778,8 +757,6 @@
         },
         "deriverA": {
           "workerName": "router-ab-deriver-a-getsignal",
-          "placementRegion": "aws:ap-southeast-1",
-          "d1PrimaryColo": "SIN",
           "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.deriver-a.toml",
           "deploymentEnvironment": {
             "kind": "named",
@@ -788,8 +765,6 @@
         },
         "deriverB": {
           "workerName": "router-ab-deriver-b-getsignal",
-          "placementRegion": "aws:ap-southeast-1",
-          "d1PrimaryColo": "SIN",
           "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.deriver-b.toml",
           "deploymentEnvironment": {
             "kind": "named",
@@ -798,8 +773,6 @@
         },
         "signingWorker": {
           "workerName": "router-ab-signing-worker-getsignal",
-          "placementRegion": "aws:ap-southeast-1",
-          "d1PrimaryColo": "SIN",
           "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.signing-worker.toml",
           "deploymentEnvironment": {
             "kind": "named",
@@ -833,15 +806,181 @@
         }
       },
       "provisioning": {
-        "kind": "pending",
-        "runtimeProfileKind": "testnet_service",
-        "requiredValues": [
-          "SIGNING_WORKER_PRIVATE_D1_ID",
-          "DERIVER_A_PRIVATE_D1_ID",
-          "DERIVER_B_PRIVATE_D1_ID",
-          "RELAYER_PRIVATE_KEY",
-          "RESEND_API_KEY"
-        ]
+        "kind": "provisioned",
+        "gatewayDeploymentConfig": {
+          "schemaVersion": 6,
+          "lane": "getsignal-testnet",
+          "runtimeProfile": {
+            "kind": "testnet_service",
+            "nearFunding": {
+              "kind": "implicit_account_relayer",
+              "network": "near_testnet"
+            },
+            "emailOtpDelivery": {
+              "kind": "email_provider"
+            }
+          },
+          "resources": {
+            "workerName": "seams-sdk-d1-gateway-getsignal",
+            "ingressRegion": "APAC",
+            "consoleD1": {
+              "name": "seams-console",
+              "id": "b928549b-8cd8-41db-9e66-36e95afbe295"
+            },
+            "regions": {
+              "US": {
+                "workerName": "seams-sdk-d1-gateway-getsignal-us",
+                "placementRegion": "aws:us-east-1",
+                "signerD1": {
+                  "kind": "allocated",
+                  "name": "seams-signer-getsignal-us",
+                  "id": "61fc1b4b-a31c-4ef5-8fe5-39e1f5875db5"
+                }
+              },
+              "WEUR": {
+                "workerName": "seams-sdk-d1-gateway-getsignal-weur",
+                "placementRegion": "aws:eu-west-2",
+                "signerD1": {
+                  "kind": "allocated",
+                  "name": "seams-signer-getsignal-weur",
+                  "id": "3ba5d29f-c439-4225-85ea-8c9175b41db8"
+                }
+              },
+              "APAC": {
+                "workerName": "seams-sdk-d1-gateway-getsignal",
+                "placementRegion": "aws:ap-southeast-1",
+                "signerD1": {
+                  "kind": "allocated",
+                  "name": "seams-signer-getsignal-apac",
+                  "id": "2d021010-f135-44c6-b69a-3194e006f7fe"
+                }
+              },
+              "OC": {
+                "workerName": "seams-sdk-d1-gateway-getsignal-oc",
+                "placementRegion": "aws:ap-southeast-2",
+                "signerD1": {
+                  "kind": "allocated",
+                  "name": "seams-signer-getsignal-oc",
+                  "id": "b12e5f9c-feff-45a4-80d0-d43b30e7012d"
+                }
+              }
+            }
+          },
+          "tenant": {
+            "namespace": "seams-production",
+            "orgId": "org_b9xp129zr4c7",
+            "projectId": "proj_13e170e650494645b3ef5f8087d50dda",
+            "environmentId": "proj_13e170e650494645b3ef5f8087d50dda:dev"
+          },
+          "origins": {
+            "gateway": "https://getsignal.api.wallet.seams.sh",
+            "allowedCors": [
+              "https://getsignal.now",
+              "http://127.0.0.1:4318",
+              "https://sign.seams.sh"
+            ]
+          },
+          "session": {
+            "issuer": "seams-gateway-getsignal-testnet"
+          },
+          "signingSessionSeal": {
+            "algorithm": "shamir3pass-v2",
+            "groupId": "rfc2409-group2",
+            "currentKeyVersion": "signing-session-seal-getsignal-testnet-r3",
+            "acceptedWarmKeyVersions": ["signing-session-seal-getsignal-testnet-r3"]
+          },
+          "emailOtpServerSeal": {
+            "acceptedWarmKeyVersions": ["signing-session-seal-getsignal-testnet-r3"]
+          },
+          "routerAb": {
+            "ceremonyJwtAudience": "router-ab",
+            "ceremonyJwtKeyId": "router-ab-ceremony-getsignal-testnet-r1",
+            "publicKeyset": {
+              "keyset_version": "router_ab_keyset_v2",
+              "signer_envelope_hpke": {
+                "current": {
+                  "deriver_a": {
+                    "role": "signer_a",
+                    "key_epoch": "epoch-1",
+                    "public_key": "x25519:6a43abcf1348d6a8e6331c5e6fcc2a8d5850124951ae2a2d8c8f389c9c386e6a"
+                  },
+                  "deriver_b": {
+                    "role": "signer_b",
+                    "key_epoch": "epoch-1",
+                    "public_key": "x25519:3e9ec3d076ebcccec0f20f9a585085068595f0bed2bbafbc4258f196d4b3d847"
+                  }
+                }
+              },
+              "signing_worker_server_output_hpke": {
+                "key_epoch": "epoch-1",
+                "public_key": "x25519:e157f387bd8b0b1af10d07db8e1536b009f5fa8700385c6e49871dbc8a11bd2c"
+              }
+            },
+            "registrationTopology": {
+              "routerId": "router-ab-mpc-router-getsignal",
+              "signerSet": {
+                "signer_set_id": "router-ab-getsignal-testnet-signers-r1",
+                "policy": "all_2",
+                "signer_a": {
+                  "role": "signer_a",
+                  "signer_id": "signer-a",
+                  "key_epoch": "epoch-1"
+                },
+                "signer_b": {
+                  "role": "signer_b",
+                  "signer_id": "signer-b",
+                  "key_epoch": "epoch-1"
+                },
+                "selected_server": {
+                  "server_id": "router-ab-signing-worker-getsignal",
+                  "key_epoch": "epoch-1",
+                  "recipient_encryption_key": "x25519:e157f387bd8b0b1af10d07db8e1536b009f5fa8700385c6e49871dbc8a11bd2c"
+                }
+              },
+              "deriverRecipientKeys": {
+                "deriver_a": {
+                  "role": "signer_a",
+                  "key_epoch": "epoch-1",
+                  "public_key": "x25519:6a43abcf1348d6a8e6331c5e6fcc2a8d5850124951ae2a2d8c8f389c9c386e6a"
+                },
+                "deriver_b": {
+                  "role": "signer_b",
+                  "key_epoch": "epoch-1",
+                  "public_key": "x25519:3e9ec3d076ebcccec0f20f9a585085068595f0bed2bbafbc4258f196d4b3d847"
+                }
+              }
+            },
+            "deriverAYaoInputPublicKey": "x25519:6a43abcf1348d6a8e6331c5e6fcc2a8d5850124951ae2a2d8c8f389c9c386e6a",
+            "deriverBYaoInputPublicKey": "x25519:3e9ec3d076ebcccec0f20f9a585085068595f0bed2bbafbc4258f196d4b3d847",
+            "signingWorkerOutputPublicKey": "x25519:e157f387bd8b0b1af10d07db8e1536b009f5fa8700385c6e49871dbc8a11bd2c"
+          },
+          "optional": {
+            "nearRelayer": {
+              "accountId": "getsignal-wallet-relayer.testnet",
+              "publicKey": "ed25519:2MeJGR8A611atYzu2LTN3urUzhQ3AZc7ximpamsAU4o5",
+              "rpcUrl": "https://rpc.testnet.fastnear.com",
+              "initialBalanceYocto": "10000000000000000000000"
+            },
+            "googleOidcClientId": null
+          }
+        },
+        "privateRoles": {
+          "deriverA": {
+            "id": "df857ff2-6aea-4159-ae1d-fb3a1d89ea14",
+            "name": "seams-private-getsignal-deriver-a",
+            "primaryColo": "SIN"
+          },
+          "deriverB": {
+            "id": "34b3f68b-b6c9-4dda-afca-fd67bd8d0851",
+            "name": "seams-private-getsignal-deriver-b",
+            "primaryColo": "SIN"
+          },
+          "signingWorker": {
+            "id": "9c79d29c-2659-45a9-b246-ca6471f6d933",
+            "name": "seams-private-getsignal-signing-worker",
+            "primaryColo": "NRT"
+          }
+        }
       }
     }
   }

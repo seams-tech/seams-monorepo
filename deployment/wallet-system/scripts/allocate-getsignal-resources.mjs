@@ -14,7 +14,7 @@ const REGIONAL_DATABASES = Object.freeze([
 ]);
 
 export async function allocateGetSignalResources(input) {
-  const lane = readBackendLane('getsignal-testnet');
+  const lane = input.lane;
   if (lane.provisioning.kind !== 'pending') {
     throw new Error('GetSignal already has prepared resources; use its recorded deployment');
   }
@@ -38,7 +38,11 @@ export async function allocateGetSignalResources(input) {
     if (!placement.providerRegions.includes(allocation.database.location.region)) {
       throw new Error(`Unexpected primary region for ${allocation.database.name}`);
     }
-    regional.push({ region: placement.region, kind: allocation.kind, database: allocation.database });
+    regional.push({
+      region: placement.region,
+      kind: allocation.kind,
+      database: allocation.database,
+    });
   }
   const deriverA = await allocatePrivateRole(input.provider, 'deriver-a');
   const deriverB = await allocateColocatedDeriverB(input, deriverA.database.location.colo);
@@ -95,6 +99,7 @@ async function allocatePrivateRole(provider, role) {
 
 async function main() {
   const record = await allocateGetSignalResources({
+    lane: readBackendLane('getsignal-testnet'),
     provider: new CloudflareD1Operator({
       accountId: requiredEnvironmentValue('CLOUDFLARE_ACCOUNT_ID'),
       apiToken: requiredEnvironmentValue('CLOUDFLARE_API_TOKEN'),

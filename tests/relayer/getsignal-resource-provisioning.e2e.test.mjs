@@ -10,7 +10,7 @@ import {
   fourRegionBinding,
   seedHistoricalActiveBinding,
 } from '../helpers/tenantDeploymentFixtures.ts';
-import { readBackendLane } from '../../scripts/deployment-targets.mjs';
+import { parseDeploymentTargets, readBackendLane } from '../../scripts/deployment-targets.mjs';
 import { CloudflareD1Operator } from '../../deployment/wallet-system/scripts/cloudflare-d1-operator.mjs';
 import { allocateGetSignalResources } from '../../deployment/wallet-system/scripts/allocate-getsignal-resources.mjs';
 
@@ -193,6 +193,18 @@ async function readPointers(database) {
   ).results;
 }
 
+async function pendingGetSignalLane() {
+  const source = JSON.parse(
+    await readFile(path.join(repoRoot, 'deployment/wallet-system/targets.json'), 'utf8'),
+  );
+  source.customers.getsignal.provisioning = {
+    kind: 'pending',
+    runtimeProfileKind: 'testnet_service',
+    requiredValues: ['SIGNING_WORKER_PRIVATE_D1_ID'],
+  };
+  return parseDeploymentTargets(source).backendLanes['getsignal-testnet'];
+}
+
 async function provisioningScenario() {
   const testInfo = test.info();
   test.setTimeout(120_000);
@@ -204,7 +216,7 @@ async function provisioningScenario() {
     'packages/wallet-console-server-ts/migrations/d1-console/0046_tenant_deployment_bindings.sql',
   ])
     await registry.exec(await readFile(path.join(repoRoot, migration), 'utf8'));
-  const lane = readBackendLane('getsignal-testnet');
+  const lane = await pendingGetSignalLane();
   const control = readBackendLane(lane.controlPlaneLane);
   const namespace = control.provisioning.gatewayDeploymentConfig.tenant.namespace;
   await seedEnvironment(registry, lane, namespace);
@@ -219,7 +231,7 @@ async function provisioningScenario() {
       apiToken: 'controlled-provider-token',
       fetcher: endpoint.fetch.bind(endpoint),
     });
-    const input = { provider, sourceRevision: 'controlled-e2e' };
+    const input = { provider, lane, sourceRevision: 'controlled-e2e' };
     const first = await allocateGetSignalResources(input);
     expect(first.regional).toHaveLength(4);
     expect(endpoint.databases.size).toBe(8);

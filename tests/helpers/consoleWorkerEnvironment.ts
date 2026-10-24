@@ -15,6 +15,7 @@ export async function consoleIdentityCookie(secret: string, userId: string): Pro
 export function consoleWorkerEnvironment(input: {
   readonly namespace: string;
   readonly deploymentLane: string;
+  readonly walletServiceDeploymentId: string;
   readonly accountId: string;
   readonly databaseId: string;
 }): Record<string, string> {
@@ -22,6 +23,10 @@ export function consoleWorkerEnvironment(input: {
     SEAMS_WALLET_HOME_CATALOG_JSON: fixtureHomeCatalog(input.accountId, input.databaseId),
     SEAMS_TENANT_STORAGE_NAMESPACE: input.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: input.deploymentLane,
+    SEAMS_WALLET_SERVICE_DEPLOYMENT_ID: input.walletServiceDeploymentId,
+    SEAMS_TENANT_BROWSER_CREDENTIAL_JSON: JSON.stringify({
+      kind: 'create_managed_publishable_key',
+    }),
     CONSOLE_BASE_URL: 'https://console.example.test',
     CONSOLE_EMAIL_RUNTIME_PROFILE: 'DEVELOPMENT',
     CONSOLE_EMAIL_PROVIDER: 'CAPTURE',

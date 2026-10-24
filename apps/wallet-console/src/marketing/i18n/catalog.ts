@@ -68,19 +68,6 @@ export const figureCatalog = {
 
 // Each message requires both languages. Components and document builds use this catalog.
 export const catalog = {
-  globeTitle: { en: 'Closer to your users.', ja: 'ユーザーの近くで。' },
-  globeTitleMuted: { en: 'Across the globe.', ja: '世界のどこでも。' },
-  globeDescription: {
-    en: 'Regional wallet infrastructure brings signing closer to your users, reducing network travel for every interaction.',
-    ja: 'リージョンごとのウォレット基盤で、ユーザーの近くで署名を処理。操作ごとの通信距離を短くします。',
-  },
-  globeEurope: { en: 'Europe', ja: 'ヨーロッパ' },
-  globeApac: { en: 'APAC', ja: 'アジア太平洋' },
-  globeUs: { en: 'US', ja: '米国' },
-  globeAccessibleName: {
-    en: 'Rotatable globe showing Europe, Asia Pacific, and US regions',
-    ja: 'ヨーロッパ、アジア太平洋、米国のリージョンを表示する回転可能な地球儀',
-  },
   pageTitle: { en: 'Seams Wallet', ja: 'Seams Wallet | パスキーで使えるウォレット' },
   pageDescription: {
     en: 'Non-custodial embedded wallets opened with a passkey.',
@@ -139,7 +126,10 @@ export const catalog = {
   resumeCycling: { en: 'Resume automatic cycling', ja: '自動切り替えを再開' },
   pauseCycling: { en: 'Pause automatic cycling', ja: '自動切り替えを停止' },
   observability: { en: 'Observability', ja: '稼働状況' },
-  failureAlerts: { en: 'Failing services flagged as they happen', ja: 'サービスの障害をすぐに検知' },
+  failureAlerts: {
+    en: 'Failing services flagged as they happen',
+    ja: 'サービスの障害をすぐに検知',
+  },
   auditLogs: { en: 'Audit logs', ja: '監査ログ' },
   csvExport: { en: 'Export to CSV in one click', ja: 'ワンクリックでCSVに出力' },
   passkeySignup: { en: 'Passkey sign-up', ja: 'パスキーで登録' },

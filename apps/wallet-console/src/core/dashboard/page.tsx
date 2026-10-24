@@ -5,6 +5,7 @@ import {
   consoleSignInHref,
   forgetConsoleSignInContext,
   rememberConsoleContext,
+  readConsoleSignInContext,
   platformConsoleHref,
 } from './consoleNavigation';
 import { DashboardOnboardingPage } from './routes/onboarding/page';
@@ -1457,6 +1458,11 @@ function DashboardEntry<ProductRoute extends string, ProductGroupKey extends str
     readUnscopedConsoleSession(requireConsoleBaseUrl())
       .then((onboarding) => {
         if (cancelled) return;
+        const requested = readConsoleSignInContext();
+        if (onboarding && (requested.organization || requested.project)) {
+          go(consoleSignInHref(DASHBOARD_LOGIN_ROUTE));
+          return;
+        }
         setEntry(onboarding ? 'onboarding' : 'workspace');
         if (onboarding) {
           // An identity without an organization cannot retain another account's scope.

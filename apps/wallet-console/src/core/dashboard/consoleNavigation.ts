@@ -77,7 +77,7 @@ const SIGN_IN_CONTEXT_STORAGE_KEY = 'seams-dashboard-sign-in-context-v1';
 
 type ConsoleContextRequest = Pick<TopbarContextState, 'organization' | 'project'>;
 
-function readSignInContext(): ConsoleContextRequest {
+export function readConsoleSignInContext(): ConsoleContextRequest {
   try {
     const parsed: unknown = JSON.parse(
       window.sessionStorage.getItem(SIGN_IN_CONTEXT_STORAGE_KEY) || 'null',
@@ -155,7 +155,7 @@ export function consoleSignInHref(
     | '/dashboard/invitations/accept',
 ): string {
   const url = new URL(pathname, window.location.origin);
-  setConsoleContext(url, readSignInContext());
+  setConsoleContext(url, readConsoleSignInContext());
   return url.pathname + url.search;
 }
 

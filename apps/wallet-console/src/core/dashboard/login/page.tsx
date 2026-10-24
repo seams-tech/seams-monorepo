@@ -22,7 +22,12 @@ import {
   fetchDashboardConsoleSession,
 } from '../consoleSession';
 import { readUnscopedConsoleSession } from '../routes/onboarding/initialOrganizationApi';
-import { consoleSignInHref, rememberConsoleContext, walletConsoleHref } from '../consoleNavigation';
+import {
+  consoleSignInHref,
+  rememberConsoleContext,
+  readConsoleSignInContext,
+  walletConsoleHref,
+} from '../consoleNavigation';
 import { readPendingDashboardInvitation } from '../routes/invitations/invitation';
 import { getDashboardBillingPlan, startDashboardCardSetup } from '../routes/billing/freePlanApi';
 import {
@@ -293,7 +298,10 @@ export function DashboardLoginPage(): React.JSX.Element {
       if (isCancelled()) return;
       if (scoped) return await continueSignedIn('/dashboard');
       const unscoped = await readUnscopedConsoleSession(relayerBaseUrl).catch(() => false);
-      if (unscoped && !isCancelled()) await continueSignedIn('/dashboard/onboarding');
+      const requested = readConsoleSignInContext();
+      if (unscoped && !isCancelled() && !requested.organization && !requested.project) {
+        await continueSignedIn('/dashboard/onboarding');
+      }
     },
     [continueSignedIn, relayerBaseUrl],
   );

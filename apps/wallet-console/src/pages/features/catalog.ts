@@ -3,14 +3,11 @@ import type { Locale } from '@/marketing/i18n/locale';
 // The features page's messages. Each message requires both languages.
 export const messages = {
   featuresPageTitle: { en: 'Features | Seams Wallet', ja: '機能 | Seams Wallet' },
-  featuresKicker: { en: 'Features', ja: '機能' },
-  featuresTitle: {
-    en: 'A wallet your users keep, wherever they are.',
-    ja: 'どこにいても、ユーザーが失わないウォレット。',
-  },
+  featuresKicker: { en: 'Wallet features', ja: 'ウォレットの機能' },
+  featuresTitle: { en: 'Everything in Seams Wallet', ja: 'Seams Walletのすべての機能' },
   featuresDescription: {
-    en: 'Sign in with a passkey, recover with email, and link new devices by QR. Run near your users, or on your own cloud.',
-    ja: 'パスキーでサインインし、メールで復元し、QRで新しいデバイスをリンク。ユーザーの近くでも、自社のクラウドでも運用できます。',
+    en: 'Passkeys, email recovery, device linking, regional infrastructure, and self-hosting.',
+    ja: 'パスキー、メールでの復元、デバイスのリンク、リージョンごとの基盤、セルフホスト。',
   },
   sections: { en: 'On this page', ja: 'このページの内容' },
 

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>Controlled Google account chooser</title>
+  <body>
+    <h1>Sign in to Seams</h1>
+    <p>This isolated provider fixture represents a browser with no Google session.</p>
+    <button type="button" data-credential="valid">Choose GetSignal account</button>
+    <button type="button" data-credential="invalid">Return invalid credential</button>
+    <button type="button" data-credential="">Return empty credential</button>
+    <button type="button" id="cancel">Cancel</button>
+    <script>
+      function chooseAccount(event) {
+        const origin = new URL(location.href).searchParams.get('origin');
+        window.opener.postMessage(
+          { kind: 'google-acceptance', credential: event.currentTarget.dataset.credential },
+          origin,
+        );
+        window.close();
+      }
+      function cancel() {
+        window.close();
+      }
+      for (const button of document.querySelectorAll('[data-credential]'))
+        button.addEventListener('click', chooseAccount);
+      document.getElementById('cancel').addEventListener('click', cancel);
+    </script>
+  </body>
+</html>

@@ -8364,6 +8364,13 @@ select.dashboard-input {
   gap: 0.65rem;
 }
 
+.dashboard-login__google-sign-in {
+  width: 100%;
+  max-width: 400px;
+  min-height: 44px;
+  justify-self: center;
+}
+
 .dashboard-login__auth-button {
   appearance: none;
   width: 100%;

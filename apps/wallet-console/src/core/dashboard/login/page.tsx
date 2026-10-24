@@ -4,11 +4,7 @@ import { getActiveFrontendDeployment } from '@core/runtime';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import { DashboardAuthCard, type DashboardAuthProvider } from '@core/auth/DashboardAuthCard';
 import SeamsWordmark from '@core/components/SeamsWordmark';
-import {
-  ensureGoogleIdentityScriptLoaded,
-  fetchGoogleAuthOptions,
-  requestGoogleIdToken,
-} from '@core/auth/googleIdentity';
+import { fetchGoogleAuthOptions } from '@core/auth/googleIdentity';
 import {
   beginGithubOAuth,
   consumeGithubOAuthCallback,
@@ -21,7 +17,8 @@ import {
 } from '@core/auth/githubOAuth';
 import {
   canDashboardManageBilling,
-  consumeDashboardConsoleSignOut,
+  readDashboardConsoleSignOut,
+  clearDashboardConsoleSignOut,
   fetchDashboardConsoleSession,
 } from '../consoleSession';
 import { readUnscopedConsoleSession } from '../routes/onboarding/initialOrganizationApi';
@@ -168,8 +165,16 @@ async function exchangeDashboardSession(
   const responseBody = await parseDashboardLoginExchangeBody(response);
   if (!response.ok || responseBody?.ok !== true) {
     const message = responseBody?.ok === false ? responseBody.message : '';
+    if (command.kind === 'google' && (response.status === 400 || response.status === 401)) {
+      console.debug('[Console sign-in] Google verification failed', {
+        status: response.status,
+        message,
+      });
+      throw new Error('Google sign-in could not be verified. Try again.');
+    }
     throw new Error(message || `${providerLabel} session exchange failed (${response.status})`);
   }
+  clearDashboardConsoleSignOut();
   return responseBody.kind;
 }
 
@@ -196,6 +201,7 @@ export function DashboardLoginPage(): React.JSX.Element {
     return normalizeBaseUrl(deployment.consoleBaseUrl || deployment.relayerUrl);
   }, []);
   const githubLogin = React.useRef<ReturnType<typeof exchangeDashboardSession> | null>(null);
+  const googleLogin = React.useRef<ReturnType<typeof exchangeDashboardSession> | null>(null);
   const [googleClientId, setGoogleClientId] = React.useState<string>('');
   const [githubOptions, setGithubOptions] = React.useState<GithubOAuthOptions>({
     configured: false,
@@ -297,7 +303,7 @@ export function DashboardLoginPage(): React.JSX.Element {
     /* Arriving here from an explicit sign-out: never auto-resume, even if the
        session still validates (a revoke can fail server-side). Otherwise the
        user is thrown straight back into the console they just left. */
-    if (consumeDashboardConsoleSignOut()) {
+    if (readDashboardConsoleSignOut()) {
       setSignedOut(true);
       setInitializing(false);
       return () => {
@@ -438,39 +444,41 @@ export function DashboardLoginPage(): React.JSX.Element {
     beginGithubOAuth(githubOptions);
   }, [githubOptions, presentation]);
 
-  const onGoogleSignIn = React.useCallback(async () => {
-    if (loadingProvider) return;
-    setLoadingProvider('google');
-    setErrorMessage('');
-    try {
-      if (!relayerBaseUrl) {
-        throw new Error('Relayer base URL is not configured');
-      }
-      if (!googleClientId) {
-        throw new Error('Google client ID is not configured on the Router API server');
-      }
-      if (!googleConfigured) {
-        throw new Error('Google OIDC is not configured on the Router API server');
-      }
+  const onGoogleCredential = React.useCallback(
+    async (idToken: string) => {
+      if (googleLogin.current || loadingProvider) return;
+      setLoadingProvider('google');
+      setErrorMessage('');
+      try {
+        if (!relayerBaseUrl) {
+          throw new Error('Relayer base URL is not configured');
+        }
+        if (!googleClientId) {
+          throw new Error('Google client ID is not configured on the Router API server');
+        }
+        if (!googleConfigured) {
+          throw new Error('Google OIDC is not configured on the Router API server');
+        }
 
-      rememberConsoleContext();
-      await ensureGoogleIdentityScriptLoaded();
-      const idToken = await requestGoogleIdToken(googleClientId);
+        rememberConsoleContext();
+        googleLogin.current = exchangeDashboardSession(relayerBaseUrl, { kind: 'google', idToken });
+        const kind = await googleLogin.current;
+        if (kind === 'console_identity_v1') {
+          await continueSignedIn('/dashboard/onboarding');
+          return;
+        }
 
-      const kind = await exchangeDashboardSession(relayerBaseUrl, { kind: 'google', idToken });
-      if (kind === 'console_identity_v1') {
-        await continueSignedIn('/dashboard/onboarding');
-        return;
+        await fetchDashboardConsoleSession();
+        await continueSignedIn('/dashboard');
+      } catch (error: unknown) {
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      } finally {
+        googleLogin.current = null;
+        setLoadingProvider(null);
       }
-
-      await fetchDashboardConsoleSession();
-      await continueSignedIn('/dashboard');
-    } catch (error: unknown) {
-      setErrorMessage(error instanceof Error ? error.message : String(error));
-    } finally {
-      setLoadingProvider(null);
-    }
-  }, [continueSignedIn, googleClientId, googleConfigured, loadingProvider, relayerBaseUrl]);
+    },
+    [continueSignedIn, googleClientId, googleConfigured, loadingProvider, relayerBaseUrl],
+  );
 
   const googleLabel = initializing
     ? 'Checking existing session...'
@@ -515,7 +523,10 @@ export function DashboardLoginPage(): React.JSX.Element {
       id: 'google',
       label: googleLabel,
       disabled: authBusy || !googleConfigured,
-      onContinue: onGoogleSignIn,
+      clientId: googleClientId,
+      oneTap: signedOut ? 'disabled' : 'enabled',
+      onCredential: onGoogleCredential,
+      onError: setErrorMessage,
     },
     {
       id: 'github',

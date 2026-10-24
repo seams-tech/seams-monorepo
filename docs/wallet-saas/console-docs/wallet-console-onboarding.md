@@ -1,6 +1,6 @@
 # Console onboarding
 
-Updated October 13, 2026.
+Updated October 24, 2026.
 
 ## Product contract
 
@@ -52,13 +52,38 @@ It validates successful responses with the shared projection decoder.
 
 An owner can refresh deployment status after an operator completes activation.
 
-SDK 0.15.4 registration still requires the selected environment's publishable
+SDK 0.21.0 registration still requires the selected environment's publishable
 key and allowed application and wallet origins. Completing Console onboarding
 does not establish Wallet deployment readiness. See [API credentials](api-keys.md)
 and the [current public deployment guide](https://wallet.seams.sh/docs/deploy-and-operate/hosted-integration).
 Only the existing protected workflow can authorize hosted activation. A Console
 session does not grant that authority. Gateway and Wallet runtime admission checks
 continue to enforce deployment readiness.
+
+## Google sign-in
+
+The login page offers Google One Tap after checking the existing Console session.
+Google's rendered sign-in button remains available when One Tap cannot display an
+account. Dismissing One Tap or closing the account chooser leaves sign-in available.
+There is no account-selection deadline that cancels the Google prompt.
+
+The page shows signing progress only after Google returns a credential. Script
+load failures offer a retry. Credential failures show a short retry instruction.
+Explicit sign-out suppresses One Tap and session resumption through reload in the
+same tab. A successful sign-in clears that choice.
+
+The Google browser scenario uses a controlled provider boundary with real Console
+authentication, RSA token verification, cookies, and D1 account services. It covers
+One Tap, unavailable prompts, script recovery, keyboard sign-in, popup cancellation,
+invalid credentials, duplicate callbacks, reload, and explicit sign-out. It writes
+JSON evidence and screenshots:
+
+```sh
+pnpm -C tests exec playwright test -c playwright.config.ts e2e/console/google-sign-in.e2e.test.ts --output=../.artifacts/console-google-login
+```
+
+This scenario does not reproduce native FedCM behavior. The reported browser's
+Google session and permission settings remain unverified.
 
 ## Verification
 

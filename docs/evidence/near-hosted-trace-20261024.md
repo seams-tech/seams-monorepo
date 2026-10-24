@@ -11,6 +11,8 @@ It has no matched control without instrumentation.
 The [generated evidence](near-hosted-trace-20261024.json) retains each request, timing, version, signature result, and artifact hash.
 The earlier [baseline registration failure](near-current-baseline-20261024.md#failed-registration-and-cause-limits) remains unresolved.
 PostgreSQL integration and provisioning remain deferred.
+The instrumentation described below is historical.
+The user subsequently requested removal of every profiling addition from this investigation.
 
 ## Scope and restoration
 
@@ -159,10 +161,9 @@ Do not interpret the zero timing fields as proof that schema initialization or e
 3. Compare that change with a matched control through the existing lifecycle E2Es.
    Report full SDK time, confirmation subspans, failures, and every two-second breach.
    Keep funding separate and add an already funded first-signing cohort.
-4. Remove the remaining temporary call spans and capture code after the comparison.
-   Remove their obsolete call plumbing and diagnostic assertions together.
-   Preserve existing shared timing behavior used by other flows.
-   Run the affected lifecycle E2Es after cleanup.
+4. Keep the completed profiling cleanup intact.
+   Use existing platform tools and behavior tests for the next measurement.
+   Check that the sampled execution matches the measured requests before changing implementation.
 
 The owner is the Wallet runtime implementation, with hosted verification in this private repository.
 Cloudflare's [profile API](https://developers.cloudflare.com/workers/observability/profiling-in-production/) can sample a loaded deployed isolate.
@@ -173,9 +174,9 @@ Measure the SDK unlock boundary separately before attributing its roughly 4.8-se
 The original Router version now serves requests, and all capture processes stopped.
 The subsequent source cleanup removes the `timing` parameter from wallet `fetch_wallet_request`.
 It removes all seven zero-only fields, their header plumbing, parser entries, and obsolete diagnostic assertions.
-Trace correlation and the three useful call spans remain for the next comparison.
-The plan tracks their removal after that comparison.
-This cleanup follows the hosted capture and is absent from its measured candidate.
+That first cleanup retained trace correlation and three call spans.
+The final cleanup removes those additions as well, at the user's request.
+Both cleanups follow the hosted capture and are absent from its measured candidate.
 
 ## Source cleanup verification
 
@@ -198,7 +199,60 @@ The cleanup passes at 13,737 lines.
 The earlier public report now withdraws that incomplete bloat claim.
 
 The evidence JSON retains this follow-up under `sourceCleanup`, separate from the hosted measurements.
-Its local artifacts live in `seams-wallet/.artifacts/optimization-11-near/20261024-trace-cleanup/`.
+Its numeric artifacts live in `seams-wallet/.artifacts/optimization-11-near/20261024-trace-cleanup/`.
+
+## Native CPU profiling follow-up
+
+The next capture used the original deployed versions without a new wrapper or deployment.
+One seven-signature workflow ran before profiling, one during profiling, and one afterwards.
+All 21 transaction signatures passed with zero retries.
+All 42 signing requests matched Gateway and Router events by request ID and path.
+All 14 deployment versions stayed unchanged.
+
+| Observation | Recorded evidence | Limit |
+| --- | --- | --- |
+| Unprofiled Router spike | The first control recorded 145 ms CPU on a finalize request. | The new detailed timing code and an active profile are unnecessary for this signal. |
+| Router profile | One idle sample record, with no application frames. | It missed the known request activity. |
+| Requests during the Router API call | Thirteen matched requests started during that window. Three recorded 127, 104, and 145 ms CPU. | API call time does not identify the profiler's exact execution window. |
+| SigningWorker profile | Five garbage-collection records and one idle record. One record encodes 24,158.482 ms of weight. | Encoded weight does not establish request-attributed CPU consumption. |
+| Profile attribution | No request labels, isolate labels, or absolute profile start time. | The captured execution cannot be matched to these requests. |
+
+Both APIs returned 200 and valid protobuf data.
+That establishes format validity, without establishing observation of the target request.
+The profiles continued approximately 18.9 seconds after the profiled browser process ended.
+The profiles identified no source function or removable dependency.
+No garbage-collection optimization follows from these samples.
+
+Three local inspector attempts also failed before any wallet workflow started.
+They encountered a WebSocket connection failure, an unavailable default execution context, and stalled inspector commands.
+These are `environment_or_infrastructure_failure` records.
+The owned local profiler and service processes stopped.
+The local attempts produced no profile result or performance comparison.
+
+The raw profile data, request joins, and cohort results remain under `.artifacts/optimization-11-near/20261024-cpu-profile/`.
+An independent review reproduced the signature counts, joins, versions, profile contents, and attribution limits.
+The next CPU measurement needs a known nonzero control and a link between sampled execution and target requests.
+First-use funding and transaction-context waits remain a separate measured opportunity.
+
+## Final profiling cleanup
+
+The user requested removal of all profiling additions, including scripts and tests.
+The cleanup removes the added NEAR timers, trace forwarding, response headers, recorder fields, and profiling assertions.
+The original ECDSA parser and collector names return, with their pre-existing behavior intact.
+Production file splits remain where rejoining them would exceed the repository's file-size limit.
+Functional tests, existing coarse Gateway timings, PostgreSQL adapter work, and unrelated UI work remain.
+
+Cleanup removed temporary capture, analysis, verification, and inspector scripts, including nested copies and compiled Python files.
+Cleanup removed copied SDK sites and profiling bundles after verification.
+Documents, numeric evidence, raw profiles, and logs remain.
+Historical hashes identify the removed capture inputs and do not imply those files remain present.
+
+All four lifecycle cases passed after complete removal, with zero retries, failures, or skips.
+All five release Worker builds, the server build, public/private type checks, and 38 Cargo lock checks passed.
+The complete bloat check passed at 13,740 duplicated Rust lines against the unchanged 13,754 threshold.
+The task-artifact audit found zero remaining profiling code files.
+It removed 11,769 temporary or copied files, totaling 468,716,167 logical bytes.
+The final numeric receipt is `seams-wallet/.artifacts/optimization-11-near/20261024-profiling-removal/evidence.json`.
 
 ## Verification, failures, and reproduction
 
@@ -224,15 +278,8 @@ Both failures are `environment_or_infrastructure_failure`.
 They are separate from wallet failures and remain outside latency distributions.
 The successful retry used one qualification and three primary cases, with no retries or replacement samples.
 
-Run these offline artifact-regeneration commands from the private repository:
-
-```sh
-node .artifacts/optimization-11-near/20261024-hosted-traces/verify-proof.mjs
-python3 .artifacts/optimization-11-near/20261024-hosted-traces/analyze.py
-```
-
-The analyzer checks unique joins, all serving versions, runtime outcomes, site hashes, sample counts, and restoration.
-It regenerates `analysis.json`, which supplies the committed evidence JSON.
+The retired analyzer checked unique joins, serving versions, runtime outcomes, site hashes, sample counts, and restoration.
+It generated the committed evidence JSON before the requested script removal.
 Exact harness commands remain in each cohort's `run.json`.
 Source hashes cover the deployed wrapper input and the runner.
 Raw tail files remain in the protected local artifact directory.

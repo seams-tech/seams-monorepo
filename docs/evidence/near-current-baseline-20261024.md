@@ -227,12 +227,13 @@ Do not subtract browser, Gateway, Router, or object durations to assign a remova
 
 An independent review reproduced every join and confirmed the timestamp contradiction from the raw records.
 The trace supports further instrumentation. It does not justify a routing or persistence change yet.
-The [follow-up implementation](../../../seams-wallet/docs/evidence/near-signing-trace-propagation-20261024.md)
-now propagates a request trace through SigningWorker and its wallet object.
-Four local lifecycle contracts pass. A separate diagnostic repeat matches six browser traces to object commands.
-The response retains ten downstream timing fields after Gateway completion readback.
+The [temporary follow-up implementation](../../../seams-wallet/docs/evidence/near-signing-trace-propagation-20261024.md)
+propagated a request trace through SigningWorker and its wallet object.
+Four local lifecycle contracts passed. A separate diagnostic repeat matched six browser traces to object commands.
+Those responses retained ten downstream timing fields after Gateway completion readback.
 This local evidence establishes no hosted speedup.
-The next measurement needs the diagnostic build in the hosted environment and a bounded cohort with failures retained.
+The [subsequent hosted capture](near-hosted-trace-20261024.md) completed that measurement.
+All profiling additions were then removed at the user's request.
 
 The independent PostgreSQL work completed WASM adapter and retry-timer support.
 Its [native and local Worker E2Es](../../../seams-wallet/docs/evidence/postgres-role-worker-20261024.md) pass.
@@ -242,8 +243,8 @@ Deployed Derivers still use D1. Hosted Hyperdrive correctness and performance re
 
 Public artifacts: `seams-wallet/.artifacts/optimization-11-near/20261024-p0/`.
 Private artifacts: `seams-monorepo/.artifacts/optimization-11-near/20261024-p0/`.
-The runners contain the exact environment and commands. Use a fresh output directory
-for a new run. They reject or preserve existing cohort directories.
+The saved run receipts retain the environment and commands.
+The task-specific capture and verification scripts were removed at the user's request.
 
 From `seams-wallet`, reproduce the local summary from the saved Playwright report:
 
@@ -253,14 +254,8 @@ node tests/scripts/analyze-near-local-latency.mjs \
   .artifacts/optimization-11-near/20261024-p0/local/baseline/summary.json
 ```
 
-From `seams-monorepo`, verify the retained public signatures and regenerate the analysis:
-
-```sh
-node .artifacts/optimization-11-near/20261024-p0/verify-proofs.mjs
-node .artifacts/optimization-11-near/20261024-p0/verify-reviewed.mjs
-python3 .artifacts/optimization-11-near/20261024-p0/analyze.py
-python3 .artifacts/optimization-11-near/20261024-p2/analyze.py
-```
+Independent verification results and public signature proofs remain in the private evidence JSON.
+Historical hashes identify removed scripts and frozen inputs, without implying those files remain present.
 
 Protected Worker tails stay in the private artifact directory.
 The generated JSON contains allowlisted evidence and public signature material.

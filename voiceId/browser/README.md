@@ -1,4 +1,11 @@
-# Browser Wallet VoiceID prototype
+# Standalone native VoiceID evaluation
+
+The current Wallet MVP runs entirely in the browser. Its implementation is in
+`seams-wallet/packages/wallet/src/plugins/voiceid`. Browser enrollment, local
+speaker inference, WebCrypto device keys, fresh-session unlock, and NEAR signing
+need no service from this directory. Do not run the commands below for that flow.
+These files remain a separate native-engine evaluation harness.
+
 
 The browser Wallet can require a local voice approval for one reviewed NEAR
 testnet transfer. The Wallet keeps its existing device, session, quota, and MPC

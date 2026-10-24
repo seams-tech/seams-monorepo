@@ -10,7 +10,7 @@ export interface GoogleIdentityButtonApi {
     readonly callback: (response: unknown) => void;
     readonly ux_mode: 'popup';
     readonly auto_select: true;
-    readonly use_fedcm_for_prompt: true;
+    readonly use_fedcm_for_button: false;
   }): void;
   prompt(): void;
   cancel(): void;

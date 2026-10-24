@@ -42,7 +42,7 @@ class GoogleButtonMount {
         ux_mode: 'popup',
         callback: this.receive.bind(this),
         auto_select: true,
-        use_fedcm_for_prompt: true,
+        use_fedcm_for_button: false,
       });
       this.renderButton(api);
       this.state = { kind: 'ready', api };

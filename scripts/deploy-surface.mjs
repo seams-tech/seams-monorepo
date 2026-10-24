@@ -48,6 +48,9 @@ async function main(args) {
     return;
   }
   const site = readFrontendSite(options.site);
+  if (site.kind === 'customer' && options.component !== 'wallet-host') {
+    throw new Error('Customer deployments expose the wallet-host surface only');
+  }
   const walletLanes = selectWalletLanes(site, options);
   if (options.operation !== 'plan') assertDeploymentBranch(site);
   if (options.component === 'all') {

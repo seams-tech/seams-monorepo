@@ -745,5 +745,105 @@
         }
       }
     }
+  },
+  "customers": {
+    "getsignal": {
+      "branch": "main",
+      "controlPlaneLane": "production-mainnet",
+      "identity": {
+        "organizationId": "org_b9xp129zr4c7",
+        "projectId": "proj_13e170e650494645b3ef5f8087d50dda",
+        "environmentId": "proj_13e170e650494645b3ef5f8087d50dda:dev"
+      },
+      "applicationOrigin": "https://getsignal.now",
+      "allowedOrigins": [
+        "https://getsignal.now",
+        "http://127.0.0.1:4318",
+        "https://getsignal.sign.seams.sh"
+      ],
+      "gatewayOrigin": "https://getsignal.api.wallet.seams.sh",
+      "walletOrigin": "https://getsignal.sign.seams.sh",
+      "consoleOrigin": "https://getsignal.console.seams.sh",
+      "walletPagesProjectEnv": "CF_PAGES_PROJECT_GETSIGNAL_WALLET",
+      "resources": {
+        "gateway": {
+          "workerName": "seams-sdk-d1-gateway-getsignal"
+        },
+        "router": {
+          "workerName": "router-ab-mpc-router-getsignal",
+          "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.router.toml",
+          "deploymentEnvironment": {
+            "kind": "named",
+            "name": "getsignal-testnet"
+          }
+        },
+        "deriverA": {
+          "workerName": "router-ab-deriver-a-getsignal",
+          "placementRegion": "aws:ap-southeast-1",
+          "d1PrimaryColo": "SIN",
+          "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.deriver-a.toml",
+          "deploymentEnvironment": {
+            "kind": "named",
+            "name": "getsignal-testnet"
+          }
+        },
+        "deriverB": {
+          "workerName": "router-ab-deriver-b-getsignal",
+          "placementRegion": "aws:ap-southeast-1",
+          "d1PrimaryColo": "SIN",
+          "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.deriver-b.toml",
+          "deploymentEnvironment": {
+            "kind": "named",
+            "name": "getsignal-testnet"
+          }
+        },
+        "signingWorker": {
+          "workerName": "router-ab-signing-worker-getsignal",
+          "placementRegion": "aws:ap-southeast-1",
+          "d1PrimaryColo": "SIN",
+          "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.signing-worker.toml",
+          "deploymentEnvironment": {
+            "kind": "named",
+            "name": "getsignal-testnet"
+          }
+        },
+        "tenantRootControlPlane": {
+          "workerName": "router-ab-tenant-root-control-plane-getsignal",
+          "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.tenant-root-control-plane.toml",
+          "deploymentEnvironment": {
+            "kind": "named",
+            "name": "getsignal-testnet"
+          }
+        }
+      },
+      "capabilities": {
+        "billing": {
+          "enabled": false,
+          "owner": "console",
+          "secrets": []
+        },
+        "sponsoredExecution": {
+          "enabled": false,
+          "owner": "gateway",
+          "secrets": []
+        },
+        "signingSessionSeal": {
+          "enabled": true,
+          "owner": "gateway",
+          "secrets": ["SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"]
+        }
+      },
+      "provisioning": {
+        "kind": "pending",
+        "runtimeProfileKind": "testnet_service",
+        "requiredValues": [
+          "SIGNING_WORKER_PRIVATE_D1_ID",
+          "DERIVER_A_PRIVATE_D1_ID",
+          "DERIVER_B_PRIVATE_D1_ID",
+          "RELAYER_PRIVATE_KEY",
+          "RESEND_API_KEY"
+        ]
+      }
+    }
   }
 }

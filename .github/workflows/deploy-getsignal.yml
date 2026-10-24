@@ -1,0 +1,36 @@
+name: Prepare GetSignal testnet deployment
+run-name: GetSignal testnet / inspect / ${{ github.sha }}
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deployment-getsignal-testnet
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    name: Inspect GetSignal account and deployment registry
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: production-live-demo
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Require the reviewed release branch
+        run: test "$GITHUB_REF" = refs/heads/main
+      - name: Checkout exact workflow revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Inspect the existing GetSignal environment
+        run: node deployment/wallet-system/scripts/inspect-getsignal-deployment.mjs

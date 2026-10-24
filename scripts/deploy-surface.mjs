@@ -6,7 +6,11 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { readFrontendSite, readConsoleFrontendSite } from './deployment-targets.mjs';
+import {
+  readDeploymentTargets,
+  readFrontendSite,
+  readConsoleFrontendSite,
+} from './deployment-targets.mjs';
 import { formatFailedCheck, isFailedCheck, runReadinessChecks } from './deployment-smoke.mjs';
 
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
@@ -48,9 +52,6 @@ async function main(args) {
     return;
   }
   const site = readFrontendSite(options.site);
-  if (site.kind === 'customer' && options.component !== 'wallet-host') {
-    throw new Error('Customer deployments expose the wallet-host surface only');
-  }
   const walletLanes = selectWalletLanes(site, options);
   if (options.operation !== 'plan') assertDeploymentBranch(site);
   if (options.component === 'all') {
@@ -310,7 +311,7 @@ function buildFrontend(site, component, walletLanes) {
         env: buildFrontendEnvironment(site, site.walletSiteOrigin),
       },
     );
-    copySdkAssets(output, [lane]);
+    copySdkAssets(output, hostedWalletLanes(lane));
     assertFile(path.join(output, 'index.html'), 'Wallet settings entry');
     fs.writeFileSync(path.join(output, '_redirects'), '/wallet-settings /index.html 200\n');
     assertFile(path.join(output, 'wallet-service', 'index.html'), 'wallet-service entry');
@@ -394,6 +395,15 @@ function relayerOriginForLane(lane) {
   return url.origin;
 }
 
+function hostedWalletLanes(hostLane) {
+  const lanes = Object.values(readDeploymentTargets().backendLanes);
+  return lanes.filter(
+    (lane) =>
+      lane.walletOrigin === hostLane.walletOrigin &&
+      (lane.id === hostLane.id || lane.provisioning.kind === 'provisioned'),
+  );
+}
+
 function relayerMetaTag(origin) {
   return `    <meta name="seams-wallet-relayer-origin" content="${origin}" />`;
 }
@@ -441,10 +451,7 @@ function copySdkAssets(destination, lanes) {
 
 function assertWalletRelayerPolicy(manifestPath) {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  if (
-    !isRecord(manifest) ||
-    manifest.walletHostRelayerOriginPolicy !== 'document_meta_v1'
-  ) {
+  if (!isRecord(manifest) || manifest.walletHostRelayerOriginPolicy !== 'document_meta_v1') {
     throw new Error(
       'The pinned @seams/wallet release cannot enforce approved relayer origins. Publish the updated Wallet release and update the exact package pins before deploying.',
     );
@@ -527,7 +534,7 @@ async function deployFrontend(site, component, walletLanes) {
       const output = walletHostOutput(lane);
       assertDirectory(output, 'Hosted wallet Pages output');
       assertWalletRelayerPolicy(path.join(output, 'wallet-assets.manifest.json'));
-      assertWalletServiceRelayerOrigins(output, [lane]);
+      assertWalletServiceRelayerOrigins(output, hostedWalletLanes(lane));
       deployPagesProject(output, site, process.env[lane.walletPagesProjectEnv]);
     }
   }
@@ -591,12 +598,7 @@ async function smokeFrontend(site, component, walletLanes) {
 
 function buildSmokeChecks(site, component, walletLanes) {
   if (component === 'company')
-    return smokeChecks('company', site.origin, [
-      '/',
-      '/company/',
-      '/ja/company/',
-      '/sitemap.xml',
-    ]);
+    return smokeChecks('company', site.origin, ['/', '/company/', '/ja/company/', '/sitemap.xml']);
   if (component === 'wallet-site') {
     return smokeChecks('wallet-site', site.walletSiteOrigin, [
       '/',

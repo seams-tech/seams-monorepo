@@ -9,10 +9,12 @@ import {
   H2Security,
   H2Start,
 } from '@/components/h2/sections';
+import { startSiteAnchorScroll } from '@/app/router/siteRouting';
 import '@/styles/h2.css';
 import { ComponentShowcase } from './ComponentShowcase';
 
 export function WalletPage(): React.JSX.Element {
+  React.useEffect(startSiteAnchorScroll, []);
   return (
     <div className="h2-page h2-page--wallet">
       <NavbarCompact />

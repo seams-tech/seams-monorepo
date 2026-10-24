@@ -241,7 +241,7 @@ export function ComponentShowcase(): React.JSX.Element {
   return (
     <>
       {/* the band's heading gets its own ruled row, under the network logos */}
-      <section className="component-showcase__intro h2-rule">
+      <section id="components" className="component-showcase__intro h2-rule">
         {/* a grey card that fades into a moving gradient, as the page's
             other banners do */}
         <FieldBanner field="teal-peach">

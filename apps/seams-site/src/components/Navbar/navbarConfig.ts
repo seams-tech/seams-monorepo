@@ -1,6 +1,6 @@
 import { translate, type Translate } from '@/i18n/catalog';
 import type { Locale } from '@/i18n/locale';
-import { Bot, Building2, LifeBuoy, PenLine, Store, Wallet } from 'lucide-react';
+import { Bot, Building2, LayoutGrid, LifeBuoy, Store, Wallet } from 'lucide-react';
 import { type DropdownPane, type SiteNavbarConfig } from '@seams-internal/site-navbar';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
@@ -151,15 +151,15 @@ function aboutDropdownPane(t: Translate): DropdownPane {
       {
         title: t('company'),
         description: t('companyNav'),
-        to: '/company/#company',
+        to: '/company/',
         icon: Building2,
         field: 'sky-sand',
       },
       {
-        title: t('blog'),
-        description: t('blogCopy'),
-        to: '/company/#blog',
-        icon: PenLine,
+        title: t('ourProducts'),
+        description: t('ourProductsCopy'),
+        to: '/',
+        icon: LayoutGrid,
         field: 'teal-peach',
       },
       {
@@ -170,7 +170,7 @@ function aboutDropdownPane(t: Translate): DropdownPane {
         field: 'coral-tide',
       },
     ],
-    footerLinks: [{ label: t('contactSales'), to: CONTACT_LINK_TARGET }],
+    footerLinks: [{ label: t('contactUs'), to: CONTACT_LINK_TARGET }],
   };
 }
 

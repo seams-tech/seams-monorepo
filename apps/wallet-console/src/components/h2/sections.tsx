@@ -1148,7 +1148,7 @@ const footerGroups: { id: string; heading: string; links: H2FooterLink[] }[] = [
     heading: t('products'),
     links: [
       { label: t('embeddedWallet'), to: '/wallet' },
-      { label: t('ecommerceAgents'), to: 'https://seams.sh/ecommerce' },
+      { label: t('allFeatures'), to: '/features/' },
       { label: t('custodyLink'), to: '/docs/concepts/custody/' },
       { label: t('walletSessions'), to: '/docs/concepts/sessions/wallet-sessions' },
     ],

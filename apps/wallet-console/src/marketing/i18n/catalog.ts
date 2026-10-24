@@ -223,7 +223,6 @@ export const catalog = {
   },
   seePricing: { en: 'See pricing', ja: '料金を見る' },
   embeddedWallet: { en: 'Embedded Wallet', ja: '組み込みウォレット' },
-  ecommerceAgents: { en: 'Ecommerce Agents', ja: 'ECエージェント' },
   custodyLink: { en: 'Custody Model', ja: '資産管理モデル' },
   platform: { en: 'Platform', ja: 'プラットフォーム' },
   authentication: { en: 'Authentication', ja: '認証' },

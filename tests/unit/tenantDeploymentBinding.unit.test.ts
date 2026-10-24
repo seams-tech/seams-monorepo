@@ -112,7 +112,7 @@ test.describe('tenant deployment binding', () => {
       maxAgeSeconds: 30,
     });
     expect(available.status).toBe(200);
-    expect(available.headers.get('Access-Control-Allow-Origin')).toBe('https://wallet.seams.sh');
+    expect(available.headers.get('Access-Control-Allow-Origin')).toBe('*');
   });
 
   test('rejects a modified body under an existing content revision', async () => {

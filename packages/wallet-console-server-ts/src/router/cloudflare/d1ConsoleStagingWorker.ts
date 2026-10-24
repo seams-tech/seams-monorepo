@@ -39,7 +39,7 @@ import { D1WalletHomeDirectory } from '../../walletPlacement/d1';
 import { type WalletHome } from '../../walletPlacement/home';
 import { recoveryTrustResponse } from '../../tenantRootSecurity/recoveryTrustRoute';
 import { createRestoreAccessRoute } from '../../tenantRootSecurity/restoreAccessRoute';
-import { withCors } from '@seams/wallet-server/cloud-host';
+import { withConsoleCors } from '@seams-internal/console-server/router/cloudflare/cors';
 import { TenantRootCustodyWorkerRouteV1 } from '../../tenantRootSecurity/custodyWorkerRoute';
 import { D1TenantRootActiveLineageResolverV1 } from '../../tenantRootSecurity/activeLineageD1';
 import { createTenantRootRestoreWorkerRouteV1 } from '../../tenantRootSecurity/restoreWorkerRoute';
@@ -914,7 +914,7 @@ async function fetch(
     return new Response(null, { status: 404 });
   if (request.method === 'OPTIONS') {
     const response = new Response(null, { status: 204 });
-    withCors(response.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
+    withConsoleCors(response.headers, consoleCorsOrigins(env), request);
     return response;
   }
   if (isAccountConsoleRequest(request)) {
@@ -1056,13 +1056,13 @@ async function fetch(
         requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE'),
       ),
     );
-    withCors(response.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
+    withConsoleCors(response.headers, consoleCorsOrigins(env), request);
     return response;
   }
   const handler = await consoleHandler(env, ctx, request, regional);
   const response = await handler(request, env, ctx);
   const result = new Response(response.body, response);
-  withCors(result.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
+  withConsoleCors(result.headers, consoleCorsOrigins(env), request);
   return result;
 }
 

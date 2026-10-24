@@ -26,16 +26,10 @@ export function tenantDeploymentPublicProjectionResponseV1(input: {
     );
   }
   const etag = `"${input.binding.revision}"`;
-  const requestOrigin = input.request.headers.get('Origin');
-  const allowedOrigin =
-    requestOrigin && input.binding.browserCredential.allowedOrigins.includes(requestOrigin)
-      ? requestOrigin
-      : input.binding.surfaces.applicationOrigin;
   const headers = {
     'Cache-Control': `public, max-age=${input.maxAgeSeconds}, must-revalidate`,
     ETag: etag,
-    'Access-Control-Allow-Origin': allowedOrigin,
-    Vary: 'Origin',
+    'Access-Control-Allow-Origin': '*',
   };
   if (input.request.headers.get('If-None-Match') === etag) {
     return new Response(null, { status: 304, headers });

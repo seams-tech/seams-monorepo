@@ -299,6 +299,10 @@ function writer(
 ) {
   return {
     name,
+    routes:
+      name === 'gateway'
+        ? ['wallet.seams.sh/*', 'console.wallet.seams.sh/*', 'unrelated.example/*']
+        : [],
     modules: true,
     modulesRoot: output,
     scriptPath: path.join(output, `${entry}.js`),
@@ -1010,6 +1014,36 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         'https://gateway.example.test/.well-known/seams-tenant-deployment.json',
       );
       expect(projection.status).toBe(200);
+      const discoveryReads = [];
+      for (const origin of [
+        'https://wallet.seams.sh',
+        'https://console.wallet.seams.sh',
+        'https://unrelated.example',
+      ]) {
+        const url = 'https://gateway.example.test/.well-known/seams-tenant-deployment.json';
+        const response = await gateway.fetch(url, { headers: { Origin: origin } });
+        expect(response.status).toBe(200);
+        expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+        expect(response.headers.get('Access-Control-Allow-Credentials')).toBeNull();
+        const body = await response.json();
+        expect(body).toMatchObject({
+          kind: 'tenant_deployment_public_projection_v1',
+          revision: candidate.revision,
+          allowedOrigins: candidate.browserCredential.allowedOrigins,
+        });
+        const etag = response.headers.get('ETag');
+        if (!etag) throw new Error('Public discovery ETag is missing');
+        const cached = await gateway.fetch(url, {
+          headers: { Origin: origin, 'If-None-Match': etag },
+        });
+        expect(cached.status).toBe(304);
+        expect(cached.headers.get('Access-Control-Allow-Origin')).toBe('*');
+        discoveryReads.push({ origin, status: response.status, cachedStatus: cached.status, body });
+      }
+      await writeFile(
+        testInfo.outputPath('public-discovery-cors.json'),
+        `${JSON.stringify(discoveryReads, null, 2)}\n`,
+      );
       const changedGateway = await runtime.getWorker('gateway-changed');
       expect((await changedGateway.fetch(
         'https://gateway.example.test/.well-known/seams-tenant-deployment.json',

@@ -30,7 +30,8 @@ import {
 } from '@seams-internal/console-server/router/cloudflare/accountRoutes';
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '@seams-internal/wallet-console-shared/apiKeyScopes';
 import { WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION } from '@seams-internal/wallet-console-shared/webhookEventCategories';
-import { buildCorsOrigins, normalizeCorsOrigin } from '@seams/wallet-server/cloud-host';
+import { buildCorsOrigins } from '@seams/wallet-server/cloud-host';
+import { withConsoleCors } from '@seams-internal/console-server/router/cloudflare/cors';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/service';
 import {
   LIVE_ENVIRONMENT_BILLING_REQUIRED_MESSAGE,
@@ -248,34 +249,6 @@ export interface CloudflareConsoleContext extends Omit<AccountConsoleContext, 'a
   tenantStorageNamespace: string | null;
   tenantStorageRoute?: CloudflareTenantStorageRoute;
   tenantStorageRouteDiagnostic?: TenantStorageRouteDiagnostic;
-}
-
-const CONSOLE_CORS_ALLOW_HEADERS =
-  'Content-Type,Authorization,X-Console-Org-Id,X-Console-User-Id,X-Console-Roles,X-Console-Project-Id,X-Console-Environment-Id';
-
-function withConsoleCors(headers: Headers, opts?: ConsoleRouterOptions, request?: Request): void {
-  if (!opts?.corsOrigins) return;
-
-  let allowedOrigin: string | '*' | undefined;
-  const normalized = buildCorsOrigins(...(opts.corsOrigins || []));
-  if (normalized === '*') {
-    allowedOrigin = '*';
-    headers.set('Access-Control-Allow-Origin', '*');
-  } else if (Array.isArray(normalized)) {
-    const originRaw = String(request?.headers.get('Origin') || '').trim();
-    const originNormalized = normalizeCorsOrigin(originRaw);
-    if (originRaw && originNormalized && normalized.includes(originNormalized)) {
-      allowedOrigin = originRaw;
-      headers.set('Access-Control-Allow-Origin', originRaw);
-      headers.append('Vary', 'Origin');
-    }
-  }
-
-  headers.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  headers.set('Access-Control-Allow-Headers', CONSOLE_CORS_ALLOW_HEADERS);
-  if (allowedOrigin && allowedOrigin !== '*') {
-    headers.set('Access-Control-Allow-Credentials', 'true');
-  }
 }
 
 function readOptionalRequestHeader(request: Request, header: string): string | undefined {
@@ -3717,7 +3690,7 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
 
     if (method === 'OPTIONS') {
       const res = new Response(null, { status: 204 });
-      withConsoleCors(res.headers, opts, request);
+      withConsoleCors(res.headers, opts.corsOrigins ?? [], request);
       return res;
     }
 
@@ -3778,13 +3751,13 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
       for (const fn of handlers) {
         const res = await fn(ctx);
         if (res) {
-          withConsoleCors(res.headers, opts, request);
+          withConsoleCors(res.headers, opts.corsOrigins ?? [], request);
           void emitRouterTimingObservabilityEvent(ctx, startedAtMs, res.status);
           return res;
         }
       }
       const res = notFound();
-      withConsoleCors(res.headers, opts, request);
+      withConsoleCors(res.headers, opts.corsOrigins ?? [], request);
       void emitRouterTimingObservabilityEvent(ctx, startedAtMs, res.status);
       return res;
     } catch (e: unknown) {
@@ -3792,7 +3765,7 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
         { code: 'internal', message: e instanceof Error ? e.message : String(e) },
         { status: 500 },
       );
-      withConsoleCors(res.headers, opts, request);
+      withConsoleCors(res.headers, opts.corsOrigins ?? [], request);
       void emitRouterTimingObservabilityEvent(ctx, startedAtMs, res.status);
       return res;
     }

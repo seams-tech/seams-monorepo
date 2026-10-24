@@ -6,12 +6,7 @@ import type { ConsoleBillingService } from '../../billing/service';
 import type { D1BillingUsageService } from '../../billing/usage';
 import type { ConsoleBillingPrepaidReservationService } from '../../billingPrepaidReservations/service';
 import type { ConsoleWebhookService } from '../../webhooks/service';
-import {
-  normalizeCorsOrigin,
-  normalizeLogger,
-  type RouterLogger,
-  type SessionAdapter,
-} from '../../boundary';
+import { normalizeLogger, type RouterLogger, type SessionAdapter } from '../../boundary';
 import type { ConsoleOnboardingService } from '../../onboarding/service';
 import type { ConsoleOrgProjectService } from '../../orgProjectEnv/service';
 import type { ConsoleOrganizationAccessService } from '../../teamRbac';
@@ -28,6 +23,7 @@ import {
 } from './accountRoutes';
 import { resolveConsoleReturnOrigin, type AccountConsoleContext } from './context';
 import { json } from './http';
+import { resolveConsoleCorsOrigins, withConsoleCors } from './cors';
 import { handleAccountPlatformRoutes } from './accountPlatformRoutes';
 import { handleAccountConsoleAudit } from './auditRoutes';
 import {
@@ -87,39 +83,8 @@ function corsResponse(
   request: Request,
   origins: readonly (string | undefined)[],
 ): Response {
-  const allowedOrigins = origins.flatMap(splitCorsOrigins);
-  const requestOrigin = request.headers.get('Origin');
-  const normalizedOrigin = normalizeCorsOrigin(requestOrigin ?? undefined);
-  if (allowedOrigins.includes('*')) {
-    response.headers.set('Access-Control-Allow-Origin', '*');
-  } else if (requestOrigin && normalizedOrigin && allowedOrigins.includes(normalizedOrigin)) {
-    response.headers.set('Access-Control-Allow-Origin', requestOrigin);
-    response.headers.set('Access-Control-Allow-Credentials', 'true');
-    response.headers.append('Vary', 'Origin');
-  }
-  response.headers.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  response.headers.set(
-    'Access-Control-Allow-Headers',
-    'Content-Type,Authorization,X-Console-Org-Id,X-Console-User-Id,X-Console-Roles,X-Console-Project-Id',
-  );
+  withConsoleCors(response.headers, origins, request);
   return response;
-}
-
-function splitCorsOrigins(input: string | undefined): string[] {
-  const origins: string[] = [];
-  for (const part of (input ?? '').split(',')) {
-    if (part.trim() === '*') origins.push('*');
-    else {
-      const origin = normalizeCorsOrigin(part.trim());
-      if (origin) origins.push(origin);
-    }
-  }
-  return origins;
-}
-
-function allowedCorsOrigins(options: AccountConsoleRouterOptions): readonly string[] | '*' {
-  const origins = (options.corsOrigins ?? []).flatMap(splitCorsOrigins);
-  return origins.includes('*') ? '*' : origins;
 }
 
 async function routeAccountRequest(
@@ -156,7 +121,10 @@ async function routeAccountRequest(
     organizationAccess: options.services.organizationAccess,
     authorizeTenant: null,
     waitUntil: options.waitUntil ?? null,
-    consoleReturnOrigin: resolveConsoleReturnOrigin(request, allowedCorsOrigins(options)),
+    consoleReturnOrigin: resolveConsoleReturnOrigin(
+      request,
+      resolveConsoleCorsOrigins(options.corsOrigins ?? []),
+    ),
   };
   const response = await dispatchAccountRequest(options, context);
   if (options.requestCompleted) {

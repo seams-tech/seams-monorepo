@@ -1,5 +1,5 @@
 import type { CfExecutionContext, FetchHandler } from '@seams/wallet-server/cloud-host';
-import { withCors } from '@seams/wallet-server/cloud-host';
+import { withConsoleCors } from '@seams-internal/console-server/router/cloudflare/cors';
 import type { SessionAdapter } from '@seams-internal/console-server/boundary/session';
 import {
   parseCreateConsoleAccountOrganizationRequest,
@@ -163,7 +163,7 @@ export class HostedConsoleAuthHandler {
               500,
             );
     }
-    withCors(response.headers, { corsOrigins: [...this.options.corsOrigins] }, request);
+    withConsoleCors(response.headers, this.options.corsOrigins, request);
     return response;
   }
 

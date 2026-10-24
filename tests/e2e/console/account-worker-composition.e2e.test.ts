@@ -29,6 +29,7 @@ const owner = { orgId: 'p2-account', actorUserId: 'google:p2-owner' };
 const sessionSecret = 'p2-account-composition-session-secret';
 const webhookKey = new Uint8Array(32).fill(8);
 const walletProjectId = 'p2-existing-runtime-project';
+const dashboardOrigin = 'https://console.wallet.seams.sh';
 
 function startOpenWebhookResponse(controller: ReadableStreamDefaultController<Uint8Array>): void {
   controller.enqueue(new TextEncoder().encode('x'.repeat(8 * 1024)));
@@ -226,6 +227,7 @@ async function verifyExistingWalletRuntime(
   expect(listed.status, await listed.clone().text()).toBe(200);
   const wallets = object(await listed.json()).wallets;
   expect(wallets).toHaveLength(1);
+  const crossOriginReads = await verifyCrossOriginReads(worker, token, native.id);
   const refreshed = await call(worker, token, '/console/wallets/balances/refresh', {
     wallets: [{ id: event.walletId, projectId: walletProjectId, environmentId: native.id }],
   });
@@ -249,10 +251,82 @@ async function verifyExistingWalletRuntime(
     automaticSetupReplayed: true,
     environments: 3,
     projectedWallets: 1,
+    crossOriginReads,
     runtimeIdentityRequests: endpoint.requests,
     regionalMutationStatus: regional.status,
     scheduledOutcome: scheduled.outcome,
   };
+}
+
+async function verifyCrossOriginReads(
+  worker: Awaited<ReturnType<Miniflare['getWorker']>>,
+  token: string,
+  environmentId: string,
+): Promise<unknown> {
+  const scopeHeaders = {
+    Origin: dashboardOrigin,
+    Authorization: `Bearer ${token}`,
+    'X-Console-Project-Id': walletProjectId,
+    'X-Console-Environment-Id': environmentId,
+  };
+  const walletsRoute = `/console/wallets?projectId=${walletProjectId}&environmentId=${environmentId}`;
+  const routes = [
+    walletsRoute,
+    '/console/policies',
+    '/console/policies?kind=TRANSACTION',
+    '/console/tenant-root/security/status',
+    `/console/billing/sponsored-executions?environmentId=${environmentId}`,
+    `/console/billing/sponsored-executions/reconciliation?environmentId=${environmentId}`,
+    '/console/session',
+  ];
+  const preflights = [];
+  for (const route of routes) {
+    const response = await worker.fetch(`https://account.acceptance.invalid${route}`, {
+      method: 'OPTIONS',
+      headers: {
+        Origin: dashboardOrigin,
+        'Access-Control-Request-Method': 'GET',
+        'Access-Control-Request-Headers':
+          'authorization,x-console-project-id,x-console-environment-id',
+      },
+    });
+    expect(response.status, `${route}: ${await response.clone().text()}`).toBe(204);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(dashboardOrigin);
+    expect(response.headers.get('Access-Control-Allow-Credentials')).toBe('true');
+    const allowedHeaders = response.headers.get('Access-Control-Allow-Headers')?.toLowerCase();
+    expect(allowedHeaders).toContain('x-console-project-id');
+    expect(allowedHeaders).toContain('x-console-environment-id');
+    preflights.push({ route, status: response.status, allowedHeaders });
+  }
+  const reads = [];
+  for (const route of [walletsRoute, '/console/policies', '/console/session']) {
+    const response = await worker.fetch(`https://account.acceptance.invalid${route}`, {
+      headers: scopeHeaders,
+    });
+    expect(response.status, await response.clone().text()).toBe(200);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(dashboardOrigin);
+    expect(response.headers.get('Access-Control-Allow-Credentials')).toBe('true');
+    expect(response.headers.get('Access-Control-Allow-Headers')?.toLowerCase()).toContain(
+      'x-console-environment-id',
+    );
+    reads.push({ route, status: response.status });
+  }
+  const denied = await worker.fetch('https://account.acceptance.invalid/console/policies', {
+    headers: { Origin: dashboardOrigin },
+  });
+  expect(denied.status).toBe(401);
+  expect(denied.headers.get('Access-Control-Allow-Origin')).toBe(dashboardOrigin);
+  const onboarding = await worker.fetch('https://account.acceptance.invalid/console/auth/session', {
+    headers: scopeHeaders,
+  });
+  expect(onboarding.status).toBe(401);
+  expect(onboarding.headers.get('Access-Control-Allow-Origin')).toBe(dashboardOrigin);
+  const foreignOrigin = await worker.fetch('https://account.acceptance.invalid/console/policies', {
+    method: 'OPTIONS',
+    headers: { Origin: 'https://untrusted.invalid' },
+  });
+  expect(foreignOrigin.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  return { preflights, reads, unauthenticated: denied.status, scopedOnboarding: onboarding.status };
 }
 
 function call(
@@ -305,6 +379,7 @@ async function accountWorkerJourney(
     workers: [
       {
         name: 'hosted-wallet',
+        routes: ['console.wallet.seams.sh/*', 'untrusted.invalid/*'],
         modules: true,
         modulesRules: [{ type: 'CompiledWasm', include: ['**/*.wasm'] }],
         scriptPath: hosted,
@@ -319,6 +394,7 @@ async function accountWorkerJourney(
           CONSOLE_SESSION_ISSUER: 'p2-account',
           CONSOLE_SESSION_AUDIENCE: 'p2-account',
           CONSOLE_BASE_URL: 'https://account.acceptance.invalid',
+          CONSOLE_CORS_ORIGINS: dashboardOrigin,
           CONSOLE_WEBHOOK_SECRET_KEY_ID: 'p2-webhooks',
           CONSOLE_WEBHOOK_SECRET_KEY_B64U: Buffer.from(webhookKey).toString('base64url'),
           CONSOLE_EMAIL_INVITATION_SECRET_KEY_ID: 'p2-invitations',

@@ -373,6 +373,10 @@ publishable key, required origins, hosted Wallet origin, Gateway origin, and
 relying-party ID. It excludes organization IDs, root lineage details, internal
 policy documents, and all secrets.
 
+Allow credential-free cross-origin reads of this public document from any origin,
+including the Console dashboard. The credential's allowed origins still govern
+Wallet operations.
+
 The Wallet site loads and parses this document before constructing its Wallet
 client. Cache it by revision with bounded HTTP caching and ETag support. A
 refresh that observes another revision reconstructs the client before it

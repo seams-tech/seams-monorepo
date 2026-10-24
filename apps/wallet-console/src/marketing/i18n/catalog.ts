@@ -84,6 +84,7 @@ export const catalog = {
   startFree: { en: 'Start free', ja: '無料で始める' },
   startBuilding: { en: 'Start building', ja: '開発を始める' },
   products: { en: 'Products', ja: 'プロダクト' },
+  features: { en: 'Features', ja: '機能' },
   wallet: { en: 'Wallet', ja: 'ウォレット' },
   api: { en: 'API', ja: 'API' },
   supportedNetworks: { en: 'Supported networks', ja: '対応ネットワーク' },

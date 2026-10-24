@@ -13,12 +13,12 @@ import {
 } from 'lucide-react';
 import type { DropdownPane, SiteNavbarConfig } from '@seams-internal/site-navbar';
 
-/* The 'documentation' pane id historically maps to the "Products" trigger and
+/* The 'documentation' pane id historically maps to the "Features" trigger and
    vice versa; ids are kept stable so aria wiring and pane ordering don't churn. */
 const documentationDropdownPane: DropdownPane = {
   id: 'documentation',
-  label: t('products'),
-  kicker: t('products'),
+  label: t('features'),
+  kicker: t('features'),
   rows: [
     {
       title: t('simpleWallets'),

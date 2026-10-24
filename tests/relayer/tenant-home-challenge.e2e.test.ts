@@ -343,6 +343,7 @@ function consoleWorker(
       ...consoleWorkerEnvironment({
         namespace,
         deploymentLane,
+        walletServiceDeploymentId: deploymentLane,
         accountId: resource.accountId,
         databaseId: resource.databaseId,
       }),

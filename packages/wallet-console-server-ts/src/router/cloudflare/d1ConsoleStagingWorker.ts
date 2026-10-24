@@ -150,6 +150,8 @@ import { createTenantDeploymentReadinessServiceV1 } from '../../tenantDeployment
 import {
   createGatewayTenantDeploymentRegistrationCanaryV1,
   createTenantDeploymentProvisionerV1,
+  parseTenantDeploymentBrowserCredentialV1,
+  type TenantDeploymentBrowserCredentialProvisioningV1,
 } from '../../tenantDeployment/provisioning';
 import {
   createTenantDeploymentAutomationRouteV1,
@@ -184,6 +186,8 @@ interface CloudflareD1ConsoleStagingEnv
   readonly TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED?: string;
   readonly SEAMS_TENANT_STORAGE_NAMESPACE?: string;
   readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
+  readonly SEAMS_WALLET_SERVICE_DEPLOYMENT_ID: string;
+  readonly SEAMS_TENANT_BROWSER_CREDENTIAL_JSON: string;
   // Console step-up relying party. The id and origin are required wherever the
   // refresh route is mounted, because without them no step-up can be obtained
   // and rotation is unreachable.
@@ -311,6 +315,7 @@ function createRegionalTenantDeployment(
   input: {
     readonly namespace: string;
     readonly deploymentLane: string;
+    readonly browserCredential: TenantDeploymentBrowserCredentialProvisioningV1;
     readonly database: D1DatabaseLike;
     readonly bundle: Awaited<ReturnType<typeof createCloudflareD1ConsoleOnlyServiceBundle>>;
     readonly tenantRootState: ReturnType<typeof createTenantRootSecurityStateReaderV1>;
@@ -381,7 +386,7 @@ function createRegionalTenantDeployment(
     store: tenantDeploymentStore,
     regionalAdmission: new RegionalDeploymentServiceInstaller(regional.catalog, regional.runtimes),
     canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
-    browserCredential: { kind: 'create_managed_publishable_key' },
+    browserCredential: input.browserCredential,
   });
   const resourceVerifier = relocationRuntimeVerifier(regional, namespace, deploymentLane);
 
@@ -457,6 +462,7 @@ async function createConsoleHandler(
 ): Promise<FetchHandler> {
   const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
   const deploymentLane = requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE');
+  const walletServiceDeploymentId = requireEnvString(env, 'SEAMS_WALLET_SERVICE_DEPLOYMENT_ID');
   const walletRuntime = createWalletRuntimeOpsClient(env.WALLET_RUNTIME);
   const resolveWalletIdentities = consoleWalletIdentityReader(
     regional,
@@ -473,7 +479,7 @@ async function createConsoleHandler(
     },
     route: {
       namespace,
-      deploymentId: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
+      deploymentId: walletServiceDeploymentId,
     },
     adapters: {
       ensureSchema: false,
@@ -663,6 +669,9 @@ async function createConsoleHandler(
   const tenantDeployment = createRegionalTenantDeployment(regional, {
     namespace,
     deploymentLane,
+    browserCredential: parseTenantDeploymentBrowserCredentialV1(
+      requireEnvString(env, 'SEAMS_TENANT_BROWSER_CREDENTIAL_JSON'),
+    ),
     database: env.CONSOLE_DB,
     bundle,
     tenantRootState,
@@ -683,7 +692,7 @@ async function createConsoleHandler(
     projectEnvironments: createWalletProjectEnvironmentResolver({
       database: env.CONSOLE_DB,
       namespace,
-      deploymentId: deploymentLane,
+      deploymentId: walletServiceDeploymentId,
     }),
     tenantRootActiveLineage: new D1TenantRootActiveLineageResolverV1(env.CONSOLE_DB, namespace),
   });
@@ -814,7 +823,7 @@ async function createAccountHandler(
     billingProviders: createStripeBillingProviderAdaptersFromEnv(env),
     billingEmailConsoleBaseUrl: requireEnvString(env, 'CONSOLE_BASE_URL'),
     platformSupportEmails: readEnvString(env, 'CONSOLE_PLATFORM_SUPPORT_EMAILS'),
-    walletDeploymentId: readEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE') ?? null,
+    walletDeploymentId: requireEnvString(env, 'SEAMS_WALLET_SERVICE_DEPLOYMENT_ID'),
     satyrEnvironment: env,
     webhookSecretCipher: isBillingRequest(request)
       ? (createConsoleWebhookSecretCipherFromEnv(env) ?? null)
@@ -920,6 +929,17 @@ async function fetch(
   if (isAccountConsoleRequest(request)) {
     const handler = await createAccountHandler(request, env, ctx);
     return handler(request, env, ctx);
+  }
+  if (isWalletConsoleTenantRootActiveLineageRequest(request)) {
+    const response = await handleWalletConsoleTenantRootActiveLineage(
+      request,
+      new D1TenantRootActiveLineageResolverV1(
+        env.CONSOLE_DB,
+        requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE'),
+      ),
+    );
+    withConsoleCors(response.headers, consoleCorsOrigins(env), request);
+    return response;
   }
   const regional = readRegionalWalletConfiguration(env);
   const bindingTimingHeaders = new Headers();
@@ -1048,17 +1068,6 @@ async function fetch(
     if (timing) tenantDeploymentResponse.headers.append('Server-Timing', timing);
     return tenantDeploymentResponse;
   }
-  if (isWalletConsoleTenantRootActiveLineageRequest(request)) {
-    const response = await handleWalletConsoleTenantRootActiveLineage(
-      request,
-      new D1TenantRootActiveLineageResolverV1(
-        env.CONSOLE_DB,
-        requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE'),
-      ),
-    );
-    withConsoleCors(response.headers, consoleCorsOrigins(env), request);
-    return response;
-  }
   const handler = await consoleHandler(env, ctx, request, regional);
   const response = await handler(request, env, ctx);
   const result = new Response(response.body, response);
@@ -1074,7 +1083,7 @@ async function runConsoleTenantRootRefreshResumptionV1(
   const walletControl = createWalletControlClientBindings(env.WALLET_RUNTIME);
   const bundle = await createCloudflareD1ConsoleOnlyServiceBundle({
     bindings: { consoleDatabase: env.CONSOLE_DB },
-    route: { namespace, deploymentId: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE') },
+    route: { namespace, deploymentId: requireEnvString(env, 'SEAMS_WALLET_SERVICE_DEPLOYMENT_ID') },
     adapters: { ensureSchema: false },
   });
   const resumption = createD1TenantRootOperationResumptionStoreV1({
@@ -1203,7 +1212,7 @@ async function scheduled(
       { consoleDatabase: env.CONSOLE_DB },
       {
         namespace: requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE'),
-        deploymentId: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
+        deploymentId: requireEnvString(env, 'SEAMS_WALLET_SERVICE_DEPLOYMENT_ID'),
       },
       env,
     ),

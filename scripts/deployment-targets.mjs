@@ -3,7 +3,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   parseBrowserOrigins,
+  parseGatewayD1Resource,
   parseGatewayDeploymentConfig,
+  parseGatewayDeploymentResources,
+  requireAllocatedWalletRegions,
 } from '../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
 
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
@@ -238,6 +241,7 @@ function parseConsoleTarget(value, laneId) {
   }
   return Object.freeze({
     laneId,
+    walletServiceDeploymentId: laneId,
     environment: requireResourceName(target.environment, targetPath + '.environment'),
     origin: requireHttpsOrigin(target.origin, targetPath + '.origin'),
     siteOrigin: requireHttpsOrigin(target.siteOrigin, targetPath + '.siteOrigin'),
@@ -412,7 +416,7 @@ export function consoleSecretNames(lane) {
     'STRIPE_API_SK',
     'STRIPE_WEBHOOK_SECRET',
   ];
-  if (lane.release === 'production') names.push('RESEND_API_KEY');
+  if (lane.release === 'production' || lane.kind === 'customer') names.push('RESEND_API_KEY');
   return unique(names, 'console secret requirements');
 }
 
@@ -572,7 +576,9 @@ function parseCustomerDeployment(value, backendLanes, branding) {
     sourcePath,
   );
   if (source.branch !== 'main' || source.controlPlaneLane !== 'production-mainnet') {
-    throw new Error(sourcePath + ' requires main and the existing production-mainnet control plane');
+    throw new Error(
+      sourcePath + ' requires main and the existing production-mainnet control plane',
+    );
   }
   const control = backendLanes[source.controlPlaneLane];
   if (control.provisioning.kind !== 'provisioned') {
@@ -612,10 +618,19 @@ function parseCustomerDeployment(value, backendLanes, branding) {
   if (!allowedOrigins.includes(applicationOrigin) || !allowedOrigins.includes(walletOrigin)) {
     throw new Error(sourcePath + '.allowedOrigins must include the application and hosted wallet');
   }
+  const provisioning = parseProvisioning(
+    source.provisioning,
+    'getsignal-testnet',
+    'testnet',
+    sourcePath + '.provisioning',
+  );
   const rawResources = structuredClone(requireObject(source.resources, sourcePath + '.resources'));
   const gateway = requireObject(rawResources.gateway, sourcePath + '.resources.gateway');
   requireExactKeys(gateway, ['workerName'], sourcePath + '.resources.gateway');
   gateway.consoleD1Name = control.console.database.name;
+  if (provisioning.kind !== 'pending') {
+    applyCustomerRolePlacement(rawResources, provisioning.privateRoles.databases);
+  }
   const resources = parseResources(rawResources, sourcePath + '.resources');
   const capabilities = parseCapabilities(source.capabilities, sourcePath + '.capabilities');
   if (capabilities.billing.enabled) {
@@ -623,6 +638,7 @@ function parseCustomerDeployment(value, backendLanes, branding) {
   }
   const consoleTarget = Object.freeze({
     laneId: 'getsignal-testnet',
+    walletServiceDeploymentId: control.id,
     environment: 'getsignal-testnet-console',
     origin: requireHttpsOrigin(source.consoleOrigin, sourcePath + '.consoleOrigin'),
     siteOrigin: control.console.siteOrigin,
@@ -641,16 +657,10 @@ function parseCustomerDeployment(value, backendLanes, branding) {
     origin: applicationOrigin,
     walletSiteOrigin: branding.walletSiteOrigin,
     docsOrigin: branding.docsOrigin,
-    googleOidcClientId: branding.googleOidcClientId,
+    googleOidcClientId: null,
     defaultNetwork: 'testnet',
     availableNetworks: Object.freeze(['testnet']),
   });
-  const provisioning = parseProvisioning(
-    source.provisioning,
-    'getsignal-testnet',
-    'testnet',
-    sourcePath + '.provisioning',
-  );
   const lane = Object.freeze({
     kind: 'customer',
     id: 'getsignal-testnet',
@@ -658,6 +668,7 @@ function parseCustomerDeployment(value, backendLanes, branding) {
     network: 'testnet',
     branch: 'main',
     controlPlaneLane: control.id,
+    accountNamespace: control.provisioning.gatewayDeploymentConfig.tenant.namespace,
     identity: Object.freeze({ organizationId, projectId, environmentId: identity.environmentId }),
     site,
     applicationOrigin,
@@ -673,6 +684,30 @@ function parseCustomerDeployment(value, backendLanes, branding) {
     capabilities,
     provisioning,
   });
+  if (provisioning.kind === 'allocated') {
+    if (
+      provisioning.resources.consoleD1.id !== control.console.database.id ||
+      provisioning.resources.workerName !== resources.gateway.workerName
+    ) {
+      throw new Error(
+        sourcePath + ' allocated resources differ from the recorded account authority',
+      );
+    }
+  }
+  if (provisioning.kind !== 'pending') {
+    const storage =
+      provisioning.kind === 'allocated'
+        ? provisioning.resources
+        : provisioning.gatewayDeploymentConfig.resources;
+    const databaseIds = [storage.consoleD1.id];
+    for (const region of Object.values(storage.regions)) {
+      if (region.signerD1.kind === 'allocated') databaseIds.push(region.signerD1.id);
+    }
+    for (const database of Object.values(provisioning.privateRoles.databases)) {
+      databaseIds.push(database.id);
+    }
+    assertUnique(databaseIds, 'GetSignal account, signing and private-role databases');
+  }
   if (provisioning.kind === 'provisioned') {
     const config = provisioning.gatewayDeploymentConfig;
     const expectedTenant = control.provisioning.gatewayDeploymentConfig.tenant;
@@ -691,6 +726,29 @@ function parseCustomerDeployment(value, backendLanes, branding) {
     assertGatewayDeploymentConfigMatchesLane(lane);
   }
   return { lane };
+}
+
+function applyCustomerRolePlacement(resources, databases) {
+  for (const role of ['deriverA', 'deriverB', 'signingWorker']) {
+    const resource = requireObject(resources[role], `customers.getsignal.resources.${role}`);
+    if (Object.hasOwn(resource, 'placementRegion') || Object.hasOwn(resource, 'd1PrimaryColo')) {
+      throw new Error('GetSignal role placement must come from its verified database record');
+    }
+    const database = databases[role];
+    resource.d1PrimaryColo = database.primaryColo;
+    switch (database.primaryColo) {
+      case 'SIN':
+        resource.placementRegion = 'aws:ap-southeast-1';
+        break;
+      case 'NRT':
+        resource.placementRegion = 'aws:ap-northeast-1';
+        break;
+      default:
+        throw new Error(
+          `GetSignal private database metro requires a placement policy: ${database.primaryColo}`,
+        );
+    }
+  }
 }
 
 function parseSite(value, releaseId, branch) {
@@ -824,8 +882,30 @@ function parseProvisioning(value, laneId, network, provisioningPath) {
   const provisioning = requireObject(value, provisioningPath);
   const expectedRuntimeProfile = runtimeProfileForLane(laneId, network);
   const kind = requireString(provisioning.kind, provisioningPath + '.kind');
+  if (kind === 'allocated') {
+    if (laneId !== 'getsignal-testnet')
+      throw new Error('Allocated customer resources require a customer lane');
+    requireExactKeys(
+      provisioning,
+      ['kind', 'runtimeProfileKind', 'resources', 'privateRoles'],
+      provisioningPath,
+    );
+    if (provisioning.runtimeProfileKind !== expectedRuntimeProfile) {
+      throw new Error(provisioningPath + '.runtimeProfileKind differs');
+    }
+    const resources = parseGatewayDeploymentResources(provisioning.resources);
+    requireAllocatedWalletRegions({ lane: laneId, resources });
+    return Object.freeze({
+      kind,
+      runtimeProfileKind: expectedRuntimeProfile,
+      resources,
+      privateRoles: parseCustomerPrivateRoles(provisioning.privateRoles, provisioningPath),
+    });
+  }
   if (kind === 'provisioned') {
-    requireExactKeys(provisioning, ['kind', 'gatewayDeploymentConfig'], provisioningPath);
+    const keys = ['kind', 'gatewayDeploymentConfig'];
+    if (laneId === 'getsignal-testnet') keys.push('privateRoles');
+    requireExactKeys(provisioning, keys, provisioningPath);
     const gatewayDeploymentConfig = parseGatewayDeploymentConfig(
       JSON.stringify(provisioning.gatewayDeploymentConfig),
       laneId,
@@ -837,7 +917,14 @@ function parseProvisioning(value, laneId, network, provisioningPath) {
           expectedRuntimeProfile,
       );
     }
-    return Object.freeze({ kind, gatewayDeploymentConfig });
+    return Object.freeze({
+      kind,
+      gatewayDeploymentConfig,
+      privateRoles:
+        laneId === 'getsignal-testnet'
+          ? parseCustomerPrivateRoles(provisioning.privateRoles, provisioningPath)
+          : Object.freeze({ kind: 'operator_environment' }),
+    });
   }
   if (kind === 'pending') {
     requireExactKeys(
@@ -861,7 +948,40 @@ function parseProvisioning(value, laneId, network, provisioningPath) {
       ),
     });
   }
-  throw new Error(provisioningPath + '.kind must be provisioned or pending');
+  throw new Error(provisioningPath + '.kind must be pending, allocated or provisioned');
+}
+
+function parseCustomerPrivateRoles(value, sourcePath) {
+  const source = requireObject(value, sourcePath + '.privateRoles');
+  const roles = { deriverA: 'deriver-a', deriverB: 'deriver-b', signingWorker: 'signing-worker' };
+  requireExactKeys(source, Object.keys(roles), sourcePath + '.privateRoles');
+  const databases = {};
+  const identities = [];
+  for (const [key, role] of Object.entries(roles)) {
+    const raw = requireObject(source[key], sourcePath + '.privateRoles.' + key);
+    requireExactKeys(raw, ['id', 'name', 'primaryColo'], sourcePath + '.privateRoles.' + key);
+    const database = parseGatewayD1Resource(
+      { id: raw.id, name: raw.name },
+      sourcePath + '.privateRoles.' + key,
+    );
+    if (database.name !== `seams-private-getsignal-${role}`)
+      throw new Error('GetSignal private database name differs');
+    databases[key] = Object.freeze({
+      id: database.id,
+      name: database.name,
+      primaryColo: requirePattern(
+        raw.primaryColo,
+        /^[A-Z]{3}$/u,
+        sourcePath + '.privateRoles.' + key + '.primaryColo',
+      ),
+    });
+    identities.push(database.id);
+  }
+  assertUnique(identities, 'GetSignal private database identities');
+  if (databases.deriverA.primaryColo !== databases.deriverB.primaryColo) {
+    throw new Error('GetSignal Deriver private primaries must be colocated');
+  }
+  return Object.freeze({ kind: 'recorded', databases: Object.freeze(databases) });
 }
 
 function runtimeProfileForLane(laneId, network) {

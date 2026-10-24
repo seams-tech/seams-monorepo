@@ -39,6 +39,14 @@ function deploymentAutomationScope(deploymentLane: string) {
         workflow:
           'seams-tech/seams-monorepo/.github/workflows/deploy-production-mainnet-backend.yml@refs/heads/main',
       };
+    case 'getsignal-testnet':
+      return {
+        subject:
+          'repo:seams-tech@282445520/seams-monorepo@1366871528:environment:production-live-demo',
+        ref: 'refs/heads/main',
+        workflow:
+          'seams-tech/seams-monorepo/.github/workflows/deploy-getsignal.yml@refs/heads/main',
+      };
     default:
       throw new Error('Automated tenant activation is unavailable for this lane');
   }

@@ -390,6 +390,10 @@ async function accountWorkerJourney(
         bindings: {
           SEAMS_TENANT_STORAGE_NAMESPACE: namespace,
           SEAMS_TENANT_DEPLOYMENT_LANE: 'production-mainnet',
+          SEAMS_WALLET_SERVICE_DEPLOYMENT_ID: 'production-mainnet',
+          SEAMS_TENANT_BROWSER_CREDENTIAL_JSON: JSON.stringify({
+            kind: 'create_managed_publishable_key',
+          }),
           CONSOLE_SESSION_HMAC_SECRET: sessionSecret,
           CONSOLE_SESSION_ISSUER: 'p2-account',
           CONSOLE_SESSION_AUDIENCE: 'p2-account',

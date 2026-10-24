@@ -90,6 +90,31 @@ export type TenantDeploymentBrowserCredentialProvisioningV1 =
       readonly publishableKey: `pk_${string}`;
     };
 
+export function parseTenantDeploymentBrowserCredentialV1(
+  raw: string,
+): TenantDeploymentBrowserCredentialProvisioningV1 {
+  const value: unknown = JSON.parse(raw);
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('browser credential provisioning must be an object');
+  }
+  const kind = Reflect.get(value, 'kind');
+  const keys = Object.keys(value).sort().join(',');
+  switch (kind) {
+    case 'create_managed_publishable_key':
+      if (keys !== 'kind') throw new Error('managed credential provisioning has unexpected fields');
+      return { kind };
+    case 'adopt_publishable_key': {
+      const key = Reflect.get(value, 'publishableKey');
+      if (keys !== 'kind,publishableKey' || typeof key !== 'string') {
+        throw new Error('adopted credential provisioning requires its publishable key');
+      }
+      return { kind, publishableKey: parsePublishableKey(key) };
+    }
+    default:
+      throw new Error('unsupported browser credential provisioning kind');
+  }
+}
+
 export type TenantDeploymentProvisionerOptionsV1 = {
   readonly namespace: string;
   readonly resources: TenantDeploymentD1ResourcesV1;
@@ -283,7 +308,9 @@ async function resolveIdentity(
   options: TenantDeploymentProvisionerOptionsV1,
   environmentId: string,
 ): Promise<TenantRootIdentityV1> {
-  const organization = await options.walletEnvironments.findOrganizationForEnvironment({ environmentId });
+  const organization = await options.walletEnvironments.findOrganizationForEnvironment({
+    environmentId,
+  });
   if (!organization) throw new Error('tenant deployment environment was not found');
   const context = { orgId: organization.id, actorUserId: SYSTEM_ACTOR_USER_ID };
   const environments = await options.walletEnvironments.listEnvironments(context, {

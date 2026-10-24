@@ -348,7 +348,7 @@ async function activateSatyrAccount(
   );
 }
 
-test('production Console service bindings enforce durable credential changes and resolve environments', async () => {
+test('isolated runtime uses the original Wallet authority and enforces durable credential changes', async () => {
   test.setTimeout(120_000);
   const testInfo = test.info();
   const output = testInfo.outputPath('workers');
@@ -379,6 +379,7 @@ test('production Console service bindings enforce durable credential changes and
   const consoleEnvironment = consoleWorkerEnvironment({
     namespace,
     deploymentLane: 'console-preflight',
+    walletServiceDeploymentId: 'original-wallet-authority',
     accountId: '0123456789abcdef0123456789abcdef',
     databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   });
@@ -423,7 +424,17 @@ test('production Console service bindings enforce durable credential changes and
         compatibilityFlags: ['nodejs_compat'],
         bindings: consoleEnvironment,
         d1Databases: { CONSOLE_DB: 'console-service-auth-e2e' },
-        serviceBindings: { WALLET_RUNTIME: guard.fetch.bind(guard) },
+        serviceBindings: {
+          WALLET_RUNTIME: guard.fetch.bind(guard),
+          WALLET_RUNTIME_US: guard.fetch.bind(guard),
+          WALLET_RUNTIME_WEUR: guard.fetch.bind(guard),
+          WALLET_RUNTIME_APAC: guard.fetch.bind(guard),
+          WALLET_RUNTIME_OC: guard.fetch.bind(guard),
+          WALLET_GATEWAY_US: guard.fetch.bind(guard),
+          WALLET_GATEWAY_WEUR: guard.fetch.bind(guard),
+          WALLET_GATEWAY_APAC: guard.fetch.bind(guard),
+          WALLET_GATEWAY_OC: guard.fetch.bind(guard),
+        },
         outboundService: guard.fetch.bind(guard),
       },
     ],
@@ -475,10 +486,10 @@ test('production Console service bindings enforce durable credential changes and
       walletEnvironments,
       context,
       projectId,
-      consoleEnvironment.SEAMS_TENANT_DEPLOYMENT_LANE,
+      consoleEnvironment.SEAMS_WALLET_SERVICE_DEPLOYMENT_ID,
     );
     const keys = await createD1ConsoleApiKeyService({
-      deploymentId: consoleEnvironment.SEAMS_TENANT_DEPLOYMENT_LANE,
+      deploymentId: consoleEnvironment.SEAMS_WALLET_SERVICE_DEPLOYMENT_ID,
       database,
       namespace,
       ensureSchema: false,
@@ -785,7 +796,7 @@ test('production Console service bindings enforce durable credential changes and
       walletEnvironments,
       foreignContext,
       foreignProjectId,
-      consoleEnvironment.SEAMS_TENANT_DEPLOYMENT_LANE,
+      consoleEnvironment.SEAMS_WALLET_SERVICE_DEPLOYMENT_ID,
     );
     const foreignCredential = await keys.createApiKey(foreignContext, {
       kind: 'publishable_key',
@@ -1139,6 +1150,8 @@ test('production Console service bindings enforce durable credential changes and
       kind: 'console_registration_context_e2e_v1',
       at: new Date().toISOString(),
       topology: 'Wallet Console client → consumer Worker → production Console Worker → local D1',
+      deploymentLane: consoleEnvironment.SEAMS_TENANT_DEPLOYMENT_LANE,
+      walletServiceDeploymentId: consoleEnvironment.SEAMS_WALLET_SERVICE_DEPLOYMENT_ID,
       walletServerPackageSha256: sha256(
         await readFile(
           path.join(

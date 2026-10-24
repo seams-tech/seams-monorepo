@@ -6,15 +6,18 @@ on:
     inputs:
       operation:
         type: choice
-        description: Inspect the assignment or allocate empty GetSignal resources
+        description: Inspect, allocate empty resources, or deploy and activate GetSignal
         required: true
         default: inspect
         options:
           - inspect
           - allocate-resources
+          - deploy-runtime
 
 permissions:
   contents: read
+  actions: write
+  id-token: write
 
 concurrency:
   group: deployment-getsignal-testnet
@@ -23,7 +26,7 @@ concurrency:
 jobs:
   validate:
     name: Verify GetSignal resource provisioning
-    if: inputs.operation == 'allocate-resources'
+    if: inputs.operation != 'inspect'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -42,10 +45,13 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Verify operator commands
         run: pnpm test:scripts
+      - name: Verify private runtime types
+        run: pnpm type-check:router-server
       - name: Verify placement retry, resume and data preservation
         run: >-
           pnpm -C tests exec playwright test -c playwright.relayer.config.ts
-          relayer/getsignal-resource-provisioning.e2e.test.mjs --reporter=line
+          relayer/getsignal-resource-provisioning.e2e.test.mjs
+          relayer/console-service-auth.e2e.test.ts --reporter=line
           --output ../.artifacts/getsignal/resource-provisioning-e2e
 
   inspect:
@@ -93,3 +99,39 @@ jobs:
           node-version: '24'
       - name: Allocate and verify empty GetSignal resources
         run: node deployment/wallet-system/scripts/allocate-getsignal-resources.mjs
+
+  deploy_runtime:
+    if: inputs.operation == 'deploy-runtime'
+    needs: [inspect, validate]
+    uses: ./.github/workflows/deploy-getsignal-testnet-backend.yml
+
+  activate:
+    if: inputs.operation == 'deploy-runtime'
+    needs: deploy_runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production-live-demo
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout exact deployed revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Activate only the recorded GetSignal environment
+        run: >-
+          pnpm tenant:cutover --lane getsignal-testnet
+          --environment-id proj_13e170e650494645b3ef5f8087d50dda:dev
+      - name: Verify activated runtime
+        run: pnpm deploy:backend smoke --lane getsignal-testnet --component wallet-system

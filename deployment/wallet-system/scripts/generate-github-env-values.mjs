@@ -9,7 +9,6 @@ import {
   buildGatewayRuntimeProfile,
   DEFAULT_NEAR_INITIAL_BALANCE_YOCTO,
   GATEWAY_DEPLOYMENT_CONFIG_SCHEMA_VERSION,
-  GATEWAY_RUNTIME_PROFILE_KINDS,
   gatewayRuntimeProfileNearNetwork,
   parseGatewayDeploymentConfig as parseStrictGatewayDeploymentConfig,
   requireAllocatedWalletRegions,
@@ -245,10 +244,7 @@ if (prepare) {
 
 function validateOptionalIntegrationInputs(targetName, suppliedValues) {
   const gatewayEnvironment = `${targetName}-gateway`;
-  const configuredRuntimeProfile =
-    deploymentIdentity.lane.provisioning.kind === 'provisioned'
-      ? deploymentIdentity.lane.provisioning.gatewayDeploymentConfig.runtimeProfile
-      : undefined;
+  const configuredRuntimeProfile = keyGenerationFoundation(deploymentIdentity.lane).runtimeProfile;
   const runtimeProfileKind = readSuppliedValue(
     suppliedValues,
     targetName,
@@ -262,10 +258,8 @@ function validateOptionalIntegrationInputs(targetName, suppliedValues) {
     'EMAIL_OTP_DELIVERY_MODE',
   );
   const runtimeProfile = buildGatewayRuntimeProfile(
-    runtimeProfileKind ||
-      configuredRuntimeProfile?.kind ||
-      GATEWAY_RUNTIME_PROFILE_KINDS.testnetLiveDemo,
-    emailOtpDeliveryKind || configuredRuntimeProfile?.emailOtpDelivery.kind,
+    runtimeProfileKind || configuredRuntimeProfile.kind,
+    emailOtpDeliveryKind || configuredRuntimeProfile.emailOtpDelivery.kind,
   );
   const relayerAccountId = readSuppliedValue(
     suppliedValues,
@@ -333,8 +327,7 @@ const deployment = runJsonScript(join(scriptDir, 'generate-deployment-keys.mjs')
 ]);
 progress.step('Build and validate the GitHub Environment manifest');
 const configuration = buildTargetConfiguration(target, suppliedValues);
-const signingSessionRootSecretB64u =
-  preservedSigningSessionRootSecretB64u || randomBase64Url(32);
+const signingSessionRootSecretB64u = preservedSigningSessionRootSecretB64u || randomBase64Url(32);
 const generatedSecrets = buildGeneratedSecrets(environmentPrefix, signingSessionRootSecretB64u);
 const output = buildOutput({
   target,
@@ -481,10 +474,19 @@ function resolveDeploymentIdentity(component, requiresProvisionedLane) {
 }
 
 function assertProvisionedDeployment(identityId, provisioningKind) {
-  if (provisioningKind === 'pending') {
-    throw new Error(
-      `${identityId} is pending provisioning; generation and GitHub environment updates are blocked`,
-    );
+  switch (provisioningKind) {
+    case 'provisioned':
+      return;
+    case 'pending':
+      throw new Error(
+        `${identityId} is pending provisioning; generation and GitHub environment updates are blocked`,
+      );
+    case 'allocated':
+      throw new Error(
+        `${identityId} requires a prepared deployment configuration before GitHub environment updates`,
+      );
+    default:
+      throw new Error('Unknown deployment provisioning state');
   }
 }
 
@@ -510,29 +512,19 @@ function deploymentEnvironmentPrefix(identity) {
 function buildTargetConfiguration(targetName, suppliedValues) {
   const identityPrefix = environmentPrefix;
   const lane = deploymentIdentity.lane;
-  const checkedInGatewayConfig =
-    lane.provisioning.kind === 'provisioned'
-      ? lane.provisioning.gatewayDeploymentConfig
-      : undefined;
-  const checkedInRuntimeProfile = checkedInGatewayConfig?.runtimeProfile;
-  const checkedInOrigins = checkedInGatewayConfig?.origins;
-  const checkedInTenant = checkedInGatewayConfig?.tenant;
-  if (!checkedInGatewayConfig) {
-    throw new Error(
-      `Provision regional Gateway resources for ${lane.id} before generating deployment keys`,
-    );
-  }
-  requireAllocatedWalletRegions(checkedInGatewayConfig);
-  const checkedInResources = checkedInGatewayConfig.resources;
-  const checkedInRouter = checkedInGatewayConfig?.routerAb;
+  const foundation = keyGenerationFoundation(lane);
+  const checkedInRuntimeProfile = foundation.runtimeProfile;
+  const checkedInOrigins = foundation.origins;
+  const checkedInTenant = foundation.tenant;
+  requireAllocatedWalletRegions({ lane: lane.id, resources: foundation.resources });
+  const checkedInResources = foundation.resources;
   const gatewayEnvironment = `${environmentPrefix}-gateway`;
   const deriverAEnvironment = `${environmentPrefix}-deriver-a`;
   const deriverBEnvironment = `${environmentPrefix}-deriver-b`;
   const signingWorkerEnvironment = `${environmentPrefix}-signing-worker`;
   const runtimeProfileKind =
     readSuppliedValue(suppliedValues, targetName, gatewayEnvironment, 'GATEWAY_RUNTIME_PROFILE') ||
-    checkedInRuntimeProfile?.kind ||
-    GATEWAY_RUNTIME_PROFILE_KINDS.testnetLiveDemo;
+    checkedInRuntimeProfile.kind;
   const emailOtpDeliveryKind = readSuppliedValue(
     suppliedValues,
     targetName,
@@ -541,30 +533,25 @@ function buildTargetConfiguration(targetName, suppliedValues) {
   );
   const runtimeProfile = buildGatewayRuntimeProfile(
     runtimeProfileKind,
-    emailOtpDeliveryKind || checkedInRuntimeProfile?.emailOtpDelivery.kind,
+    emailOtpDeliveryKind || checkedInRuntimeProfile.emailOtpDelivery.kind,
   );
   const nearNetwork = gatewayRuntimeProfileNearNetwork(runtimeProfile);
   const gatewayOrigin =
     readOption('--gateway-origin') ||
     readSuppliedValue(suppliedValues, targetName, targetName, 'GATEWAY_ORIGIN') ||
-    checkedInOrigins?.gateway ||
-    lane.gatewayOrigin ||
-    manual(`${identityPrefix}-gateway-origin`);
+    checkedInOrigins.gateway;
   const orgId =
     readOption('--org-id') ||
     readSuppliedValue(suppliedValues, targetName, gatewayEnvironment, 'SEAMS_ORG_ID') ||
-    checkedInTenant?.orgId ||
-    manual(`${identityPrefix}-organization-id`);
+    checkedInTenant.orgId;
   const projectId =
     readOption('--project-id') ||
     readSuppliedValue(suppliedValues, targetName, gatewayEnvironment, 'SEAMS_PROJECT_ID') ||
-    checkedInTenant?.projectId ||
-    manual(`${identityPrefix}-project-id`);
+    checkedInTenant.projectId;
   const environmentId =
     readOption('--environment-id') ||
     readSuppliedValue(suppliedValues, targetName, gatewayEnvironment, 'SEAMS_ENV_ID') ||
-    checkedInTenant?.environmentId ||
-    manual(`${identityPrefix}-environment-id`);
+    checkedInTenant.environmentId;
   const tenantNamespace =
     readOption('--tenant-namespace') ||
     readSuppliedValue(
@@ -573,52 +560,72 @@ function buildTargetConfiguration(targetName, suppliedValues) {
       gatewayEnvironment,
       'SEAMS_TENANT_STORAGE_NAMESPACE',
     ) ||
-    `seams-${identityPrefix}`;
+    checkedInTenant.namespace;
   const appOrigin =
     readSuppliedValue(suppliedValues, targetName, targetName, 'VITE_APP_ORIGIN') ||
-    lane.site.origin ||
-    checkedInOrigins?.allowedCors?.[0] ||
-    manual(`${identityPrefix}-app-origin`);
+    lane.site.origin;
   const walletOrigin =
     readSuppliedValue(suppliedValues, targetName, targetName, 'VITE_WALLET_ORIGIN') ||
-    lane.walletOrigin ||
-    checkedInOrigins?.allowedCors?.[1] ||
-    manual(`${identityPrefix}-wallet-origin`);
+    lane.walletOrigin;
   const rpId =
     readSuppliedValue(suppliedValues, targetName, targetName, 'VITE_RP_ID_BASE') ||
-    hostnameFromOrigin(walletOrigin) ||
-    (identityPrefix === 'production' ? 'sign.seams.sh' : undefined) ||
-    manual(`${identityPrefix}-webauthn-rp-id`);
+    hostnameFromOrigin(walletOrigin);
   const nearRpcUrl =
     readSuppliedValue(suppliedValues, targetName, targetName, 'NEAR_RPC_URL') ||
-    checkedInGatewayConfig?.optional.nearRelayer?.rpcUrl ||
+    foundation.nearRelayer?.rpcUrl ||
     (nearNetwork === 'mainnet'
       ? 'https://rpc.mainnet.near.org'
       : 'https://rpc.testnet.fastnear.com');
   const nearExplorerUrl =
     readSuppliedValue(suppliedValues, targetName, targetName, 'VITE_NEAR_EXPLORER') ||
     (nearNetwork === 'mainnet' ? 'https://nearblocks.io' : 'https://testnet.nearblocks.io');
-  const deriverAPrivateDatabaseId =
+  const deriverAPrivateDatabaseId = privateDatabaseIdFromSource(
+    lane.provisioning.privateRoles,
+    'deriverA',
     readSuppliedValue(
       suppliedValues,
       targetName,
       deriverAEnvironment,
       'ROUTER_AB_DERIVER_A_PRIVATE_D1_ID',
-    ) || manual(`${identityPrefix}-deriver-a-private-d1-database-id`);
-  const deriverBPrivateDatabaseId =
+    ),
+    `${identityPrefix}-deriver-a-private-d1-database-id`,
+  );
+  const deriverBPrivateDatabaseId = privateDatabaseIdFromSource(
+    lane.provisioning.privateRoles,
+    'deriverB',
     readSuppliedValue(
       suppliedValues,
       targetName,
       deriverBEnvironment,
       'ROUTER_AB_DERIVER_B_PRIVATE_D1_ID',
-    ) || manual(`${identityPrefix}-deriver-b-private-d1-database-id`);
-  const signingWorkerPrivateDatabaseId =
+    ),
+    `${identityPrefix}-deriver-b-private-d1-database-id`,
+  );
+  const signingWorkerPrivateDatabaseId = privateDatabaseIdFromSource(
+    lane.provisioning.privateRoles,
+    'signingWorker',
     readSuppliedValue(
       suppliedValues,
       targetName,
       signingWorkerEnvironment,
       'ROUTER_AB_SIGNING_WORKER_PRIVATE_D1_ID',
-    ) || manual(`${identityPrefix}-signing-worker-private-d1-database-id`);
+    ),
+    `${identityPrefix}-signing-worker-private-d1-database-id`,
+  );
+  if (
+    lane.kind === 'customer' &&
+    (orgId !== checkedInTenant.orgId ||
+      projectId !== checkedInTenant.projectId ||
+      environmentId !== checkedInTenant.environmentId ||
+      tenantNamespace !== checkedInTenant.namespace ||
+      gatewayOrigin !== lane.gatewayOrigin ||
+      appOrigin !== lane.applicationOrigin ||
+      walletOrigin !== lane.walletOrigin)
+  ) {
+    throw new Error(
+      'GetSignal preparation must preserve its recorded project, account authority and origins',
+    );
+  }
   return {
     suppliedValues,
     runtimeProfile,
@@ -632,6 +639,8 @@ function buildTargetConfiguration(targetName, suppliedValues) {
     projectId,
     environmentId,
     tenantNamespace,
+    allowedOrigins: lane.allowedOrigins,
+    emailOtpAcceptedWarmKeyVersions: foundation.emailOtpAcceptedWarmKeyVersions,
     gatewayResources: checkedInResources,
     mpcRouterWorkerName: lane.resources.router.workerName,
     deriverAWorkerName: lane.resources.deriverA.workerName,
@@ -640,15 +649,70 @@ function buildTargetConfiguration(targetName, suppliedValues) {
     deriverAPrivateDatabaseId,
     deriverBPrivateDatabaseId,
     signingWorkerPrivateDatabaseId,
-    ceremonyJwtKeyId:
-      checkedInRouter?.ceremonyJwtKeyId || `router-ab-ceremony-${identityPrefix}-r1`,
-    signerSetId:
-      checkedInRouter?.registrationTopology.signerSet.signer_set_id ||
-      `router-ab-${identityPrefix}-signers-r1`,
-    relaySessionIssuer: checkedInGatewayConfig?.session.issuer || `seams-gateway-${identityPrefix}`,
+    ceremonyJwtKeyId: foundation.ceremonyJwtKeyId,
+    signerSetId: foundation.signerSetId,
+    relaySessionIssuer: foundation.relaySessionIssuer,
     routerJwtAudience: 'router-ab',
     nearNetwork,
   };
+}
+
+function keyGenerationFoundation(lane) {
+  switch (lane.provisioning.kind) {
+    case 'provisioned': {
+      const config = lane.provisioning.gatewayDeploymentConfig;
+      return {
+        runtimeProfile: config.runtimeProfile,
+        origins: config.origins,
+        tenant: config.tenant,
+        resources: config.resources,
+        nearRelayer: config.optional.nearRelayer,
+        ceremonyJwtKeyId: config.routerAb.ceremonyJwtKeyId,
+        signerSetId: config.routerAb.registrationTopology.signerSet.signer_set_id,
+        relaySessionIssuer: config.session.issuer,
+        emailOtpAcceptedWarmKeyVersions: config.emailOtpServerSeal.acceptedWarmKeyVersions,
+      };
+    }
+    case 'allocated':
+      return {
+        runtimeProfile: buildGatewayRuntimeProfile(
+          lane.provisioning.runtimeProfileKind,
+          lane.emailOtpDelivery.kind,
+        ),
+        origins: { gateway: lane.gatewayOrigin, allowedCors: lane.allowedOrigins },
+        tenant: {
+          namespace: lane.accountNamespace,
+          orgId: lane.identity.organizationId,
+          projectId: lane.identity.projectId,
+          environmentId: lane.identity.environmentId,
+        },
+        resources: lane.provisioning.resources,
+        nearRelayer: null,
+        ceremonyJwtKeyId: `router-ab-ceremony-${lane.id}-r1`,
+        signerSetId: `router-ab-${lane.id}-signers-r1`,
+        relaySessionIssuer: `seams-gateway-${lane.id}`,
+        emailOtpAcceptedWarmKeyVersions: [],
+      };
+    case 'pending':
+      throw new Error(`Allocate and verify ${lane.id} resources before preparing deployment keys`);
+    default:
+      throw new Error('Unknown deployment provisioning state');
+  }
+}
+
+function privateDatabaseIdFromSource(source, role, supplied, label) {
+  switch (source.kind) {
+    case 'recorded': {
+      const id = source.databases[role].id;
+      if (supplied && supplied !== id)
+        throw new Error(`Private database identity differs: ${role}`);
+      return id;
+    }
+    case 'operator_environment':
+      return supplied || manual(label);
+    default:
+      throw new Error('Unknown private database authority');
+  }
 }
 
 function buildGeneratedSecrets(environmentPrefix, signingSessionRootSecretB64u) {
@@ -658,6 +722,7 @@ function buildGeneratedSecrets(environmentPrefix, signingSessionRootSecretB64u) 
     gatewayToRouterAuth: randomBase64Url(32),
     gatewayToSigningWorkerPresignAuth: randomBase64Url(32),
     relaySessionHmac: randomBase64Url(32),
+    linkedDeviceTargetDescriptorHmac: randomBase64Url(32),
     ceremonyPrivateJwk: generateCeremonyPrivateJwk(),
     signingSession: {
       rootSecretB64u: signingSessionRootSecretB64u,
@@ -763,7 +828,7 @@ function buildDeploymentDigestPayload(output) {
 
 function buildEnvironments(input) {
   return Object.fromEntries([
-    buildGeneralEnvironment(input),
+    ...(deploymentIdentity.lane.kind === 'customer' ? [] : [buildGeneralEnvironment(input)]),
     buildGatewayEnvironment(input),
     buildMpcRouterEnvironment(input),
     buildDeriverAEnvironment(input),
@@ -1010,6 +1075,8 @@ function buildGatewayEnvironment(input) {
     CLOUDFLARE_API_TOKEN: manual(`${environmentName}-cloudflare-worker-api-token`),
     CLOUDFLARE_ACCOUNT_ID: manual(`${input.environmentPrefix}-cloudflare-account-id`),
     RELAY_SESSION_HMAC_SECRET: input.generatedSecrets.relaySessionHmac,
+    LINKED_DEVICE_TARGET_DESCRIPTOR_HMAC_SECRET:
+      input.generatedSecrets.linkedDeviceTargetDescriptorHmac,
     ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: input.generatedSecrets.internalServiceAuth,
     ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: input.generatedSecrets.gatewayToRouterAuth,
     ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET:
@@ -1063,11 +1130,7 @@ function buildGatewayDeploymentConfig(input) {
     },
     origins: {
       gateway: configuration.gatewayOrigin,
-      allowedCors: [
-        configuration.appOrigin,
-        deploymentIdentity.lane.site.walletSiteOrigin,
-        configuration.walletOrigin,
-      ],
+      allowedCors: configuration.allowedOrigins,
     },
     session: {
       issuer: configuration.relaySessionIssuer,
@@ -1079,9 +1142,12 @@ function buildGatewayDeploymentConfig(input) {
       acceptedWarmKeyVersions: input.generatedSecrets.signingSession.acceptedWarmKeyVersions,
     },
     emailOtpServerSeal: {
-      acceptedWarmKeyVersions:
-        deploymentIdentity.lane.provisioning.gatewayDeploymentConfig.emailOtpServerSeal
-          .acceptedWarmKeyVersions,
+      acceptedWarmKeyVersions: [
+        ...new Set([
+          ...configuration.emailOtpAcceptedWarmKeyVersions,
+          input.generatedSecrets.signingSession.currentKeyVersion,
+        ]),
+      ],
     },
     routerAb: {
       ceremonyJwtAudience: configuration.routerJwtAudience,
@@ -1615,6 +1681,10 @@ function loadSuppliedValues(valuesFilePath) {
 }
 
 function findDefaultValuesFile(identity) {
+  if (identity.kind === 'lane' && identity.lane.kind === 'customer') {
+    const customerPath = join(homedir(), '.seams', `${identity.id}-deployment.env`);
+    return existsSync(customerPath) ? customerPath : undefined;
+  }
   const fileName =
     identity.kind === 'lane' && identity.id === 'production-testnet'
       ? 'production-testnet-deployment.env'
@@ -1636,6 +1706,7 @@ function loadValuesFile(valuesFilePath) {
 
 async function discoverCloudflareValues(lane, environmentPrefix, suppliedValues, progressLogger) {
   const accountId = discoverCloudflareAccountId(environmentPrefix, suppliedValues, progressLogger);
+  if (lane.kind === 'customer') return;
   ensureD1Database({
     environmentPrefix,
     suppliedValues,
@@ -2000,7 +2071,7 @@ function assertCompleteApplyInput(outputDocument, shouldApply, incompleteAllowed
 
 function validateOutput(outputDocument) {
   const expectedEnvironmentNames = [
-    outputDocument.environmentPrefix,
+    ...(deploymentIdentity.lane.kind === 'customer' ? [] : [outputDocument.environmentPrefix]),
     `${outputDocument.environmentPrefix}-gateway`,
     `${outputDocument.environmentPrefix}-mpc-router`,
     `${outputDocument.environmentPrefix}-deriver-a`,
@@ -2027,6 +2098,7 @@ function validateOutput(outputDocument) {
 }
 
 function validateWorkflowCoverage(outputDocument, component) {
+  if (!component) return;
   const environmentPrefix = outputDocument.environmentPrefix;
   const backendWorkflow = readDeploymentWorkflow(outputDocument.lane, 'backend');
   const requirements = new Map();
@@ -2109,7 +2181,9 @@ function collectWorkflowRequirements(workflowSource) {
   const secrets = new Set();
   const referencePattern = /\b(vars|secrets)\.([A-Z][A-Z0-9_]*)/g;
   for (const match of workflowSource.matchAll(referencePattern)) {
-    (match[1] === 'vars' ? variables : secrets).add(match[2]);
+    const name =
+      deploymentIdentity.lane.kind === 'customer' ? match[2].replace(/^GETSIGNAL_/u, '') : match[2];
+    (match[1] === 'vars' ? variables : secrets).add(name);
   }
   return { variables, secrets };
 }
@@ -2353,6 +2427,7 @@ function validateSigningSessionConsistency(outputDocument) {
   if (!gateway.secrets.SIGNING_SESSION_SEAL_ROOT_SECRET_B64U) {
     throw new Error('Gateway signing-session seal root secret is missing');
   }
+  if (deploymentIdentity.lane.kind === 'customer') return;
   for (const name of [
     'VITE_SIGNING_SESSION_SEAL_KEY_VERSION',
     'VITE_SIGNING_SESSION_SHAMIR_P_B64U',

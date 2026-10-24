@@ -8368,10 +8368,52 @@ select.dashboard-input {
 }
 
 .dashboard-login__google-sign-in {
+  position: relative;
   width: 100%;
   max-width: 400px;
   min-height: 44px;
   justify-self: center;
+}
+
+/* Google's rendered button, transparent over the styled copy below it; it
+   keeps the clicks and the focus. */
+.dashboard-login__google-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.dashboard-login__google-overlay[hidden] {
+  display: none;
+}
+
+/* Google's large button is 40px tall; stretched, it covers the whole 44px copy */
+.dashboard-login__google-overlay > div {
+  transform: scaleY(1.1);
+}
+
+/* a div takes the box a button gets by default, so it matches the GitHub button */
+.dashboard-login__google-face {
+  display: flex;
+  box-sizing: border-box;
+  line-height: normal;
+  pointer-events: none;
+}
+
+/* the copy shows the states of the button that Google's button covers */
+.dashboard-login__google-sign-in:hover .dashboard-login__google-face {
+  border-color: #262626;
+  background: #262626;
+}
+
+.dashboard-login__google-sign-in:focus-within .dashboard-login__google-face {
+  outline: 2px solid #0a0a0a;
+  outline-offset: 3px;
 }
 
 .dashboard-login__auth-button {

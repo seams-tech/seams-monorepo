@@ -71,6 +71,7 @@ function DashboardAuthProviderButton({
         disabled={provider.disabled}
         label={provider.label}
         className={classNames.ctaButton}
+        iconClassName={classNames.ctaIcon}
         onCredential={provider.onCredential}
         onError={provider.onError}
       />

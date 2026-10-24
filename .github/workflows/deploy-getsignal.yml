@@ -21,6 +21,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    name: Verify GetSignal resource provisioning
+    if: inputs.operation == 'allocate-resources'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact workflow revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify operator commands
+        run: pnpm test:scripts
+      - name: Verify placement retry, resume and data preservation
+        run: >-
+          pnpm -C tests exec playwright test -c playwright.relayer.config.ts
+          relayer/getsignal-resource-provisioning.e2e.test.mjs --reporter=line
+          --output ../.artifacts/getsignal/resource-provisioning-e2e
+
   inspect:
     name: Inspect GetSignal account and deployment registry
     runs-on: ubuntu-latest
@@ -43,6 +70,26 @@ jobs:
           node-version: '24'
       - name: Inspect the existing GetSignal environment
         run: node deployment/wallet-system/scripts/inspect-getsignal-deployment.mjs
+
+  allocate:
+    name: Allocate GetSignal resources
+    if: inputs.operation == 'allocate-resources'
+    needs: [inspect, validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: production-live-demo
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout exact validated revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
       - name: Allocate and verify empty GetSignal resources
-        if: inputs.operation == 'allocate-resources'
         run: node deployment/wallet-system/scripts/allocate-getsignal-resources.mjs

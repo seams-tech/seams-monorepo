@@ -904,21 +904,10 @@ function createBrowserAuthHandler(
   });
 }
 
-async function completeFreshUserAuthorization(
-  origins: readonly string[],
-  route: Route,
-): Promise<void> {
-  const authorization = new URL(route.request().url());
-  const callback = new URL(authorization.searchParams.get('redirect_uri') ?? '');
-  expect(origins).toContain(callback.origin);
-  await completeBrowserGithubAuthorization(callback.origin, 'fresh-wallet-user', route);
-}
-
 async function verifyFreshUserOnboarding(input: {
   readonly browser: Browser;
   readonly database: D1DatabaseLike;
   readonly appUrl: string;
-  readonly platformUrl: string;
   readonly handlers: ReadonlyMap<string, HostedConsoleAuthHandler>;
   readonly evidence: string;
 }): Promise<void> {
@@ -932,18 +921,11 @@ async function verifyFreshUserOnboarding(input: {
     await page.route('**/console/**', transport.handle.bind(transport));
     await page.route(
       'https://github.com/login/oauth/authorize?*',
-      completeFreshUserAuthorization.bind(null, [
-        new URL(input.appUrl).origin,
-        new URL(input.platformUrl).origin,
-      ]),
+      completeBrowserGithubAuthorization.bind(null, input.appUrl, 'fresh-wallet-user'),
     );
     await page.goto(new URL('/dashboard/login?db_network=mainnet', input.appUrl).href);
     await page.getByRole('button', { name: 'Continue with GitHub', exact: true }).click();
-    await expect(
-      page.getByRole('button', { name: 'Continue with GitHub', exact: true }),
-    ).toBeVisible();
-    expect(new URL(page.url()).origin).toBe(new URL(input.platformUrl).origin);
-    await page.getByRole('button', { name: 'Continue with GitHub', exact: true }).click();
+    expect(new URL(page.url()).origin).toBe(new URL(input.appUrl).origin);
     await expect(
       page.getByRole('heading', { name: 'Name your organization', exact: true }),
     ).toBeVisible();
@@ -951,8 +933,8 @@ async function verifyFreshUserOnboarding(input: {
       path: path.join(input.evidence, 'fresh-organization-step.png'),
       fullPage: true,
     });
-    await page.getByLabel('Organization name', { exact: true }).fill('Fresh customer');
-    await page.getByRole('button', { name: 'Continue to project setup', exact: true }).click();
+    await page.getByRole('textbox', { name: /^Organization name/ }).fill('Fresh customer');
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(
       page.getByRole('heading', { name: 'Create your first project', exact: true }),
     ).toBeVisible();
@@ -965,29 +947,21 @@ async function verifyFreshUserOnboarding(input: {
       fullPage: true,
     });
     await page.getByRole('textbox', { name: /^Project name/ }).fill('Fresh Wallet');
-    const walletEntry = page.waitForRequest(
-      (request) =>
-        request.isNavigationRequest() &&
-        new URL(request.url()).origin === new URL(input.appUrl).origin,
+    await page.getByRole('button', { name: 'Create project', exact: true }).click();
+    await page.waitForURL(/\/dashboard\/overview(?:\?|$)/);
+    const { orgId, projectId } = await createdProject(
+      input.database,
+      'Fresh customer',
+      'Fresh Wallet',
     );
-    await page.getByRole('button', { name: 'Finish onboarding', exact: true }).click();
-    // Wallet onboarding ends in Wallet Console with the new organization and
-    // project, not in Platform account settings.
-    const selected = new URL((await walletEntry).url());
-    expect(selected.pathname).toBe('/dashboard/overview');
-    expect(selected.searchParams.get('db_network')).toBe('mainnet');
-    const orgId = selected.searchParams.get('db_org');
-    const projectId = selected.searchParams.get('db_project');
-    if (!orgId || !projectId) throw new Error('New account omitted its selected project');
-    expect(await environmentCount(input.database, projectId)).toBe(0);
-    await expect(
-      page.getByRole('button', { name: 'Continue with GitHub', exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mainnet', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     await page.screenshot({
       path: path.join(input.evidence, 'fresh-account-ready.png'),
       fullPage: true,
     });
-    await page.getByRole('button', { name: 'Continue with GitHub', exact: true }).click();
     // A lost activation reply must resume the same setup after a reload.
     await expect(page.getByRole('heading', { name: 'Wallet setup unavailable' })).toBeVisible();
     await page.reload();
@@ -1004,8 +978,7 @@ async function verifyFreshUserOnboarding(input: {
       .getByRole('link', { name: 'Account settings', exact: true })
       .getAttribute('href');
     if (!accountHref) throw new Error('Wallet omitted the selected account link');
-    expect(new URL(accountHref).searchParams.get('db_org')).toBe(orgId);
-    expect(new URL(accountHref).searchParams.get('db_project')).toBe(projectId);
+    expect(new URL(accountHref).origin).toBe(new URL(input.appUrl).origin);
     expect(transport.enableRequests).toHaveLength(1);
     await page.screenshot({
       path: path.join(input.evidence, 'fresh-wallet-ready.png'),
@@ -1014,29 +987,30 @@ async function verifyFreshUserOnboarding(input: {
     // Creating another organisation also replaces the account session before
     // document navigation. Its project must stay in the newly created account.
     await page.goto(accountHref);
+    await expect(page.getByRole('row').filter({ hasText: 'Fresh customer' })).toContainText(
+      'Current',
+    );
     await page.getByRole('button', { name: 'Create an organization', exact: true }).click();
-    await page.getByLabel('Organization name', { exact: true }).fill('Second fresh account');
-    await page.getByRole('button', { name: 'Continue to project setup', exact: true }).click();
+    await page.getByRole('textbox', { name: /^Organization name/ }).fill('Second fresh account');
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(
       page.getByRole('heading', { name: 'Create your first project', exact: true }),
     ).toBeVisible();
     await page.reload();
     await page.getByRole('textbox', { name: /^Project name/ }).fill('Second fresh project');
-    const secondWalletEntry = page.waitForRequest(
-      (request) =>
-        request.isNavigationRequest() &&
-        new URL(request.url()).origin === new URL(input.appUrl).origin,
+    await page.getByRole('button', { name: 'Create project', exact: true }).click();
+    await page.waitForURL(/\/dashboard\/overview(?:\?|$)/);
+    const { orgId: secondOrgId, projectId: secondProjectId } = await createdProject(
+      input.database,
+      'Second fresh account',
+      'Second fresh project',
     );
-    await page.getByRole('button', { name: 'Finish onboarding', exact: true }).click();
-    const secondSelection = new URL((await secondWalletEntry).url());
-    expect(secondSelection.pathname).toBe('/dashboard/overview');
-    const secondOrgId = secondSelection.searchParams.get('db_org');
-    if (!secondOrgId) throw new Error('Second account omitted its organization');
     expect(secondOrgId).not.toBe(orgId);
-    expect(secondSelection.searchParams.get('db_network')).toBe('mainnet');
-    const secondProjectId = secondSelection.searchParams.get('db_project');
-    if (!secondProjectId) throw new Error('Second account omitted its project');
-    expect(await environmentCount(input.database, secondProjectId)).toBe(0);
+    await expect(page.getByRole('button', { name: 'Mainnet', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect.poll(environmentCount.bind(null, input.database, secondProjectId)).toBe(3);
     expect(await environmentCount(input.database, projectId)).toBe(3);
     await writeFile(
       path.join(input.evidence, 'fresh-user-report.json'),
@@ -1047,7 +1021,7 @@ async function verifyFreshUserOnboarding(input: {
           accountCreation: true,
           projectCreation: true,
           reloadDuringOnboarding: true,
-          separateHostAuthentication: true,
+          onboardingAndWalletShareOrigin: true,
           selectedNetwork: 'mainnet',
           environments: 3,
           lostActivationReplyRecovered: true,
@@ -1064,6 +1038,23 @@ async function verifyFreshUserOnboarding(input: {
     await context.tracing.stop({ path: path.join(input.evidence, 'fresh-user-trace.zip') });
     await context.close();
   }
+}
+
+async function createdProject(
+  database: D1DatabaseLike,
+  organizationName: string,
+  projectName: string,
+): Promise<{ readonly orgId: string; readonly projectId: string }> {
+  const row = await database
+    .prepare(
+      'SELECT p.org_id AS orgId, p.id AS projectId FROM projects p JOIN organizations o ON o.namespace = p.namespace AND o.id = p.org_id WHERE p.namespace = ? AND o.name = ? AND p.name = ?',
+    )
+    .bind(namespace, organizationName, projectName)
+    .first<{ readonly orgId: string; readonly projectId: string }>();
+  if (!row || typeof row.orgId !== 'string' || typeof row.projectId !== 'string') {
+    throw new Error('Onboarding did not persist the requested organization and project');
+  }
+  return { orgId: row.orgId, projectId: row.projectId };
 }
 
 async function verifyAutomaticWalletSetup(
@@ -1248,12 +1239,7 @@ async function verifyAutomaticWalletSetup(
     await page.getByRole('button', { name: 'Continue with GitHub', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Wallet setup unavailable' })).toBeVisible();
     expect(new URL(page.url()).origin).toBe(walletOrigin.origin);
-    const callbackAccountHref = await page
-      .getByRole('link', { name: 'Account settings', exact: true })
-      .getAttribute('href');
-    if (!callbackAccountHref) throw new Error('Wallet omitted the Platform account link');
-    expect(new URL(callbackAccountHref).searchParams.get('db_network')).toBe('mainnet');
-    expect(new URL(callbackAccountHref).searchParams.get('db_project')).toBe(projectId);
+    await expect(page.getByRole('link', { name: 'Account settings', exact: true })).toBeVisible();
     expect(transport.authExchanges).toEqual([
       { status: 200, body: { ok: true, session: { kind: 'console_session_v1' } } },
     ]);
@@ -1285,13 +1271,17 @@ async function verifyAutomaticWalletSetup(
     const accountLink = page.getByRole('link', { name: 'Account settings', exact: true });
     const accountHref = await accountLink.getAttribute('href');
     if (!accountHref) throw new Error('Wallet omitted the Platform account link');
-    expect(new URL(accountHref).origin).toBe(new URL(platformUrl).origin);
-    // A Wallet environment must not change the selected account authority.
-    expect(new URL(accountHref).searchParams.get('db_network')).toBe('mainnet');
-    expect(new URL(accountHref).searchParams.get('db_project')).toBe(projectId);
+    expect(new URL(accountHref).origin).toBe(walletOrigin.origin);
     await accountLink.click();
     await expect(page.getByLabel('Account settings page')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'API Keys', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'API Keys', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mainnet', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.getByRole('row').filter({ hasText: 'Automatic Wallet setup' })).toContainText(
+      'Current',
+    );
     expect(transport.enableRequests).toHaveLength(2);
     await page.screenshot({ path: path.join(evidence, 'platform-account.png'), fullPage: true });
     await page.goto(new URL('/dashboard/api-keys', appUrl).href);
@@ -1506,7 +1496,6 @@ async function verifyAutomaticWalletSetup(
       browser,
       database,
       appUrl,
-      platformUrl,
       handlers: new Map([
         [new URL(appUrl).origin, handler],
         [new URL(platformUrl).origin, platformHandler],

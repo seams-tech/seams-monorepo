@@ -331,7 +331,7 @@ export const catalog = {
     en: 'Built-in sign-in, payment, and recovery screens, or your own',
     ja: 'サインイン、支払い、復元の標準画面も、独自のUIも',
   },
-  planPricing: { en: 'Plan pricing', ja: 'プランと料金' },
+  liveDemo: { en: 'Live demo', ja: 'ライブデモ' },
   getStarted: { en: 'Get Started', ja: 'はじめに' },
   getStartedDescription: {
     en: 'Install the SDK, create a wallet, and sign with policy',

@@ -1,8 +1,8 @@
 import { t } from '@/marketing/i18n/browser';
 import {
-  Bot,
   Building2,
   Fingerprint,
+  Globe,
   ListChecks,
   PenLine,
   Rocket,
@@ -21,23 +21,23 @@ const documentationDropdownPane: DropdownPane = {
   kicker: t('products'),
   rows: [
     {
-      title: t('embeddedWallet'),
-      description: t('embeddedDescription'),
-      to: '/wallet',
+      title: t('simpleWallets'),
+      description: t('simpleWalletsDescription'),
+      to: '/features/#recovery',
       icon: Wallet,
       field: 'teal-peach',
     },
     {
-      title: t('ecommerceAgents'),
-      description: t('agentsDescription'),
-      to: '/ecommerce',
-      icon: Bot,
+      title: t('globalSelfHosted'),
+      description: t('globalSelfHostedDescription'),
+      to: '/features/#global',
+      icon: Globe,
       field: 'azure-coral',
     },
     {
       title: t('biometricAuth'),
       description: t('biometricDescription'),
-      to: '/docs/concepts/auth-methods/passkeys',
+      to: '/features/#biometrics',
       icon: Fingerprint,
       field: 'aqua-evergreen',
     },
@@ -48,7 +48,10 @@ const documentationDropdownPane: DropdownPane = {
     to: '/wallet',
     field: 'teal-peach',
   },
-  footerLinks: [{ label: t('planPricing'), to: '/pricing/' }],
+  footerLinks: [
+    { label: t('allFeatures'), to: '/features/' },
+    { label: t('planPricing'), to: '/pricing/' },
+  ],
 };
 
 const productsDropdownPane: DropdownPane = {

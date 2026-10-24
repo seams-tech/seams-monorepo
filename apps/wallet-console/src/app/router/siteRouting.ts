@@ -56,9 +56,11 @@ export function resolveHref(target: string): string {
 
   const pathname = normalizePathname(target);
   switch (pathname) {
-    case '/pricing': {
+    case '/pricing':
+    case '/features': {
       const url = new URL(target, window.location.origin);
-      return `${walletPagePath(SITE_LINKS.walletPath, 'pricing', locale)}${url.search}${url.hash}`;
+      const page = pathname === '/pricing' ? 'pricing' : 'features';
+      return `${walletPagePath(SITE_LINKS.walletPath, page, locale)}${url.search}${url.hash}`;
     }
     case '/':
     case '/company':

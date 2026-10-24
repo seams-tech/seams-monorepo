@@ -1,13 +1,16 @@
 export type Locale = 'en' | 'ja';
-export type WalletPage = 'home' | 'pricing';
+export type WalletPage = 'home' | 'pricing' | 'features';
 
-/* Page paths under the site's base: /, /ja/, /pricing/ and /ja/pricing/. */
+/* Page paths under the site's base: /, /pricing/ and /features/, each also under /ja/. */
 export function pageFromUrl(url: URL): WalletPage {
-  return url.pathname.replace(/\/$/, '').endsWith('/pricing') ? 'pricing' : 'home';
+  const path = url.pathname.replace(/\/$/, '');
+  if (path.endsWith('/pricing')) return 'pricing';
+  if (path.endsWith('/features')) return 'features';
+  return 'home';
 }
 
 export function localeFromUrl(url: URL): Locale {
-  const path = url.pathname.replace(/\/$/, '').replace(/\/pricing$/, '');
+  const path = url.pathname.replace(/\/$/, '').replace(/\/(?:pricing|features)$/, '');
   if (path.endsWith('/ja')) return 'ja';
   if (url.searchParams.get('lang') === 'ja' && path.includes('/showcase/')) return 'ja';
   return 'en';
@@ -15,7 +18,7 @@ export function localeFromUrl(url: URL): Locale {
 
 export function walletPagePath(walletPath: string, page: WalletPage, locale: Locale): string {
   const base = walletPath.replace(/\/$/, '');
-  return `${base}${locale === 'ja' ? '/ja' : ''}${page === 'pricing' ? '/pricing' : ''}/`;
+  return `${base}${locale === 'ja' ? '/ja' : ''}${page === 'home' ? '' : `/${page}`}/`;
 }
 
 export function walletLanguageUrl(url: URL, walletPath: string, locale: Locale): string {

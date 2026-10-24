@@ -312,22 +312,25 @@ export const catalog = {
   status: { en: 'Status', ja: 'ステータス' },
   confirmed: { en: 'Confirmed', ja: '確認済み' },
   biometricAuth: { en: 'Biometric Authentication', ja: '生体認証' },
-  embeddedDescription: {
-    en: 'Non-custodial wallets with policy-bound keys and sessions',
-    ja: '鍵とセッションをポリシーで制御するノンカストディアルウォレット',
+  simpleWallets: { en: 'Safe, simple wallets', ja: '安全でシンプルなウォレット' },
+  simpleWalletsDescription: {
+    en: 'Passkey sign-in, email recovery, and device linking',
+    ja: 'パスキーでサインイン、メールで復元、デバイスをリンク',
   },
-  agentsDescription: {
-    en: 'AI agents with scoped credentials, acting inside policy',
-    ja: '範囲を限定した認証情報で、ポリシーに従って動くAIエージェント',
+  globalSelfHosted: { en: 'Global or self-hosted', ja: 'グローバル展開・セルフホスト' },
+  globalSelfHostedDescription: {
+    en: 'Run near your users, or on your own cloud',
+    ja: 'ユーザーの近くでも、自社のクラウドでも運用',
   },
   biometricDescription: {
-    en: 'Passkey authentication. VoiceID is planned.',
-    ja: 'パスキー認証に対応。VoiceIDは今後対応予定です。',
+    en: 'Passkeys with Face ID and Touch ID. VoiceID is planned.',
+    ja: 'Face IDやTouch IDで使えるパスキー。VoiceIDは今後対応予定です。',
   },
+  allFeatures: { en: 'All features', ja: 'すべての機能' },
   liveDemo: { en: 'Live demo', ja: 'ライブデモ' },
   liveDemoDescription: {
-    en: 'Create a passkey wallet on the Embedded Wallet page',
-    ja: '組み込みウォレットのページでパスキーウォレットを作成',
+    en: 'Create a passkey wallet in your browser',
+    ja: 'ブラウザでパスキーウォレットを作成',
   },
   planPricing: { en: 'Plan pricing', ja: 'プランと料金' },
   getStarted: { en: 'Get Started', ja: 'はじめに' },

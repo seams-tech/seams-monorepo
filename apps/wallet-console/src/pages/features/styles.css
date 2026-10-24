@@ -1,11 +1,7 @@
-/* ---------- header: a plain title, with links to the sections below ---------- */
+/* ---------- header: the title beside the threshold signing figure ---------- */
 
 .h2-hero-simple.features-hero {
-  padding: 144px 0 40px;
-}
-
-.features-hero .h2-hero-simple__title {
-  font-size: clamp(28px, 2.9vw, 38px);
+  padding: 96px 0 16px;
 }
 
 /* line the text up with the section content below, not the column edge */
@@ -13,9 +9,28 @@
   padding-left: 36px;
 }
 
+.features-hero__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+  gap: 36px 40px;
+  align-items: center;
+}
+
+.features-hero .h2-hero-simple__title {
+  font-size: clamp(32px, 3.6vw, 46px);
+}
+
+.features-hero .h2-hero-simple__sub {
+  max-width: 400px;
+}
+
 @media (max-width: 900px) {
   .h2-hero-simple.features-hero {
-    padding: 120px 0 32px;
+    padding: 100px 0 16px;
+  }
+
+  .features-hero__grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -25,57 +40,17 @@
   }
 }
 
-.features-toc {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 26px;
+/* the signing figure stands on the page without a panel, at full width:
+   it shows two shares meeting */
+.features-figure.features-figure--hero {
+  padding: 0;
+  border: 0;
+  background: none;
 }
 
-.features-toc a {
-  display: inline-flex;
-  align-items: center;
-  height: 32px;
-  padding: 0 14px;
-  border: 1px solid var(--h2-stone);
-  border-radius: 9999px;
-  color: var(--h2-graphite);
-  font-size: var(--h2-text-xl);
-  text-decoration: none;
-  transition:
-    background-color 120ms ease,
-    color 120ms ease;
-}
-
-.features-toc a:hover {
-  background: var(--h2-taupe);
-  color: var(--h2-ink);
-}
-
-.features-toc a:focus-visible {
-  outline: 2px solid var(--h2-ink);
-  outline-offset: 2px;
-}
-
-/* a quiet text link, so the section links stay the main way on */
-.features-pricing-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 20px;
-  color: var(--h2-graphite);
-  font-size: var(--h2-text-xl);
-  text-decoration: none;
-}
-
-.features-pricing-link:hover {
-  color: var(--h2-ink);
-}
-
-.features-pricing-link:focus-visible {
-  outline: 2px solid var(--h2-ink);
-  outline-offset: 3px;
-  border-radius: 4px;
+/* doubled class: the general figure rule below would cap it at 460px */
+.features-figure.features-figure--hero .h2-wallet-figure {
+  max-width: none;
 }
 
 /* the fixed navbar covers the top of a section a menu link scrolls to */
@@ -110,25 +85,6 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
-}
-
-/* the icon sits in white on a still frame of the section's gradient, as in the menu */
-.features-card__icon {
-  position: relative;
-  isolation: isolate;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  overflow: hidden;
-  color: #ffffff;
-  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
-}
-
-.features-card__icon svg {
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
 }
 
 .features-card__status {
@@ -190,4 +146,61 @@ html:lang(ja) .features-anchor .h2-display,
 html:lang(ja) .features-card__title,
 html:lang(ja) #features-pricing-title {
   word-break: auto-phrase;
+}
+
+/* ---------- a large figure beside a column of cards ---------- */
+
+.features-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .features-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.features-figure {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 20px 24px 24px;
+  border: 1px solid var(--h2-line);
+  border-radius: var(--h2-radius-card);
+  background: var(--h2-bg);
+}
+
+.features-figure .h2-wallet-figure {
+  max-width: 460px;
+}
+
+.features-figure figcaption {
+  font-family: var(--h2-mono);
+  font-size: var(--h2-text-base);
+  letter-spacing: 0.015em;
+  color: var(--h2-smoke);
+}
+
+.features-cards--stack {
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+/* in a column, the icon sits before the title and the text */
+.features-cards--stack .features-card {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  column-gap: 18px;
+  row-gap: 6px;
+  padding: 22px 24px;
+}
+
+.features-cards--stack .features-card__head {
+  grid-row: 1 / span 2;
+  align-self: start;
+  margin-bottom: 0;
 }

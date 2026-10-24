@@ -21,16 +21,9 @@ const documentationDropdownPane: DropdownPane = {
     {
       title: t('simpleWallets'),
       description: t('simpleWalletsDescription'),
-      to: '/wallet#components',
+      to: '/features/',
       icon: Wallet,
       field: 'teal-peach',
-    },
-    {
-      title: t('globalSelfHosted'),
-      description: t('globalSelfHostedDescription'),
-      to: '/features/#global',
-      icon: Globe,
-      field: 'azure-coral',
     },
     {
       title: t('biometricAuth'),
@@ -39,11 +32,19 @@ const documentationDropdownPane: DropdownPane = {
       icon: Fingerprint,
       field: 'aqua-evergreen',
     },
+    {
+      title: t('globalSelfHosted'),
+      description: t('globalSelfHostedDescription'),
+      to: '/features/#global',
+      icon: Globe,
+      field: 'azure-coral',
+    },
   ],
+  // the front page's component showcase, where the built-in screens play
   highlight: {
-    title: t('liveDemo'),
-    description: t('liveDemoDescription'),
-    to: '/wallet',
+    title: t('componentsCard'),
+    description: t('componentsCardDescription'),
+    to: '/wallet#components',
     field: 'teal-peach',
   },
   footerLinks: [

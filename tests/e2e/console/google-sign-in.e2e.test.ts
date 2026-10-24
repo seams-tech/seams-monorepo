@@ -47,6 +47,14 @@ async function googleButtonFits(page: Page): Promise<boolean> {
   return button !== null && wrapper !== null && button.width <= wrapper.width;
 }
 
+function readHorizontalOverflow(): boolean {
+  return document.documentElement.scrollWidth > window.innerWidth;
+}
+
+async function pageHasHorizontalOverflow(page: Page): Promise<boolean> {
+  return await page.evaluate(readHorizontalOverflow);
+}
+
 function signSession(input: Parameters<ConsoleSessionJwtHooks['signToken']>[0]): string {
   const payload = Buffer.from(JSON.stringify(input.payload)).toString('base64url');
   return `${payload}.${createHmac('sha256', sessionSecret).update(payload).digest('base64url')}`;
@@ -277,6 +285,7 @@ test('Google One Tap and explicit sign-in recover from unavailable prompts, canc
     await capture(page, testInfo.outputPath('one-tap-unavailable-desktop.png'));
     await page.setViewportSize({ width: 390, height: 844 });
     await expect.poll(googleButtonFits.bind(null, page)).toBe(true);
+    await expect.poll(pageHasHorizontalOverflow.bind(null, page)).toBe(false);
     await capture(page, testInfo.outputPath('one-tap-unavailable-mobile.png'));
     const cancelled = await openGoogleChooser(page);
     await cancelled.getByRole('button', { name: 'Cancel', exact: true }).click();

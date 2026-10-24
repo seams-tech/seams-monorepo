@@ -8291,6 +8291,7 @@ select.dashboard-input {
 
 .dashboard-login__panel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 2rem;
   padding: 2.25rem 3rem;
@@ -8330,6 +8331,7 @@ select.dashboard-input {
 
 .dashboard-login__form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
 }
 
@@ -8361,6 +8363,7 @@ select.dashboard-input {
 
 .dashboard-login__provider-buttons {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.65rem;
 }
 

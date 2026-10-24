@@ -186,8 +186,8 @@ interface CloudflareD1ConsoleStagingEnv
   readonly TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED?: string;
   readonly SEAMS_TENANT_STORAGE_NAMESPACE?: string;
   readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
-  readonly SEAMS_WALLET_SERVICE_DEPLOYMENT_ID: string;
-  readonly SEAMS_TENANT_BROWSER_CREDENTIAL_JSON: string;
+  readonly SEAMS_WALLET_SERVICE_DEPLOYMENT_ID?: string;
+  readonly SEAMS_TENANT_BROWSER_CREDENTIAL_JSON?: string;
   // Console step-up relying party. The id and origin are required wherever the
   // refresh route is mounted, because without them no step-up can be obtained
   // and rotation is unreachable.
@@ -823,7 +823,7 @@ async function createAccountHandler(
     billingProviders: createStripeBillingProviderAdaptersFromEnv(env),
     billingEmailConsoleBaseUrl: requireEnvString(env, 'CONSOLE_BASE_URL'),
     platformSupportEmails: readEnvString(env, 'CONSOLE_PLATFORM_SUPPORT_EMAILS'),
-    walletDeploymentId: requireEnvString(env, 'SEAMS_WALLET_SERVICE_DEPLOYMENT_ID'),
+    walletDeploymentId: readEnvString(env, 'SEAMS_WALLET_SERVICE_DEPLOYMENT_ID') ?? null,
     satyrEnvironment: env,
     webhookSecretCipher: isBillingRequest(request)
       ? (createConsoleWebhookSecretCipherFromEnv(env) ?? null)

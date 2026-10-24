@@ -254,6 +254,7 @@ export const catalog = {
   siteFooter: { en: 'Site footer', ja: 'サイトフッター' },
   footerNavigation: { en: 'Footer navigation', ja: 'フッターナビゲーション' },
   seamsHome: { en: 'Seams home', ja: 'Seamsホーム' },
+  walletHome: { en: 'Seams Wallet home', ja: 'Seams Walletホーム' },
   language: { en: 'Language', ja: '言語' },
   demoUnavailable: {
     en: 'The live demo is temporarily unavailable.',
@@ -313,8 +314,8 @@ export const catalog = {
   biometricAuth: { en: 'Biometric Authentication', ja: '生体認証' },
   simpleWallets: { en: 'Safe, simple wallets', ja: '安全でシンプルなウォレット' },
   simpleWalletsDescription: {
-    en: 'Passkey sign-in, email recovery, and device linking',
-    ja: 'パスキーでサインイン、メールで復元、デバイスをリンク',
+    en: 'Simple screens for sign-in, payments, and recovery',
+    ja: 'サインイン、支払い、復元をシンプルな画面で',
   },
   globalSelfHosted: { en: 'Global or self-hosted', ja: 'グローバル展開・セルフホスト' },
   globalSelfHostedDescription: {

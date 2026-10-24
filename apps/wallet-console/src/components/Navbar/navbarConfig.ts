@@ -23,7 +23,7 @@ const documentationDropdownPane: DropdownPane = {
     {
       title: t('simpleWallets'),
       description: t('simpleWalletsDescription'),
-      to: '/features/#recovery',
+      to: '/wallet#components',
       icon: Wallet,
       field: 'teal-peach',
     },
@@ -162,7 +162,7 @@ const aboutDropdownPane: DropdownPane = {
 export const siteNavbarConfig: SiteNavbarConfig = {
   labels: {
     primary: t('primaryNavigation'),
-    home: t('seamsHome'),
+    home: t('walletHome'),
     dashboard: t('dashboard'),
     openMenu: t('openMenu'),
     closeMenu: t('closeMenu'),
@@ -175,7 +175,8 @@ export const siteNavbarConfig: SiteNavbarConfig = {
     about: aboutDropdownPane,
     pricing: pricingDropdownPane,
   },
-  homeHref: '/',
+  // The logo stays on the Wallet site; only the footer logo leads to seams.sh.
+  homeHref: '/wallet',
   aboutHref: '/company/#company',
   dashboardHref: '/dashboard',
   mobilePlanLinks: [

@@ -807,8 +807,13 @@ function readWranglerWorkerSection(source, deploymentEnvironment) {
     throw new Error(`Wrangler config is missing [env.${deploymentEnvironment.name}]`);
   }
   const sectionStart = start + 1;
-  const end = source.indexOf('\n[env.', sectionStart);
-  return source.slice(sectionStart, end < 0 ? source.length : end);
+  const nextEnvironment = source
+    .slice(sectionStart)
+    .search(/\n\[env\.[^.\]\r\n]+\][ \t]*(?:\r?\n|$)/u);
+  return source.slice(
+    sectionStart,
+    nextEnvironment < 0 ? source.length : sectionStart + nextEnvironment,
+  );
 }
 
 function requireConfigLine(section, key, expected, label) {

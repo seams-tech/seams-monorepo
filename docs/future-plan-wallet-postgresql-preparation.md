@@ -48,6 +48,10 @@ The Wallet repository stores verification evidence beside the migration note.
 
 Status, October 24, 2026: the library adapter and local Worker connection pass their checks.
 Deployed Derivers still use D1. No hosted latency improvement is established.
+PostgreSQL integration and provisioning are deferred at the user's request.
+Do not provision PostgreSQL databases or Hyperdrive resources, or integrate PostgreSQL into the Deriver runtime, until the user resumes this work.
+Retain the completed adapter work and evidence. The requirements below describe the deferred path.
+The active NEAR work prioritizes tracing and improvements on the current D1 path.
 
 The Workers and Durable Objects can stay on Cloudflare while PostgreSQL replaces their D1 stores.
 Amazon RDS and Google Cloud SQL are possible PostgreSQL hosts.

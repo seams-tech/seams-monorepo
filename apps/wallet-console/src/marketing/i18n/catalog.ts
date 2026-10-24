@@ -85,7 +85,6 @@ export const catalog = {
   startBuilding: { en: 'Start building', ja: '開発を始める' },
   products: { en: 'Products', ja: 'プロダクト' },
   wallet: { en: 'Wallet', ja: 'ウォレット' },
-  harness: { en: 'Harness', ja: 'Harness' },
   api: { en: 'API', ja: 'API' },
   supportedNetworks: { en: 'Supported networks', ja: '対応ネットワーク' },
   custodyTitle: { en: 'Custody and control, built in', ja: '資産の保管と管理を、ひとつに' },

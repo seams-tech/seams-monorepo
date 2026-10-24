@@ -31,7 +31,6 @@ import { LanguageSelector } from '@/marketing/LanguageSelector';
 /* Compact product forks under the CTAs, each on its own moving gradient chip */
 const productForks: readonly { label: string; to: string; field: GrainFieldName }[] = [
   { label: t('wallet'), to: '/wallet', field: 'teal-peach' },
-  { label: t('harness'), to: 'https://seams.sh/ecommerce', field: 'mauve-ember' },
   { label: t('api'), to: '/docs/concepts/', field: 'azure-coral' },
 ];
 

@@ -1,0 +1,5249 @@
+{
+  "kind": "bounded-hosted-diagnostic-capture",
+  "date": "2026-10-24",
+  "optimizationGainMeasured": false,
+  "runtimeColdState": "unknown",
+  "retries": 0,
+  "source": {
+    "publicCommit": "9493c3a1faeaf355f8d8ffbd87a5a13a0e398196",
+    "privateCommit": "2c78ee7fe79a1e65122500d4781ee8122880aea6",
+    "serverPackageVersion": "0.21.0"
+  },
+  "browserAssets": {
+    "baselineCommit": "cb7fd391",
+    "sdkVersion": "0.21.0",
+    "filesVerified": 167,
+    "hashManifestSha256": "e724670ffc344bddb063241254d91ac86f87a73ee55c90c963a065108858b517"
+  },
+  "deployment": {
+    "original": {
+      "router-ab-deriver-a-staging": [
+        {
+          "version_id": "ba52f7ff-43f5-4360-bd5e-6567c3b8235a",
+          "percentage": 100
+        }
+      ],
+      "router-ab-deriver-b-staging": [
+        {
+          "version_id": "1dd70537-1077-488d-b421-e68b13899483",
+          "percentage": 100
+        }
+      ],
+      "router-ab-mpc-router-staging": [
+        {
+          "version_id": "c1b2e6d7-de01-47e3-a77e-31f8851d2fa8",
+          "percentage": 100
+        }
+      ],
+      "router-ab-signing-worker-staging": [
+        {
+          "version_id": "0c69e03c-9932-44ca-abf2-57ab4f7d3688",
+          "percentage": 100
+        }
+      ],
+      "router-ab-tenant-root-control-plane-staging": [
+        {
+          "version_id": "6dca9faa-ef75-4502-8ed4-172d5b8718a3",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-console-staging": [
+        {
+          "version_id": "cb37a91b-3abb-4a3d-b7cf-92467b946b83",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging": [
+        {
+          "version_id": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-oc": [
+        {
+          "version_id": "7d5e2242-29b9-4376-bc50-b299cb7813cb",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-us": [
+        {
+          "version_id": "18140b25-3008-47e9-8170-18a2334c014d",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-weur": [
+        {
+          "version_id": "ecca6455-2660-40d3-80ec-3e6c585aebba",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging": [
+        {
+          "version_id": "e753da4a-ef2f-4163-bccc-6254b1677f22",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-oc": [
+        {
+          "version_id": "affcd731-f0ab-4a53-ad24-b64eef54dd38",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-us": [
+        {
+          "version_id": "5ec520ff-d124-44ae-85b2-84c4e7b98258",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-weur": [
+        {
+          "version_id": "571ee668-6f60-48f2-867c-40f55c5acfa7",
+          "percentage": 100
+        }
+      ]
+    },
+    "duringCapture": {
+      "router-ab-deriver-a-staging": [
+        {
+          "version_id": "ba52f7ff-43f5-4360-bd5e-6567c3b8235a",
+          "percentage": 100
+        }
+      ],
+      "router-ab-deriver-b-staging": [
+        {
+          "version_id": "1dd70537-1077-488d-b421-e68b13899483",
+          "percentage": 100
+        }
+      ],
+      "router-ab-mpc-router-staging": [
+        {
+          "version_id": "2912c789-c061-4c48-93c4-2954b348d0b2",
+          "percentage": 100
+        }
+      ],
+      "router-ab-signing-worker-staging": [
+        {
+          "version_id": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+          "percentage": 100
+        }
+      ],
+      "router-ab-tenant-root-control-plane-staging": [
+        {
+          "version_id": "6dca9faa-ef75-4502-8ed4-172d5b8718a3",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-console-staging": [
+        {
+          "version_id": "cb37a91b-3abb-4a3d-b7cf-92467b946b83",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging": [
+        {
+          "version_id": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-oc": [
+        {
+          "version_id": "7d5e2242-29b9-4376-bc50-b299cb7813cb",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-us": [
+        {
+          "version_id": "18140b25-3008-47e9-8170-18a2334c014d",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-weur": [
+        {
+          "version_id": "ecca6455-2660-40d3-80ec-3e6c585aebba",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging": [
+        {
+          "version_id": "e753da4a-ef2f-4163-bccc-6254b1677f22",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-oc": [
+        {
+          "version_id": "affcd731-f0ab-4a53-ad24-b64eef54dd38",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-us": [
+        {
+          "version_id": "5ec520ff-d124-44ae-85b2-84c4e7b98258",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-weur": [
+        {
+          "version_id": "571ee668-6f60-48f2-867c-40f55c5acfa7",
+          "percentage": 100
+        }
+      ]
+    },
+    "after": {
+      "router-ab-deriver-a-staging": [
+        {
+          "version_id": "ba52f7ff-43f5-4360-bd5e-6567c3b8235a",
+          "percentage": 100
+        }
+      ],
+      "router-ab-deriver-b-staging": [
+        {
+          "version_id": "1dd70537-1077-488d-b421-e68b13899483",
+          "percentage": 100
+        }
+      ],
+      "router-ab-mpc-router-staging": [
+        {
+          "version_id": "c1b2e6d7-de01-47e3-a77e-31f8851d2fa8",
+          "percentage": 100
+        }
+      ],
+      "router-ab-signing-worker-staging": [
+        {
+          "version_id": "0c69e03c-9932-44ca-abf2-57ab4f7d3688",
+          "percentage": 100
+        }
+      ],
+      "router-ab-tenant-root-control-plane-staging": [
+        {
+          "version_id": "6dca9faa-ef75-4502-8ed4-172d5b8718a3",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-console-staging": [
+        {
+          "version_id": "cb37a91b-3abb-4a3d-b7cf-92467b946b83",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging": [
+        {
+          "version_id": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-oc": [
+        {
+          "version_id": "7d5e2242-29b9-4376-bc50-b299cb7813cb",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-us": [
+        {
+          "version_id": "18140b25-3008-47e9-8170-18a2334c014d",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-weur": [
+        {
+          "version_id": "ecca6455-2660-40d3-80ec-3e6c585aebba",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging": [
+        {
+          "version_id": "e753da4a-ef2f-4163-bccc-6254b1677f22",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-oc": [
+        {
+          "version_id": "affcd731-f0ab-4a53-ad24-b64eef54dd38",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-us": [
+        {
+          "version_id": "5ec520ff-d124-44ae-85b2-84c4e7b98258",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-weur": [
+        {
+          "version_id": "571ee668-6f60-48f2-867c-40f55c5acfa7",
+          "percentage": 100
+        }
+      ]
+    },
+    "originalVersionsRestored": true,
+    "unchangedWorkers": [
+      "router-ab-deriver-a-staging",
+      "router-ab-deriver-b-staging",
+      "router-ab-tenant-root-control-plane-staging",
+      "seams-sdk-d1-console-staging",
+      "seams-sdk-d1-gateway-staging",
+      "seams-sdk-d1-gateway-staging-oc",
+      "seams-sdk-d1-gateway-staging-us",
+      "seams-sdk-d1-gateway-staging-weur",
+      "seams-sdk-d1-wallet-runtime-staging",
+      "seams-sdk-d1-wallet-runtime-staging-oc",
+      "seams-sdk-d1-wallet-runtime-staging-us",
+      "seams-sdk-d1-wallet-runtime-staging-weur"
+    ],
+    "candidates": {
+      "router-ab-mpc-router-staging": {
+        "versions": [
+          {
+            "version_id": "2912c789-c061-4c48-93c4-2954b348d0b2",
+            "percentage": 100
+          }
+        ],
+        "checks": {
+          "sameBindings": true,
+          "sameRuntime": true,
+          "samePlacement": true,
+          "sameHandlers": true,
+          "sameNamedHandlers": true,
+          "uploadedModulesMatch": true
+        },
+        "modulesSha256": {
+          "3dcbe8ed26e01bd5ea641fe7060566cf00c914d8-3dcbe8ed26e01bd5ea641fe7060566cf00c914d8-index_bg.wasm": "6934fc628b14c992ca0ede59f06550ec2f5fce6cba491f719f3f63521dec47eb",
+          "router-trace-entry.js": "4733826bcd9727862f0761c1de66af5fa75e2918ff61ca61fc8303b0d2cd6f64"
+        }
+      },
+      "router-ab-signing-worker-staging": {
+        "versions": [
+          {
+            "version_id": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+            "percentage": 100
+          }
+        ],
+        "checks": {
+          "sameBindings": true,
+          "sameRuntime": true,
+          "samePlacement": true,
+          "sameHandlers": true,
+          "sameNamedHandlers": true,
+          "uploadedModulesMatch": true
+        },
+        "modulesSha256": {
+          "fd003838bc7689e7a452a87ee047c957a205075f-index_bg.wasm": "c08b784572c727924be61fb4e0dd0acc68b086c413f2bf5afa30b5eee8e3b904",
+          "shim.js": "ba35013bfa42e9562209df5f0e27b9ad35f251e3f4fcd221a5b4451057b3c5a5"
+        }
+      }
+    },
+    "rollback": [
+      {
+        "worker": "router-ab-mpc-router-staging",
+        "status": "restored"
+      },
+      {
+        "worker": "router-ab-signing-worker-staging",
+        "status": "restored"
+      }
+    ],
+    "startedAtMs": 1792806571086,
+    "endedAtMs": 1792806688481,
+    "restorationVerifiedAtMs": 1792806693322
+  },
+  "capture": {
+    "joinedRequests": 44,
+    "transactionRequests": 42,
+    "qualificationRequests": 2,
+    "eachHasUniqueGatewayRouterSigningWorkerAndObject": true,
+    "allMatchedVersionsAndReturned200": true,
+    "allMatchedRuntimeEventsUntruncated": true,
+    "allObjectCommandsAfterConstructor": true,
+    "walletObjectTracePageObservations": [
+      {
+        "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+        "colo": "SIN",
+        "eventTimestamp": 1792806626402
+      },
+      {
+        "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+        "colo": "SIN",
+        "eventTimestamp": 1792806658552
+      },
+      {
+        "objectId": "c210bbd6a6d4b8cf39711062e6050e59144875024b368cdc33ee0bbd39b4d701",
+        "colo": "SIN",
+        "eventTimestamp": 1792806582132
+      },
+      {
+        "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+        "colo": "SIN",
+        "eventTimestamp": 1792806592862
+      }
+    ],
+    "zeroOnlyDownstreamSpans": [
+      "near_router_admission",
+      "near_sw_decode_validate",
+      "near_sw_dispatch_setup",
+      "near_sw_do_decode_validate",
+      "near_sw_do_execute",
+      "near_sw_do_handler",
+      "near_sw_do_schema"
+    ],
+    "tailExitCodes": [
+      -15,
+      -15,
+      -15,
+      -15,
+      -15
+    ]
+  },
+  "qualification": {
+    "artifact": "qualification/registration-1.json",
+    "outcome": "succeeded",
+    "registration": {
+      "sdkRegistrationMs": 4560.695000052452,
+      "postPasskeyObservedMs": 1859.2362919999996,
+      "stagesMs": {
+        "near_only.setup": 2051.399999976158,
+        "near_only.authentication": 572.2000000476837,
+        "near_only.respond": 1233.5,
+        "near_only.custody": 11.899999976158142,
+        "near_only.provision_checkpoint": 3.5,
+        "near_only.finalize": 565.2999999523163,
+        "near_only.publication": 21.300000071525574,
+        "near_only.session_hydration": 6.399999976158142,
+        "near_only.material_activation": 5.700000047683716,
+        "near_only.export_capability": 2.799999952316284,
+        "near_only.wallet_ready": 1.100000023841858
+      }
+    },
+    "operationId": "near-nep413-operation-PNF79QXte5h4z1K4RTxks2VXaWVd7bixUm7-1A1cpic",
+    "sdkMessageSigningMs": 1475.1349999904633,
+    "sdkStagesMs": {
+      "prepare_sent": 0.8999999761581421,
+      "pre_confirmation": 8.600000023841858,
+      "confirmation": 264.5,
+      "prepare": 688.2000000476837,
+      "client_share": 3.5,
+      "finalize": 480,
+      "signature_total": 1173.3999999761581,
+      "confirmed_to_signed": 1175.7000000476837
+    },
+    "requests": [
+      {
+        "kind": "prepare",
+        "path": "/router-ab/ed25519/sign/prepare",
+        "cfRay": "a4f553a5bc14915d-NRT",
+        "traceId": "0000000000000000a4f553a5bc14915d",
+        "browserRequestMs": 954.578,
+        "gatewayStagesMs": {
+          "ed25519_sign_authorize": 13,
+          "ed25519_sign_admit": 220,
+          "ed25519_sign_proxy": 369,
+          "ed25519_sign_total": 602
+        },
+        "downstreamStagesMs": {
+          "near_router_admission": 0,
+          "near_sw_dispatch_setup": 0,
+          "near_sw_decode_validate": 0,
+          "near_sw_wallet_call": 44,
+          "near_sw_do_decode_validate": 0,
+          "near_sw_do_schema": 0,
+          "near_sw_do_execute": 0,
+          "near_sw_do_handler": 0,
+          "near_sw_handler": 44,
+          "near_router_service": 212
+        },
+        "runtime": {
+          "gateway": {
+            "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+            "eventTimestamp": 1792806585277,
+            "wallMs": 672,
+            "cpuMs": 82,
+            "executionModel": "stateless",
+            "status": 200,
+            "outcome": "ok"
+          },
+          "router": {
+            "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+            "eventTimestamp": 1792806585768,
+            "wallMs": 273,
+            "cpuMs": 70,
+            "executionModel": "stateless",
+            "status": 200,
+            "outcome": "ok"
+          },
+          "signingWorker": {
+            "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+            "eventTimestamp": 1792806585910,
+            "wallMs": 116,
+            "cpuMs": 74,
+            "executionModel": "stateless",
+            "status": 200,
+            "outcome": "ok"
+          },
+          "walletObject": {
+            "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+            "eventTimestamp": 1792806586071,
+            "wallMs": 27,
+            "cpuMs": 25,
+            "executionModel": "durableObject",
+            "status": 200,
+            "outcome": "ok"
+          }
+        },
+        "walletCommand": {
+          "objectId": "c210bbd6a6d4b8cf39711062e6050e59144875024b368cdc33ee0bbd39b4d701",
+          "instanceCommand": 3,
+          "firstAfterConstructor": false,
+          "sincePreviousStartMs": 2712,
+          "handlerMs": 0
+        }
+      },
+      {
+        "kind": "finalize",
+        "path": "/router-ab/ed25519/sign",
+        "cfRay": "a4f553abbe72915d-NRT",
+        "traceId": "0000000000000000a4f553abbe72915d",
+        "browserRequestMs": 479.28,
+        "gatewayStagesMs": {
+          "ed25519_sign_authorize": 15,
+          "ed25519_sign_admit": 12,
+          "ed25519_sign_proxy": 290,
+          "ed25519_sign_complete": 10,
+          "ed25519_sign_total": 327
+        },
+        "downstreamStagesMs": {
+          "near_router_admission": 0,
+          "near_sw_dispatch_setup": 0,
+          "near_sw_decode_validate": 0,
+          "near_sw_wallet_call": 36,
+          "near_sw_do_decode_validate": 0,
+          "near_sw_do_schema": 0,
+          "near_sw_do_execute": 0,
+          "near_sw_do_handler": 0,
+          "near_sw_handler": 36,
+          "near_router_service": 164
+        },
+        "runtime": {
+          "gateway": {
+            "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+            "eventTimestamp": 1792806586250,
+            "wallMs": 367,
+            "cpuMs": 36,
+            "executionModel": "stateless",
+            "status": 200,
+            "outcome": "ok"
+          },
+          "router": {
+            "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+            "eventTimestamp": 1792806586322,
+            "wallMs": 214,
+            "cpuMs": 57,
+            "executionModel": "stateless",
+            "status": 200,
+            "outcome": "ok"
+          },
+          "signingWorker": {
+            "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+            "eventTimestamp": 1792806586441,
+            "wallMs": 91,
+            "cpuMs": 56,
+            "executionModel": "stateless",
+            "status": 200,
+            "outcome": "ok"
+          },
+          "walletObject": {
+            "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+            "eventTimestamp": 1792806586541,
+            "wallMs": 28,
+            "cpuMs": 25,
+            "executionModel": "durableObject",
+            "status": 200,
+            "outcome": "ok"
+          }
+        },
+        "walletCommand": {
+          "objectId": "c210bbd6a6d4b8cf39711062e6050e59144875024b368cdc33ee0bbd39b4d701",
+          "instanceCommand": 4,
+          "firstAfterConstructor": false,
+          "sincePreviousStartMs": 470,
+          "handlerMs": 0
+        }
+      }
+    ],
+    "publicProof": {
+      "message": "Verify this new implicit NEAR wallet before funding",
+      "recipient": "checkout.example",
+      "state": "quote-170",
+      "success": true,
+      "accountId": "ccf52deffec0b5709e283d606e206a897cc51046617f4fe8d32de76d3ab2c8b6",
+      "publicKey": "ed25519:Eo51UsfiZkPvEAzAn9PQM8KUto1F6hfQtuDNxsb5J7pH",
+      "signature": "e3QJXdhaEQcnTf1J7xtBPLShdo+Xywd3kOuBIXDzBYhMv0eYfk2IR0h49XZJuRvPc2C3lcMQXVfa4oOZ7LakBg==",
+      "nonce": "xVH+xiQSZQ839xEpCf1QbJncS4xyjw9YkqFQffmGg2E=",
+      "digestHex": "fd9b420f13eb2b01398bf227e5432c20cd6f7f40c04e8ad56e785598e8b3bc5b",
+      "verification": {
+        "standardPayload": true,
+        "changedMessageRejected": true,
+        "changedRecipientRejected": true,
+        "changedNonceRejected": true,
+        "changedCallbackUrlRejected": true,
+        "stateExcludedFromPayload": true,
+        "stateReturnedUnchanged": true
+      }
+    },
+    "independentVerification": {
+      "verifier": "Node.js crypto Ed25519 with independent NEP-413 Borsh encoding",
+      "arms": [
+        "qualification"
+      ],
+      "results": [
+        {
+          "name": "qualification/registration-1.json",
+          "publicKey": "ed25519:Eo51UsfiZkPvEAzAn9PQM8KUto1F6hfQtuDNxsb5J7pH",
+          "digestHex": "fd9b420f13eb2b01398bf227e5432c20cd6f7f40c04e8ad56e785598e8b3bc5b",
+          "verified": true,
+          "tamperRejections": [
+            "message",
+            "recipient",
+            "nonce",
+            "callbackUrl"
+          ],
+          "stateExcludedFromSignedPayload": true
+        }
+      ]
+    }
+  },
+  "transactions": {
+    "wallets": 3,
+    "signatures": 21,
+    "failures": 0,
+    "registrations": [
+      {
+        "wallet": 1,
+        "sdkRegistrationMs": 3325.570000052452,
+        "postPasskeyObservedMs": 2157.979917,
+        "stagesMs": {
+          "near_only.setup": 752.1000000238419,
+          "near_only.authentication": 339.7000000476837,
+          "near_only.respond": 1798,
+          "near_only.custody": 11.899999976158142,
+          "near_only.provision_checkpoint": 3,
+          "near_only.finalize": 303.1999999284744,
+          "near_only.publication": 13.800000071525574,
+          "near_only.session_hydration": 7.299999952316284,
+          "near_only.material_activation": 10.700000047683716,
+          "near_only.export_capability": 3.299999952316284,
+          "near_only.wallet_ready": 1.399999976158142
+        }
+      },
+      {
+        "wallet": 2,
+        "sdkRegistrationMs": 2367.4900000095367,
+        "postPasskeyObservedMs": 1249.0297920000012,
+        "stagesMs": {
+          "near_only.setup": 507.8000000715256,
+          "near_only.authentication": 535.0999999046326,
+          "near_only.respond": 949,
+          "near_only.custody": 6.200000047683716,
+          "near_only.provision_checkpoint": 2.100000023841858,
+          "near_only.finalize": 261.10000002384186,
+          "near_only.publication": 8.199999928474426,
+          "near_only.session_hydration": 5.200000047683716,
+          "near_only.material_activation": 5.299999952316284,
+          "near_only.export_capability": 2.3000000715255737,
+          "near_only.wallet_ready": 1
+        }
+      },
+      {
+        "wallet": 3,
+        "sdkRegistrationMs": 2683.039999961853,
+        "postPasskeyObservedMs": 1562.8562919999968,
+        "stagesMs": {
+          "near_only.setup": 647.5,
+          "near_only.authentication": 393.3000000715256,
+          "near_only.respond": 1158.7999999523163,
+          "near_only.custody": 6.5,
+          "near_only.provision_checkpoint": 1.7000000476837158,
+          "near_only.finalize": 365.7999999523163,
+          "near_only.publication": 7.899999976158142,
+          "near_only.session_hydration": 5,
+          "near_only.material_activation": 4.800000071525574,
+          "near_only.export_capability": 2.299999952316284,
+          "near_only.wallet_ready": 1.100000023841858
+        }
+      }
+    ],
+    "unlocks": [
+      {
+        "wallet": 1,
+        "harnessElapsedMs": 4799.473333000002,
+        "sdkElapsedMs": null
+      },
+      {
+        "wallet": 2,
+        "harnessElapsedMs": 4789.264166000001,
+        "sdkElapsedMs": null
+      },
+      {
+        "wallet": 3,
+        "harnessElapsedMs": 4748.821333,
+        "sdkElapsedMs": null
+      }
+    ],
+    "summary": {
+      "registration_to_first_verified": {
+        "sdkSigningMs": {
+          "count": 3,
+          "median": 6609.4,
+          "p95": 6850.485,
+          "maximum": 6850.485
+        },
+        "confirmedToSignedMs": {
+          "count": 3,
+          "median": 5652.1,
+          "p95": 5971.9,
+          "maximum": 5971.9
+        },
+        "sdkOutsideConfirmationMs": {
+          "count": 3,
+          "median": 5706.585,
+          "p95": 6032.9,
+          "maximum": 6032.9
+        },
+        "harnessElapsedToVerifiedMs": {
+          "count": 3,
+          "median": 10534.528,
+          "p95": 10601.483,
+          "maximum": 10601.483
+        },
+        "sdkAboveTwoSeconds": [
+          "near-1/1",
+          "near-2/1",
+          "near-3/1"
+        ],
+        "confirmedToSignedAboveTwoSeconds": [
+          "near-1/1",
+          "near-2/1",
+          "near-3/1"
+        ],
+        "outsideConfirmationAboveTwoSeconds": [
+          "near-1/1",
+          "near-2/1",
+          "near-3/1"
+        ]
+      },
+      "warm_signing": {
+        "sdkSigningMs": {
+          "count": 6,
+          "median": 1404.39,
+          "p95": 2923.035,
+          "maximum": 2923.035
+        },
+        "confirmedToSignedMs": {
+          "count": 6,
+          "median": 528.05,
+          "p95": 2060.8,
+          "maximum": 2060.8
+        },
+        "sdkOutsideConfirmationMs": {
+          "count": 6,
+          "median": 570.058,
+          "p95": 2103.435,
+          "maximum": 2103.435
+        },
+        "harnessElapsedToVerifiedMs": {
+          "count": 6,
+          "median": 2264.584,
+          "p95": 3819.205,
+          "maximum": 3819.205
+        },
+        "sdkAboveTwoSeconds": [
+          "near-1/2"
+        ],
+        "confirmedToSignedAboveTwoSeconds": [
+          "near-1/2"
+        ],
+        "outsideConfirmationAboveTwoSeconds": [
+          "near-1/2"
+        ]
+      },
+      "unlock_to_first_verified": {
+        "sdkSigningMs": {
+          "count": 3,
+          "median": 843.755,
+          "p95": 1426.915,
+          "maximum": 1426.915
+        },
+        "confirmedToSignedMs": {
+          "count": 3,
+          "median": 497.8,
+          "p95": 1064.4,
+          "maximum": 1064.4
+        },
+        "sdkOutsideConfirmationMs": {
+          "count": 3,
+          "median": 555.555,
+          "p95": 1118.115,
+          "maximum": 1118.115
+        },
+        "harnessElapsedToVerifiedMs": {
+          "count": 3,
+          "median": 6294.086,
+          "p95": 7022.259,
+          "maximum": 7022.259
+        },
+        "sdkAboveTwoSeconds": [],
+        "confirmedToSignedAboveTwoSeconds": [],
+        "outsideConfirmationAboveTwoSeconds": []
+      },
+      "three_consecutive": {
+        "sdkSigningMs": {
+          "count": 9,
+          "median": 1058.905,
+          "p95": 2191.38,
+          "maximum": 2191.38
+        },
+        "confirmedToSignedMs": {
+          "count": 9,
+          "median": 455.1,
+          "p95": 1584.3,
+          "maximum": 1584.3
+        },
+        "sdkOutsideConfirmationMs": {
+          "count": 9,
+          "median": 498.305,
+          "p95": 1626.48,
+          "maximum": 1626.48
+        },
+        "harnessElapsedToVerifiedMs": {
+          "count": 9,
+          "median": 1521.904,
+          "p95": 3052.177,
+          "maximum": 3052.177
+        },
+        "sdkAboveTwoSeconds": [
+          "near-1/7"
+        ],
+        "confirmedToSignedAboveTwoSeconds": [],
+        "outsideConfirmationAboveTwoSeconds": []
+      }
+    },
+    "samples": [
+      {
+        "id": "near-1/1",
+        "artifact": "transactions/near-1.json",
+        "workload": "registration_to_first_verified",
+        "operationId": "near-transaction-sign:6RGPzms2CjxhwHaGTVOOAYVxwf_SiZi_gaRdJ3WuPTg",
+        "sdkSigningMs": 6609.399999976158,
+        "confirmedToSignedMs": 5971.899999976158,
+        "sdkOutsideConfirmationMs": 6032.899999976158,
+        "harnessElapsedToVerifiedMs": 10601.482542,
+        "nearAccessKeyCalls": 5,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 8.599999904632568,
+          "authorization_probe": 7.399999976158142,
+          "lane_preparation": 9.399999976158142,
+          "execution_setup": 0.2999999523162842,
+          "pre_confirmation": 2.3000000715255737,
+          "confirmation": 576.5,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 4947.899999976158,
+          "wallet_session_authorization": 1.399999976158142,
+          "prepare": 463,
+          "client_share": 3.8000000715255737,
+          "finalize": 548.7999999523163,
+          "signature_total": 1017.2000000476837,
+          "nonce_lease_commit": 0.5,
+          "transaction_assembly": 0.10000002384185791,
+          "confirmed_to_signed": 5971.899999976158
+        },
+        "fundingRequestsMs": [
+          3213.412
+        ],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f5540a0f5ae5d8-NRT",
+            "traceId": "0000000000000000a4f5540a0f5ae5d8",
+            "browserRequestMs": 461.776,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 20,
+              "ed25519_sign_admit": 41,
+              "ed25519_sign_proxy": 170,
+              "ed25519_sign_total": 231
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 40,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 40,
+              "near_router_service": 88
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806601365,
+                "wallMs": 327,
+                "cpuMs": 87,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806601539,
+                "wallMs": 147,
+                "cpuMs": 60,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806601597,
+                "wallMs": 70,
+                "cpuMs": 31,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806601634,
+                "wallMs": 28,
+                "cpuMs": 25,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 3,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 7288,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f5540cffffe5d8-NRT",
+            "traceId": "0000000000000000a4f5540cffffe5d8",
+            "browserRequestMs": 547.878,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 17,
+              "ed25519_sign_admit": 18,
+              "ed25519_sign_proxy": 313,
+              "ed25519_sign_complete": 14,
+              "ed25519_sign_total": 362
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 42,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 42,
+              "near_router_service": 176
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806601805,
+                "wallMs": 450,
+                "cpuMs": 73,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806601947,
+                "wallMs": 223,
+                "cpuMs": 53,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806602062,
+                "wallMs": 104,
+                "cpuMs": 65,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806602178,
+                "wallMs": 29,
+                "cpuMs": 25,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 4,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 544,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-1/2",
+        "artifact": "transactions/near-1.json",
+        "workload": "warm_signing",
+        "operationId": "near-transaction-sign:oSmuEqVu3m1wndTYtFpCLW0Q7O3gVSu3PmHdO9AgWZc",
+        "sdkSigningMs": 2923.0349999666214,
+        "confirmedToSignedMs": 2060.7999999523163,
+        "sdkOutsideConfirmationMs": 2103.4349999427795,
+        "harnessElapsedToVerifiedMs": 3819.2050830000007,
+        "nearAccessKeyCalls": 2,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 1.7999999523162842,
+          "authorization_probe": 3.799999952316284,
+          "lane_preparation": 3.299999952316284,
+          "execution_setup": 0,
+          "pre_confirmation": 1.399999976158142,
+          "confirmation": 819.6000000238419,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1,
+          "prepare": 979.8000000715256,
+          "client_share": 1.399999976158142,
+          "finalize": 1075.5,
+          "signature_total": 2057.5999999046326,
+          "nonce_lease_commit": 0.40000009536743164,
+          "transaction_assembly": 0.09999990463256836,
+          "confirmed_to_signed": 2060.7999999523163
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f554175a3fe5d8-NRT",
+            "traceId": "0000000000000000a4f554175a3fe5d8",
+            "browserRequestMs": 979.262,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 31,
+              "ed25519_sign_admit": 41,
+              "ed25519_sign_proxy": 739,
+              "ed25519_sign_total": 812
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 22,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 22,
+              "near_router_service": 422
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806603471,
+                "wallMs": 872,
+                "cpuMs": 82,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806603645,
+                "wallMs": 528,
+                "cpuMs": 143,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806603953,
+                "wallMs": 190,
+                "cpuMs": 169,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806604289,
+                "wallMs": 8,
+                "cpuMs": 6,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 5,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 2111,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f5541d7b5de5d8-NRT",
+            "traceId": "0000000000000000a4f5541d7b5de5d8",
+            "browserRequestMs": 1074.881,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 18,
+              "ed25519_sign_admit": 32,
+              "ed25519_sign_proxy": 304,
+              "ed25519_sign_complete": 19,
+              "ed25519_sign_total": 373
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 48,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 48,
+              "near_router_service": 133
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806604467,
+                "wallMs": 550,
+                "cpuMs": 177,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806605068,
+                "wallMs": 196,
+                "cpuMs": 68,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806605206,
+                "wallMs": 87,
+                "cpuMs": 35,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806605280,
+                "wallMs": 13,
+                "cpuMs": 9,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 6,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 991,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-1/3",
+        "artifact": "transactions/near-1.json",
+        "workload": "warm_signing",
+        "operationId": "near-transaction-sign:SCrJxBo64UE752eZvCDxzG5AYCaYh96bNqldfNZiJEw",
+        "sdkSigningMs": 1567.6299999952316,
+        "confirmedToSignedMs": 947.8999999761581,
+        "sdkOutsideConfirmationMs": 996.1299999952316,
+        "harnessElapsedToVerifiedMs": 2264.9487500000014,
+        "nearAccessKeyCalls": 2,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 2,
+          "authorization_probe": 4.5,
+          "lane_preparation": 7.5,
+          "execution_setup": 0,
+          "pre_confirmation": 1.5,
+          "confirmation": 571.5,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1.100000023841858,
+          "prepare": 648.6999999284744,
+          "client_share": 1.100000023841858,
+          "finalize": 292.39999997615814,
+          "signature_total": 943.1000000238419,
+          "nonce_lease_commit": 0.5,
+          "transaction_assembly": 0,
+          "confirmed_to_signed": 947.8999999761581
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f5542daeede5d8-NRT",
+            "traceId": "0000000000000000a4f5542daeede5d8",
+            "browserRequestMs": 648.017,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 13,
+              "ed25519_sign_admit": 26,
+              "ed25519_sign_proxy": 461,
+              "ed25519_sign_total": 500
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 25,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 25,
+              "near_router_service": 249
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806607047,
+                "wallMs": 538,
+                "cpuMs": 36,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806607139,
+                "wallMs": 356,
+                "cpuMs": 130,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806607359,
+                "wallMs": 99,
+                "cpuMs": 76,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806607550,
+                "wallMs": 14,
+                "cpuMs": 10,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 7,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 2270,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f55431bfdae5d8-NRT",
+            "traceId": "0000000000000000a4f55431bfdae5d8",
+            "browserRequestMs": 291.943,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 49,
+              "ed25519_sign_admit": 10,
+              "ed25519_sign_proxy": 69,
+              "ed25519_sign_complete": 13,
+              "ed25519_sign_total": 141
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 30,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 30,
+              "near_router_service": 48
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806607680,
+                "wallMs": 200,
+                "cpuMs": 34,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806607792,
+                "wallMs": 62,
+                "cpuMs": 14,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806607804,
+                "wallMs": 42,
+                "cpuMs": 12,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806607815,
+                "wallMs": 17,
+                "cpuMs": 13,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 8,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 265,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-1/4",
+        "artifact": "transactions/near-1.json",
+        "workload": "unlock_to_first_verified",
+        "operationId": "near-transaction-sign:2sc5owHeDweytrVB2Ho4ug21W1O-b6QZQLPd3eAniq4",
+        "sdkSigningMs": 843.7549999952316,
+        "confirmedToSignedMs": 497.7999999523163,
+        "sdkOutsideConfirmationMs": 555.5549999475479,
+        "harnessElapsedToVerifiedMs": 6294.086083000002,
+        "nearAccessKeyCalls": 1,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 6.199999928474426,
+          "authorization_probe": 9,
+          "lane_preparation": 6.799999952316284,
+          "execution_setup": 0.20000004768371582,
+          "pre_confirmation": 1.7999999523162842,
+          "confirmation": 288.2000000476837,
+          "durable_lease_recovery_wait": 0.09999990463256836,
+          "material_resolution_wait": 0,
+          "transaction_context": 0.10000002384185791,
+          "wallet_session_authorization": 1.399999976158142,
+          "prepare": 272.6999999284744,
+          "client_share": 3.100000023841858,
+          "finalize": 207.39999997615814,
+          "signature_total": 484.39999997615814,
+          "nonce_lease_commit": 0.5,
+          "transaction_assembly": 0.10000002384185791,
+          "confirmed_to_signed": 497.7999999523163
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f55458c827e5d8-NRT",
+            "traceId": "0000000000000000a4f55458c827e5d8",
+            "browserRequestMs": 271.479,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 12,
+              "ed25519_sign_admit": 28,
+              "ed25519_sign_proxy": 66,
+              "ed25519_sign_total": 106
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 17,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 17,
+              "near_router_service": 27
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806613954,
+                "wallMs": 149,
+                "cpuMs": 25,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806614056,
+                "wallMs": 42,
+                "cpuMs": 14,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806614074,
+                "wallMs": 20,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806614083,
+                "wallMs": 8,
+                "cpuMs": 6,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 9,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 6268,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f5545a888de5d8-NRT",
+            "traceId": "0000000000000000a4f5545a888de5d8",
+            "browserRequestMs": 206.835,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 11,
+              "ed25519_sign_admit": 8,
+              "ed25519_sign_proxy": 49,
+              "ed25519_sign_complete": 12,
+              "ed25519_sign_total": 80
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 19,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 19,
+              "near_router_service": 33
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806614208,
+                "wallMs": 113,
+                "cpuMs": 15,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806614259,
+                "wallMs": 43,
+                "cpuMs": 8,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806614270,
+                "wallMs": 26,
+                "cpuMs": 7,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806614277,
+                "wallMs": 11,
+                "cpuMs": 9,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 10,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 194,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-1/5",
+        "artifact": "transactions/near-1.json",
+        "workload": "three_consecutive",
+        "operationId": "near-transaction-sign:hOC0gBVem6sb5rxHTIgLaxQ7S-fMpbIxw_jo-AiMRI0",
+        "sdkSigningMs": 794.9399999380112,
+        "confirmedToSignedMs": 440.5,
+        "sdkOutsideConfirmationMs": 488.23999989032745,
+        "harnessElapsedToVerifiedMs": 1463.7061250000006,
+        "nearAccessKeyCalls": 1,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 4.899999976158142,
+          "authorization_probe": 4.200000047683716,
+          "lane_preparation": 4.799999952316284,
+          "execution_setup": 0.20000004768371582,
+          "pre_confirmation": 1.600000023841858,
+          "confirmation": 306.7000000476837,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1.2999999523162842,
+          "prepare": 243.20000004768372,
+          "client_share": 3.299999952316284,
+          "finalize": 181.60000002384186,
+          "signature_total": 429.5,
+          "nonce_lease_commit": 0.6000000238418579,
+          "transaction_assembly": 0.10000002384185791,
+          "confirmed_to_signed": 440.5
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f5547c5903e5d8-NRT",
+            "traceId": "0000000000000000a4f5547c5903e5d8",
+            "browserRequestMs": 242.339,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 10,
+              "ed25519_sign_admit": 31,
+              "ed25519_sign_proxy": 72,
+              "ed25519_sign_total": 113
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 17,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 17,
+              "near_router_service": 35
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806619619,
+                "wallMs": 145,
+                "cpuMs": 21,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806619693,
+                "wallMs": 67,
+                "cpuMs": 31,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806619726,
+                "wallMs": 28,
+                "cpuMs": 11,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806619741,
+                "wallMs": 8,
+                "cpuMs": 6,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 11,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 5464,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f5547de971e5d8-NRT",
+            "traceId": "0000000000000000a4f5547de971e5d8",
+            "browserRequestMs": 180.841,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 7,
+              "ed25519_sign_admit": 13,
+              "ed25519_sign_proxy": 34,
+              "ed25519_sign_complete": 12,
+              "ed25519_sign_total": 66
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 20,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 20,
+              "near_router_service": 27
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806619867,
+                "wallMs": 92,
+                "cpuMs": 11,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806619907,
+                "wallMs": 31,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806619912,
+                "wallMs": 22,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806619914,
+                "wallMs": 12,
+                "cpuMs": 10,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 12,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 173,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-1/6",
+        "artifact": "transactions/near-1.json",
+        "workload": "three_consecutive",
+        "operationId": "near-transaction-sign:QMd5ilKlXz-KnagOfOEUIVHDd1EMh9Nmlr0q0L_A-eQ",
+        "sdkSigningMs": 1058.905000090599,
+        "confirmedToSignedMs": 455.10000002384186,
+        "sdkOutsideConfirmationMs": 498.3050000667572,
+        "harnessElapsedToVerifiedMs": 1501.2040409999972,
+        "nearAccessKeyCalls": 2,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 1.899999976158142,
+          "authorization_probe": 3,
+          "lane_preparation": 3.299999952316284,
+          "execution_setup": 0.10000002384185791,
+          "pre_confirmation": 1.399999976158142,
+          "confirmation": 560.6000000238419,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1.100000023841858,
+          "prepare": 215.89999997615814,
+          "client_share": 1.4000000953674316,
+          "finalize": 234.19999992847443,
+          "signature_total": 452.5,
+          "nonce_lease_commit": 0.30000007152557373,
+          "transaction_assembly": 0,
+          "confirmed_to_signed": 455.10000002384186
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f554876c25e5d8-NRT",
+            "traceId": "0000000000000000a4f554876c25e5d8",
+            "browserRequestMs": 215.243,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 8,
+              "ed25519_sign_admit": 42,
+              "ed25519_sign_proxy": 33,
+              "ed25519_sign_total": 83
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 16,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 16,
+              "near_router_service": 25
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806621391,
+                "wallMs": 111,
+                "cpuMs": 14,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806621470,
+                "wallMs": 29,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806621476,
+                "wallMs": 19,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806621480,
+                "wallMs": 9,
+                "cpuMs": 6,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 13,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 1566,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f55488cc5ce5d8-NRT",
+            "traceId": "0000000000000000a4f55488cc5ce5d8",
+            "browserRequestMs": 233.59,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 13,
+              "ed25519_sign_admit": 12,
+              "ed25519_sign_proxy": 39,
+              "ed25519_sign_complete": 13,
+              "ed25519_sign_total": 77
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 21,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 21,
+              "near_router_service": 29
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806621607,
+                "wallMs": 126,
+                "cpuMs": 25,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806621678,
+                "wallMs": 34,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806621683,
+                "wallMs": 24,
+                "cpuMs": 4,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806621685,
+                "wallMs": 12,
+                "cpuMs": 9,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 14,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 205,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-1/7",
+        "artifact": "transactions/near-1.json",
+        "workload": "three_consecutive",
+        "operationId": "near-transaction-sign:gpl3UgW22y5x8_JQ5SLYNOAQ3UVtLVxrggQI_jx5nKw",
+        "sdkSigningMs": 2191.3799999952316,
+        "confirmedToSignedMs": 1584.3000000715256,
+        "sdkOutsideConfirmationMs": 1626.4800000190735,
+        "harnessElapsedToVerifiedMs": 3052.177166999998,
+        "nearAccessKeyCalls": 2,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 1.7000000476837158,
+          "authorization_probe": 3.5999999046325684,
+          "lane_preparation": 3,
+          "execution_setup": 0.10000002384185791,
+          "pre_confirmation": 1.100000023841858,
+          "confirmation": 564.8999999761581,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 0.7999999523162842,
+          "prepare": 242.79999995231628,
+          "client_share": 1.3000000715255737,
+          "finalize": 1335.6999999284744,
+          "signature_total": 1581,
+          "nonce_lease_commit": 0.3999999761581421,
+          "transaction_assembly": 0,
+          "confirmed_to_signed": 1584.3000000715256
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f55490be0de5d8-NRT",
+            "traceId": "0000000000000000a4f55490be0de5d8",
+            "browserRequestMs": 242.105,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 47,
+              "ed25519_sign_admit": 29,
+              "ed25519_sign_proxy": 39,
+              "ed25519_sign_total": 115
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 18,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 18,
+              "near_router_service": 25
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806622884,
+                "wallMs": 149,
+                "cpuMs": 20,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806622994,
+                "wallMs": 35,
+                "cpuMs": 10,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806623006,
+                "wallMs": 20,
+                "cpuMs": 2,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806623008,
+                "wallMs": 11,
+                "cpuMs": 7,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 15,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 1323,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f554924e93e5d8-NRT",
+            "traceId": "0000000000000000a4f554924e93e5d8",
+            "browserRequestMs": 1335.258,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 60,
+              "ed25519_sign_admit": 13,
+              "ed25519_sign_proxy": 662,
+              "ed25519_sign_complete": 11,
+              "ed25519_sign_total": 746
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 33,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 33,
+              "near_router_service": 374
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806623131,
+                "wallMs": 875,
+                "cpuMs": 151,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806623697,
+                "wallMs": 456,
+                "cpuMs": 103,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806623952,
+                "wallMs": 202,
+                "cpuMs": 173,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806624263,
+                "wallMs": 12,
+                "cpuMs": 10,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "f62a6135e8edda600d0c397a5cb74cd2fdc828e88fc747a2de2eab0fad9b3fb9",
+              "instanceCommand": 16,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 1255,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-2/1",
+        "artifact": "transactions/near-2.json",
+        "workload": "registration_to_first_verified",
+        "operationId": "near-transaction-sign:XN3qDsfBogcPdy5nzAxE98Vc9wFgEdjebqTwrhfnTpI",
+        "sdkSigningMs": 6850.485000014305,
+        "confirmedToSignedMs": 5652.100000023842,
+        "sdkOutsideConfirmationMs": 5706.585000038147,
+        "harnessElapsedToVerifiedMs": 10534.527541999996,
+        "nearAccessKeyCalls": 4,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 5.600000023841858,
+          "authorization_probe": 5.700000047683716,
+          "lane_preparation": 7.700000047683716,
+          "execution_setup": 0.3999999761581421,
+          "pre_confirmation": 2,
+          "confirmation": 1143.8999999761581,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 4740.099999904633,
+          "wallet_session_authorization": 1.2999999523162842,
+          "prepare": 286.2000000476837,
+          "client_share": 3.100000023841858,
+          "finalize": 615,
+          "signature_total": 905.7000000476837,
+          "nonce_lease_commit": 0.6000000238418579,
+          "transaction_assembly": 0.10000002384185791,
+          "confirmed_to_signed": 5652.100000023842
+        },
+        "fundingRequestsMs": [
+          3096.482
+        ],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f554da6bdad789-NRT",
+            "traceId": "0000000000000000a4f554da6bdad789",
+            "browserRequestMs": 285.229,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 11,
+              "ed25519_sign_admit": 50,
+              "ed25519_sign_proxy": 81,
+              "ed25519_sign_total": 142
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 34,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 34,
+              "near_router_service": 49
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806634667,
+                "wallMs": 194,
+                "cpuMs": 36,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806634784,
+                "wallMs": 73,
+                "cpuMs": 23,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806634810,
+                "wallMs": 39,
+                "cpuMs": 5,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806634824,
+                "wallMs": 24,
+                "cpuMs": 21,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 3,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 7560,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f554dc3c9bd789-NRT",
+            "traceId": "0000000000000000a4f554dc3c9bd789",
+            "browserRequestMs": 614.373,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 16,
+              "ed25519_sign_admit": 19,
+              "ed25519_sign_proxy": 412,
+              "ed25519_sign_complete": 14,
+              "ed25519_sign_total": 461
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 34,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 34,
+              "near_router_service": 80
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806634958,
+                "wallMs": 519,
+                "cpuMs": 45,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806635132,
+                "wallMs": 190,
+                "cpuMs": 114,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806635371,
+                "wallMs": 57,
+                "cpuMs": 23,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806635390,
+                "wallMs": 24,
+                "cpuMs": 22,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 4,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 566,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-2/2",
+        "artifact": "transactions/near-2.json",
+        "workload": "warm_signing",
+        "operationId": "near-transaction-sign:cmmJ02p4smD4triJ5DzJBWcqSHAcy37MhOwDKBtdspM",
+        "sdkSigningMs": 1475.6900000572205,
+        "confirmedToSignedMs": 538.7999999523163,
+        "sdkOutsideConfirmationMs": 580.5900000333786,
+        "harnessElapsedToVerifiedMs": 2264.2185000000027,
+        "nearAccessKeyCalls": 2,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 1.8000000715255737,
+          "authorization_probe": 3.299999952316284,
+          "lane_preparation": 3.100000023841858,
+          "execution_setup": 0,
+          "pre_confirmation": 1.399999976158142,
+          "confirmation": 895.1000000238419,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1.399999976158142,
+          "prepare": 243.10000002384186,
+          "client_share": 1.5,
+          "finalize": 289.7999999523163,
+          "signature_total": 535.6000000238419,
+          "nonce_lease_commit": 0.3999999761581421,
+          "transaction_assembly": 0,
+          "confirmed_to_signed": 538.7999999523163
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f554ea8a20d789-NRT",
+            "traceId": "0000000000000000a4f554ea8a20d789",
+            "browserRequestMs": 242.196,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 10,
+              "ed25519_sign_admit": 30,
+              "ed25519_sign_proxy": 68,
+              "ed25519_sign_total": 108
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 23,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 23,
+              "near_router_service": 40
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806637259,
+                "wallMs": 140,
+                "cpuMs": 18,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806637333,
+                "wallMs": 61,
+                "cpuMs": 18,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806637350,
+                "wallMs": 31,
+                "cpuMs": 8,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806637360,
+                "wallMs": 14,
+                "cpuMs": 11,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 5,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 1970,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f554ec0acbd789-NRT",
+            "traceId": "0000000000000000a4f554ec0acbd789",
+            "browserRequestMs": 289.446,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 17,
+              "ed25519_sign_admit": 16,
+              "ed25519_sign_proxy": 55,
+              "ed25519_sign_complete": 16,
+              "ed25519_sign_total": 104
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 20,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 20,
+              "near_router_service": 36
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806637510,
+                "wallMs": 172,
+                "cpuMs": 38,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806637607,
+                "wallMs": 45,
+                "cpuMs": 7,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806637619,
+                "wallMs": 24,
+                "cpuMs": 4,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806637618,
+                "wallMs": 10,
+                "cpuMs": 8,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 6,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 258,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-2/3",
+        "artifact": "transactions/near-2.json",
+        "workload": "warm_signing",
+        "operationId": "near-transaction-sign:hANkM_BcdkO9jPxcK_1HbkBN6yCeZTi_DseYIYgv6o8",
+        "sdkSigningMs": 1084.0349999666214,
+        "confirmedToSignedMs": 462.89999997615814,
+        "sdkOutsideConfirmationMs": 505.8349999189377,
+        "harnessElapsedToVerifiedMs": 1516.9942919999958,
+        "nearAccessKeyCalls": 2,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 1.7000000476837158,
+          "authorization_probe": 3.600000023841858,
+          "lane_preparation": 3,
+          "execution_setup": 0,
+          "pre_confirmation": 1.600000023841858,
+          "confirmation": 578.2000000476837,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1.1999999284744263,
+          "prepare": 190.60000002384186,
+          "client_share": 1.3000000715255737,
+          "finalize": 266.1999999284744,
+          "signature_total": 459.60000002384186,
+          "nonce_lease_commit": 0.3999999761581421,
+          "transaction_assembly": 0,
+          "confirmed_to_signed": 462.89999997615814
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f554f6bfadd789-NRT",
+            "traceId": "0000000000000000a4f554f6bfadd789",
+            "browserRequestMs": 189.727,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 10,
+              "ed25519_sign_admit": 31,
+              "ed25519_sign_proxy": 35,
+              "ed25519_sign_total": 76
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 21,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 21,
+              "near_router_service": 27
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806639193,
+                "wallMs": 99,
+                "cpuMs": 12,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806639259,
+                "wallMs": 31,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806639264,
+                "wallMs": 23,
+                "cpuMs": 2,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806639273,
+                "wallMs": 8,
+                "cpuMs": 5,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 7,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 1655,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f554f7e83dd789-NRT",
+            "traceId": "0000000000000000a4f554f7e83dd789",
+            "browserRequestMs": 265.481,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 43,
+              "ed25519_sign_admit": 13,
+              "ed25519_sign_proxy": 52,
+              "ed25519_sign_complete": 12,
+              "ed25519_sign_total": 120
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 23,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 23,
+              "near_router_service": 39
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806639390,
+                "wallMs": 170,
+                "cpuMs": 25,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806639492,
+                "wallMs": 46,
+                "cpuMs": 5,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806639501,
+                "wallMs": 28,
+                "cpuMs": 5,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806639506,
+                "wallMs": 12,
+                "cpuMs": 9,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 8,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 233,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-2/4",
+        "artifact": "transactions/near-2.json",
+        "workload": "unlock_to_first_verified",
+        "operationId": "near-transaction-sign:WKX5t0c_Tnw7wkB_JaHFe-jzwB5yLwSHFIRC4asUzBo",
+        "sdkSigningMs": 1426.9150000810623,
+        "confirmedToSignedMs": 1064.3999999761581,
+        "sdkOutsideConfirmationMs": 1118.115000128746,
+        "harnessElapsedToVerifiedMs": 7022.2590409999975,
+        "nearAccessKeyCalls": 1,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 5,
+          "authorization_probe": 4.799999952316284,
+          "lane_preparation": 6.399999976158142,
+          "execution_setup": 0.20000004768371582,
+          "pre_confirmation": 3.3000000715255737,
+          "confirmation": 308.7999999523163,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0.09999990463256836,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1.600000023841858,
+          "prepare": 179.29999995231628,
+          "client_share": 3.899999976158142,
+          "finalize": 867.2999999523163,
+          "signature_total": 1052.1000000238419,
+          "nonce_lease_commit": 0.5,
+          "transaction_assembly": 0,
+          "confirmed_to_signed": 1064.3999999761581
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f5551d1edad789-NRT",
+            "traceId": "0000000000000000a4f5551d1edad789",
+            "browserRequestMs": 178.228,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 14,
+              "ed25519_sign_admit": 24,
+              "ed25519_sign_proxy": 28,
+              "ed25519_sign_total": 66
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 15,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 15,
+              "near_router_service": 21
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806645343,
+                "wallMs": 90,
+                "cpuMs": 15,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806645407,
+                "wallMs": 25,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806645412,
+                "wallMs": 17,
+                "cpuMs": 1,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806645420,
+                "wallMs": 7,
+                "cpuMs": 5,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 9,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 5914,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f5551e4f23d789-NRT",
+            "traceId": "0000000000000000a4f5551e4f23d789",
+            "browserRequestMs": 866.647,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 22,
+              "ed25519_sign_admit": 27,
+              "ed25519_sign_proxy": 630,
+              "ed25519_sign_complete": 22,
+              "ed25519_sign_total": 701
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 25,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 25,
+              "near_router_service": 303
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806645529,
+                "wallMs": 767,
+                "cpuMs": 63,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806645662,
+                "wallMs": 448,
+                "cpuMs": 181,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806645992,
+                "wallMs": 149,
+                "cpuMs": 127,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806646222,
+                "wallMs": 10,
+                "cpuMs": 8,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 10,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 802,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-2/5",
+        "artifact": "transactions/near-2.json",
+        "workload": "three_consecutive",
+        "operationId": "near-transaction-sign:hdIC0croMvHCbGMp6em8bnAW4AGSGTp7QtPbUgvE4nQ",
+        "sdkSigningMs": 1328.8799999952316,
+        "confirmedToSignedMs": 980.8000000715256,
+        "sdkOutsideConfirmationMs": 1033.780000090599,
+        "harnessElapsedToVerifiedMs": 2214.9162920000017,
+        "nearAccessKeyCalls": 1,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 5.300000071525574,
+          "authorization_probe": 4.5,
+          "lane_preparation": 5.300000071525574,
+          "execution_setup": 0.10000002384185791,
+          "pre_confirmation": 3,
+          "confirmation": 295.09999990463257,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0.10000002384185791,
+          "wallet_session_authorization": 1.3000000715255737,
+          "prepare": 717.1999999284744,
+          "client_share": 3.5,
+          "finalize": 243.5,
+          "signature_total": 965.8999999761581,
+          "nonce_lease_commit": 1.2000000476837158,
+          "transaction_assembly": 0.10000002384185791,
+          "confirmed_to_signed": 980.8000000715256
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f555441bbbd789-NRT",
+            "traceId": "0000000000000000a4f555441bbbd789",
+            "browserRequestMs": 716.172,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 16,
+              "ed25519_sign_admit": 30,
+              "ed25519_sign_proxy": 535,
+              "ed25519_sign_total": 581
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 20,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 20,
+              "near_router_service": 319
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806651581,
+                "wallMs": 624,
+                "cpuMs": 49,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806651696,
+                "wallMs": 402,
+                "cpuMs": 105,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806651903,
+                "wallMs": 150,
+                "cpuMs": 132,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806652168,
+                "wallMs": 8,
+                "cpuMs": 6,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 11,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 5946,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f555489d35d789-NRT",
+            "traceId": "0000000000000000a4f555489d35d789",
+            "browserRequestMs": 242.775,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 11,
+              "ed25519_sign_admit": 15,
+              "ed25519_sign_proxy": 55,
+              "ed25519_sign_complete": 17,
+              "ed25519_sign_total": 98
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 22,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 22,
+              "near_router_service": 38
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806652304,
+                "wallMs": 146,
+                "cpuMs": 26,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806652375,
+                "wallMs": 47,
+                "cpuMs": 7,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806652386,
+                "wallMs": 27,
+                "cpuMs": 5,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806652396,
+                "wallMs": 10,
+                "cpuMs": 7,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 12,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 228,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-2/6",
+        "artifact": "transactions/near-2.json",
+        "workload": "three_consecutive",
+        "operationId": "near-transaction-sign:19yB9lLaXnb8sFUWUZF556jmiIFlDQGeor3K1jktGwI",
+        "sdkSigningMs": 1047.6650000810623,
+        "confirmedToSignedMs": 424.10000002384186,
+        "sdkOutsideConfirmationMs": 468.36500000953674,
+        "harnessElapsedToVerifiedMs": 1512.9891669999997,
+        "nearAccessKeyCalls": 2,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 2,
+          "authorization_probe": 3.5,
+          "lane_preparation": 5.200000047683716,
+          "execution_setup": 0.09999990463256836,
+          "pre_confirmation": 2.399999976158142,
+          "confirmation": 579.3000000715256,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1.7000000476837158,
+          "prepare": 172.30000007152557,
+          "client_share": 1.2999999523162842,
+          "finalize": 245.5,
+          "signature_total": 420.3000000715256,
+          "nonce_lease_commit": 0.3999999761581421,
+          "transaction_assembly": 0,
+          "confirmed_to_signed": 424.10000002384186
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f55553f8c3d789-NRT",
+            "traceId": "0000000000000000a4f55553f8c3d789",
+            "browserRequestMs": 171.5,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 8,
+              "ed25519_sign_admit": 28,
+              "ed25519_sign_proxy": 32,
+              "ed25519_sign_total": 68
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 19,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 19,
+              "near_router_service": 25
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806654115,
+                "wallMs": 85,
+                "cpuMs": 8,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806654169,
+                "wallMs": 29,
+                "cpuMs": 4,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806654175,
+                "wallMs": 20,
+                "cpuMs": 1,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806654179,
+                "wallMs": 12,
+                "cpuMs": 9,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 13,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 1783,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f55555091bd789-NRT",
+            "traceId": "0000000000000000a4f55555091bd789",
+            "browserRequestMs": 244.979,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 13,
+              "ed25519_sign_admit": 16,
+              "ed25519_sign_proxy": 56,
+              "ed25519_sign_complete": 13,
+              "ed25519_sign_total": 98
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 18,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 18,
+              "near_router_service": 38
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806654294,
+                "wallMs": 145,
+                "cpuMs": 25,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806654364,
+                "wallMs": 50,
+                "cpuMs": 10,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806654376,
+                "wallMs": 28,
+                "cpuMs": 10,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806654381,
+                "wallMs": 9,
+                "cpuMs": 7,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 14,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 202,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-2/7",
+        "artifact": "transactions/near-2.json",
+        "workload": "three_consecutive",
+        "operationId": "near-transaction-sign:1lZaYThMf6-n3pkRYCY08TpKN26P8qnJkrVDEBLT9gw",
+        "sdkSigningMs": 1395.8450000286102,
+        "confirmedToSignedMs": 516.0999999046326,
+        "sdkOutsideConfirmationMs": 558.3450000286102,
+        "harnessElapsedToVerifiedMs": 2264.825208999995,
+        "nearAccessKeyCalls": 2,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 1.600000023841858,
+          "authorization_probe": 3.700000047683716,
+          "lane_preparation": 3.299999952316284,
+          "execution_setup": 0,
+          "pre_confirmation": 1.2000000476837158,
+          "confirmation": 837.5,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1.3000000715255737,
+          "prepare": 244,
+          "client_share": 1.2000000476837158,
+          "finalize": 264.6999999284744,
+          "signature_total": 510.89999997615814,
+          "nonce_lease_commit": 0.40000009536743164,
+          "transaction_assembly": 0,
+          "confirmed_to_signed": 516.0999999046326
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f5555f0c61d789-NRT",
+            "traceId": "0000000000000000a4f5555f0c61d789",
+            "browserRequestMs": 243.229,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 12,
+              "ed25519_sign_admit": 29,
+              "ed25519_sign_proxy": 68,
+              "ed25519_sign_total": 109
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 18,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 18,
+              "near_router_service": 34
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806655889,
+                "wallMs": 153,
+                "cpuMs": 28,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806655977,
+                "wallMs": 60,
+                "cpuMs": 25,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806656006,
+                "wallMs": 23,
+                "cpuMs": 5,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806656015,
+                "wallMs": 9,
+                "cpuMs": 6,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 15,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 1634,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f555609cf0d789-NRT",
+            "traceId": "0000000000000000a4f555609cf0d789",
+            "browserRequestMs": 263.928,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 38,
+              "ed25519_sign_admit": 8,
+              "ed25519_sign_proxy": 49,
+              "ed25519_sign_complete": 12,
+              "ed25519_sign_total": 107
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 18,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 18,
+              "near_router_service": 31
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806656152,
+                "wallMs": 145,
+                "cpuMs": 24,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806656232,
+                "wallMs": 44,
+                "cpuMs": 12,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806656249,
+                "wallMs": 23,
+                "cpuMs": 5,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806656252,
+                "wallMs": 10,
+                "cpuMs": 8,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "11d99b3288098da8eb1086c46539fb8240a99ed690c56e54b560145a161b8158",
+              "instanceCommand": 16,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 237,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-3/1",
+        "artifact": "transactions/near-3.json",
+        "workload": "registration_to_first_verified",
+        "operationId": "near-transaction-sign:vY8_kcGNz04kHI4zDWBwIMHz5WbCsT0MXo2QsRhDXiY",
+        "sdkSigningMs": 5609.34500002861,
+        "confirmedToSignedMs": 4982.300000071526,
+        "sdkOutsideConfirmationMs": 5034.34500002861,
+        "harnessElapsedToVerifiedMs": 8985.306458000006,
+        "nearAccessKeyCalls": 5,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 4.700000047683716,
+          "authorization_probe": 4.299999952316284,
+          "lane_preparation": 5.5,
+          "execution_setup": 0.20000004768371582,
+          "pre_confirmation": 3.200000047683716,
+          "confirmation": 575,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 4282.699999928474,
+          "wallet_session_authorization": 1.2999999523162842,
+          "prepare": 480.09999990463257,
+          "client_share": 3.200000047683716,
+          "finalize": 208.30000007152557,
+          "signature_total": 693.1999999284744,
+          "nonce_lease_commit": 0.6000000238418579,
+          "transaction_assembly": 0,
+          "confirmed_to_signed": 4982.300000071526
+        },
+        "fundingRequestsMs": [
+          2580.954
+        ],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f5559be8dff2d4-NRT",
+            "traceId": "0000000000000000a4f5559be8dff2d4",
+            "browserRequestMs": 479.07,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 17,
+              "ed25519_sign_admit": 269,
+              "ed25519_sign_proxy": 49,
+              "ed25519_sign_total": 335
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 32,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 32,
+              "near_router_service": 40
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806665632,
+                "wallMs": 372,
+                "cpuMs": 27,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806665956,
+                "wallMs": 44,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806665961,
+                "wallMs": 35,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806665971,
+                "wallMs": 23,
+                "cpuMs": 21,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 3,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 6549,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f5559ed9ebf2d4-NRT",
+            "traceId": "0000000000000000a4f5559ed9ebf2d4",
+            "browserRequestMs": 207.611,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 13,
+              "ed25519_sign_admit": 10,
+              "ed25519_sign_proxy": 52,
+              "ed25519_sign_complete": 11,
+              "ed25519_sign_total": 86
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 39,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 39,
+              "near_router_service": 45
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806666101,
+                "wallMs": 109,
+                "cpuMs": 10,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806666146,
+                "wallMs": 48,
+                "cpuMs": 2,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806666150,
+                "wallMs": 41,
+                "cpuMs": 2,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806666139,
+                "wallMs": 31,
+                "cpuMs": 25,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 4,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 168,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-3/2",
+        "artifact": "transactions/near-3.json",
+        "workload": "warm_signing",
+        "operationId": "near-transaction-sign:sr2BwzqW0vtz4A3HveD08nCMMazld08_IUMz8TFd0ik",
+        "sdkSigningMs": 1333.0900000333786,
+        "confirmedToSignedMs": 447.10000002384186,
+        "sdkOutsideConfirmationMs": 490.7900000810623,
+        "harnessElapsedToVerifiedMs": 2300.2194170000002,
+        "nearAccessKeyCalls": 2,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 2.200000047683716,
+          "authorization_probe": 4.200000047683716,
+          "lane_preparation": 3.200000047683716,
+          "execution_setup": 0,
+          "pre_confirmation": 1.5,
+          "confirmation": 842.2999999523163,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1,
+          "prepare": 211.29999995231628,
+          "client_share": 1.2999999523162842,
+          "finalize": 230.20000004768372,
+          "signature_total": 444.10000002384186,
+          "nonce_lease_commit": 0.6000000238418579,
+          "transaction_assembly": 0,
+          "confirmed_to_signed": 447.10000002384186
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f555a87e3ff2d4-NRT",
+            "traceId": "0000000000000000a4f555a87e3ff2d4",
+            "browserRequestMs": 210.587,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 13,
+              "ed25519_sign_admit": 26,
+              "ed25519_sign_proxy": 38,
+              "ed25519_sign_total": 77
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 21,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 21,
+              "near_router_service": 29
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806667642,
+                "wallMs": 112,
+                "cpuMs": 18,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806667718,
+                "wallMs": 33,
+                "cpuMs": 4,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806667726,
+                "wallMs": 22,
+                "cpuMs": 2,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806667727,
+                "wallMs": 11,
+                "cpuMs": 8,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 5,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 1588,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f555a9de9bf2d4-NRT",
+            "traceId": "0000000000000000a4f555a9de9bf2d4",
+            "browserRequestMs": 229.694,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 19,
+              "ed25519_sign_admit": 16,
+              "ed25519_sign_proxy": 41,
+              "ed25519_sign_complete": 14,
+              "ed25519_sign_total": 90
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 24,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 24,
+              "near_router_service": 31
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806667852,
+                "wallMs": 135,
+                "cpuMs": 24,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806667929,
+                "wallMs": 35,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806667934,
+                "wallMs": 26,
+                "cpuMs": 1,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806667928,
+                "wallMs": 16,
+                "cpuMs": 14,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 6,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 201,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-3/3",
+        "artifact": "transactions/near-3.json",
+        "workload": "warm_signing",
+        "operationId": "near-transaction-sign:0G_EqqgkpsyYuBPyS9ux8B3zfOxw_dCm0cZIo7GzgJo",
+        "sdkSigningMs": 1126.125,
+        "confirmedToSignedMs": 517.2999999523163,
+        "sdkOutsideConfirmationMs": 559.5249999761581,
+        "harnessElapsedToVerifiedMs": 1518.7039159999986,
+        "nearAccessKeyCalls": 2,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 2.100000023841858,
+          "authorization_probe": 3.399999976158142,
+          "lane_preparation": 3.100000023841858,
+          "execution_setup": 0.10000002384185791,
+          "pre_confirmation": 1,
+          "confirmation": 566.6000000238419,
+          "durable_lease_recovery_wait": 1.399999976158142,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1.9000000953674316,
+          "prepare": 242.89999997615814,
+          "client_share": 1.2000000476837158,
+          "finalize": 267,
+          "signature_total": 512,
+          "nonce_lease_commit": 0.30000007152557373,
+          "transaction_assembly": 0.09999990463256836,
+          "confirmed_to_signed": 517.2999999523163
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f555b52a25f2d4-NRT",
+            "traceId": "0000000000000000a4f555b52a25f2d4",
+            "browserRequestMs": 242.133,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 33,
+              "ed25519_sign_admit": 40,
+              "ed25519_sign_proxy": 34,
+              "ed25519_sign_total": 107
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 17,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 17,
+              "near_router_service": 24
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806669673,
+                "wallMs": 136,
+                "cpuMs": 11,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806669777,
+                "wallMs": 28,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806669783,
+                "wallMs": 18,
+                "cpuMs": 1,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806669785,
+                "wallMs": 9,
+                "cpuMs": 7,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 7,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 1857,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f555b6aabaf2d4-NRT",
+            "traceId": "0000000000000000a4f555b6aabaf2d4",
+            "browserRequestMs": 266.661,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 44,
+              "ed25519_sign_admit": 9,
+              "ed25519_sign_proxy": 43,
+              "ed25519_sign_complete": 14,
+              "ed25519_sign_total": 110
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 25,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 25,
+              "near_router_service": 34
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806669924,
+                "wallMs": 145,
+                "cpuMs": 18,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806670012,
+                "wallMs": 38,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806670019,
+                "wallMs": 26,
+                "cpuMs": 1,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806670017,
+                "wallMs": 16,
+                "cpuMs": 12,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 8,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 232,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-3/4",
+        "artifact": "transactions/near-3.json",
+        "workload": "unlock_to_first_verified",
+        "operationId": "near-transaction-sign:-7DJtkEx4W7179XQgJC2j6pavk-l-iqbSk0dXbyisdg",
+        "sdkSigningMs": 798.6100000143051,
+        "confirmedToSignedMs": 447.6999999284744,
+        "sdkOutsideConfirmationMs": 500.7099999189377,
+        "harnessElapsedToVerifiedMs": 6255.184208000006,
+        "nearAccessKeyCalls": 1,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 4.899999976158142,
+          "authorization_probe": 3.5,
+          "lane_preparation": 7.800000071525574,
+          "execution_setup": 0.09999990463256836,
+          "pre_confirmation": 2.5999999046325684,
+          "confirmation": 297.90000009536743,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0.10000002384185791,
+          "wallet_session_authorization": 1.5,
+          "prepare": 238.29999995231628,
+          "client_share": 3.100000023841858,
+          "finalize": 193.29999995231628,
+          "signature_total": 435.89999997615814,
+          "nonce_lease_commit": 0.40000009536743164,
+          "transaction_assembly": 0.10000002384185791,
+          "confirmed_to_signed": 447.6999999284744
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f555db59abf2d4-NRT",
+            "traceId": "0000000000000000a4f555db59abf2d4",
+            "browserRequestMs": 237.285,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 8,
+              "ed25519_sign_admit": 41,
+              "ed25519_sign_proxy": 63,
+              "ed25519_sign_total": 112
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 13,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 13,
+              "near_router_service": 37
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806675785,
+                "wallMs": 142,
+                "cpuMs": 21,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806675866,
+                "wallMs": 57,
+                "cpuMs": 19,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806675884,
+                "wallMs": 30,
+                "cpuMs": 17,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806675903,
+                "wallMs": 7,
+                "cpuMs": 5,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 9,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 5886,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f555dcda32f2d4-NRT",
+            "traceId": "0000000000000000a4f555dcda32f2d4",
+            "browserRequestMs": 192.558,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 11,
+              "ed25519_sign_admit": 9,
+              "ed25519_sign_proxy": 44,
+              "ed25519_sign_complete": 12,
+              "ed25519_sign_total": 76
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 23,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 23,
+              "near_router_service": 33
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806676023,
+                "wallMs": 103,
+                "cpuMs": 11,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806676071,
+                "wallMs": 38,
+                "cpuMs": 4,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806676079,
+                "wallMs": 25,
+                "cpuMs": 2,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806676083,
+                "wallMs": 15,
+                "cpuMs": 12,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 10,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 180,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-3/5",
+        "artifact": "transactions/near-3.json",
+        "workload": "three_consecutive",
+        "operationId": "near-transaction-sign:1Wx0CHUDOYxbG9kKq-Ukacu8wQu8Y7PQIOV9xKltlUk",
+        "sdkSigningMs": 808.460000038147,
+        "confirmedToSignedMs": 437.2999999523163,
+        "sdkOutsideConfirmationMs": 485.960000038147,
+        "harnessElapsedToVerifiedMs": 1449.0164169999916,
+        "nearAccessKeyCalls": 1,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 4.399999976158142,
+          "authorization_probe": 3.399999976158142,
+          "lane_preparation": 4.700000047683716,
+          "execution_setup": 0.19999992847442627,
+          "pre_confirmation": 1.399999976158142,
+          "confirmation": 322.5,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0.10000002384185791,
+          "wallet_session_authorization": 1.2999999523162842,
+          "prepare": 220.5,
+          "client_share": 3.700000047683716,
+          "finalize": 199.69999992847443,
+          "signature_total": 425.5,
+          "nonce_lease_commit": 0.5,
+          "transaction_assembly": 0.10000002384185791,
+          "confirmed_to_signed": 437.2999999523163
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f55605588ef2d4-NRT",
+            "traceId": "0000000000000000a4f55605588ef2d4",
+            "browserRequestMs": 218.932,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 14,
+              "ed25519_sign_admit": 30,
+              "ed25519_sign_proxy": 36,
+              "ed25519_sign_total": 80
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 19,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 19,
+              "near_router_service": 25
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806682503,
+                "wallMs": 120,
+                "cpuMs": 21,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806682589,
+                "wallMs": 29,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806682594,
+                "wallMs": 20,
+                "cpuMs": 1,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806682600,
+                "wallMs": 11,
+                "cpuMs": 9,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 11,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 6517,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f55606c935f2d4-NRT",
+            "traceId": "0000000000000000a4f55606c935f2d4",
+            "browserRequestMs": 199.03,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 12,
+              "ed25519_sign_admit": 8,
+              "ed25519_sign_proxy": 39,
+              "ed25519_sign_complete": 9,
+              "ed25519_sign_total": 68
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 15,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 15,
+              "near_router_service": 27
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806682735,
+                "wallMs": 93,
+                "cpuMs": 11,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806682776,
+                "wallMs": 36,
+                "cpuMs": 7,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806682785,
+                "wallMs": 22,
+                "cpuMs": 6,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806682785,
+                "wallMs": 11,
+                "cpuMs": 8,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 12,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 185,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-3/6",
+        "artifact": "transactions/near-3.json",
+        "workload": "three_consecutive",
+        "operationId": "near-transaction-sign:3KQ6rMo9vb8XoqCc6ezvOsI4temK7LiqRcVEn10sz0w",
+        "sdkSigningMs": 1016.8249999284744,
+        "confirmedToSignedMs": 390.89999997615814,
+        "sdkOutsideConfirmationMs": 437.8249999284744,
+        "harnessElapsedToVerifiedMs": 1521.9037919999973,
+        "nearAccessKeyCalls": 2,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 1.7999999523162842,
+          "authorization_probe": 7.899999976158142,
+          "lane_preparation": 3.8000000715255737,
+          "execution_setup": 0,
+          "pre_confirmation": 1.7999999523162842,
+          "confirmation": 579,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1,
+          "prepare": 172.29999995231628,
+          "client_share": 1.2000000476837158,
+          "finalize": 213.60000002384186,
+          "signature_total": 388.2999999523163,
+          "nonce_lease_commit": 0.3999999761581421,
+          "transaction_assembly": 0.10000002384185791,
+          "confirmed_to_signed": 390.89999997615814
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f556104cfff2d4-NRT",
+            "traceId": "0000000000000000a4f556104cfff2d4",
+            "browserRequestMs": 171.625,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 11,
+              "ed25519_sign_admit": 25,
+              "ed25519_sign_proxy": 28,
+              "ed25519_sign_total": 64
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 15,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 15,
+              "near_router_service": 21
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806684247,
+                "wallMs": 85,
+                "cpuMs": 9,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806684304,
+                "wallMs": 25,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806684310,
+                "wallMs": 16,
+                "cpuMs": 2,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806684313,
+                "wallMs": 7,
+                "cpuMs": 4,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 13,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 1528,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f556116d50f2d4-NRT",
+            "traceId": "0000000000000000a4f556116d50f2d4",
+            "browserRequestMs": 213.056,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 10,
+              "ed25519_sign_admit": 12,
+              "ed25519_sign_proxy": 47,
+              "ed25519_sign_complete": 13,
+              "ed25519_sign_total": 82
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 20,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 20,
+              "near_router_service": 36
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806684424,
+                "wallMs": 111,
+                "cpuMs": 13,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806684473,
+                "wallMs": 43,
+                "cpuMs": 5,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806684482,
+                "wallMs": 30,
+                "cpuMs": 10,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806684491,
+                "wallMs": 11,
+                "cpuMs": 9,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 14,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 178,
+              "handlerMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "near-3/7",
+        "artifact": "transactions/near-3.json",
+        "workload": "three_consecutive",
+        "operationId": "near-transaction-sign:5W27kxNl6e9OEu5bsFJHOwjcWnJY2IxH5BpBrkYrxEc",
+        "sdkSigningMs": 1414,
+        "confirmedToSignedMs": 508.3000000715256,
+        "sdkOutsideConfirmationMs": 549.5,
+        "harnessElapsedToVerifiedMs": 2257.9997500000027,
+        "nearAccessKeyCalls": 2,
+        "verifiedByHarness": true,
+        "sdkStagesMs": {
+          "preparation_modal": 1.5,
+          "authorization_probe": 3.100000023841858,
+          "lane_preparation": 2.700000047683716,
+          "execution_setup": 0.10000002384185791,
+          "pre_confirmation": 1.0999999046325684,
+          "confirmation": 864.5,
+          "durable_lease_recovery_wait": 0,
+          "material_resolution_wait": 0,
+          "transaction_context": 0,
+          "wallet_session_authorization": 1,
+          "prepare": 231.80000007152557,
+          "client_share": 1.1999999284744263,
+          "finalize": 271.2999999523163,
+          "signature_total": 505.5,
+          "nonce_lease_commit": 0.5,
+          "transaction_assembly": 0,
+          "confirmed_to_signed": 508.3000000715256
+        },
+        "fundingRequestsMs": [],
+        "requests": [
+          {
+            "kind": "prepare",
+            "path": "/router-ab/ed25519/sign/prepare",
+            "cfRay": "a4f5561b889ff2d4-NRT",
+            "traceId": "0000000000000000a4f5561b889ff2d4",
+            "browserRequestMs": 231.354,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 15,
+              "ed25519_sign_admit": 32,
+              "ed25519_sign_proxy": 46,
+              "ed25519_sign_total": 93
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 18,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 18,
+              "near_router_service": 31
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806686046,
+                "wallMs": 130,
+                "cpuMs": 19,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806686132,
+                "wallMs": 41,
+                "cpuMs": 9,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806686146,
+                "wallMs": 21,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806686153,
+                "wallMs": 9,
+                "cpuMs": 5,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 15,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 1662,
+              "handlerMs": 0
+            }
+          },
+          {
+            "kind": "finalize",
+            "path": "/router-ab/ed25519/sign",
+            "cfRay": "a4f5561cf902f2d4-NRT",
+            "traceId": "0000000000000000a4f5561cf902f2d4",
+            "browserRequestMs": 270.773,
+            "gatewayStagesMs": {
+              "ed25519_sign_authorize": 50,
+              "ed25519_sign_admit": 12,
+              "ed25519_sign_proxy": 45,
+              "ed25519_sign_complete": 18,
+              "ed25519_sign_total": 125
+            },
+            "downstreamStagesMs": {
+              "near_router_admission": 0,
+              "near_sw_dispatch_setup": 0,
+              "near_sw_decode_validate": 0,
+              "near_sw_wallet_call": 21,
+              "near_sw_do_decode_validate": 0,
+              "near_sw_do_schema": 0,
+              "near_sw_do_execute": 0,
+              "near_sw_do_handler": 0,
+              "near_sw_handler": 21,
+              "near_router_service": 35
+            },
+            "runtime": {
+              "gateway": {
+                "versionId": "bb63a3be-efff-46f6-b71d-51d68878e37a",
+                "eventTimestamp": 1792806686276,
+                "wallMs": 185,
+                "cpuMs": 34,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "router": {
+                "versionId": "2912c789-c061-4c48-93c4-2954b348d0b2",
+                "eventTimestamp": 1792806686397,
+                "wallMs": 38,
+                "cpuMs": 3,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "signingWorker": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806686402,
+                "wallMs": 26,
+                "cpuMs": 5,
+                "executionModel": "stateless",
+                "status": 200,
+                "outcome": "ok"
+              },
+              "walletObject": {
+                "versionId": "8d1f6964-5349-4102-81de-a9e4f6db844e",
+                "eventTimestamp": 1792806686409,
+                "wallMs": 10,
+                "cpuMs": 8,
+                "executionModel": "durableObject",
+                "status": 200,
+                "outcome": "ok"
+              }
+            },
+            "walletCommand": {
+              "objectId": "330e585b706ff194e9798f929e605c7bfc1650dbdd7a2f3d312c9f9d9bc041cb",
+              "instanceCommand": 16,
+              "firstAfterConstructor": false,
+              "sincePreviousStartMs": 256,
+              "handlerMs": 0
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "registrationSummary": {
+    "sdkRegistrationMs": {
+      "count": 3,
+      "median": 2683.04,
+      "p95": 3325.57,
+      "maximum": 3325.57
+    },
+    "postPasskeyObservedMs": {
+      "count": 3,
+      "median": 1562.856,
+      "p95": 2157.98,
+      "maximum": 2157.98
+    }
+  },
+  "requestSummary": {
+    "prepare": {
+      "browserRequestMs": {
+        "count": 21,
+        "median": 242.133,
+        "p95": 716.172,
+        "maximum": 979.262
+      },
+      "gatewayStagesMs": {
+        "ed25519_sign_admit": {
+          "count": 21,
+          "median": 30,
+          "p95": 50,
+          "maximum": 269
+        },
+        "ed25519_sign_authorize": {
+          "count": 21,
+          "median": 13,
+          "p95": 33,
+          "maximum": 47
+        },
+        "ed25519_sign_proxy": {
+          "count": 21,
+          "median": 49,
+          "p95": 535,
+          "maximum": 739
+        },
+        "ed25519_sign_total": {
+          "count": 21,
+          "median": 108,
+          "p95": 581,
+          "maximum": 812
+        }
+      },
+      "downstreamStagesMs": {
+        "near_router_admission": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_router_service": {
+          "count": 21,
+          "median": 31,
+          "p95": 319,
+          "maximum": 422
+        },
+        "near_sw_decode_validate": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_sw_dispatch_setup": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_sw_do_decode_validate": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_sw_do_execute": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_sw_do_handler": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_sw_do_schema": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_sw_handler": {
+          "count": 21,
+          "median": 19,
+          "p95": 34,
+          "maximum": 40
+        },
+        "near_sw_wallet_call": {
+          "count": 21,
+          "median": 19,
+          "p95": 34,
+          "maximum": 40
+        }
+      },
+      "runtime": {
+        "gateway": {
+          "wallMs": {
+            "count": 21,
+            "median": 142,
+            "p95": 624,
+            "maximum": 872
+          },
+          "cpuMs": {
+            "count": 21,
+            "median": 21,
+            "p95": 82,
+            "maximum": 87
+          }
+        },
+        "router": {
+          "wallMs": {
+            "count": 21,
+            "median": 42,
+            "p95": 402,
+            "maximum": 528
+          },
+          "cpuMs": {
+            "count": 21,
+            "median": 10,
+            "p95": 130,
+            "maximum": 143
+          }
+        },
+        "signingWorker": {
+          "wallMs": {
+            "count": 21,
+            "median": 23,
+            "p95": 150,
+            "maximum": 190
+          },
+          "cpuMs": {
+            "count": 21,
+            "median": 3,
+            "p95": 132,
+            "maximum": 169
+          }
+        },
+        "walletObject": {
+          "wallMs": {
+            "count": 21,
+            "median": 9,
+            "p95": 24,
+            "maximum": 28
+          },
+          "cpuMs": {
+            "count": 21,
+            "median": 6,
+            "p95": 21,
+            "maximum": 25
+          }
+        }
+      }
+    },
+    "finalize": {
+      "browserRequestMs": {
+        "count": 21,
+        "median": 263.928,
+        "p95": 1074.881,
+        "maximum": 1335.258
+      },
+      "gatewayStagesMs": {
+        "ed25519_sign_admit": {
+          "count": 21,
+          "median": 13,
+          "p95": 27,
+          "maximum": 32
+        },
+        "ed25519_sign_authorize": {
+          "count": 21,
+          "median": 17,
+          "p95": 50,
+          "maximum": 60
+        },
+        "ed25519_sign_complete": {
+          "count": 21,
+          "median": 13,
+          "p95": 19,
+          "maximum": 22
+        },
+        "ed25519_sign_proxy": {
+          "count": 21,
+          "median": 52,
+          "p95": 630,
+          "maximum": 662
+        },
+        "ed25519_sign_total": {
+          "count": 21,
+          "median": 104,
+          "p95": 701,
+          "maximum": 746
+        }
+      },
+      "downstreamStagesMs": {
+        "near_router_admission": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_router_service": {
+          "count": 21,
+          "median": 36,
+          "p95": 303,
+          "maximum": 374
+        },
+        "near_sw_decode_validate": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_sw_dispatch_setup": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_sw_do_decode_validate": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_sw_do_execute": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_sw_do_handler": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_sw_do_schema": {
+          "count": 21,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "near_sw_handler": {
+          "count": 21,
+          "median": 23,
+          "p95": 42,
+          "maximum": 48
+        },
+        "near_sw_wallet_call": {
+          "count": 21,
+          "median": 23,
+          "p95": 42,
+          "maximum": 48
+        }
+      },
+      "runtime": {
+        "gateway": {
+          "wallMs": {
+            "count": 21,
+            "median": 145,
+            "p95": 767,
+            "maximum": 875
+          },
+          "cpuMs": {
+            "count": 21,
+            "median": 25,
+            "p95": 151,
+            "maximum": 177
+          }
+        },
+        "router": {
+          "wallMs": {
+            "count": 21,
+            "median": 45,
+            "p95": 448,
+            "maximum": 456
+          },
+          "cpuMs": {
+            "count": 21,
+            "median": 7,
+            "p95": 114,
+            "maximum": 181
+          }
+        },
+        "signingWorker": {
+          "wallMs": {
+            "count": 21,
+            "median": 27,
+            "p95": 149,
+            "maximum": 202
+          },
+          "cpuMs": {
+            "count": 21,
+            "median": 5,
+            "p95": 127,
+            "maximum": 173
+          }
+        },
+        "walletObject": {
+          "wallMs": {
+            "count": 21,
+            "median": 12,
+            "p95": 29,
+            "maximum": 31
+          },
+          "cpuMs": {
+            "count": 21,
+            "median": 9,
+            "p95": 25,
+            "maximum": 25
+          }
+        }
+      }
+    }
+  },
+  "failureLedger": [
+    {
+      "attempt": "candidate-upload-1",
+      "classification": "environment_or_infrastructure_failure",
+      "reason": "Object wrapper omitted inherited init handler. Candidate validation rejected it before serving.",
+      "walletJourneys": 0
+    },
+    {
+      "attempt": "tail-readiness-check",
+      "classification": "environment_or_infrastructure_failure",
+      "reason": "JSON tails lacked the expected connection text. Capture aborted before wallet journeys.",
+      "walletJourneys": 0,
+      "originalVersionsRestored": true
+    }
+  ],
+  "limits": [
+    "This is an instrumented candidate cohort without a matched uninstrumented control. It estimates no optimization gain or instrumentation overhead.",
+    "SDK signing includes automated confirmation. First transaction signing includes implicit-account funding inside transaction context.",
+    "Signing after unlock excludes the separate unlock call. Unlock timers are harness elapsed values and do not isolate SDK work.",
+    "Nested and cross-runtime timings cannot be summed or subtracted to assign exact CPU, transport, SQLite, or durable commit costs.",
+    "Zero-only Worker clock spans cannot establish absence of work. Platform CPU and wall observations are separate instruments.",
+    "The existing Gateway does not expose the new trace header or nested finalize timing. The temporary Router wrapper joins its Ray ID to a downstream trace.",
+    "The three transaction wallets provide a small descriptive sample. No p99 or general target acceptance is established.",
+    "Wallet-object colo observations come from the existing outbound Cloudflare trace-page probe. Their mapping to physical execution hosts is unvalidated.",
+    "Transaction signatures were independently verified by the harness. Their full signed bytes are not retained for offline re-verification.",
+    "The earlier baseline registration failure remains unresolved and is not replaced by these successful diagnostic cases."
+  ],
+  "rawArtifactRoot": ".artifacts/optimization-11-near/20261024-hosted-traces",
+  "rawProtectedTailSha256": {
+    "protected/seams-sdk-d1-gateway-staging.tail.log": "711dcc1ea3b2ae4e3b9d267135be0f3fd5515c670743cce33b25daa4a0930c1d",
+    "protected/router-ab-mpc-router-staging.tail.log": "933db571d176c3f8e19d2ec78994c0144947eda42d9180dbf2835c8fe73ff379",
+    "protected/router-ab-signing-worker-staging.tail.log": "5794dc8c55ad3c53a2640ac235c21bde24d4729a4bb16f5fb712a5933b367478",
+    "protected/router-ab-deriver-a-staging.tail.log": "a7bf9c9c2303c1139b119cd37cbfae6ac3f72161f66e0b87f668108db4eb49df",
+    "protected/router-ab-deriver-b-staging.tail.log": "0e84c83b69aae20dc3e74824e4cbd6f2840ac12869ff71e562c9a919cd47e5a1"
+  },
+  "sourceReceipts": {
+    "router-trace-entry.mjs": "7d2643718ca171ce599c7e37f62f5cca38e1f39f0d37f18662e54b87e5aa5386",
+    "protected/deployed-wrapper-input.mjs": "49c5bdee973293b3a6f6542a3ab0eccfcfc83ebe9e7372b0b12d07087406a708",
+    "prepare.py": "580402a84cc2a5b4908fbfc375380a13298138c0cc1b4c0c60f5231d97843c42",
+    "experiment.py": "32a0d80e9a3ca8742a2af57f578d1c681af5cee0f8034d9134b94d99452143b0",
+    "cloudflare.py": "5be86e5747893c2c1e6d4e3da25447cbb84fa04218a4e08fba396208cbde4132"
+  },
+  "sourceCleanup": {
+    "repository": "seams-wallet",
+    "commit": "c799bbf844cb4501461a2426c72376c5c348ea3e",
+    "evidence": {
+      "kind": "near-zero-only-timing-cleanup",
+      "environment": "Local release Workers, D1, wallet objects, automated Chromium interactions, stubbed chain RPC",
+      "hostedDeployment": false,
+      "removedMetricCount": 7,
+      "retainedMetrics": [
+        "near_router_service",
+        "near_sw_handler",
+        "near_sw_wallet_call"
+      ],
+      "fetchWalletRequestTimingParameterRemoved": true,
+      "stats": {
+        "startTime": "2026-10-24T02:18:40.024Z",
+        "duration": 54755.208999999995,
+        "expected": 4,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "joins": [
+        {
+          "traceId": "aa21fb3d57e2a18c6cb703e33e554c43",
+          "path": "/router-ab/ed25519/sign/prepare",
+          "stagesMs": {
+            "near_sw_wallet_call": 2,
+            "near_sw_handler": 2,
+            "near_router_service": 3
+          },
+          "objectId": "b6f11b8f997e9226707cfa61f395020bfe91f26b347fb8c90cf08c1de17a2a69",
+          "objectCommand": 3,
+          "status": 200
+        },
+        {
+          "traceId": "f7bf66f0612ee9a417cbc1caafa7be47",
+          "path": "/router-ab/ed25519/sign",
+          "stagesMs": {
+            "near_sw_wallet_call": 4,
+            "near_sw_handler": 4,
+            "near_router_service": 5
+          },
+          "objectId": "b6f11b8f997e9226707cfa61f395020bfe91f26b347fb8c90cf08c1de17a2a69",
+          "objectCommand": 4,
+          "status": 200
+        },
+        {
+          "traceId": "fc7ab8d22db5368bc5709c077bf90464",
+          "path": "/router-ab/ed25519/sign/prepare",
+          "stagesMs": {
+            "near_sw_wallet_call": 2,
+            "near_sw_handler": 2,
+            "near_router_service": 4
+          },
+          "objectId": "b6f11b8f997e9226707cfa61f395020bfe91f26b347fb8c90cf08c1de17a2a69",
+          "objectCommand": 5,
+          "status": 200
+        },
+        {
+          "traceId": "d060de1d49dfa7f9cdf454df944fb3ef",
+          "path": "/router-ab/ed25519/sign",
+          "stagesMs": {
+            "near_sw_wallet_call": 4,
+            "near_sw_handler": 4,
+            "near_router_service": 5
+          },
+          "objectId": "b6f11b8f997e9226707cfa61f395020bfe91f26b347fb8c90cf08c1de17a2a69",
+          "objectCommand": 6,
+          "status": 200
+        },
+        {
+          "traceId": "8a35448d13eae37612ca5c7bef91dbeb",
+          "path": "/router-ab/ed25519/sign/prepare",
+          "stagesMs": {
+            "near_sw_wallet_call": 3,
+            "near_sw_handler": 3,
+            "near_router_service": 3
+          },
+          "objectId": "b6f11b8f997e9226707cfa61f395020bfe91f26b347fb8c90cf08c1de17a2a69",
+          "objectCommand": 7,
+          "status": 200
+        },
+        {
+          "traceId": "8ec862ce7dd1f75743d466c1c6e0c407",
+          "path": "/router-ab/ed25519/sign",
+          "stagesMs": {
+            "near_sw_wallet_call": 3,
+            "near_sw_handler": 3,
+            "near_router_service": 4
+          },
+          "objectId": "b6f11b8f997e9226707cfa61f395020bfe91f26b347fb8c90cf08c1de17a2a69",
+          "objectCommand": 8,
+          "status": 200
+        }
+      ],
+      "sourceSha256": {
+        "crates/router-ab-cloudflare/src/lib.rs": "725505d9390f56ead22df8e751f998b26d8a8434c9fd8d6092e1dc44ba8fe6bf",
+        "crates/router-ab-cloudflare/src/strict_worker/signing_worker.rs": "fdb2198f619ce38e6aa0770e12688da4b1a55b8f2cbaf86ed8ff705cf0803d79",
+        "crates/router-ab-cloudflare/src/ed25519_normal_signing_transport.rs": "543b87a373a027786cc0f04c26e9fae2a3fa9d8471a2bd6cd9f74978f6ddd1bd",
+        "crates/router-ab-cloudflare/src/durable_object/signing_worker_wallet.rs": "dc9468a0b7db7f08cc22d367f80e3283726f1fd6ba2356781ec06dfa5cb8b713",
+        "crates/router-ab-cloudflare/src/durable_object/signing_worker_wallet/request.rs": "d68105f4c9724c00edefdc0bc30bcd14aa78ebc0783649e821a8be4d433b8d28",
+        "packages/shared-ts/src/utils/signingServerTiming.ts": "f309dca78384411b385602a3b56d6acb9deaeeee0ca28931b06a9a61e16ef1be",
+        "tests/e2e/intended-behaviours/passkey.ed25519-yao-local.contract.test.ts": "b6cdfe850c9f2a05d1071c20b6c068cc5e0f3b188e5c55547114edcd7caaae12"
+      },
+      "frozenSdkFilesVerified": 3755,
+      "roleBuilds": {
+        "router": {
+          "stamp": {
+            "profile": "release",
+            "wallet_objects": true,
+            "features": "strict-worker-router-entrypoint",
+            "started_at_ms": 1792807857392
+          },
+          "files": {
+            "worker/shim.mjs": "ac99177861405a6046923cbacabbd6adfa1853a56d0c679b9f5e09097c2f4728"
+          }
+        },
+        "signing-worker": {
+          "stamp": {
+            "profile": "release",
+            "wallet_objects": true,
+            "features": "strict-worker-signing-worker-entrypoint",
+            "started_at_ms": 1792808072766
+          },
+          "files": {
+            "worker/shim.mjs": "ac99177861405a6046923cbacabbd6adfa1853a56d0c679b9f5e09097c2f4728"
+          }
+        },
+        "deriver-a": {
+          "stamp": {
+            "profile": "release",
+            "wallet_objects": true,
+            "features": "strict-worker-deriver-a-entrypoint",
+            "started_at_ms": 1792808195704
+          },
+          "files": {
+            "worker/shim.mjs": "ac99177861405a6046923cbacabbd6adfa1853a56d0c679b9f5e09097c2f4728"
+          }
+        },
+        "deriver-b": {
+          "stamp": {
+            "profile": "release",
+            "wallet_objects": true,
+            "features": "strict-worker-deriver-b-entrypoint",
+            "started_at_ms": 1792807751354
+          },
+          "files": {
+            "worker/shim.mjs": "ac99177861405a6046923cbacabbd6adfa1853a56d0c679b9f5e09097c2f4728"
+          }
+        },
+        "tenant-root-control-plane": {
+          "stamp": {
+            "profile": "release",
+            "wallet_objects": false,
+            "features": "strict-worker-tenant-root-control-plane-entrypoint",
+            "started_at_ms": 1792807976358
+          },
+          "files": {
+            "worker/shim.mjs": "ac99177861405a6046923cbacabbd6adfa1853a56d0c679b9f5e09097c2f4728"
+          }
+        }
+      },
+      "publicMessageProofs": [
+        {
+          "message": "Approve checkout before refresh",
+          "recipient": "checkout.example",
+          "state": "",
+          "success": true,
+          "accountId": "62a47947cbf9e86d6d16870dd8765f39d60ae8f47f6791e6f3481996b56a4056",
+          "publicKey": "ed25519:7e4R7kfDtNSq8HydCncNkyr8r7Uwm7Xa9A6CLFXkFcu3",
+          "signature": "vJVOAJ9El/OTy/KS/d8JvTBpmDNqdwe6Wwgq+z6qcVEotkYGS+C0yZTTogfpxU4amNalmJJzrk8NAgZ5dodACw==",
+          "nonce": "6e390Gjo8Yb/wecRrHgn7Eww2JMWVrD7lJE19RztEzY=",
+          "digestHex": "c613881a51ebcecb997c198c2ee499d47943b41d43564d1f2974da6426384e50",
+          "verification": {
+            "standardPayload": true,
+            "changedMessageRejected": true,
+            "changedRecipientRejected": true,
+            "changedNonceRejected": true,
+            "changedCallbackUrlRejected": true,
+            "stateExcludedFromPayload": true,
+            "stateReturnedUnchanged": true
+          }
+        },
+        {
+          "message": "Approve checkout after refresh",
+          "recipient": "checkout.example",
+          "callbackUrl": "https://checkout.example/callback?request=170",
+          "state": "quote-170-after-refresh",
+          "success": true,
+          "accountId": "62a47947cbf9e86d6d16870dd8765f39d60ae8f47f6791e6f3481996b56a4056",
+          "publicKey": "ed25519:7e4R7kfDtNSq8HydCncNkyr8r7Uwm7Xa9A6CLFXkFcu3",
+          "signature": "4/tghRjTCissAiMjSe5ILJM2nlEL+ViQa7QFH8EnnLvsOKIKTk2rZbJoKAllAYOsUcoDuX9NCHBqAUY2aQzlDA==",
+          "nonce": "p5M8IRwbTisGL7GTmBjxhre5bv9acNAlEJ+xVp2ATWw=",
+          "digestHex": "1950f3b8e944bb34f2726f499cc85e625ac50b4e6a4c6061dbb1e210ea7e1089",
+          "verification": {
+            "standardPayload": true,
+            "changedMessageRejected": true,
+            "changedRecipientRejected": true,
+            "changedNonceRejected": true,
+            "changedCallbackUrlRejected": true,
+            "stateExcludedFromPayload": true,
+            "stateReturnedUnchanged": true
+          }
+        }
+      ],
+      "independentVerification": {
+        "verifier": "Node.js crypto Ed25519 with independent NEP-413 Borsh encoding",
+        "results": [
+          {
+            "name": "before_reload",
+            "publicKey": "ed25519:7e4R7kfDtNSq8HydCncNkyr8r7Uwm7Xa9A6CLFXkFcu3",
+            "digestHex": "c613881a51ebcecb997c198c2ee499d47943b41d43564d1f2974da6426384e50",
+            "verified": true,
+            "tamperRejections": [
+              "message",
+              "recipient",
+              "nonce",
+              "callbackUrl"
+            ],
+            "stateExcludedFromSignedPayload": true
+          },
+          {
+            "name": "after_reload",
+            "publicKey": "ed25519:7e4R7kfDtNSq8HydCncNkyr8r7Uwm7Xa9A6CLFXkFcu3",
+            "digestHex": "1950f3b8e944bb34f2726f499cc85e625ac50b4e6a4c6061dbb1e210ea7e1089",
+            "verified": true,
+            "tamperRejections": [
+              "message",
+              "recipient",
+              "nonce",
+              "callbackUrl"
+            ],
+            "stateExcludedFromSignedPayload": true
+          }
+        ]
+      },
+      "finalizeReplay": {
+        "statuses": [
+          {
+            "scenario": "missing_operation",
+            "status": 409
+          },
+          {
+            "scenario": "changed_receipt",
+            "status": 400
+          },
+          {
+            "scenario": "first_finalize_reply_discarded",
+            "status": 200
+          },
+          {
+            "scenario": "exact_retry_after_quota_exhaustion",
+            "status": 200
+          },
+          {
+            "scenario": "retired_session_retry",
+            "status": 401
+          }
+        ],
+        "persistence": {
+          "remainingUses": 0,
+          "claims": 1,
+          "auditEvents": 1
+        }
+      },
+      "checks": {
+        "releaseWorkerBuilds": {
+          "command": "ROUTER_AB_WORKER_BUILD_PROFILE=release pnpm build:workers",
+          "exitCode": 0,
+          "log": "build-workers.log",
+          "logSha256": "776d01df09d781caee2ca18148e3377978973bb087260d2d4020261271d61bd3"
+        },
+        "serverBuild": {
+          "command": "pnpm -C packages/wallet-server build",
+          "exitCode": 0,
+          "log": "build-server.log",
+          "logSha256": "bd54d2df988025a1549e15583ea7950f2ab9daba3e66aa3d7917c8ea0187abc5"
+        },
+        "intendedTypecheck": {
+          "command": "pnpm -C tests type-check:intended",
+          "exitCode": 0,
+          "log": "typecheck.log",
+          "logSha256": "c960d4e3cf4916202f4e04759b99fefc4668e21cc7caca11ff9f6b7aeb9399c4"
+        },
+        "cargoLocks": {
+          "command": "pnpm check:cargo-locks",
+          "exitCode": 0,
+          "log": "cargo-locks.log",
+          "logSha256": "bccecd851e71c201a3df72986440fc984876ce82ce2eece9ba3ae3e7dca4c5c1"
+        },
+        "bloat": {
+          "command": "pnpm report:bloat --check",
+          "exitCode": 0,
+          "log": "bloat-final.log",
+          "logSha256": "1d6a3e2ef2895291f4899dda596b178ff3791117bdbfa07190444faa4ac0ab0c"
+        },
+        "requestRustfmt": {
+          "command": "rustfmt --edition 2021 --check crates/router-ab-cloudflare/src/durable_object/signing_worker_wallet/request.rs",
+          "exitCode": 0
+        },
+        "signing-workerFinalBuild": {
+          "command": "ROUTER_AB_WORKER_BUILD_PROFILE=release pnpm -C crates/router-ab-cloudflare build:signing-worker",
+          "exitCode": 0,
+          "log": "build-signing-worker-final.log",
+          "logSha256": "4a36deffb4e2c15beb82f018956d37586c62e14fd9dbb9ffe37c31c86d0d9164"
+        },
+        "deriver-aFinalBuild": {
+          "command": "ROUTER_AB_WORKER_BUILD_PROFILE=release pnpm -C crates/router-ab-cloudflare build:deriver-a",
+          "exitCode": 0,
+          "log": "build-deriver-a-final.log",
+          "logSha256": "e3081eeea6c682f2e65278b9c9a05234d1ce920e8cf9a4c3d4051759e303dfda"
+        }
+      },
+      "bloatCorrection": {
+        "classification": "production_regression",
+        "invariant": "Committed diagnostic code must remain within the existing duplication threshold",
+        "threshold": 13754,
+        "parentDuplicateLines": 13740,
+        "tracingCommitDuplicateLines": 13779,
+        "cleanupDuplicateLines": 13737,
+        "previousClaimWithdrawn": "The earlier check omitted new untracked files and did not validate the full tracing commit"
+      },
+      "artifacts": {
+        ".artifacts/optimization-11-near/20261024-trace-cleanup/analyze.py": "e245eb383f756168fca3e1264681622e96d43738ce3bbf9033a4eee8a444ba81",
+        ".artifacts/optimization-11-near/20261024-trace-cleanup/run-local.py": "dc688220b51a4b763ae3c733f516afabe5a4ac3da86068a369c21c0a10625812",
+        ".artifacts/optimization-11-near/20261024-trace-cleanup/verify-proofs.mjs": "d9dcdcfb0fe163139f5f7f8cbe143c374ac2caeaa622e97e63e93ddfea9b9e35",
+        ".artifacts/optimization-11-near/20261024-trace-cleanup/proof-verification.json": "34456b791bdc3df68586fcf30b818efae794ac33fd87343b83c676e477b41c97",
+        ".artifacts/optimization-11-near/20261024-trace-cleanup/checks.json": "e34d80aafd8697bb44d438ceab00c5baf583b43e6e8ca7f13e1f6adc260cfd84",
+        ".artifacts/optimization-11-near/20261024-trace-cleanup/local-contracts/browser/e2e-intended-behaviours-pa-6cc61-gistered-key-across-refresh-chromium/near-message-signatures.json": "29ceae362e4b772b9aee7f7a83ba09166c2036d22fa006e5ddfc945af266ea59",
+        ".artifacts/optimization-11-near/20261024-trace-cleanup/local-contracts/browser/e2e-intended-behaviours-pa-d915f-uota-and-rejects-retirement-chromium/near-finalize-replay.json": "efe1e3a9740d0aebf7ba9f98595f46e96a71e0c1a5edf694ff217cb76d78e9a3",
+        ".artifacts/optimization-11-near/20261024-trace-cleanup/local-contracts/playwright.json": "497b4c557b8e774929092d7943290dfa34a255ac091de090cfd45ef78e9b6037",
+        ".artifacts/optimization-11-near/20261024-trace-cleanup/local-contracts/run.json": "a60cebe691c794fab075b6ab9f197497caf3fbdc9ff612a1ba2037a852420934",
+        ".artifacts/optimization-11-near/20261024-trace-cleanup/local-contracts/browser.log": "d03070f6f507bcda4a3082e076f8189ecc41068e6c59306e624123c2d5c80d45"
+      },
+      "limits": [
+        "This is local behavior and diagnostic verification, with no hosted performance comparison.",
+        "The earlier hosted capture measured the ten-field diagnostic candidate before this cleanup.",
+        "Trace IDs, existing object command logs, and three useful call spans remain for the next investigation."
+      ]
+    }
+  },
+  "artifactSha256": {
+    "analyze.py": "7919d85612c59c1c03d41d5b1abaeb7302d94e5ab7c18b2c9d5b814caf4165ad",
+    "verify-proof.mjs": "6b454c92be710c8175589cdd61929ddbb3370e16329c4a1c0f617068a78194b0",
+    "cloudflare.py": "5be86e5747893c2c1e6d4e3da25447cbb84fa04218a4e08fba396208cbde4132",
+    "experiment.py": "32a0d80e9a3ca8742a2af57f578d1c681af5cee0f8034d9134b94d99452143b0",
+    "prepare.py": "580402a84cc2a5b4908fbfc375380a13298138c0cc1b4c0c60f5231d97843c42",
+    "before.json": "2742d137a9d9eb6af3c0e5772a16b1dcb4cf07ec9359e3e4a8a32a49504478e4",
+    "prepared.json": "6439e776b453f80f724627c143a0a5b0acc3cc16bcf4a048e5f237a15e46efbf",
+    "measurement-start.json": "66a8b85c0322c6a96b9abeb66b82d39893d7dfc514e4446d43f7008883ae2201",
+    "measurement-end.json": "f7f04b9c0c8cd33747d1b4649882df555add84d8daccd8867c9d79bdfb730654",
+    "after.json": "79983fe866cd884b56256bb70bde2d296e1b83c358162d7344873091ec1bc9a8",
+    "capture-qualified.json": "0c59691c05ac716f4fcf5ef99dac5e87a1c83d4e81969e9c0e536285cabdd200",
+    "qualification/registration-1.json": "92e5d8fedbb0c21b852dc35ce29f2f41dee32b3fff1e2d0445940b76de74d88b",
+    "qualification/run.json": "b6d7f69e2d5394322664d721d5e581baf730532b80afaa532e786914b2cf21b1",
+    "qualification/playwright.json": "c9eff02edc151d1123c46376ca417c2a775d9fb8b8812f6f98b9bf11a3ff7d97",
+    "transactions/run.json": "209b8e0d3e82c0f4c217f9ea8a3eae33118daf7ea4c05d0043c3f2c6cbaec4f7",
+    "transactions/playwright.json": "84b537d8f3295797634540654b8c85e9874eab182fc6988f0eddd2dc17701e12",
+    "transactions/near-1.json": "58aba77596713f78af394a55bcd65696262819537634b24d52b4ec981b84ebf7",
+    "transactions/near-2.json": "8ecddacd0560707462ace2597af3b7520645ee8098aacd824edc6703c6ccf049",
+    "transactions/near-3.json": "27541ed26fe0283e35a84c9efbe86f4d2eb4b03cda7d9ca79a26805a6fce766c",
+    "protected/deployed-wrapper-input.mjs": "49c5bdee973293b3a6f6542a3ab0eccfcfc83ebe9e7372b0b12d07087406a708",
+    "proof-verification.json": "590db3f4ece2e65f721b321ff551053c0b0e736967321a3727bcaed58d077ac4",
+    "source-cleanup-commit.json": "266bc28c86c6a5541808a2ef640a4d4ad89cf379fd8db1ea316be0d7e9b56919"
+  }
+}

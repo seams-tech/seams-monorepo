@@ -1,0 +1,226 @@
+/* ---------- the modal: a white panel over a dimmed page ---------- */
+
+/* the dialog carries .h2-page for the palette; it is not a full page.
+   Two columns, like the wallet hero: the grain intro panel on the left, the
+   form on the right. The intro panel sits one inset inside the modal, so its
+   radius is the modal radius minus that inset and the corners stay concentric. */
+.h2-page.contact-modal {
+  --contact-field-radius: 14px;
+  --contact-modal-radius: 28px;
+  --contact-modal-inset: 8px;
+  --contact-intro-radius: calc(var(--contact-modal-radius) - var(--contact-modal-inset));
+  /* input boundaries: a step darker than the stone hairline, so a field
+     reads as a field on white */
+  --contact-field-line: color-mix(in srgb, var(--h2-stone) 60%, var(--h2-ash));
+  width: min(880px, calc(100vw - 32px));
+  max-width: none;
+  min-height: 0;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--contact-modal-radius);
+  background: var(--h2-bg);
+  overflow: auto;
+  overscroll-behavior: contain;
+  box-shadow:
+    0 2px 6px rgba(10, 10, 10, 0.12),
+    0 24px 60px -12px rgba(10, 10, 10, 0.35);
+}
+
+.contact-modal::backdrop {
+  background: rgba(10, 10, 10, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+html:has(.contact-modal[open]) {
+  overflow: hidden;
+}
+
+.contact-modal__panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  padding: var(--contact-modal-inset);
+}
+
+.contact-modal__close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--h2-graphite);
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .contact-modal__close:hover {
+    background: var(--h2-taupe);
+  }
+}
+
+.contact-modal__close:focus-visible {
+  outline: 2px solid var(--h2-ink);
+  outline-offset: 2px;
+}
+
+/* ---------- intro: light ink on the teal-peach grain ---------- */
+
+.contact-modal__intro {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 12px;
+  min-height: 100%;
+  padding: 40px 32px 32px;
+  border-radius: var(--contact-intro-radius);
+  background: var(--h2-ink);
+}
+
+.contact-modal__title {
+  margin: 0;
+  font-size: clamp(26px, 3vw, 32px);
+  color: #ffffff;
+}
+
+.contact-modal__copy {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* .h2-page prefix outranks the h2 anchor color reset */
+.h2-page .contact-modal__copy a {
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- form ---------- */
+
+.contact-form {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  /* the top padding clears the close button */
+  padding: 64px 32px 28px 36px;
+}
+
+.contact-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.contact-form__field {
+  display: grid;
+  gap: 7px;
+}
+
+.contact-form__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--h2-graphite);
+}
+
+.contact-form input,
+.contact-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 14px;
+  border: 1px solid var(--contact-field-line);
+  border-radius: var(--contact-field-radius);
+  background: var(--h2-bg);
+  font: inherit;
+  font-size: 14px;
+  color: var(--h2-ink);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.contact-form textarea {
+  min-height: 132px;
+  resize: vertical;
+}
+
+.contact-form input::placeholder,
+.contact-form textarea::placeholder {
+  color: var(--h2-smoke);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .contact-form input:hover,
+  .contact-form textarea:hover {
+    border-color: var(--h2-ash);
+  }
+}
+
+/* one ink border and a soft halo; the transparent outline keeps a visible
+   ring in forced-colors mode, which drops box-shadow */
+.contact-form input:focus-visible,
+.contact-form textarea:focus-visible {
+  outline: 2px solid transparent;
+  border-color: var(--h2-ink);
+  box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.1);
+}
+
+.contact-form__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* stacked: the grain becomes a band over the form */
+@media (max-width: 760px) {
+  .h2-page.contact-modal {
+    --contact-modal-radius: 24px;
+  }
+
+  .contact-modal__panel {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-modal__intro {
+    min-height: 0;
+    padding: 64px 22px 24px;
+  }
+
+  .contact-modal__close {
+    color: #ffffff;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .contact-modal__close:hover {
+      background: rgba(255, 255, 255, 0.16);
+    }
+  }
+
+  .contact-modal__close:focus-visible {
+    outline-color: #ffffff;
+  }
+
+  .contact-form {
+    padding: 24px 16px 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .contact-form__row {
+    grid-template-columns: 1fr;
+  }
+}

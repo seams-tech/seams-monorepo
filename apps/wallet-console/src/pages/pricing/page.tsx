@@ -3,13 +3,14 @@ import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { FieldBanner, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { startSiteAnchorScroll, subscribeToSiteNavigation } from '@/app/router/siteRouting';
 import type { MessageKey } from './catalog';
 import { EnterpriseCalculator } from './EnterpriseCalculator';
 import { estimate, lowestSelfServePlan } from './estimate';
 import { locale, t } from './i18n';
-import { CONTACT_SALES_TARGET, planSignupHref } from './planSignup';
+import { planSignupHref } from './planSignup';
 import { PlanSignupDialog, type SignupOffer } from './PlanSignupDialog';
 import { formatPrice } from './prices';
 import '@/styles/h2.css';
@@ -79,7 +80,7 @@ function getPlans(): readonly Plan[] {
       unit: t('committedVolume'),
       summary: t('enterpriseSummary'),
       features: [t('volumePricing'), t('enterpriseUsers'), t('enterpriseSignatures'), t('rollout')],
-      cta: { label: t('contactSales'), to: CONTACT_SALES_TARGET },
+      cta: { label: t('contactSales'), to: CONTACT_LINK_TARGET },
     },
   ];
 }

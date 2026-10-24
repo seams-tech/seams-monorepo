@@ -1,10 +1,10 @@
 import React from 'react';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 import type { MessageKey } from './catalog';
 import { estimate, FREE_USERS, lowestSelfServePlan, type SelfServePlanId } from './estimate';
 import { locale, t } from './i18n';
-import { CONTACT_SALES_TARGET } from './planSignup';
 import { formatPrice } from './prices';
 
 // A log-like scale from the Free plan's users: each slider step is one of these counts.
@@ -106,7 +106,7 @@ export function EnterpriseCalculator(): React.JSX.Element {
     notation: 'compact',
   });
   const { linkProps } = useSiteRouter();
-  const contactProps = linkProps(CONTACT_SALES_TARGET);
+  const contactProps = linkProps(CONTACT_LINK_TARGET);
   const [userStep, setUserStep] = React.useState(USER_STEPS.indexOf(100_000));
   const [perDay, setPerDay] = React.useState(10);
   const usersId = React.useId();

@@ -1,6 +1,7 @@
 import React from 'react';
 import '@seams/wallet/react/styles';
 import '@/app.css';
+import { ContactModalHost } from '@/components/contact/ContactModal';
 import { pageFromUrl } from '@/marketing/i18n/locale';
 import { WalletPage } from '@/pages/wallet/page';
 
@@ -14,7 +15,7 @@ const FeaturesPage = React.lazy(() =>
 // Links between pages use document navigation, so the page is read once.
 const page = pageFromUrl(new URL(window.location.href));
 
-export function WalletMarketingRoute(): React.JSX.Element {
+function MarketingPage(): React.JSX.Element {
   switch (page) {
     case 'pricing':
       return <PricingPage />;
@@ -23,4 +24,14 @@ export function WalletMarketingRoute(): React.JSX.Element {
     case 'home':
       return <WalletPage />;
   }
+}
+
+// Every page opens the contact form while the URL hash is #contact.
+export function WalletMarketingRoute(): React.JSX.Element {
+  return (
+    <>
+      <MarketingPage />
+      <ContactModalHost />
+    </>
+  );
 }

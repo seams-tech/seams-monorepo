@@ -17,7 +17,7 @@ import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { startSiteAnchorScroll } from '@/app/router/siteRouting';
-import { CONTACT_SALES_TARGET } from '@/pages/pricing/planSignup';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 import type { MessageKey } from './catalog';
 import { t } from './i18n';
 import { RegionalGlobe } from './RegionalGlobe';
@@ -210,7 +210,7 @@ export function FeaturesPage(): React.JSX.Element {
               />
               <FeatureCards features={SELF_HOSTED} field="slate-amber" />
               <div className="features-actions">
-                <SiteLink to={CONTACT_SALES_TARGET} className="h2-btn h2-btn--primary">
+                <SiteLink to={CONTACT_LINK_TARGET} className="h2-btn h2-btn--primary">
                   {t('contactUs')}
                 </SiteLink>
                 <SiteLink to="/pricing/#enterprise" className="h2-btn h2-btn--outline">

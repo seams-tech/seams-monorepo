@@ -313,8 +313,8 @@ export const catalog = {
   biometricAuth: { en: 'Biometric Authentication', ja: '生体認証' },
   simpleWallets: { en: 'Safe, simple wallets', ja: '安全でシンプルなウォレット' },
   simpleWalletsDescription: {
-    en: 'Simple screens for sign-in, payments, and recovery',
-    ja: 'サインイン、支払い、復元をシンプルな画面で',
+    en: 'Passkey sign-in, email recovery, and device linking',
+    ja: 'パスキーでサインイン、メールで復元、デバイスをリンク',
   },
   globalSelfHosted: { en: 'Global or self-hosted', ja: 'グローバル展開・セルフホスト' },
   globalSelfHostedDescription: {
@@ -326,10 +326,10 @@ export const catalog = {
     ja: 'Face IDやTouch IDで使えるパスキー。VoiceIDは今後対応予定です。',
   },
   allFeatures: { en: 'All features', ja: 'すべての機能' },
-  liveDemo: { en: 'Live demo', ja: 'ライブデモ' },
-  liveDemoDescription: {
-    en: 'Create a passkey wallet in your browser',
-    ja: 'ブラウザでパスキーウォレットを作成',
+  componentsCard: { en: 'Wallet components', ja: 'ウォレットのコンポーネント' },
+  componentsCardDescription: {
+    en: 'Built-in sign-in, payment, and recovery screens, or your own',
+    ja: 'サインイン、支払い、復元の標準画面も、独自のUIも',
   },
   planPricing: { en: 'Plan pricing', ja: 'プランと料金' },
   getStarted: { en: 'Get Started', ja: 'はじめに' },

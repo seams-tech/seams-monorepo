@@ -75,6 +75,11 @@ export function getActiveFrontendDeployment(): ConsoleDeployment {
   return activeDeployment;
 }
 
+/** The endpoints of either network, for a read made before switching to it. */
+export function consoleDeploymentFor(network: ConsoleNetwork): ConsoleDeployment {
+  return network === activeDeployment.network ? activeDeployment : deploymentFor(network);
+}
+
 export type ConsoleRuntimeState = {
   readonly selectedNetwork: ConsoleNetwork;
   readonly deployment: ConsoleDeployment;

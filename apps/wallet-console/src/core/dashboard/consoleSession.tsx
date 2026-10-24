@@ -9,7 +9,10 @@ import {
   normalizeConsoleFetchError,
   parseConsoleJson,
   requireConsoleBaseUrl,
+  resolveConsoleBaseUrl,
 } from './consoleHttp';
+import { readUnscopedConsoleSession } from './routes/onboarding/initialOrganizationApi';
+import { consoleDeploymentFor, type ConsoleNetwork } from '@core/runtime';
 
 interface DashboardConsoleSessionIdentity {
   userId: string;
@@ -153,8 +156,9 @@ function assertNeverAccess(access: never): never {
   throw new Error(`Unknown Console access state: ${String(access)}`);
 }
 
-export async function fetchDashboardConsoleSession(): Promise<DashboardConsoleSessionClaims> {
-  const base = requireConsoleBaseUrl();
+export async function fetchDashboardConsoleSession(
+  base: string = requireConsoleBaseUrl(),
+): Promise<DashboardConsoleSessionClaims> {
   let response: Response;
   try {
     response = await fetch(`${base}/console/session`, {
@@ -219,6 +223,68 @@ export async function revokeDashboardConsoleSession(): Promise<void> {
   throw new Error(consoleErrorMessage(response, body, 'Console session revoke failed'));
 }
 
+/* Each network has its own Console backend and session cookie, so a switch must read
+   the other network's session. The dashboard reads it ahead of the switch, and the
+   switch hands the result to the dashboard that opens next. That dashboard shows it at
+   once and reads the session again in the background. */
+export type PrefetchedDashboardConsoleSession = {
+  readonly fetchedAt: number;
+  /** The identity has no organization yet, so the dashboard opens onboarding. */
+  readonly onboarding: boolean;
+  /** Null when the network has no organization session. */
+  readonly claims: DashboardConsoleSessionClaims | null;
+};
+
+const PREFETCH_REFRESH_AFTER_MS = 30_000;
+const PREFETCH_MAX_AGE_MS = 10 * 60_000;
+const prefetchedSessions = new Map<ConsoleNetwork, PrefetchedDashboardConsoleSession>();
+const prefetchesInFlight = new Set<ConsoleNetwork>();
+let switchHandoff: {
+  readonly network: ConsoleNetwork;
+  readonly session: PrefetchedDashboardConsoleSession;
+} | null = null;
+
+/** Reads a network's session for a later switch. A read in the cache stays until a new
+    one settles, so a switch never waits for a refresh. */
+export function prefetchDashboardConsoleSession(network: ConsoleNetwork): void {
+  const current = prefetchedSessions.get(network);
+  if (prefetchesInFlight.has(network)) return;
+  if (current && Date.now() - current.fetchedAt < PREFETCH_REFRESH_AFTER_MS) return;
+  const base = resolveConsoleBaseUrl(consoleDeploymentFor(network));
+  if (!base) return;
+  prefetchesInFlight.add(network);
+  void Promise.all([
+    readUnscopedConsoleSession(base).catch(() => false),
+    fetchDashboardConsoleSession(base).catch(() => null),
+  ])
+    .then(([onboarding, claims]) => {
+      prefetchedSessions.set(network, { fetchedAt: Date.now(), onboarding, claims });
+    })
+    .finally(() => {
+      prefetchesInFlight.delete(network);
+    });
+}
+
+/** Called by the network switch: the next dashboard on this network takes the read. */
+export function handOffPrefetchedDashboardConsoleSession(network: ConsoleNetwork): void {
+  const session = prefetchedSessions.get(network);
+  prefetchedSessions.delete(network);
+  switchHandoff =
+    session && Date.now() - session.fetchedAt < PREFETCH_MAX_AGE_MS ? { network, session } : null;
+}
+
+/** The read that the switch handed to this network. Reading it changes nothing, so a
+    render may call it more than once. */
+export function readDashboardConsoleSessionHandoff(
+  network: ConsoleNetwork,
+): PrefetchedDashboardConsoleSession | null {
+  return switchHandoff?.network === network ? switchHandoff.session : null;
+}
+
+export function clearDashboardConsoleSessionHandoff(): void {
+  switchHandoff = null;
+}
+
 const CONSOLE_SIGN_OUT_FLAG_KEY = 'seams.console.signedOut';
 
 /**
@@ -249,25 +315,35 @@ export function consumeDashboardConsoleSignOut(): boolean {
 
 export function DashboardConsoleSessionProvider({
   children,
+  prefetchedClaims,
 }: {
   children: React.ReactNode;
+  /** Claims read before a network switch: shown at once, then read again. */
+  prefetchedClaims?: DashboardConsoleSessionClaims | null;
 }): React.JSX.Element {
-  const [loading, setLoading] = React.useState<boolean>(true);
-  const [claims, setClaims] = React.useState<DashboardConsoleSessionClaims | null>(null);
+  const [initialClaims] = React.useState(() => prefetchedClaims ?? null);
+  const [loading, setLoading] = React.useState<boolean>(!initialClaims);
+  const [claims, setClaims] = React.useState<DashboardConsoleSessionClaims | null>(initialClaims);
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [errorCode, setErrorCode] = React.useState<string>('');
   const [errorStatus, setErrorStatus] = React.useState<number | null>(null);
 
-  const refresh = React.useCallback(() => {
+  /* A background read keeps the claims on screen while it runs, and keeps the same
+     claims object when nothing changed, so the dashboard does not load again. */
+  const refresh = React.useCallback((background = false) => {
     let cancelled = false;
-    setLoading(true);
-    setErrorMessage('');
-    setErrorCode('');
-    setErrorStatus(null);
+    if (!background) {
+      setLoading(true);
+      setErrorMessage('');
+      setErrorCode('');
+      setErrorStatus(null);
+    }
     fetchDashboardConsoleSession()
       .then((nextClaims) => {
         if (cancelled) return;
-        setClaims(nextClaims);
+        setClaims((current) =>
+          current && JSON.stringify(current) === JSON.stringify(nextClaims) ? current : nextClaims,
+        );
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -286,10 +362,7 @@ export function DashboardConsoleSessionProvider({
     };
   }, []);
 
-  React.useEffect(() => {
-    const cleanup = refresh();
-    return cleanup;
-  }, [refresh]);
+  React.useEffect(() => refresh(Boolean(initialClaims)), [initialClaims, refresh]);
 
   const value = React.useMemo<DashboardConsoleSessionState>(
     () => ({

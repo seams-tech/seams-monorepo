@@ -405,6 +405,19 @@ export function replaceDashboardSelectedContext(
   );
 }
 
+export function readPersistedDashboardSidebarExpanded(): boolean {
+  const current = readRawStoredState();
+  return typeof current.isSidebarExpanded === 'boolean' ? current.isSidebarExpanded : true;
+}
+
+/** The rail state that a dashboard opens with: open, unless the URL asks for it closed. */
+export function readInitialDashboardSidebarExpanded(): boolean {
+  if (typeof window === 'undefined') return true;
+  return (
+    new URLSearchParams(window.location.search).get(DASHBOARD_UI_QUERY_KEYS.sidebarExpanded) !== '0'
+  );
+}
+
 export function readPersistedDashboardSelectedContext(): Partial<TopbarContextState> {
   const current = readRawStoredState();
   const selected = current.selectedContext;

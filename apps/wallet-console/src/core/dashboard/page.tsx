@@ -31,7 +31,11 @@ import {
   canDashboardManageBilling,
   canDashboardViewBilling,
   DashboardConsoleSessionProvider,
+  clearDashboardConsoleSessionHandoff,
+  handOffPrefetchedDashboardConsoleSession,
   markDashboardConsoleSignOut,
+  prefetchDashboardConsoleSession,
+  readDashboardConsoleSessionHandoff,
   revokeDashboardConsoleSession,
   useDashboardConsoleSession,
   type DashboardConsoleSessionClaims,
@@ -51,8 +55,12 @@ import {
 } from './routes/onboarding/consoleOnboardingApi';
 import {
   clearDashboardUiState,
+  DASHBOARD_UI_QUERY_KEYS,
+  persistDashboardSelectedContext,
   readDashboardUrlContext,
+  readInitialDashboardSidebarExpanded,
   readPersistedDashboardSelectedContext,
+  readPersistedDashboardSidebarExpanded,
   replaceDashboardSelectedContext,
   useDashboardUiPreferences,
 } from './useDashboardUiPreferences';
@@ -192,36 +200,75 @@ function withConsoleNetworkOptions(
   ];
 }
 
+function otherConsoleNetwork(
+  runtime: Pick<ConsoleRuntimeState, 'selectedNetwork' | 'availableNetworks'>,
+): ConsoleNetwork | null {
+  return runtime.availableNetworks.find((network) => network !== runtime.selectedNetwork) ?? null;
+}
+
+function prefetchOtherConsoleNetwork(
+  runtime: Pick<ConsoleRuntimeState, 'selectedNetwork' | 'availableNetworks'>,
+): void {
+  const network = otherConsoleNetwork(runtime);
+  if (network) prefetchDashboardConsoleSession(network);
+}
+
 // Each network has its own account store. The top bar shows the switch on wide
 // screens; the account menu above carries it on narrow ones.
 function consoleNetworkSwitch(
   runtime: Pick<ConsoleRuntimeState, 'selectedNetwork' | 'availableNetworks'>,
+  go: (to: string) => void,
 ): DashboardNetworkSwitch | undefined {
   if (runtime.availableNetworks.length < 2) return undefined;
-  return { selected: runtime.selectedNetwork, onSelect: navigateToConsoleNetwork };
+  return {
+    selected: runtime.selectedNetwork,
+    onSelect: navigateToConsoleNetwork.bind(null, go),
+    onIntent: prefetchOtherConsoleNetwork.bind(null, runtime),
+  };
 }
 
-function selectConsoleNetworkOption(value: string): boolean {
+function selectConsoleNetworkOption(go: (to: string) => void, value: string): boolean {
   switch (value) {
     case SWITCH_TO_MAINNET:
-      navigateToConsoleNetwork('mainnet');
+      navigateToConsoleNetwork(go, 'mainnet');
       return true;
     case SWITCH_TO_TESTNET:
-      navigateToConsoleNetwork('testnet');
+      navigateToConsoleNetwork(go, 'testnet');
       return true;
     default:
       return false;
   }
 }
 
-function navigateToConsoleNetwork(network: ConsoleNetwork): void {
-  if (getActiveFrontendDeployment().network === network) return;
-  selectNetwork(network);
-  if (getActiveFrontendDeployment().network !== network) return;
-  clearDashboardUiState();
-  const destination = new URL('/dashboard/account-settings', window.location.origin);
+/* The switch stays in the page. DashboardPage keys the dashboard by network, so the
+   new network's dashboard mounts with empty state, as after a page load, and starts
+   from the session read made ahead of the switch. The saved organization and project
+   belong to the old network's account store, so they go; a collapsed rail stays
+   collapsed. All the updates land in one render. */
+function navigateToConsoleNetwork(go: (to: string) => void, network: ConsoleNetwork): void {
+  if (!switchConsoleNetwork(network)) return;
+  const destination = new URL(DASHBOARD_ACCOUNT_SETTINGS_ROUTE, window.location.origin);
   destination.searchParams.set('db_network', network);
-  window.location.assign(destination.href);
+  if (!readPersistedDashboardSidebarExpanded()) {
+    destination.searchParams.set(DASHBOARD_UI_QUERY_KEYS.sidebarExpanded, '0');
+  }
+  go(`${destination.pathname}${destination.search}`);
+}
+
+function switchConsoleNetwork(network: ConsoleNetwork): boolean {
+  if (getActiveFrontendDeployment().network === network) return false;
+  handOffPrefetchedDashboardConsoleSession(network);
+  selectNetwork(network);
+  if (getActiveFrontendDeployment().network !== network) return false;
+  persistDashboardSelectedContext({ organization: '', project: '', environment: '' });
+  return true;
+}
+
+/* Back and forward cross a switch without a page load, so the network follows the
+   network that the history entry's URL names. */
+function followConsoleNetworkInUrl(): void {
+  const network = new URLSearchParams(window.location.search).get('db_network');
+  if (network === 'testnet' || network === 'mainnet') switchConsoleNetwork(network);
 }
 
 function buildProjectEnvironmentOptions(input: {
@@ -936,7 +983,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
 
   const onSelectContext = React.useCallback(
     (menu: TopbarMenuKey, value: string) => {
-      if (menu === 'accountSettings' && selectConsoleNetworkOption(value)) return;
+      if (menu === 'accountSettings' && selectConsoleNetworkOption(go, value)) return;
       if (menu === 'organization') {
         const nextOrgId = String(value || '').trim();
         if (!nextOrgId) return;
@@ -1082,6 +1129,18 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     if (consoleSession.claims) forgetConsoleSignInContext();
   }, [consoleSession.claims]);
 
+  /* Read the other network's session after this dashboard's own first reads, so a
+     switch opens it at once. The switch reads it again on hover when it is old. */
+  const signedIn = Boolean(consoleSession.claims);
+  React.useEffect(() => {
+    if (!signedIn) return;
+    const timer = window.setTimeout(prefetchOtherConsoleNetwork, 2000, frontendRuntime);
+    return () => {
+      window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- The runtime object is new on each render; the network is its identity.
+  }, [signedIn, frontendRuntime.selectedNetwork]);
+
   const activeRoute = React.useMemo<DashboardRoute | ProductRoute>(() => {
     const resolved = getRouteFromPathname(pathname);
     if (resolved) return resolved;
@@ -1178,19 +1237,21 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   /* Keep the shell hidden until session and dashboard-entry routing decisions
      resolve. The provisional entry route points at onboarding, so mounting it
      here would expose the wizard before an existing workspace loads. */
-  if (!consoleSession.claims || isDashboardEntryRoutePending || walletProjectContextPending) {
+  if (!consoleSession.claims && !consoleSession.loading) {
     return (
       <main className="dashboard-session-gate" aria-label="Dashboard workspace" aria-busy>
-        <DashboardLoadingState
-          title={
-            consoleSession.claims
-              ? 'Opening dashboard...'
-              : consoleSession.loading
-                ? 'Checking your session...'
-                : 'Redirecting to sign in...'
-          }
-        />
+        <DashboardLoadingState title="Redirecting to sign in..." />
       </main>
+    );
+  }
+  if (!consoleSession.claims || isDashboardEntryRoutePending || walletProjectContextPending) {
+    return (
+      <DashboardPendingShell
+        composition={composition}
+        pathname={pathname}
+        accountLabel={consoleSession.claims?.name || consoleSession.claims?.email}
+        title={consoleSession.claims ? 'Opening dashboard...' : 'Checking your session...'}
+      />
     );
   }
 
@@ -1201,7 +1262,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         onSelectContext={onSelectContext}
         dropdownOptions={dropdownOptions}
         pageTitle={activeView.label}
-        network={consoleNetworkSwitch(frontendRuntime)}
+        network={consoleNetworkSwitch(frontendRuntime, go)}
         groups={visibleSidebarGroups}
         externalLinks={linksWithConsoleContext(composition.externalLinks ?? [], selectedContext)}
         activeRoute={activeRoute}
@@ -1287,13 +1348,111 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   );
 }
 
+/* The shell while the session or the entry route resolves. The top bar and the sidebar
+   stay in place, so a network switch changes only the main area. Navigation stays
+   locked, and admin-only items stay hidden, until the session says what this account
+   can open. */
+function DashboardPendingShell<ProductRoute extends string, ProductGroupKey extends string>({
+  composition,
+  pathname = '/dashboard',
+  title,
+  accountLabel,
+}: DashboardPageProps<ProductRoute, ProductGroupKey> & {
+  title: string;
+  accountLabel?: string;
+}): React.JSX.Element {
+  const { go, linkProps } = useSiteRouter();
+  const frontendRuntime = useFrontendRuntime();
+  const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(
+    readInitialDashboardSidebarExpanded,
+  );
+  const route = composition.getRouteFromPathname(pathname) ?? composition.defaultRoute;
+  const view = composition.getViewForRoute(route);
+  const groups = React.useMemo(
+    () =>
+      composition.sidebarGroups
+        .filter((group) => group.key !== 'platform')
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => item.access !== 'owner'),
+        }))
+        .filter((group) => group.items.length > 0),
+    [composition.sidebarGroups],
+  );
+  const dropdownOptions = React.useMemo<Record<TopbarMenuKey, TopbarOption[]>>(
+    () => ({
+      organization: [],
+      project: [],
+      environment: [],
+      accountSettings: withConsoleNetworkOptions([], frontendRuntime),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- The runtime object is new on each render.
+    [frontendRuntime.selectedNetwork, frontendRuntime.availableNetworks.length],
+  );
+  const selectContext = React.useCallback(
+    (menu: TopbarMenuKey, value: string) => {
+      if (menu === 'accountSettings') selectConsoleNetworkOption(go, value);
+    },
+    [go],
+  );
+  const toggleSidebar = React.useCallback(() => {
+    setIsSidebarExpanded((current) => !current);
+  }, []);
+
+  return (
+    <main
+      className={`dashboard-shell dashboard-shell--route-${view.key}${isSidebarExpanded ? '' : ' dashboard-shell--sidebar-collapsed'}`}
+      aria-label="Dashboard workspace"
+      aria-busy
+    >
+      <DashboardNavigation
+        accountLabel={accountLabel || 'Account'}
+        onSelectContext={selectContext}
+        dropdownOptions={dropdownOptions}
+        pageTitle={view.label}
+        network={consoleNetworkSwitch(frontendRuntime, go)}
+        groups={groups}
+        activeRoute={route}
+        isSidebarExpanded={isSidebarExpanded}
+        onToggleSidebar={toggleSidebar}
+        linkProps={linkProps}
+        homeProps={linkProps('https://seams.sh/')}
+        disableNavigationItems
+        product={{
+          products: composition.products,
+          currentId: composition.defaultProductId,
+          onSelect: noop,
+        }}
+      />
+      <section className="dashboard-main" aria-labelledby="dashboard-main-title">
+        <div className="dashboard-main__header">
+          <h1 id="dashboard-main-title" className="dashboard-main__title">
+            {view.label}
+          </h1>
+        </div>
+        <DashboardLoadingState title={title} />
+      </section>
+      <div className="dashboard-overlay-layer" aria-hidden="true" />
+    </main>
+  );
+}
+
+function noop(): void {}
+
 function DashboardEntry<ProductRoute extends string, ProductGroupKey extends string>(
   props: DashboardPageProps<ProductRoute, ProductGroupKey>,
 ): React.JSX.Element {
   const { go } = useSiteRouter();
-  const [entry, setEntry] = React.useState<'loading' | 'onboarding' | 'workspace'>('loading');
+  const [prefetched] = React.useState(() =>
+    readDashboardConsoleSessionHandoff(getActiveFrontendDeployment().network),
+  );
+  // A handed-off workspace opens at once; onboarding waits for its redirect below.
+  const [entry, setEntry] = React.useState<'loading' | 'onboarding' | 'workspace'>(
+    prefetched && !prefetched.onboarding ? 'workspace' : 'loading',
+  );
   React.useEffect(() => {
     let cancelled = false;
+    clearDashboardConsoleSessionHandoff();
     rememberConsoleContext();
     readUnscopedConsoleSession(requireConsoleBaseUrl())
       .then((onboarding) => {
@@ -1316,9 +1475,11 @@ function DashboardEntry<ProductRoute extends string, ProductGroupKey extends str
   switch (entry) {
     case 'loading':
       return (
-        <main className="dashboard-session-gate" aria-busy>
-          <DashboardLoadingState title="Opening dashboard..." />
-        </main>
+        <DashboardPendingShell
+          composition={props.composition}
+          pathname={props.pathname}
+          title="Opening dashboard..."
+        />
       );
     case 'onboarding':
       return (
@@ -1329,7 +1490,7 @@ function DashboardEntry<ProductRoute extends string, ProductGroupKey extends str
       );
     case 'workspace':
       return (
-        <DashboardConsoleSessionProvider>
+        <DashboardConsoleSessionProvider prefetchedClaims={prefetched?.claims}>
           <DashboardPageInner {...props} />
         </DashboardConsoleSessionProvider>
       );
@@ -1384,7 +1545,7 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
   }, []);
   const selectAccountOption = React.useCallback(
     (value: string) => {
-      if (selectConsoleNetworkOption(value)) return;
+      if (selectConsoleNetworkOption(go, value)) return;
       if (value !== composition.accountSettingsSignOutOption || logoutPending) return;
       setLogoutPending(true);
       void revokeDashboardConsoleSession().finally(() => {
@@ -1412,7 +1573,7 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
         onSelectContext={selectTopbarContext}
         dropdownOptions={dropdownOptions}
         pageTitle="Onboarding"
-        network={consoleNetworkSwitch(frontendRuntime)}
+        network={consoleNetworkSwitch(frontendRuntime, go)}
         groups={composition.sidebarGroups}
         activeRoute={DASHBOARD_ONBOARDING_ROUTE}
         isSidebarExpanded={isSidebarExpanded}
@@ -1444,6 +1605,12 @@ export function DashboardPage<ProductRoute extends string, ProductGroupKey exten
   props: DashboardPageProps<ProductRoute, ProductGroupKey>,
 ): React.JSX.Element {
   const { selectedNetwork } = useFrontendRuntime();
+  React.useEffect(() => {
+    window.addEventListener('popstate', followConsoleNetworkInUrl);
+    return () => {
+      window.removeEventListener('popstate', followConsoleNetworkInUrl);
+    };
+  }, []);
   return <DashboardEntry key={selectedNetwork} {...props} />;
 }
 

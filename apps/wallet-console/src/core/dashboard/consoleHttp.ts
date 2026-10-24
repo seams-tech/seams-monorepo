@@ -1,13 +1,16 @@
-import { getActiveFrontendDeployment } from '@core/runtime';
+import { getActiveFrontendDeployment, type ConsoleDeployment } from '@core/runtime';
 
-export function resolveConsoleBaseUrl(): string {
-  const deployment = getActiveFrontendDeployment();
+export function resolveConsoleBaseUrl(
+  deployment: ConsoleDeployment = getActiveFrontendDeployment(),
+): string {
   const base = String(deployment.consoleBaseUrl || deployment.relayerUrl || '').trim();
   return base.replace(/\/+$/, '');
 }
 
-export function requireConsoleBaseUrl(): string {
-  const base = resolveConsoleBaseUrl();
+export function requireConsoleBaseUrl(
+  deployment: ConsoleDeployment = getActiveFrontendDeployment(),
+): string {
+  const base = resolveConsoleBaseUrl(deployment);
   if (!base) {
     throw new Error('Console API base URL is not configured for the selected deployment.');
   }

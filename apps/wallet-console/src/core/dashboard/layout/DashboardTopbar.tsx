@@ -67,6 +67,8 @@ export type TopbarSearchItem = {
 export type DashboardNetworkSwitch = {
   readonly selected: ConsoleNetwork;
   readonly onSelect: (network: ConsoleNetwork) => void;
+  /** Called when the pointer or focus reaches the switch, before a click. */
+  readonly onIntent?: () => void;
 };
 
 const CONSOLE_NETWORKS: readonly { readonly value: ConsoleNetwork; readonly label: string }[] = [
@@ -340,7 +342,13 @@ export function DashboardTopbar({
   );
 
   const networkSwitch = network ? (
-    <div className="dashboard-topbar__network" role="group" aria-label="Network">
+    <div
+      className="dashboard-topbar__network"
+      role="group"
+      aria-label="Network"
+      onPointerEnter={network.onIntent}
+      onFocus={network.onIntent}
+    >
       {CONSOLE_NETWORKS.map((option) => (
         <button
           key={option.value}

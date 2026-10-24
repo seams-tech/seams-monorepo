@@ -12,12 +12,13 @@ import {
   type Locale,
   type WalletPage,
 } from './src/marketing/i18n/locale';
+import { translate as translateFeatures } from './src/pages/features/catalog';
 import { translate as translatePricing } from './src/pages/pricing/catalog';
 
 const walletSiteUrl = new URL(process.env.VITE_WALLET_SITE_ORIGIN || 'https://wallet.seams.sh/');
 walletSiteUrl.pathname = `${walletSiteUrl.pathname.replace(/\/$/, '')}/`;
 
-const walletPages: readonly WalletPage[] = ['home', 'pricing'];
+const walletPages: readonly WalletPage[] = ['home', 'pricing', 'features'];
 const locales: readonly Locale[] = ['en', 'ja'];
 
 function pageUrl(page: WalletPage, locale: Locale): string {
@@ -30,7 +31,7 @@ function normalizePageRoute(
   next: () => void,
 ): void {
   const url = new URL(request.url || '/', walletSiteUrl);
-  if (!/\/(?:ja|pricing)$/.test(url.pathname)) {
+  if (!/\/(?:ja|pricing|features)$/.test(url.pathname)) {
     next();
     return;
   }
@@ -51,6 +52,12 @@ function pageText(page: WalletPage, language: Locale): { title: string; descript
     return {
       title: translatePricing(language, 'pricingPageTitle'),
       description: translatePricing(language, 'pricingDescription'),
+    };
+  }
+  if (page === 'features') {
+    return {
+      title: translateFeatures(language, 'featuresPageTitle'),
+      description: translateFeatures(language, 'featuresDescription'),
     };
   }
   return {

@@ -287,6 +287,11 @@ function buildFrontend(site, component, walletLanes) {
       path.join(WALLET_SITE_OUTPUT, 'ja', 'pricing', 'index.html'),
       'Japanese Wallet pricing entry',
     );
+    assertFile(path.join(WALLET_SITE_OUTPUT, 'features', 'index.html'), 'Wallet features entry');
+    assertFile(
+      path.join(WALLET_SITE_OUTPUT, 'ja', 'features', 'index.html'),
+      'Japanese Wallet features entry',
+    );
     assertFile(path.join(WALLET_SITE_OUTPUT, 'sitemap.xml'), 'Wallet site sitemap');
     assertFile(path.join(WALLET_SITE_OUTPUT, 'docs', 'index.html'), 'Wallet docs entry');
     return;
@@ -335,6 +340,8 @@ function writeWalletConsoleRedirects(site) {
     '/ja /ja/ 301',
     '/pricing /pricing/ 301',
     '/ja/pricing /ja/pricing/ 301',
+    '/features /features/ 301',
+    '/ja/features /ja/features/ 301',
     `/company ${site.origin}/company 302`,
     `/company/* ${site.origin}/company/:splat 302`,
     `/ja/company ${site.origin}/ja/company/ 302`,
@@ -605,6 +612,8 @@ function buildSmokeChecks(site, component, walletLanes) {
       '/ja/',
       '/pricing/',
       '/ja/pricing/',
+      '/features/',
+      '/ja/features/',
       '/sitemap.xml',
       '/docs/',
       '/docs/concepts/',

@@ -1230,7 +1230,8 @@ export function H2Cta(): React.JSX.Element {
   );
 }
 
-export function H2Footer(): React.JSX.Element {
+/* The pricing page carries its own FAQ section, so it leaves out the footer's. */
+export function H2Footer({ faq = true }: { faq?: boolean } = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const homeProps = linkProps('https://seams.sh/');
 
@@ -1244,7 +1245,7 @@ export function H2Footer(): React.JSX.Element {
           <LanguageSelector placement="footer" />
         </div>
 
-        <H2FooterFaq groups={walletFaqs} />
+        {faq ? <H2FooterFaq groups={walletFaqs} /> : null}
 
         <nav className="h2-footer__main h2-footer__links" aria-label={t('footerNavigation')}>
           {footerGroups.map((group) => (

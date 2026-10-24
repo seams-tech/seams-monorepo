@@ -72,7 +72,7 @@ Built on October 22, 2026, with a Pro plan added (decision 7). Not deployed.
 
 ## Outcome
 
-A visitor clicks a plan card on the pricing page (`apps/seams-site/src/pages/pricing/page.tsx`)
+A visitor clicks a plan card on the pricing page (`apps/wallet-console/src/pages/pricing/page.tsx`)
 and arrives at the right next step, with the plan choice kept:
 
 - **Free:** sign in with SSO, create the organization and first project, open the

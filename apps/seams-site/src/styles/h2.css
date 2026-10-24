@@ -436,7 +436,7 @@ body:has(.h2-page) {
   }
 }
 
-/* ---------- simple hero (pricing + company): calm type-first opening ---------- */
+/* ---------- simple hero (company): calm type-first opening ---------- */
 
 .h2-hero-simple {
   position: relative;
@@ -4078,68 +4078,6 @@ body:has(.h2-page) {
   }
 }
 
-/* ---------- FAQ ---------- */
-
-.h2-faq {
-  display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  gap: 44px;
-  align-items: start;
-}
-
-.h2-faq__title {
-  font-size: clamp(27px, 2.9vw, 38px);
-}
-
-.h2-faq__list details {
-  border-bottom: 1px dashed var(--h2-stone);
-}
-
-.h2-faq__list summary {
-  list-style: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 16px 2px;
-  font-size: var(--h2-text-title);
-  font-weight: 500;
-  color: var(--h2-ink);
-  cursor: pointer;
-}
-
-.h2-faq__list summary::-webkit-details-marker {
-  display: none;
-}
-
-.h2-faq__list summary::after {
-  content: '+';
-  font-size: 18px;
-  font-weight: 300;
-  color: var(--h2-ash);
-  transition: transform 150ms ease;
-}
-
-.h2-faq__list details[open] summary::after {
-  transform: rotate(45deg);
-}
-
-.h2-faq__list details p {
-  margin: 0;
-  padding: 0 2px 18px;
-  font-size: var(--h2-text-xl);
-  line-height: 1.6;
-  color: var(--h2-smoke);
-  max-width: 560px;
-}
-
-@media (max-width: 900px) {
-  .h2-faq {
-    grid-template-columns: 1fr;
-    gap: 22px;
-  }
-}
-
 /* ---------- demo placeholder ---------- */
 
 .h2-demo__placeholder {
@@ -4333,7 +4271,7 @@ body:has(.h2-page) {
   }
 }
 
-/* Banner variant (pricing): a rounded panel like the hero, on the teal-peach
+/* Banner variant (company): a rounded panel like the hero, on the teal-peach
    grain field with light ink, the headline left and the actions right. */
 /* its own ruled section; the banner sits 0.5rem inside the rules and column edges */
 .h2-cta.h2-cta--banner {

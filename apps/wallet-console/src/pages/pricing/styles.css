@@ -941,3 +941,28 @@ html:has(.plan-signup[open]) {
     margin: 0 12px;
   }
 }
+
+/* ---------- Japanese ---------- */
+
+html:lang(ja) :is(.h2-hero-simple__sub, .h2-faq__list p) {
+  line-height: 1.85;
+}
+
+html:lang(ja) :is(.pricing-calc__label, .pricing-example th) {
+  letter-spacing: 0.02em;
+}
+
+html:lang(ja) .pricing-plan__price {
+  flex-wrap: wrap;
+}
+
+.pricing-calc__lines dd,
+.pricing-calc__total strong {
+  flex-shrink: 0;
+}
+
+@media (max-width: 620px) {
+  html:lang(ja) .h2-hero-simple__title {
+    font-size: clamp(30px, 7.5vw, 44px);
+  }
+}

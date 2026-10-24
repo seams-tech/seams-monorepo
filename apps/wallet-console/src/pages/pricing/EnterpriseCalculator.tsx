@@ -1,11 +1,11 @@
-import { useTranslation, useLocale } from '@/i18n/browser';
-import type { MessageKey, Translate } from '@/i18n/catalog';
-import { formatPrice } from '@/i18n/pricing';
 import React from 'react';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
-import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
+import type { MessageKey } from './catalog';
 import { estimate, FREE_USERS, lowestSelfServePlan, type SelfServePlanId } from './estimate';
+import { locale, t } from './i18n';
+import { CONTACT_SALES_TARGET } from './planSignup';
+import { formatPrice } from './prices';
 
 // A log-like scale from the Free plan's users: each slider step is one of these counts.
 const USER_STEPS = [
@@ -48,7 +48,7 @@ const SELF_SERVE_LABELS: Record<
 };
 
 const wholeNumber = new Intl.NumberFormat('en-US');
-function signaturePoolNote(t: Translate, free: boolean, overage: number): string {
+function signaturePoolNote(free: boolean, overage: number): string {
   if (free) return t('insideFree');
   if (overage > 0) return t('abovePool').replace('{count}', wholeNumber.format(overage));
   return t('insidePool');
@@ -102,13 +102,11 @@ function Range(props: {
 }
 
 export function EnterpriseCalculator(): React.JSX.Element {
-  const t = useTranslation();
-  const locale = useLocale();
   const compact = new Intl.NumberFormat(locale === 'ja' ? 'ja-JP' : 'en-US', {
     notation: 'compact',
   });
   const { linkProps } = useSiteRouter();
-  const contactProps = linkProps(CONTACT_LINK_TARGET);
+  const contactProps = linkProps(CONTACT_SALES_TARGET);
   const [userStep, setUserStep] = React.useState(USER_STEPS.indexOf(100_000));
   const [perDay, setPerDay] = React.useState(10);
   const usersId = React.useId();
@@ -165,7 +163,7 @@ export function EnterpriseCalculator(): React.JSX.Element {
             />
             <p className="pricing-calc__note">
               {t('monthlySignatures').replace('{count}', wholeNumber.format(lowest.signatures))}{' '}
-              {signaturePoolNote(t, free, lowest.overageSignatures)}
+              {signaturePoolNote(free, lowest.overageSignatures)}
             </p>
           </div>
           <div className="pricing-calc__result" aria-live="polite">

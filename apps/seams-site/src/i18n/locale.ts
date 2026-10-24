@@ -1,5 +1,5 @@
 export type Locale = 'en' | 'ja';
-export type TranslatedPage = 'pricing' | 'company';
+export type TranslatedPage = 'company';
 
 export type SitePage =
   | { kind: 'translated'; page: TranslatedPage; locale: Locale }
@@ -7,12 +7,8 @@ export type SitePage =
 
 export function parseSitePage(pathname: string): SitePage {
   switch (pathname.replace(/\/$/, '')) {
-    case '/pricing':
-      return { kind: 'translated', page: 'pricing', locale: 'en' };
     case '/company':
       return { kind: 'translated', page: 'company', locale: 'en' };
-    case '/ja/pricing':
-      return { kind: 'translated', page: 'pricing', locale: 'ja' };
     case '/ja/company':
       return { kind: 'translated', page: 'company', locale: 'ja' };
     default:

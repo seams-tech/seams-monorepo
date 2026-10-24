@@ -8,11 +8,11 @@ import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
    and café management), BakeryOS (robotics for bakeries; its thesis is open)
    and Seams Wallet (a standalone stablecoin wallet). Satyr and BakeryOS have
    no docs or pricing pages yet: these placeholder paths are the one place to
-   point them at the real pages. */
+   point them at the real pages. Wallet pricing lives on the Wallet site. */
 const productLinks = {
   satyr: { landing: '/ecommerce', docs: '/docs/satyr/', pricing: '/pricing/#satyr' },
   bakeryOs: { landing: '/bakeryos', docs: '/docs/bakeryos/', pricing: '/pricing/#bakeryos' },
-  wallet: { landing: '/wallet', docs: '/docs/', pricing: '/pricing/' },
+  wallet: { landing: '/wallet', docs: '/docs/', pricing: '/wallet/pricing/' },
 } as const;
 
 const BAKERY_OS = 'BakeryOS';
@@ -54,7 +54,7 @@ function documentationDropdownPane(t: Translate): DropdownPane {
       to: productLinks.wallet.landing,
       field: 'teal-peach',
     },
-    footerLinks: [{ label: t('planPricing'), to: '/pricing/' }],
+    footerLinks: [{ label: t('planPricing'), to: productLinks.wallet.pricing }],
   };
 }
 
@@ -132,12 +132,12 @@ function pricingDropdownPane(t: Translate): DropdownPane {
     highlight: {
       title: 'Enterprise',
       description: t('enterpriseNav'),
-      to: '/pricing/#enterprise',
+      to: '/wallet/pricing/#enterprise',
       field: 'onyx-dusk',
     },
     footerLinks: [
-      { label: t('comparePlans'), to: '/pricing/' },
-      { label: t('estimatePrice'), to: '/pricing/#calculator' },
+      { label: t('comparePlans'), to: productLinks.wallet.pricing },
+      { label: t('estimatePrice'), to: '/wallet/pricing/#calculator' },
     ],
   };
 }
@@ -199,7 +199,7 @@ export function getSiteNavbarConfig(locale: Locale): SiteNavbarConfig {
       {
         title: 'Enterprise',
         description: t('enterpriseNav'),
-        to: '/pricing/#enterprise',
+        to: '/wallet/pricing/#enterprise',
       },
       {
         title: t('talkUs'),

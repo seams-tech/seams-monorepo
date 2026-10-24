@@ -34,7 +34,7 @@ import {
   selectDashboardPlanContext,
   type DashboardPlanChoice,
 } from '../routes/billing/planIntent';
-import { isEmbeddedSignIn, postToCompanySite } from './embeddedSignIn';
+import { isEmbeddedSignIn, postToWalletSite } from './embeddedSignIn';
 import '../styles.css';
 import './embeddedSignIn.css';
 
@@ -230,7 +230,7 @@ export function DashboardLoginPage(): React.JSX.Element {
   const openPage = React.useCallback(
     (href: string) => {
       const url = new URL(href, window.location.origin);
-      if (presentation === 'embedded') postToCompanySite({ kind: 'navigate', url: url.href });
+      if (presentation === 'embedded') postToWalletSite({ kind: 'navigate', url: url.href });
       else if (url.origin === window.location.origin) go(`${url.pathname}${url.search}${url.hash}`);
       else window.location.assign(url.href);
     },
@@ -345,7 +345,7 @@ export function DashboardLoginPage(): React.JSX.Element {
     const element = embeddedRef.current;
     if (presentation !== 'embedded' || !element) return;
     const report = () =>
-      postToCompanySite({ kind: 'height', height: Math.ceil(element.scrollHeight) });
+      postToWalletSite({ kind: 'height', height: Math.ceil(element.scrollHeight) });
     report();
     const observer = new ResizeObserver(report);
     observer.observe(element);

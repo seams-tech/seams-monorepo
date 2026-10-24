@@ -5,18 +5,32 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { translate } from './src/marketing/i18n/catalog';
-import { localeFromUrl, type Locale } from './src/marketing/i18n/locale';
+import {
+  localeFromUrl,
+  pageFromUrl,
+  walletPagePath,
+  type Locale,
+  type WalletPage,
+} from './src/marketing/i18n/locale';
+import { translate as translatePricing } from './src/pages/pricing/catalog';
 
 const walletSiteUrl = new URL(process.env.VITE_WALLET_SITE_ORIGIN || 'https://wallet.seams.sh/');
 walletSiteUrl.pathname = `${walletSiteUrl.pathname.replace(/\/$/, '')}/`;
 
-function normalizeJapaneseRoute(
+const walletPages: readonly WalletPage[] = ['home', 'pricing'];
+const locales: readonly Locale[] = ['en', 'ja'];
+
+function pageUrl(page: WalletPage, locale: Locale): string {
+  return new URL(walletPagePath(walletSiteUrl.pathname, page, locale), walletSiteUrl).href;
+}
+
+function normalizePageRoute(
   request: IncomingMessage,
   response: ServerResponse,
   next: () => void,
 ): void {
   const url = new URL(request.url || '/', walletSiteUrl);
-  if (!url.pathname.endsWith('/ja')) {
+  if (!/\/(?:ja|pricing)$/.test(url.pathname)) {
     next();
     return;
   }
@@ -32,12 +46,26 @@ function escapeHtml(value: string): string {
     .replaceAll('>', '&gt;');
 }
 
-function languageHtml(html: string, language: Locale): string {
-  const english = walletSiteUrl.href;
-  const japanese = new URL('ja/', walletSiteUrl).href;
+function pageText(page: WalletPage, language: Locale): { title: string; description: string } {
+  if (page === 'pricing') {
+    return {
+      title: translatePricing(language, 'pricingPageTitle'),
+      description: translatePricing(language, 'pricingDescription'),
+    };
+  }
+  return {
+    title: translate(language, 'pageTitle'),
+    description: translate(language, 'pageDescription'),
+  };
+}
+
+function languageHtml(html: string, page: WalletPage, language: Locale): string {
+  const english = pageUrl(page, 'en');
+  const japanese = pageUrl(page, 'ja');
   const canonical = language === 'ja' ? japanese : english;
-  const title = escapeHtml(translate(language, 'pageTitle'));
-  const description = escapeHtml(translate(language, 'pageDescription'));
+  const text = pageText(page, language);
+  const title = escapeHtml(text.title);
+  const description = escapeHtml(text.description);
   const metadata = `
     <meta data-wallet-meta name="description" content="${description}" />
     <link data-wallet-meta rel="canonical" href="${escapeHtml(canonical)}" />
@@ -64,35 +92,42 @@ const walletLanguagePages: Plugin = {
   name: 'wallet-language-pages',
   enforce: 'post',
   configureServer(server) {
-    server.middlewares.use(normalizeJapaneseRoute);
+    server.middlewares.use(normalizePageRoute);
   },
   configurePreviewServer(server) {
-    server.middlewares.use(normalizeJapaneseRoute);
+    server.middlewares.use(normalizePageRoute);
   },
   transformIndexHtml(html, context) {
     if (context.path.includes('/showcase/')) return html;
     const url = new URL(context.originalUrl || context.path, walletSiteUrl);
-    return languageHtml(html, localeFromUrl(url));
+    return languageHtml(html, pageFromUrl(url), localeFromUrl(url));
   },
   generateBundle(_options, bundle) {
     const entry = bundle['index.html'];
     if (!entry || entry.type !== 'asset' || typeof entry.source !== 'string') {
       throw new Error('Wallet marketing build requires index.html');
     }
-    this.emitFile({
-      type: 'asset',
-      fileName: 'ja/index.html',
-      source: languageHtml(entry.source, 'ja'),
-    });
-    const english = escapeHtml(walletSiteUrl.href);
-    const japanese = escapeHtml(new URL('ja/', walletSiteUrl).href);
+    const urls: string[] = [];
+    for (const page of walletPages) {
+      const english = escapeHtml(pageUrl(page, 'en'));
+      const japanese = escapeHtml(pageUrl(page, 'ja'));
+      const alternates = `<xhtml:link rel="alternate" hreflang="en" href="${english}"/><xhtml:link rel="alternate" hreflang="ja" href="${japanese}"/><xhtml:link rel="alternate" hreflang="x-default" href="${english}"/>`;
+      for (const locale of locales) {
+        // the English home page is the bundle's own index.html
+        if (page !== 'home' || locale !== 'en') {
+          this.emitFile({
+            type: 'asset',
+            fileName: `${walletPagePath('', page, locale).slice(1)}index.html`,
+            source: languageHtml(entry.source, page, locale),
+          });
+        }
+        urls.push(`  <url><loc>${locale === 'ja' ? japanese : english}</loc>${alternates}</url>`);
+      }
+    }
     this.emitFile({
       type: 'asset',
       fileName: 'sitemap.xml',
-      source: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  <url><loc>${english}</loc><xhtml:link rel="alternate" hreflang="en" href="${english}"/><xhtml:link rel="alternate" hreflang="ja" href="${japanese}"/><xhtml:link rel="alternate" hreflang="x-default" href="${english}"/></url>
-  <url><loc>${japanese}</loc><xhtml:link rel="alternate" hreflang="en" href="${english}"/><xhtml:link rel="alternate" hreflang="ja" href="${japanese}"/><xhtml:link rel="alternate" hreflang="x-default" href="${english}"/></url>
-</urlset>\n`,
+      source: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join('\n')}\n</urlset>\n`,
     });
   },
 };

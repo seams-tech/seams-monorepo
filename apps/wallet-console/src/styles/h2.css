@@ -363,6 +363,15 @@ body:has(.h2-page) {
   padding: 64px 0 14px;
 }
 
+/* variant for short pages that stack many sections */
+.h2-section--compact {
+  padding: 56px 0;
+}
+
+.h2-section--compact .h2-split-head {
+  margin-bottom: 28px;
+}
+
 /* variant for sections whose last row carries its own bottom spacing */
 .h2-section--flush-bottom {
   padding-bottom: 0;
@@ -3348,6 +3357,68 @@ body:has(.h2-page) {
     justify-content: center;
     min-height: 12rem;
     padding-block: 0;
+  }
+}
+
+/* ---------- FAQ ---------- */
+
+.h2-faq {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 44px;
+  align-items: start;
+}
+
+.h2-faq__title {
+  font-size: clamp(27px, 2.9vw, 38px);
+}
+
+.h2-faq__list details {
+  border-bottom: 1px dashed var(--h2-stone);
+}
+
+.h2-faq__list summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 2px;
+  font-size: var(--h2-text-title);
+  font-weight: 500;
+  color: var(--h2-ink);
+  cursor: pointer;
+}
+
+.h2-faq__list summary::-webkit-details-marker {
+  display: none;
+}
+
+.h2-faq__list summary::after {
+  content: '+';
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--h2-ash);
+  transition: transform 150ms ease;
+}
+
+.h2-faq__list details[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.h2-faq__list details p {
+  margin: 0;
+  padding: 0 2px 18px;
+  font-size: var(--h2-text-xl);
+  line-height: 1.6;
+  color: var(--h2-smoke);
+  max-width: 560px;
+}
+
+@media (max-width: 900px) {
+  .h2-faq {
+    grid-template-columns: 1fr;
+    gap: 22px;
   }
 }
 

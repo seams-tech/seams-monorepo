@@ -109,8 +109,8 @@ async function runConsoleOperation(operation, site, component) {
       VITE_MAINNET_RELAYER_URL: '',
       VITE_PLATFORM_CONSOLE_ORIGIN: site.platformOrigin,
       VITE_WALLET_CONSOLE_ORIGIN: site.walletConsoleOrigin,
-      // The login page runs in a dialog on the company site's pricing page.
-      VITE_COMPANY_SITE_ORIGIN: readFrontendSite(site.id).origin,
+      // The login page runs in a dialog on the Wallet site's pricing page.
+      VITE_WALLET_SITE_ORIGIN: readFrontendSite(site.id).walletSiteOrigin,
     };
     // Preserve the existing account stores. Production testnet retains its own
     // backend; the mainnet and staging account authorities also serve the new hosts.
@@ -259,7 +259,6 @@ function buildFrontend(site, component, walletLanes) {
     });
     writeCompanyCutoverFiles(site);
     assertFile(path.join(COMPANY_OUTPUT, 'index.html'), 'Company site entry');
-    assertFile(path.join(COMPANY_OUTPUT, 'ja', 'pricing', 'index.html'), 'Japanese pricing entry');
     assertFile(path.join(COMPANY_OUTPUT, 'ja', 'company', 'index.html'), 'Japanese company entry');
     assertFile(path.join(COMPANY_OUTPUT, 'sitemap.xml'), 'Company site sitemap');
     return;
@@ -279,6 +278,11 @@ function buildFrontend(site, component, walletLanes) {
     }
     assertFile(path.join(WALLET_SITE_OUTPUT, 'index.html'), 'Wallet site entry');
     assertFile(path.join(WALLET_SITE_OUTPUT, 'ja', 'index.html'), 'Japanese Wallet site entry');
+    assertFile(path.join(WALLET_SITE_OUTPUT, 'pricing', 'index.html'), 'Wallet pricing entry');
+    assertFile(
+      path.join(WALLET_SITE_OUTPUT, 'ja', 'pricing', 'index.html'),
+      'Japanese Wallet pricing entry',
+    );
     assertFile(path.join(WALLET_SITE_OUTPUT, 'sitemap.xml'), 'Wallet site sitemap');
     assertFile(path.join(WALLET_SITE_OUTPUT, 'docs', 'index.html'), 'Wallet docs entry');
     return;
@@ -325,12 +329,10 @@ function writeWalletConsoleRedirects(site) {
   const lines = [
     '/docs /docs/ 301',
     '/ja /ja/ 301',
-    `/pricing ${site.origin}/pricing 302`,
-    `/pricing/* ${site.origin}/pricing/:splat 302`,
+    '/pricing /pricing/ 301',
+    '/ja/pricing /ja/pricing/ 301',
     `/company ${site.origin}/company 302`,
     `/company/* ${site.origin}/company/:splat 302`,
-    `/ja/pricing ${site.origin}/ja/pricing/ 302`,
-    `/ja/pricing/* ${site.origin}/ja/pricing/:splat 302`,
     `/ja/company ${site.origin}/ja/company/ 302`,
     `/ja/company/* ${site.origin}/ja/company/:splat 302`,
   ];
@@ -346,6 +348,11 @@ function writeCompanyCutoverFiles(site) {
   const walletOrigin = site.walletSiteOrigin;
   const redirects = [
     `/wallet ${walletOrigin}/ 302`,
+    // Wallet pricing moved to the Wallet site; the company site has no pricing page yet.
+    `/pricing ${walletOrigin}/pricing/ 302`,
+    `/pricing/* ${walletOrigin}/pricing/ 302`,
+    `/ja/pricing ${walletOrigin}/ja/pricing/ 302`,
+    `/ja/pricing/* ${walletOrigin}/ja/pricing/ 302`,
     '/dashboard/login /wallet-login-restart.html 200',
     `/dashboard ${walletOrigin}/dashboard 302`,
     `/dashboard/* ${walletOrigin}/dashboard/:splat 302`,
@@ -583,9 +590,7 @@ function buildSmokeChecks(site, component, walletLanes) {
   if (component === 'company')
     return smokeChecks('company', site.origin, [
       '/',
-      '/pricing/',
       '/company/',
-      '/ja/pricing/',
       '/ja/company/',
       '/sitemap.xml',
     ]);
@@ -593,6 +598,8 @@ function buildSmokeChecks(site, component, walletLanes) {
     return smokeChecks('wallet-site', site.walletSiteOrigin, [
       '/',
       '/ja/',
+      '/pricing/',
+      '/ja/pricing/',
       '/sitemap.xml',
       '/docs/',
       '/docs/concepts/',

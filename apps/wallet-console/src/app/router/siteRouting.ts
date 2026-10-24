@@ -1,6 +1,6 @@
 import { readFrontendSiteLinks } from '@/frontendConfig';
 import { locale } from '@/marketing/i18n/browser';
-import { walletLanguageUrl, type Locale } from '@/marketing/i18n/locale';
+import { walletLanguageUrl, walletPagePath, type Locale } from '@/marketing/i18n/locale';
 
 const SITE_LINKS = readFrontendSiteLinks(import.meta.env);
 
@@ -56,12 +56,15 @@ export function resolveHref(target: string): string {
 
   const pathname = normalizePathname(target);
   switch (pathname) {
+    case '/pricing': {
+      const url = new URL(target, window.location.origin);
+      return `${walletPagePath(SITE_LINKS.walletPath, 'pricing', locale)}${url.search}${url.hash}`;
+    }
     case '/':
-    case '/pricing':
     case '/company':
     case '/ecommerce': {
       const base = SITE_LINKS.companyOrigin === '/' ? '' : SITE_LINKS.companyOrigin;
-      if (locale === 'ja' && (pathname === '/pricing' || pathname === '/company')) {
+      if (locale === 'ja' && pathname === '/company') {
         const url = new URL(target, window.location.origin);
         return `${base}/ja${url.pathname}${url.search}${url.hash}`;
       }
@@ -77,4 +80,25 @@ export function normalizePathname(pathname: string): string {
   const clean = pathname.split('?')[0].split('#')[0];
   const normalized = clean.startsWith('/') ? clean : `/${clean}`;
   return stripTrailingSlash(normalized) || '/';
+}
+
+function scrollToSiteAnchor(): void {
+  const id = window.location.hash.slice(1);
+  if (id) document.getElementById(id)?.scrollIntoView();
+}
+
+function unsubscribeFromSiteNavigation(listener: () => void): void {
+  window.removeEventListener('popstate', listener);
+  window.removeEventListener('hashchange', listener);
+}
+
+export function subscribeToSiteNavigation(listener: () => void): () => void {
+  window.addEventListener('popstate', listener);
+  window.addEventListener('hashchange', listener);
+  return unsubscribeFromSiteNavigation.bind(null, listener);
+}
+
+export function startSiteAnchorScroll(): () => void {
+  scrollToSiteAnchor();
+  return subscribeToSiteNavigation(scrollToSiteAnchor);
 }

@@ -10,12 +10,11 @@ html:lang(ja) .h2-display {
   line-height: 1.4;
 }
 
-html:lang(ja)
-  :is(.h2-hero-simple__sub, .company-card__copy, .company-principles p, .h2-faq__list p) {
+html:lang(ja) :is(.h2-hero-simple__sub, .company-card__copy, .company-principles p) {
   line-height: 1.85;
 }
 
-html:lang(ja) :is(.pricing-calc__label, .pricing-example th, .h2-footer__col h3) {
+html:lang(ja) .h2-footer__col h3 {
   letter-spacing: 0.02em;
 }
 
@@ -34,15 +33,6 @@ html:lang(ja) .h2-footer__col a {
 html:lang(ja) .contact-modal__title {
   font-size: clamp(22px, 2.4vw, 26px);
   word-break: auto-phrase;
-}
-
-html:lang(ja) .pricing-plan__price {
-  flex-wrap: wrap;
-}
-
-.pricing-calc__lines dd,
-.pricing-calc__total strong {
-  flex-shrink: 0;
 }
 
 @media (max-width: 620px) {

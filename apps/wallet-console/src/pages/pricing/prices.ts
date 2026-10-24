@@ -1,4 +1,4 @@
-import type { Locale } from './locale';
+import type { Locale } from '@/marketing/i18n/locale';
 
 export const PRICING_USD = {
   growthBase: 99,

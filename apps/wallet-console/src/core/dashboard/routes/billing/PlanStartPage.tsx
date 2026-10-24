@@ -387,7 +387,7 @@ export function PlanStartPage(): React.JSX.Element {
             })}
           </div>
 
-          <a className="dashboard-plan-enterprise" href="https://seams.sh/pricing/#contact">
+          <a className="dashboard-plan-enterprise" href="https://seams.sh/#contact">
             <GrainField field={PLAN_FIELD} />
             <span className="dashboard-plan-enterprise__copy">
               <span className="dashboard-plan-enterprise__title">Enterprise</span>

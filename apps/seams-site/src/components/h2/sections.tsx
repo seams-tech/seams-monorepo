@@ -1,6 +1,5 @@
 import { useSitePage, useTranslation } from '@/i18n/browser';
-import { translate, type Translate } from '@/i18n/catalog';
-import type { Locale } from '@/i18n/locale';
+import type { Translate } from '@/i18n/catalog';
 import { LanguageSelector } from '@/i18n/LanguageSelector';
 import React from 'react';
 import {
@@ -1626,7 +1625,7 @@ const startFaq: FaqItem = {
 const meteringFaq: FaqItem = {
   q: 'How is usage metered?',
   a: 'Plans are based on monthly active users. Each user includes 300 signatures a month, pooled across your app. The first 300 users are free. See the pricing page for details.',
-  more: { label: 'See pricing', to: '/pricing/' },
+  more: { label: 'See pricing', to: '/wallet/pricing/' },
 };
 
 const footerFaqs = {
@@ -1643,68 +1642,6 @@ const footerFaqs = {
 } satisfies Record<string, readonly FaqGroup[]>;
 
 type FooterFaqAudience = keyof typeof footerFaqs;
-
-function pricingFaqs(locale: Locale): readonly FaqItem[] {
-  const t = translate.bind(null, locale);
-  return [
-    {
-      q: t('faqUserQ'),
-      a: t('faqUserA'),
-    },
-    {
-      q: t('faqPoolQ'),
-      a: t('faqPoolA'),
-    },
-    {
-      q: t('faqDevQ'),
-      a: t('faqDevA'),
-    },
-    {
-      q: t('faqGasQ'),
-      a: t('faqGasA'),
-    },
-    {
-      q: t('faqGrowthQ'),
-      a: t('faqGrowthA'),
-    },
-    {
-      q: t('faqCardQ'),
-      a: t('faqCardA'),
-    },
-    {
-      q: t('faqOneQ'),
-      a: t('faqOneA'),
-    },
-  ];
-}
-
-function renderFaqItem(item: FaqItem): React.JSX.Element {
-  return (
-    <details key={item.q}>
-      <summary>{item.q}</summary>
-      <p>{item.a}</p>
-    </details>
-  );
-}
-
-/* The pricing page's FAQ section; the product pages carry theirs in the
-   footer. */
-export function H2Faq(): React.JSX.Element {
-  const t = useTranslation();
-  const page = useSitePage();
-  return (
-    <section className="h2-section h2-rule" aria-labelledby="h2-faq-title">
-      <div className="h2-shell">
-        <div className="h2-faq">
-          <h2 id="h2-faq-title" className="h2-display h2-faq__title">
-            {t('faqTitle')}
-          </h2>
-          <div className="h2-faq__list">{pricingFaqs(page.locale).map(renderFaqItem)}</div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 type FaqPopFrame = { left: number; top: number; w: number; h: number };
 

@@ -1,4 +1,4 @@
-import { translate } from './catalog';
+import { translate, type MessageKey } from './catalog';
 import { pagePath, type Locale, type SitePage, type TranslatedPage } from './locale';
 
 export function escapeHtml(value: string): string {
@@ -9,17 +9,19 @@ export function escapeHtml(value: string): string {
     .replaceAll('>', '&gt;');
 }
 
+const PAGE_TEXT: Record<TranslatedPage, { title: MessageKey; description: MessageKey }> = {
+  company: { title: 'companyPageTitle', description: 'companyDescription' },
+};
+
 export function pageTitle(page: TranslatedPage, locale: Locale): string {
-  return translate(locale, page === 'pricing' ? 'pricingPageTitle' : 'companyPageTitle');
+  return translate(locale, PAGE_TEXT[page].title);
 }
 
 export function metadataTags(page: TranslatedPage, locale: Locale, origin: string): string {
   const english = escapeHtml(new URL(pagePath(page, 'en'), origin).href);
   const japanese = escapeHtml(new URL(pagePath(page, 'ja'), origin).href);
   const canonical = locale === 'ja' ? japanese : english;
-  const description = escapeHtml(
-    translate(locale, page === 'pricing' ? 'pricingDescription' : 'companyDescription'),
-  );
+  const description = escapeHtml(translate(locale, PAGE_TEXT[page].description));
   return `
     <meta data-site-meta name="description" content="${description}" />
     <link data-site-meta rel="canonical" href="${canonical}" />

@@ -39,7 +39,7 @@ try {
   await context.tracing.start({ screenshots: true, snapshots: true });
   const page = await context.newPage();
   try {
-    for (const surface of [site, wallet, `${site}/pricing`, `${site}/company`]) {
+    for (const surface of [site, wallet, `${wallet}/pricing/`, `${site}/company`]) {
       await page.goto(surface);
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       const links = await page.locator('a[href]').evaluateAll(documentationLinks, docs.origin);

@@ -1,20 +1,19 @@
-import { useLocale, useTranslation } from '@/i18n/browser';
-import type { Translate } from '@/i18n/catalog';
-import { formatPrice } from '@/i18n/pricing';
 import React from 'react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
-import { H2Faq, H2Footer } from '@/components/h2/sections';
+import { FieldBanner, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { startSiteAnchorScroll, subscribeToSiteNavigation } from '@/app/router/siteRouting';
+import type { MessageKey } from './catalog';
 import { EnterpriseCalculator } from './EnterpriseCalculator';
 import { estimate, lowestSelfServePlan } from './estimate';
-import { planSignupHref } from './planSignup';
+import { locale, t } from './i18n';
+import { CONTACT_SALES_TARGET, planSignupHref } from './planSignup';
 import { PlanSignupDialog, type SignupOffer } from './PlanSignupDialog';
+import { formatPrice } from './prices';
 import '@/styles/h2.css';
 import './styles.css';
-import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 type PlanId = 'free' | 'growth' | 'pro' | 'enterprise';
 
@@ -29,7 +28,7 @@ type Plan = {
   cta: { label: string; to: string };
 };
 
-function getPlans(t: Translate): readonly Plan[] {
+function getPlans(): readonly Plan[] {
   return [
     {
       id: 'free',
@@ -80,7 +79,7 @@ function getPlans(t: Translate): readonly Plan[] {
       unit: t('committedVolume'),
       summary: t('enterpriseSummary'),
       features: [t('volumePricing'), t('enterpriseUsers'), t('enterpriseSignatures'), t('rollout')],
-      cta: { label: t('contactSales'), to: CONTACT_LINK_TARGET },
+      cta: { label: t('contactSales'), to: CONTACT_SALES_TARGET },
     },
   ];
 }
@@ -99,7 +98,7 @@ const examples = EXAMPLE_USERS.map((users) => {
 });
 
 /* Short summaries for the closing banner's plan cards. */
-function planTeasers(t: Translate): Record<PlanId, string> {
+function planTeasers(): Record<PlanId, string> {
   return {
     free: t('freeTeaser'),
     growth: t('growthTeaser'),
@@ -142,7 +141,6 @@ function BannerPlanCard({
   plan: Plan;
   onSignup: (offer: SignupOffer) => void;
 }): React.JSX.Element {
-  const t = useTranslation();
   const ctaProps = usePlanCardLink(plan, onSignup);
   // The plan's gradient shows on hover or focus; it only animates while shown.
   const [lit, setLit] = React.useState(false);
@@ -165,7 +163,7 @@ function BannerPlanCard({
       <span className="pricing-banner__card-price">
         <strong>{plan.price}</strong> {plan.id === 'enterprise' ? '' : plan.unit}
       </span>
-      <span className="pricing-banner__card-teaser">{planTeasers(t)[plan.id]}</span>
+      <span className="pricing-banner__card-teaser">{planTeasers()[plan.id]}</span>
       <span className="pricing-banner__card-cta">
         {plan.cta.label}
         <ArrowRightAnim size={12} />
@@ -182,19 +180,20 @@ function PlanBanner({
   plans: readonly Plan[];
   onSignup: (offer: SignupOffer) => void;
 }): React.JSX.Element {
-  const t = useTranslation();
   return (
     <>
-      <section className="h2-cta h2-cta--banner h2-rule" aria-labelledby="pricing-banner-title">
-        <div className="h2-shell h2-cta__banner">
-          <GrainField field="teal-peach" flow={1.6} />
+      <section
+        className="h2-section h2-section--banner h2-rule"
+        aria-labelledby="pricing-banner-title"
+      >
+        <FieldBanner field="teal-peach">
           <div>
-            <h2 id="pricing-banner-title" className="h2-display h2-cta__title">
+            <h2 id="pricing-banner-title" className="h2-display h2-banner__title">
               {t('buildSdk')}
             </h2>
-            <p className="h2-cta__sub">{t('bannerCopy')}</p>
+            <p className="h2-banner__sub">{t('bannerCopy')}</p>
           </div>
-        </div>
+        </FieldBanner>
       </section>
       <section
         className="h2-section h2-section--compact h2-rule pricing-banner-plans"
@@ -274,10 +273,40 @@ function readSelectedPlanId(): PlanId {
   }
 }
 
+const FAQ: readonly { q: MessageKey; a: MessageKey }[] = [
+  { q: 'faqUserQ', a: 'faqUserA' },
+  { q: 'faqPoolQ', a: 'faqPoolA' },
+  { q: 'faqDevQ', a: 'faqDevA' },
+  { q: 'faqGasQ', a: 'faqGasA' },
+  { q: 'faqGrowthQ', a: 'faqGrowthA' },
+  { q: 'faqCardQ', a: 'faqCardA' },
+  { q: 'faqOneQ', a: 'faqOneA' },
+];
+
+function PricingFaq(): React.JSX.Element {
+  return (
+    <section className="h2-section h2-rule" aria-labelledby="pricing-faq-title">
+      <div className="h2-shell">
+        <div className="h2-faq">
+          <h2 id="pricing-faq-title" className="h2-display h2-faq__title">
+            {t('faqTitle')}
+          </h2>
+          <div className="h2-faq__list">
+            {FAQ.map((item) => (
+              <details key={item.q}>
+                <summary>{t(item.q)}</summary>
+                <p>{t(item.a)}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function PricingPage(): React.JSX.Element {
-  const t = useTranslation();
-  const locale = useLocale();
-  const plans = getPlans(t);
+  const plans = getPlans();
   React.useEffect(startSiteAnchorScroll, []);
   const selectedPlanId = React.useSyncExternalStore(subscribeToSiteNavigation, readSelectedPlanId);
   const [signupOffer, setSignupOffer] = React.useState<SignupOffer | null>(null);
@@ -355,9 +384,9 @@ export function PricingPage(): React.JSX.Element {
 
           <PlanBanner plans={plans} onSignup={setSignupOffer} />
 
-          <H2Faq />
+          <PricingFaq />
         </main>
-        <H2Footer />
+        <H2Footer faq={false} />
       </div>
       <PlanSignupDialog offer={signupOffer} onClose={closeSignup} />
     </div>

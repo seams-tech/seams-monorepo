@@ -52,17 +52,17 @@ export function resolveHref(target: string, locale: Locale): string {
 
   const url = new URL(target, window.location.origin);
   switch (normalizePathname(url.pathname)) {
-    case '/pricing':
-      return `${pagePath('pricing', locale)}${url.search}${url.hash}`;
     case '/company':
       return `${pagePath('company', locale)}${url.search}${url.hash}`;
-    case '/wallet': {
+    case '/wallet':
+    case '/wallet/pricing': {
       const wallet = new URL(
         import.meta.env.VITE_WALLET_SITE_ORIGIN || '/wallet/',
         window.location.origin,
       );
       const base = wallet.pathname.replace(/\/$/, '');
-      wallet.pathname = locale === 'ja' ? `${base}/ja/` : `${base}/`;
+      const page = normalizePathname(url.pathname) === '/wallet/pricing' ? '/pricing' : '';
+      wallet.pathname = `${base}${locale === 'ja' ? '/ja' : ''}${page}/`;
       wallet.search = url.search;
       wallet.hash = url.hash;
       return wallet.href;

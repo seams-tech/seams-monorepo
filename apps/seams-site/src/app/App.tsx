@@ -1,12 +1,12 @@
 import React from 'react';
 
 import { useSiteTheme } from '@/shared/hooks/useSiteTheme';
-import { normalizePathname } from '@/app/router/siteRouting';
+import { normalizePathname, resolveHref } from '@/app/router/siteRouting';
 import { PAPER_LIGHT_COLORS } from '@/context/app-themes';
 import { ContactModalHost } from '@/components/contact/ContactModal';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 import { SitePageContext } from '@/i18n/browser';
-import { parseSitePage } from '@/i18n/locale';
+import { parseSitePage, type Locale } from '@/i18n/locale';
 import { updateDocumentMetadata } from '@/i18n/metadata';
 import '@/i18n/styles.css';
 
@@ -15,9 +15,6 @@ const HomePage = React.lazy(() =>
 );
 const EcommercePage = React.lazy(() =>
   import('@/pages/ecommerce/page').then((module) => ({ default: module.EcommercePage })),
-);
-const PricingPage = React.lazy(() =>
-  import('@/pages/pricing/page').then((module) => ({ default: module.PricingPage })),
 );
 const CompanyPage = React.lazy(() =>
   import('@/pages/company/page').then((module) => ({ default: module.CompanyPage })),
@@ -32,6 +29,15 @@ function WalletProductRedirect(): React.JSX.Element {
     if (!walletSiteOrigin) throw new Error('VITE_WALLET_SITE_ORIGIN is required');
     window.location.replace(walletSiteOrigin);
   }, []);
+  return <></>;
+}
+
+/* Wallet pricing moved to the Wallet site. Deployed hosts redirect these paths before
+   the app loads; this covers local development. */
+function WalletPricingRedirect({ locale }: { locale: Locale }): React.JSX.Element {
+  React.useEffect(() => {
+    window.location.replace(resolveHref(`/wallet/pricing/${window.location.hash}`, locale));
+  }, [locale]);
   return <></>;
 }
 
@@ -99,7 +105,9 @@ export const App: React.FC = () => {
       case '/ecommerce':
         return <EcommercePage />;
       case '/pricing':
-        return <PricingPage />;
+        return <WalletPricingRedirect locale="en" />;
+      case '/ja/pricing':
+        return <WalletPricingRedirect locale="ja" />;
       case '/company':
         return <CompanyPage />;
       case '/contact':

@@ -1,4 +1,4 @@
-import { PRICING_USD } from '@/i18n/pricing';
+import { PRICING_USD } from './prices';
 
 /* Published rates from docs/wallet-saas/pricing.md, except the placeholder Pro
    prices. Enterprise prices are negotiated, so its estimate applies only its

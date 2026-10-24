@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 import { parseSitePage, pagePath, type TranslatedPage, type Locale } from './src/i18n/locale';
 import { languageHtml, escapeHtml } from './src/i18n/metadata';
 
-const translatedPages: readonly TranslatedPage[] = ['pricing', 'company'];
+const translatedPages: readonly TranslatedPage[] = ['company'];
 const locales: readonly Locale[] = ['en', 'ja'];
 
 function normalizePageRoute(

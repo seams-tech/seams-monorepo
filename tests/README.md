@@ -55,10 +55,12 @@ All pricing action buttons use the shared Stripe-style arrow. Hovering a plan or
 banner card animates its button arrow. Touch input keeps the resting arrow, and
 reduced-motion mode removes the transition.
 
-The wallet marketing app owns the wallet page. Pricing, company, and contact pages
+The wallet marketing app owns the wallet and pricing pages. Company and contact pages
 belong to the company site. Wallet links use document navigation and the configured
-company origin. Deployed wallet hosts redirect existing pricing and company URLs
-to the company site. Pricing anchors scroll after the page loads, including on refresh.
+company origin. Deployed wallet hosts redirect existing company URLs to the company
+site. The company site redirects `/pricing/` and `/ja/pricing/` to Wallet pricing until
+it has its own pricing page. Pricing anchors scroll after the page loads, including on
+refresh.
 
 Run `node tests/e2e/site-documentation-links.e2e.mjs` to check documentation links
 from the homepage, wallet, pricing, and company pages. It checks every linked docs

@@ -137,3 +137,11 @@ under that owner session. After testnet funding, lock the wallet, unlock
 with VoiceID, and review the transfer. Say “I approve this operation” when the
 Wallet reports that the microphone is listening. The native host keeps its
 Keychain session and device credential in memory for subsequent attempts.
+
+The [2026-10-24 live funding receipt](../../docs/evidence/voiceid-live-funding-20261024.json)
+records 0.05 testnet NEAR sent to the manual wallet. The disposable funder was
+deleted and its remaining funds returned to the faucet. No private key was
+persisted. The user's live activation returned a generic native rejection.
+The original browser error incorrectly called every rejection a speaker mismatch.
+The SDK now reports an unverified spoken approval. Exact live failure attribution,
+voice unlock, and the user's reviewed transfer remain open.

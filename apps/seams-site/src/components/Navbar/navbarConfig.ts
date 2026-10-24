@@ -1,8 +1,12 @@
 import { translate, type Translate } from '@/i18n/catalog';
 import type { Locale } from '@/i18n/locale';
-import { Bot, Building2, LayoutGrid, LifeBuoy, Store, Wallet } from 'lucide-react';
-import { type DropdownPane, type SiteNavbarConfig } from '@seams-internal/site-navbar';
-import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
+import { Bot, Store, Wallet } from 'lucide-react';
+import {
+  aboutMenu,
+  CONTACT_LINK_TARGET,
+  type DropdownPane,
+  type SiteNavbarConfig,
+} from '@seams-internal/site-navbar';
 
 /* seams.sh is the landing site for three products: Satyr (ecommerce agents
    and café management), BakeryOS (robotics for bakeries; its thesis is open)
@@ -142,40 +146,9 @@ function pricingDropdownPane(t: Translate): DropdownPane {
   };
 }
 
-function aboutDropdownPane(t: Translate): DropdownPane {
-  return {
-    id: 'about',
-    label: t('aboutUs'),
-    kicker: t('company'),
-    rows: [
-      {
-        title: t('company'),
-        description: t('companyNav'),
-        to: '/company/',
-        icon: Building2,
-        field: 'sky-sand',
-      },
-      {
-        title: t('ourProducts'),
-        description: t('ourProductsCopy'),
-        to: '/',
-        icon: LayoutGrid,
-        field: 'teal-peach',
-      },
-      {
-        title: t('support'),
-        description: t('supportCopy'),
-        to: CONTACT_LINK_TARGET,
-        icon: LifeBuoy,
-        field: 'coral-tide',
-      },
-    ],
-    footerLinks: [{ label: t('contactUs'), to: CONTACT_LINK_TARGET }],
-  };
-}
-
 export function getSiteNavbarConfig(locale: Locale): SiteNavbarConfig {
   const t = translate.bind(null, locale);
+  const about = aboutMenu(locale);
   return {
     labels: {
       primary: t('primary'),
@@ -183,17 +156,16 @@ export function getSiteNavbarConfig(locale: Locale): SiteNavbarConfig {
       dashboard: t('dashboard'),
       openMenu: t('openMenu'),
       closeMenu: t('closeMenu'),
-      companyOverview: t('companyOverview'),
-      companyMission: t('companyMission'),
+      ...about.labels,
     },
     panes: {
       products: productsDropdownPane(t),
       documentation: documentationDropdownPane(t),
-      about: aboutDropdownPane(t),
+      about: about.pane,
       pricing: pricingDropdownPane(t),
     },
     homeHref: '/',
-    aboutHref: '/company/#company',
+    aboutHref: about.href,
     dashboardHref: '/dashboard',
     mobilePlanLinks: [
       {

@@ -1,10 +1,7 @@
-import { t } from '@/marketing/i18n/browser';
+import { locale, t } from '@/marketing/i18n/browser';
 import {
-  Building2,
   Fingerprint,
   Globe,
-  LayoutGrid,
-  LifeBuoy,
   ListChecks,
   Rocket,
   Sprout,
@@ -12,8 +9,7 @@ import {
   Wallet,
   Wrench,
 } from 'lucide-react';
-import type { DropdownPane, SiteNavbarConfig } from '@seams-internal/site-navbar';
-import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
+import { aboutMenu, type DropdownPane, type SiteNavbarConfig } from '@seams-internal/site-navbar';
 
 /* The 'documentation' pane id historically maps to the "Features" trigger and
    vice versa; ids are kept stable so aria wiring and pane ordering don't churn. */
@@ -138,37 +134,8 @@ const pricingDropdownPane: DropdownPane = {
   ],
 };
 
-/* The same menu as on seams.sh: the company page and the home page with
-   every product are there; support opens this site's contact form. */
-const aboutDropdownPane: DropdownPane = {
-  id: 'about',
-  label: t('aboutUs'),
-  kicker: t('company'),
-  rows: [
-    {
-      title: t('companyLink'),
-      description: t('companyDescription'),
-      to: '/company/',
-      icon: Building2,
-      field: 'sky-sand',
-    },
-    {
-      title: t('ourProducts'),
-      description: t('ourProductsDescription'),
-      to: '/',
-      icon: LayoutGrid,
-      field: 'teal-peach',
-    },
-    {
-      title: t('support'),
-      description: t('supportDescription'),
-      to: CONTACT_LINK_TARGET,
-      icon: LifeBuoy,
-      field: 'coral-tide',
-    },
-  ],
-  footerLinks: [{ label: t('contactUs'), to: CONTACT_LINK_TARGET }],
-};
+// The About Us menu is shared with seams.sh.
+const about = aboutMenu(locale);
 
 export const siteNavbarConfig: SiteNavbarConfig = {
   labels: {
@@ -177,18 +144,17 @@ export const siteNavbarConfig: SiteNavbarConfig = {
     dashboard: t('dashboard'),
     openMenu: t('openMenu'),
     closeMenu: t('closeMenu'),
-    companyOverview: t('companyOverview'),
-    companyMission: t('companyMission'),
+    ...about.labels,
   },
   panes: {
     products: productsDropdownPane,
     documentation: documentationDropdownPane,
-    about: aboutDropdownPane,
+    about: about.pane,
     pricing: pricingDropdownPane,
   },
   // The logo stays on the Wallet site; only the footer logo leads to seams.sh.
   homeHref: '/wallet',
-  aboutHref: '/company/',
+  aboutHref: about.href,
   dashboardHref: '/dashboard',
   mobilePlanLinks: [
     {

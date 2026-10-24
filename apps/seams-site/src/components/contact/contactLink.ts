@@ -1,3 +1,3 @@
-/* Links open the contact form with this target. The site router keeps the
-   current page and adds the hash, so the form opens over that page. */
-export const CONTACT_LINK_TARGET = '#contact';
+/* The contact target is shared with the Wallet site, beside the About Us menu
+   that links to it. */
+export { CONTACT_LINK_TARGET } from '@seams-internal/site-navbar';

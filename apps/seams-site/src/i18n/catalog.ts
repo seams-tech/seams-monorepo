@@ -96,11 +96,6 @@ export const messages = {
   dashboard: { en: 'Dashboard', ja: 'ダッシュボード' },
   openMenu: { en: 'Open menu', ja: 'メニューを開く' },
   closeMenu: { en: 'Close menu', ja: 'メニューを閉じる' },
-  companyOverview: { en: 'View company overview', ja: '会社概要を見る' },
-  companyMission: {
-    en: 'Learn more about the Seams team and mission',
-    ja: 'Seamsのチームとミッションを知る',
-  },
   agentsNav: {
     en: 'AI agents with scoped credentials, acting inside policy',
     ja: '権限を限定した認証情報でポリシーに従って動くAIエージェント',
@@ -161,15 +156,6 @@ export const messages = {
   },
   estimatePrice: { en: 'Estimate your price', ja: '料金を試算' },
   comparePlans: { en: 'Compare plans', ja: 'プランを比較' },
-  aboutUs: { en: 'About Us', ja: 'Seamsについて' },
-  companyNav: {
-    en: 'Who we are and what we are building',
-    ja: '私たちのチームと、つくっているもの',
-  },
-  ourProducts: { en: 'Our Products', ja: 'プロダクト一覧' },
-  ourProductsCopy: { en: 'Everything we build at Seams', ja: 'Seamsがつくるすべてのプロダクト' },
-  support: { en: 'Support', ja: 'サポート' },
-  supportCopy: { en: 'Get help from the team', ja: 'チームに相談' },
   talkUs: { en: 'Talk to us', ja: 'ご相談はこちら' },
   talkCopy: {
     en: 'Plan pricing and deployment options with the Seams team',

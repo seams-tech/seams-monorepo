@@ -12,6 +12,7 @@ export {
   type SiteNavbarProps,
   type SiteNavbarRouter,
 } from './SiteNavbar';
+export { aboutMenu, CONTACT_LINK_TARGET, type AboutMenu } from './aboutMenu';
 export { blinkMenuItem } from './menuItemBlink';
 
 export { LanguageSelector, type SiteLocale } from './LanguageSelector';

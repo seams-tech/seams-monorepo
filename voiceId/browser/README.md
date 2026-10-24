@@ -115,8 +115,13 @@ lease, so another VoiceID process cannot change the enrollment during a check.
 
 ## Manual Wallet test
 
-The Wallet worktree includes `/voiceid` in `tests/intended-app`. Enable the
-plugin with `authMethod=voiceid` and select a test wallet with `walletId`.
+The Wallet worktree includes `/voiceid?authMethod=voiceid` in
+`tests/intended-app`. Select Create test wallet to use the SDK's default wallet
+ID allocation. The page saves the returned ID in its URL for later unlocks.
+A `walletId` query selects an existing wallet and does not name a new wallet.
+Passkey unlock stays disabled until that wallet has a NEAR signer. Transfer
+review uses only the wallet displayed on the page.
+
 The page exposes owner registration, VoiceID activation, lock, voice unlock,
 and a reviewed one-yoctoNEAR transfer to the same testnet account.
 
@@ -126,8 +131,9 @@ Wallet worktree before a live test, then run one persistent loopback service.
 Keep the existing enrollment namespace. A status request confirms enrollment
 without recording. All capture starts from a user click inside the Wallet.
 
-Create the wallet with a passkey and save its recovery codes. Activate VoiceID
-once under that owner session. After testnet funding, lock the wallet, unlock
+Create the wallet with a passkey. Select Save recovery codes, then View recovery
+codes inside the Wallet. Save and acknowledge the codes. Activate VoiceID once
+under that owner session. After testnet funding, lock the wallet, unlock
 with VoiceID, and review the transfer. Say “I approve this operation” when the
 Wallet reports that the microphone is listening. The native host keeps its
 Keychain session and device credential in memory for subsequent attempts.

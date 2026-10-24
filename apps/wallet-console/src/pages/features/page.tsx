@@ -170,14 +170,6 @@ export function FeaturesPage(): React.JSX.Element {
                 {t('featuresTitle')}
               </h1>
               <p className="h2-hero-simple__sub">{t('featuresDescription')}</p>
-              <div className="h2-hero-simple__ctas">
-                <SiteLink to="/pricing/" className="h2-btn h2-btn--primary h2-btn--lg">
-                  {t('seePricing')}
-                </SiteLink>
-                <SiteLink to="/dashboard" className="h2-btn h2-btn--outline h2-btn--lg">
-                  {t('startFree')}
-                </SiteLink>
-              </div>
               <nav className="features-toc" aria-label={t('sections')}>
                 {SECTIONS.map((section) => (
                   <a key={section.id} href={`#${section.id}`}>
@@ -185,6 +177,9 @@ export function FeaturesPage(): React.JSX.Element {
                   </a>
                 ))}
               </nav>
+              <SiteLink to="/pricing/" className="features-pricing-link">
+                {t('seePricing')}
+              </SiteLink>
             </div>
           </header>
 

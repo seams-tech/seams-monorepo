@@ -1,7 +1,11 @@
-/* ---------- hero: short, with links to the sections below ---------- */
+/* ---------- header: a plain title, with links to the sections below ---------- */
 
 .h2-hero-simple.features-hero {
   padding: 144px 0 40px;
+}
+
+.features-hero .h2-hero-simple__title {
+  font-size: clamp(28px, 2.9vw, 38px);
 }
 
 /* line the text up with the section content below, not the column edge */
@@ -51,6 +55,27 @@
 .features-toc a:focus-visible {
   outline: 2px solid var(--h2-ink);
   outline-offset: 2px;
+}
+
+/* a quiet text link, so the section links stay the main way on */
+.features-pricing-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  color: var(--h2-graphite);
+  font-size: var(--h2-text-xl);
+  text-decoration: none;
+}
+
+.features-pricing-link:hover {
+  color: var(--h2-ink);
+}
+
+.features-pricing-link:focus-visible {
+  outline: 2px solid var(--h2-ink);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 /* the fixed navbar covers the top of a section a menu link scrolls to */

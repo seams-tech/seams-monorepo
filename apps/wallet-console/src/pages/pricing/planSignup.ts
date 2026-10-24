@@ -7,9 +7,6 @@ export function walletConsoleOrigin(): string {
   return import.meta.env.DEV ? 'http://localhost:4001' : 'https://console.wallet.seams.sh';
 }
 
-/* The contact form is a dialog on the company site's home page. */
-export const CONTACT_SALES_TARGET = '/#contact';
-
 export type SignupPlan = 'free' | 'growth' | 'pro';
 
 /** The Console login for a plan card. The pricing page shows it in a dialog (`embed=1`);

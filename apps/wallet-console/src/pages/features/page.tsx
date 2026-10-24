@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { FieldBanner, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
+import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { startSiteAnchorScroll } from '@/app/router/siteRouting';
@@ -31,12 +32,13 @@ type Feature = {
   status?: 'available' | 'planned';
 };
 
-/* The anchors the Products menu links to, in page order. */
-const SECTIONS: readonly { id: string; label: MessageKey }[] = [
-  { id: 'recovery', label: 'recoveryKicker' },
-  { id: 'biometrics', label: 'biometricsKicker' },
-  { id: 'global', label: 'globalKicker' },
-  { id: 'self-hosted', label: 'selfHostedKicker' },
+/* The anchors the Features menu links to, in page order, each with its menu
+   row's gradient. */
+const SECTIONS: readonly { id: string; label: MessageKey; field: GrainFieldName }[] = [
+  { id: 'recovery', label: 'recoveryKicker', field: 'teal-peach' },
+  { id: 'biometrics', label: 'biometricsKicker', field: 'aqua-evergreen' },
+  { id: 'global', label: 'globalKicker', field: 'azure-coral' },
+  { id: 'self-hosted', label: 'selfHostedKicker', field: 'slate-amber' },
 ];
 
 const RECOVERY: readonly Feature[] = [
@@ -57,20 +59,76 @@ const SELF_HOSTED: readonly Feature[] = [
   { icon: Unlock, title: 'openSource', copy: 'openSourceCopy' },
 ];
 
+// About one play of the front page's figures.
+const FIGURE_PLAY_MS = 3600;
+
+/* A large line figure from the front page. With `playMs` it plays once each
+   time it comes into view, then rests; without it, it plays while it is in
+   view. A visitor's hover plays it again. Reduced motion keeps it at rest. */
+function FeatureFigure({
+  figure,
+  label,
+  playMs,
+  className,
+}: {
+  figure: WalletFigureName;
+  /* the hero's signing figure carries its own caption, so it needs none */
+  label?: MessageKey;
+  playMs?: number;
+  className?: string;
+}): React.JSX.Element {
+  const ref = React.useRef<HTMLElement>(null);
+  const [playing, setPlaying] = React.useState(false);
+
+  React.useEffect(() => {
+    const panel = ref.current;
+    if (!panel || !window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+      return undefined;
+    }
+    let timer = 0;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        window.clearTimeout(timer);
+        setPlaying(entry.isIntersecting);
+        if (entry.isIntersecting && playMs !== undefined) {
+          timer = window.setTimeout(() => setPlaying(false), playMs);
+        }
+      },
+      { threshold: 0.6 },
+    );
+    observer.observe(panel);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(timer);
+    };
+  }, [playMs]);
+
+  return (
+    <figure ref={ref} className={className ? `features-figure ${className}` : 'features-figure'}>
+      <WalletFigure figure={figure} playing={playing} />
+      {label ? <figcaption>{t(label)}</figcaption> : null}
+    </figure>
+  );
+}
+
 function FeatureCards({
   features,
   field,
+  stacked = false,
 }: {
   features: readonly Feature[];
   field: GrainFieldName;
+  /* one card per row, beside a figure */
+  stacked?: boolean;
 }): React.JSX.Element {
   return (
-    <ul className="features-cards">
+    <ul className={stacked ? 'features-cards features-cards--stack' : 'features-cards'}>
       {features.map(({ icon: Icon, title, copy, status }) => (
         <li key={title} className="features-card">
           <div className="features-card__head">
-            <span className="features-card__icon" aria-hidden>
-              <GrainField field={field} playing={false} />
+            {/* the front page's beige icon tile, with the section's grain in grey */}
+            <span className="h2-fieldtile" aria-hidden>
+              <GrainField field={field} />
               <Icon size={18} strokeWidth={1.7} />
             </span>
             {status ? (
@@ -89,18 +147,15 @@ function FeatureCards({
 
 function SectionHead({
   id,
-  kicker,
   title,
   copy,
 }: {
   id: string;
-  kicker: MessageKey;
   title: MessageKey;
   copy: MessageKey;
 }): React.JSX.Element {
   return (
     <div className="h2-split-head">
-      <p className="h2-kicker">{t(kicker)}</p>
       <h2 id={`${id}-title`} className="h2-display">
         {t(title)}
       </h2>
@@ -164,22 +219,30 @@ export function FeaturesPage(): React.JSX.Element {
       <div className="h2-col">
         <main aria-labelledby="features-title">
           <header className="h2-hero-simple features-hero">
-            <div className="h2-shell">
-              <p className="h2-kicker">{t('featuresKicker')}</p>
-              <h1 id="features-title" className="h2-display h2-hero-simple__title">
-                {t('featuresTitle')}
-              </h1>
-              <p className="h2-hero-simple__sub">{t('featuresDescription')}</p>
-              <nav className="features-toc" aria-label={t('sections')}>
-                {SECTIONS.map((section) => (
-                  <a key={section.id} href={`#${section.id}`}>
-                    {t(section.label)}
-                  </a>
-                ))}
-              </nav>
-              <SiteLink to="/pricing/" className="features-pricing-link">
-                {t('seePricing')}
-              </SiteLink>
+            <div className="h2-shell features-hero__grid">
+              <div>
+                <h1 id="features-title" className="h2-display h2-hero-simple__title">
+                  {t('featuresTitle')}
+                </h1>
+                <p className="h2-hero-simple__sub">{t('featuresDescription')}</p>
+                {/* the front page's fork links, one gradient chip per section */}
+                <nav className="h2-hero__forks" aria-label={t('sections')}>
+                  {SECTIONS.map((section) => (
+                    <a key={section.id} className="h2-fork" href={`#${section.id}`}>
+                      <span className="h2-fork__chip" aria-hidden>
+                        <GrainField field={section.field} />
+                      </span>
+                      {t(section.label)}
+                    </a>
+                  ))}
+                </nav>
+                <div className="h2-hero-simple__ctas">
+                  <SiteLink to="/pricing/" className="h2-btn h2-btn--primary h2-btn--lg">
+                    {t('seePricing')}
+                  </SiteLink>
+                </div>
+              </div>
+              <FeatureFigure figure="signing" className="features-figure--hero" />
             </div>
           </header>
 
@@ -189,14 +252,18 @@ export function FeaturesPage(): React.JSX.Element {
             aria-labelledby="recovery-title"
           >
             <div className="h2-shell">
-              <SectionHead
-                id="recovery"
-                kicker="recoveryKicker"
-                title="recoveryTitle"
-                copy="recoveryCopy"
-              />
-              <FeatureCards features={RECOVERY} field="teal-peach" />
-              <p className="features-note">{t('sameAddress')}</p>
+              <SectionHead id="recovery" title="recoveryTitle" copy="recoveryCopy" />
+              <div className="features-split">
+                <FeatureFigure
+                  figure="devices"
+                  label="linkedDevicesFigure"
+                  playMs={FIGURE_PLAY_MS}
+                />
+                <div>
+                  <FeatureCards features={RECOVERY} field="teal-peach" stacked />
+                  <p className="features-note">{t('sameAddress')}</p>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -206,12 +273,7 @@ export function FeaturesPage(): React.JSX.Element {
             aria-labelledby="biometrics-title"
           >
             <div className="h2-shell">
-              <SectionHead
-                id="biometrics"
-                kicker="biometricsKicker"
-                title="biometricsTitle"
-                copy="biometricsCopy"
-              />
+              <SectionHead id="biometrics" title="biometricsTitle" copy="biometricsCopy" />
               <FeatureCards features={BIOMETRICS} field="aqua-evergreen" />
               <div className="features-actions">
                 <SiteLink
@@ -232,20 +294,24 @@ export function FeaturesPage(): React.JSX.Element {
             aria-labelledby="self-hosted-title"
           >
             <div className="h2-shell">
-              <SectionHead
-                id="self-hosted"
-                kicker="selfHostedKicker"
-                title="selfHostedTitle"
-                copy="selfHostedCopy"
-              />
-              <FeatureCards features={SELF_HOSTED} field="slate-amber" />
-              <div className="features-actions">
-                <SiteLink to={CONTACT_LINK_TARGET} className="h2-btn h2-btn--primary">
-                  {t('contactUs')}
-                </SiteLink>
-                <SiteLink to="/pricing/#enterprise" className="h2-btn h2-btn--outline">
-                  {t('seePricing')}
-                </SiteLink>
+              <SectionHead id="self-hosted" title="selfHostedTitle" copy="selfHostedCopy" />
+              <div className="features-split">
+                <div>
+                  <FeatureCards features={SELF_HOSTED} field="slate-amber" stacked />
+                  <div className="features-actions">
+                    <SiteLink to={CONTACT_LINK_TARGET} className="h2-btn h2-btn--primary">
+                      {t('contactUs')}
+                    </SiteLink>
+                    <SiteLink to="/pricing/#enterprise" className="h2-btn h2-btn--outline">
+                      {t('seePricing')}
+                    </SiteLink>
+                  </div>
+                </div>
+                <FeatureFigure
+                  figure="infrastructure"
+                  label="noLockInFigure"
+                  playMs={FIGURE_PLAY_MS}
+                />
               </div>
             </div>
           </section>

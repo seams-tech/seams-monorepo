@@ -4,6 +4,10 @@ This internal prototype runs from this directory. Keep the directory in a stable
 location. The local service needs Node.js. The host needs no Python, Rust, or source
 checkout. The browser Wallet connects to the service on this Mac.
 This package is not signed for public distribution or notarized.
+Keychain access must already authorize the exact host executable. Native queries
+request noninteractive authentication. If access needs an OS dialog, the host
+returns a device-setup error. Do not keep retrying voice activation in that state.
+Stable host signing and one-time device authorization are still qualification work.
 
 1. Open Terminal in this package directory.
 

@@ -63,6 +63,7 @@ pub(crate) enum NativeError {
     NotReady,
     Stopped,
     Panicked,
+    KeychainAccessRequired,
 }
 
 pub(crate) enum NativeOutcome {
@@ -797,6 +798,9 @@ fn adapter_error(error: AdapterError) -> NativeError {
 fn store_error(error: StoreError) -> NativeError {
     match error {
         StoreError::Conflict => NativeError::Conflict,
+        StoreError::Unavailable(crate::domain::UnavailableReason::PermissionDenied) => {
+            NativeError::KeychainAccessRequired
+        }
         StoreError::Unavailable(_) => NativeError::Missing,
         StoreError::InvalidRecord | StoreError::Failed | StoreError::CommitUncertain => {
             NativeError::Failed

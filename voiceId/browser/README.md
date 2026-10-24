@@ -61,10 +61,12 @@ Repeated status checks and voice attempts reuse that process. A native failure
 stops the service's request path; it never restarts the host automatically.
 Stop the service before changing or deleting enrollment.
 
-macOS may ask for access when a newly built host first opens the existing
-Keychain items. The package uses an ad hoc code signature. Stable distribution
-signing and clean-Mac qualification remain open. The loopback service cannot
-dismiss or suppress an OS permission prompt.
+Native Keychain queries use `LAContext.interactionNotAllowed`. A request that
+needs OS authorization fails with a device-setup error instead of starting an
+interactive authorization flow. This applies to enrollment, capture, and stored
+device credentials. The package still uses an ad hoc signature. Stable signing
+and one-time device authorization remain prerequisites for live qualification.
+The current live host stays stopped until that setup is complete.
 
 For a reviewed testnet transfer, select Confirm after checking the amount and
 recipient. Wait for microphone readiness, then say “I approve this operation” or
@@ -99,7 +101,7 @@ SEAMS_TEST_FRONTEND_URL=http://localhost:4316 pnpm -C tests test:wallet-browser 
 The composed journey in `tests/e2e/voiceid-browser.e2e.mjs` uses real native
 models, synthetic speech, a disposable Keychain namespace, real Wallet MPC,
 and one reviewed testnet transfer. Run it only during a deliberate live
-qualification session, because macOS may ask for Keychain access. It writes
+qualification session after device setup permits noninteractive Keychain access. It writes
 `voiceId/engine/target/browser-journey/wallet-report.json` and a screenshot.
 
 ## Transport boundary
@@ -152,4 +154,10 @@ reproduced a truncated HTTP stream when approved native replies used snake_case
 fields. The browser bridge requires camelCase fields. The native serializer now
 emits that exact shape. The same bridge journey passes activation and unlock with
 production serialization. It opens no Keychain session and captures no audio.
-The live service was restarted once after its previous native child had exited.
+A later live attempt produced five Keychain prompts and another native exit.
+The user confirmed all five prompts belonged to one activation. The previous
+host discarded stderr, so that exit's exact cause remains unknown. The service
+now logs only bounded error categories and returns a complete setup error for
+Keychain denial. It never logs native stderr or restarts a failed host.
+The noninteractive boundary compiles. Synthetic bridge and browser tests pass;
+actual macOS permission behavior remains unverified. The live host is stopped.

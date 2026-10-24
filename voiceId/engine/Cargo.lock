@@ -1108,6 +1108,7 @@ dependencies = [
  "cpal",
  "ed25519-dalek",
  "libloading",
+ "objc2",
  "ort",
  "rubato",
  "security-framework",

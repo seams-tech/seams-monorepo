@@ -196,14 +196,17 @@ class NativeHost {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     this.pending = Buffer.alloc(0);
+    this.errorTail = '';
+    this.nativeError = 'unknown';
     this.readOutput = this.readOutput.bind(this);
     this.closed = this.closed.bind(this);
-    this.failed = this.failed.bind(this);
-    this.child.stderr.resume();
+    this.processError = this.failed.bind(this, 'process_error');
+    this.readError = this.readError.bind(this);
+    this.child.stderr.on('data', this.readError);
     this.child.stdout.on('data', this.readOutput);
-    this.child.stdin.on('error', this.failed);
+    this.child.stdin.on('error', this.processError);
     this.child.on('close', this.closed);
-    this.child.on('error', this.failed);
+    this.child.on('error', this.processError);
   }
 
   send(message) {
@@ -218,34 +221,50 @@ class NativeHost {
   readOutput(chunk) {
     this.pending = Buffer.concat([this.pending, chunk]);
     if (this.pending.length > 2 * (MAXIMUM_MESSAGE_BYTES + 4)) {
-      this.failed();
+      this.failed('buffer_limit');
       return;
     }
     while (this.pending.length >= 4) {
       const length = this.pending.readUInt32LE(0);
       if (length === 0 || length > MAXIMUM_MESSAGE_BYTES) {
-        this.failed();
+        this.failed('invalid_frame');
         return;
       }
       if (this.pending.length < length + 4) return;
       const text = this.pending.subarray(4, length + 4).toString('utf8');
       this.pending = this.pending.subarray(length + 4);
       if (!active || !active.receive(text)) {
-        this.failed();
+        this.failed('invalid_reply');
         return;
       }
     }
   }
 
-  closed() {
-    this.failed();
+  readError(chunk) {
+    this.errorTail = (this.errorTail + chunk.toString('utf8')).slice(-4096);
+    const match = this.errorTail.match(
+      /VoiceID local bridge: (InvalidInput|InvalidHandle|Busy|Missing|Expired|Cancelled|Discontinuity|Failed|Conflict|NotReady|Stopped|Panicked|KeychainAccessRequired)\b/,
+    );
+    if (match) this.nativeError = match[1];
   }
 
-  failed() {
+  closed(code, signal) {
+    this.failed('process_closed', code, signal);
+  }
+
+  failed(reason, code = null, signal = null) {
     if (stopped) return;
     stopped = true;
+    process.stderr.write(`${JSON.stringify({
+      kind: 'voiceid_native_host_stopped',
+      reason,
+      nativeError: this.nativeError,
+      exitCode: Number.isInteger(code) ? code : null,
+      signal: typeof signal === 'string' && /^SIG[A-Z0-9]{1,12}$/.test(signal) ? signal : null,
+    })}\n`);
+    this.errorTail = '';
     this.child.kill('SIGTERM');
-    active?.fail();
+    active?.fail(this.nativeError);
   }
 }
 
@@ -329,11 +348,16 @@ class NativeExchange {
     this.host.send({ kind: 'cancel', id });
   }
 
-  fail() {
+  fail(nativeError) {
     if (this.finished) return;
     this.finished = true;
     active = null;
-    this.response.destroy();
+    if (!this.cancelled) {
+      const reason = nativeError === 'KeychainAccessRequired'
+        ? 'keychain_access_required'
+        : 'native_host_stopped';
+      this.response.end(`${JSON.stringify({ kind: 'service_failed', reason })}\n`);
+    }
   }
 }
 

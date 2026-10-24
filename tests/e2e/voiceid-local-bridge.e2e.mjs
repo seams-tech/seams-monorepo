@@ -38,6 +38,8 @@ async function main() {
       VOICEID_FAKE_CANCELLATIONS: cancelFile,
     },
   });
+  const diagnostics = [];
+  bridge.stderr.on('data', collectDiagnostic.bind(null, diagnostics));
   try {
     await waitReady(bridge);
     const rejected = await request({ kind: 'status', id: randomUUID() }, 'https://example.com');
@@ -100,10 +102,20 @@ async function main() {
 
     const switched = await request({ kind: 'status', id: randomUUID() }, 'https://localhost:4002');
     assert.equal(switched.status, 403);
-    try {
-      await request({ kind: 'status', id: 'ffffffff-ffff-ffff-ffff-ffffffffffff' }, WALLET_ORIGIN);
-    } catch {}
+    const deniedAccess = await request({
+      kind: 'status', id: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
+    }, WALLET_ORIGIN);
+    assert.deepEqual(deniedAccess.replies, [{
+      kind: 'service_failed', reason: 'keychain_access_required',
+    }]);
     await waitStopped();
+    const diagnosticText = diagnostics.join('');
+    assert(!diagnosticText.includes('sensitive-sentinel'));
+    const failure = JSON.parse(diagnosticText.trim());
+    assert.equal(failure.kind, 'voiceid_native_host_stopped');
+    assert.equal(failure.reason, 'process_closed');
+    assert.equal(failure.nativeError, 'KeychainAccessRequired');
+    assert.equal(failure.exitCode, 1);
     const afterFailure = await request({ kind: 'status', id: randomUUID() }, WALLET_ORIGIN);
     assert.equal(afterFailure.status, 503);
     assert.equal(await launchCount(countFile), 1);
@@ -119,6 +131,8 @@ async function main() {
       abandonedCaptureCancelled: true,
       secondWalletOriginRejected: true,
       hostFailureDoesNotRestart: true,
+      safeNativeFailureDiagnostics: true,
+      keychainDenialEndsStreamWithSetupError: true,
       nativeLaunches: await launchCount(countFile),
     };
     await fs.writeFile(path.join(OUTPUT, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
@@ -128,6 +142,10 @@ async function main() {
     await new Promise(waitForExit.bind(null, bridge));
     await fs.rm(packageRoot, { recursive: true, force: true });
   }
+}
+
+function collectDiagnostic(diagnostics, chunk) {
+  diagnostics.push(chunk.toString('utf8'));
 }
 
 function replyKind(reply) {
@@ -310,7 +328,10 @@ function read(chunk) {
 
 function receive(request) {
   if (request.kind === 'status') {
-    if (request.id === 'ffffffff-ffff-ffff-ffff-ffffffffffff') process.exit(1);
+    if (request.id === 'ffffffff-ffff-ffff-ffff-ffffffffffff') {
+      process.stderr.write('Error: "VoiceID local bridge: KeychainAccessRequired"\\nsensitive-sentinel\\n');
+      process.exit(1);
+    }
     send({ kind: 'status', id: request.id, enrollment: 'ready' });
     return;
   }

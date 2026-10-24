@@ -10,5 +10,7 @@
   "abandonedCaptureCancelled": true,
   "secondWalletOriginRejected": true,
   "hostFailureDoesNotRestart": true,
+  "safeNativeFailureDiagnostics": true,
+  "keychainDenialEndsStreamWithSetupError": true,
   "nativeLaunches": 1
 }

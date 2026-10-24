@@ -8,6 +8,11 @@ use core_foundation::boolean::CFBoolean;
 use core_foundation::data::CFData;
 use core_foundation::dictionary::CFDictionary;
 use core_foundation::string::{CFString, CFStringRef};
+use objc2::{
+    class, msg_send,
+    rc::Retained,
+    runtime::{AnyObject, Bool},
+};
 use security_framework::random::SecRandom;
 use security_framework_sys::base::{
     errSecDuplicateItem as ERR_DUPLICATE, errSecItemNotFound as ERR_NOT_FOUND,
@@ -28,6 +33,9 @@ use crate::enrollment::{
     VoiceTemplate,
 };
 use crate::runtime::WorkContext;
+
+#[link(name = "LocalAuthentication", kind = "framework")]
+unsafe extern "C" {}
 
 const VOICE_BYTES: usize = 192 * 4;
 const RECORD_BYTES: usize = 4 + 16 + 16 + 8 + 32 + VOICE_BYTES;
@@ -334,7 +342,15 @@ fn device_id(bytes: &[u8]) -> Result<DeviceId, StoreError> {
 }
 
 fn base_query(service: &str, account: &str) -> Query {
+    // A capture request must never open an OS authentication dialog. Existing
+    // Keychain authorization remains required; unavailable access fails closed.
+    let context: Retained<AnyObject> = unsafe { msg_send![class!(LAContext), new] };
+    unsafe {
+        let _: () = msg_send![&*context, setInteractionNotAllowed: Bool::YES];
+    }
+    let context = unsafe { CFType::wrap_under_get_rule(Retained::as_ptr(&context).cast()) };
     vec![
+        pair(unsafe { kSecUseAuthenticationContext }, context),
         pair(
             unsafe { kSecClass },
             unsafe { CFString::wrap_under_get_rule(kSecClassGenericPassword) }.into_CFType(),

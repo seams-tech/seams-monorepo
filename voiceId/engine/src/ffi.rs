@@ -516,7 +516,7 @@ fn status(error: NativeError) -> u32 {
         NativeError::InvalidInput => 1,
         NativeError::InvalidHandle => 2,
         NativeError::Busy => 3,
-        NativeError::Missing => 4,
+        NativeError::Missing | NativeError::KeychainAccessRequired => 4,
         NativeError::Expired => 5,
         NativeError::Cancelled => 6,
         NativeError::Discontinuity => 7,

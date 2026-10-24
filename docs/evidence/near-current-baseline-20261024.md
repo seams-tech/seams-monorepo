@@ -227,9 +227,12 @@ Do not subtract browser, Gateway, Router, or object durations to assign a remova
 
 An independent review reproduced every join and confirmed the timestamp contradiction from the raw records.
 The trace supports further instrumentation. It does not justify a routing or persistence change yet.
-The next implementation should propagate the existing identifier through SigningWorker and its object calls.
-Record persistence and dispatch boundaries without logging request bodies or secret material.
-Then repeat a bounded signing cohort with failures retained.
+The [follow-up implementation](../../../seams-wallet/docs/evidence/near-signing-trace-propagation-20261024.md)
+now propagates a request trace through SigningWorker and its wallet object.
+Four local lifecycle contracts pass. A separate diagnostic repeat matches six browser traces to object commands.
+The response retains ten downstream timing fields after Gateway completion readback.
+This local evidence establishes no hosted speedup.
+The next measurement needs the diagnostic build in the hosted environment and a bounded cohort with failures retained.
 
 The independent PostgreSQL work completed WASM adapter and retry-timer support.
 Its [native and local Worker E2Es](../../../seams-wallet/docs/evidence/postgres-role-worker-20261024.md) pass.

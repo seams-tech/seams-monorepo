@@ -12,7 +12,7 @@ import {
   Unlock,
   type LucideIcon,
 } from 'lucide-react';
-import { H2Cta, H2Footer } from '@/components/h2/sections';
+import { FieldBanner, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
@@ -128,6 +128,33 @@ function SiteLink({
   );
 }
 
+/* Closing call to action: the plans, on the site's moving banner. */
+function PricingBanner(): React.JSX.Element {
+  return (
+    <section
+      className="h2-section h2-section--banner h2-rule"
+      aria-labelledby="features-pricing-title"
+    >
+      <FieldBanner field="teal-peach">
+        <div>
+          <h2 id="features-pricing-title" className="h2-display h2-banner__title">
+            {t('pricingBannerTitle')}
+          </h2>
+          <p className="h2-banner__sub">{t('pricingBannerCopy')}</p>
+        </div>
+        <div className="h2-banner__actions">
+          <SiteLink to="/dashboard" className="h2-btn h2-btn--outline">
+            {t('startFree')}
+          </SiteLink>
+          <SiteLink to="/pricing/" className="h2-btn h2-btn--primary">
+            {t('seePricing')}
+          </SiteLink>
+        </div>
+      </FieldBanner>
+    </section>
+  );
+}
+
 export function FeaturesPage(): React.JSX.Element {
   React.useEffect(startSiteAnchorScroll, []);
 
@@ -143,6 +170,14 @@ export function FeaturesPage(): React.JSX.Element {
                 {t('featuresTitle')}
               </h1>
               <p className="h2-hero-simple__sub">{t('featuresDescription')}</p>
+              <div className="h2-hero-simple__ctas">
+                <SiteLink to="/pricing/" className="h2-btn h2-btn--primary h2-btn--lg">
+                  {t('seePricing')}
+                </SiteLink>
+                <SiteLink to="/dashboard" className="h2-btn h2-btn--outline h2-btn--lg">
+                  {t('startFree')}
+                </SiteLink>
+              </div>
               <nav className="features-toc" aria-label={t('sections')}>
                 {SECTIONS.map((section) => (
                   <a key={section.id} href={`#${section.id}`}>
@@ -220,7 +255,7 @@ export function FeaturesPage(): React.JSX.Element {
             </div>
           </section>
 
-          <H2Cta />
+          <PricingBanner />
         </main>
         <H2Footer />
       </div>

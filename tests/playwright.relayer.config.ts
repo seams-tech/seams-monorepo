@@ -13,7 +13,7 @@ export default defineConfig({
   // Don't transform wasm-bindgen outputs; Playwright's transpiler can break these ESM glue files.
   build: { external: ['wasm/**/pkg/**'] },
   testDir: '.',
-  testMatch: ['**/relayer/**/*.test.ts'],
+  testMatch: ['**/relayer/**/*.test.ts', '**/relayer/**/*.test.mjs'],
   fullyParallel: false,
   retries: 0,
   workers: 1,

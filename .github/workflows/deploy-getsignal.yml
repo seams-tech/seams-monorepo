@@ -1,8 +1,17 @@
 name: Prepare GetSignal testnet deployment
-run-name: GetSignal testnet / inspect / ${{ github.sha }}
+run-name: GetSignal testnet / ${{ inputs.operation }} / ${{ github.sha }}
 
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        type: choice
+        description: Inspect the assignment or allocate empty GetSignal resources
+        required: true
+        default: inspect
+        options:
+          - inspect
+          - allocate-resources
 
 permissions:
   contents: read
@@ -34,3 +43,6 @@ jobs:
           node-version: '24'
       - name: Inspect the existing GetSignal environment
         run: node deployment/wallet-system/scripts/inspect-getsignal-deployment.mjs
+      - name: Allocate and verify empty GetSignal resources
+        if: inputs.operation == 'allocate-resources'
+        run: node deployment/wallet-system/scripts/allocate-getsignal-resources.mjs

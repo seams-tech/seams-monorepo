@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { readBackendLane } from '../../../scripts/deployment-targets.mjs';
+import { CloudflareD1Operator } from './cloudflare-d1-operator.mjs';
 
 const ENVIRONMENT_LOOKUP = `
   SELECT e.namespace, e.id AS environment_id, e.project_id, e.org_id, e.status,
@@ -27,40 +28,13 @@ export async function inspectGetSignalDeployment(input) {
     throw new Error('The recorded account control plane is unavailable');
   }
   const namespace = control.provisioning.gatewayDeploymentConfig.tenant.namespace;
-  const response = await input.fetcher(
-    `https://api.cloudflare.com/client/v4/accounts/${input.accountId}/d1/database/${control.console.database.id}/query`,
-    {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${input.apiToken}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        sql: ENVIRONMENT_LOOKUP,
-        params: [
-          namespace,
-          lane.identity.organizationId,
-          lane.identity.projectId,
-          lane.identity.environmentId,
-        ],
-      }),
-      signal: AbortSignal.timeout(30_000),
-      redirect: 'error',
-    },
-  );
-  if (!response.ok)
-    throw new Error(`Account registry inspection failed with HTTP ${response.status}`);
-  const envelope = await response.json();
-  if (
-    envelope?.success !== true ||
-    !Array.isArray(envelope.result) ||
-    envelope.result.length !== 1 ||
-    envelope.result[0]?.success !== true ||
-    !Array.isArray(envelope.result[0].results)
-  ) {
-    throw new Error('Account registry inspection returned an invalid D1 response');
-  }
-  const rows = envelope.result[0].results;
+  const result = await input.provider.query(control.console.database.id, ENVIRONMENT_LOOKUP, [
+    namespace,
+    lane.identity.organizationId,
+    lane.identity.projectId,
+    lane.identity.environmentId,
+  ]);
+  const rows = result.rows;
   if (rows.length === 0)
     throw new Error('GetSignal environment was not found in its recorded account control plane');
   if (rows.length > 256) throw new Error('GetSignal binding history requires an operator review');
@@ -111,13 +85,13 @@ function isActiveBinding(binding) {
 }
 
 async function main() {
-  const accountId = requireEnvironmentValue('CLOUDFLARE_ACCOUNT_ID');
-  if (!/^[0-9a-f]{32}$/u.test(accountId)) throw new Error('Invalid Cloudflare account ID');
   const record = await inspectGetSignalDeployment({
-    accountId,
-    apiToken: requireEnvironmentValue('CLOUDFLARE_API_TOKEN'),
+    provider: new CloudflareD1Operator({
+      accountId: requireEnvironmentValue('CLOUDFLARE_ACCOUNT_ID'),
+      apiToken: requireEnvironmentValue('CLOUDFLARE_API_TOKEN'),
+      fetcher: fetch,
+    }),
     sourceRevision: requireEnvironmentValue('GITHUB_SHA'),
-    fetcher: fetch,
   });
   const output = path.resolve('.release-artifacts/getsignal/inspection.json');
   await mkdir(path.dirname(output), { recursive: true });

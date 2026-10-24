@@ -1,7 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseGatewayDeploymentConfig } from '../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
+import {
+  parseBrowserOrigins,
+  parseGatewayDeploymentConfig,
+} from '../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
 
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_WALLET_TARGETS_PATH = path.join(
@@ -28,8 +31,15 @@ const BACKEND_LANE_IDS = Object.freeze([
   'staging-testnet',
   'production-testnet',
   'production-mainnet',
+  'getsignal-testnet',
 ]);
-const FRONTEND_SITE_IDS = Object.freeze(['staging', 'production']);
+const CONSOLE_LANE_IDS = Object.freeze([
+  'staging-testnet',
+  'production-testnet',
+  'production-mainnet',
+]);
+const FRONTEND_SITE_IDS = Object.freeze(['staging', 'production', 'getsignal']);
+const CONSOLE_FRONTEND_SITE_IDS = Object.freeze(['staging', 'production']);
 
 export const BACKEND_COMPONENTS = Object.freeze([
   'signing-worker',
@@ -105,7 +115,11 @@ export function frontendSiteIds() {
 export function readDeploymentTargets() {
   const walletSource = readJsonDocument(DEFAULT_WALLET_TARGETS_PATH);
   const walletRoot = requireObject(walletSource, DEFAULT_WALLET_TARGETS_PATH);
-  requireExactKeys(walletRoot, ['schemaVersion', ...RELEASE_IDS], DEFAULT_WALLET_TARGETS_PATH);
+  requireExactKeys(
+    walletRoot,
+    ['schemaVersion', ...RELEASE_IDS, 'customers'],
+    DEFAULT_WALLET_TARGETS_PATH,
+  );
   if (walletRoot.schemaVersion !== 1) {
     throw new Error(DEFAULT_WALLET_TARGETS_PATH + '.schemaVersion must be 1');
   }
@@ -133,12 +147,12 @@ export function readFrontendSite(siteId) {
 }
 
 export function readConsoleFrontendSite(siteId) {
-  if (!FRONTEND_SITE_IDS.includes(siteId))
+  if (!CONSOLE_FRONTEND_SITE_IDS.includes(siteId))
     throw new Error('frontend site must be staging or production');
   const document = readJsonDocument(DEFAULT_CONSOLE_TARGETS_PATH);
   const lanes = parseConsoleTargets(document);
   const frontends = requireObject(document.frontends, 'Console frontends');
-  requireExactKeys(frontends, FRONTEND_SITE_IDS, 'Console frontends');
+  requireExactKeys(frontends, CONSOLE_FRONTEND_SITE_IDS, 'Console frontends');
   const site = requireObject(frontends[siteId], `Console frontends.${siteId}`);
   requireExactKeys(
     site,
@@ -192,10 +206,10 @@ function parseConsoleTargets(value) {
     throw new Error(DEFAULT_CONSOLE_TARGETS_PATH + '.schemaVersion must be 1');
   }
   const lanes = requireObject(root.lanes, DEFAULT_CONSOLE_TARGETS_PATH + '.lanes');
-  requireExactKeys(lanes, BACKEND_LANE_IDS, DEFAULT_CONSOLE_TARGETS_PATH + '.lanes');
+  requireExactKeys(lanes, CONSOLE_LANE_IDS, DEFAULT_CONSOLE_TARGETS_PATH + '.lanes');
   return Object.freeze(
     Object.fromEntries(
-      BACKEND_LANE_IDS.map((laneId) => [laneId, parseConsoleTarget(lanes[laneId], laneId)]),
+      CONSOLE_LANE_IDS.map((laneId) => [laneId, parseConsoleTarget(lanes[laneId], laneId)]),
     ),
   );
 }
@@ -296,8 +310,9 @@ function composeDeploymentTargets(walletRoot, consoleTargets) {
   const composed = structuredClone({
     staging: walletRoot.staging,
     production: walletRoot.production,
+    customers: walletRoot.customers,
   });
-  for (const laneId of BACKEND_LANE_IDS) {
+  for (const laneId of CONSOLE_LANE_IDS) {
     const consoleTarget = consoleTargets[laneId];
     const [releaseId, network] = splitLaneId(laneId);
     const release = composed[releaseId];
@@ -326,13 +341,13 @@ export function parseDeploymentTargets(
   let source = value;
   const document = requireObject(value, sourceName);
   if (Object.hasOwn(document, 'schemaVersion')) {
-    requireExactKeys(document, ['schemaVersion', ...RELEASE_IDS], sourceName);
+    requireExactKeys(document, ['schemaVersion', ...RELEASE_IDS, 'customers'], sourceName);
     if (document.schemaVersion !== 1) throw new Error(sourceName + '.schemaVersion must be 1');
     consoleTargets ??= parseConsoleTargets(readJsonDocument(DEFAULT_CONSOLE_TARGETS_PATH));
     source = composeDeploymentTargets(document, consoleTargets);
   }
   const root = requireObject(source, sourceName);
-  requireExactKeys(root, RELEASE_IDS, sourceName);
+  requireExactKeys(root, [...RELEASE_IDS, 'customers'], sourceName);
   const releases = {};
   const backendLanes = {};
   const frontendSites = {};
@@ -342,7 +357,23 @@ export function parseDeploymentTargets(
     frontendSites[releaseId] = release.site;
     for (const lane of Object.values(release.lanes)) backendLanes[lane.id] = lane;
   }
-  assertUniqueSiteOrigins(Object.values(frontendSites));
+  const customers = requireObject(root.customers, sourceName + '.customers');
+  requireExactKeys(customers, ['getsignal'], sourceName + '.customers');
+  const customer = parseCustomerDeployment(
+    customers.getsignal,
+    backendLanes,
+    frontendSites.production,
+  );
+  backendLanes[customer.lane.id] = customer.lane;
+  frontendSites[customer.site.id] = customer.site;
+  const platformSites = [];
+  const applicationOrigins = [];
+  for (const site of Object.values(frontendSites)) {
+    if (site.kind === 'platform') platformSites.push(site);
+    applicationOrigins.push(site.origin);
+  }
+  assertUniqueSiteOrigins(platformSites);
+  assertUnique(applicationOrigins, 'frontend application origins');
   assertUniqueLaneOrigins(Object.values(backendLanes));
   assertUniqueResourceNames(Object.values(backendLanes));
   assertUniqueProvisionedIdentities(Object.values(backendLanes));
@@ -521,6 +552,150 @@ function parseRelease(value, releaseId, consoleTargets) {
   });
 }
 
+function parseCustomerDeployment(value, backendLanes, branding) {
+  const sourcePath = 'customers.getsignal';
+  const source = requireObject(value, sourcePath);
+  requireExactKeys(
+    source,
+    [
+      'branch',
+      'controlPlaneLane',
+      'identity',
+      'applicationOrigin',
+      'allowedOrigins',
+      'gatewayOrigin',
+      'walletOrigin',
+      'consoleOrigin',
+      'walletPagesProjectEnv',
+      'resources',
+      'capabilities',
+      'provisioning',
+    ],
+    sourcePath,
+  );
+  if (source.branch !== 'main' || source.controlPlaneLane !== 'production-mainnet') {
+    throw new Error(sourcePath + ' requires main and the existing production-mainnet control plane');
+  }
+  const control = backendLanes[source.controlPlaneLane];
+  if (control.provisioning.kind !== 'provisioned') {
+    throw new Error(sourcePath + ' requires a provisioned account control plane');
+  }
+  // Project records and browser keys retain their original Console authority.
+  const identity = requireObject(source.identity, sourcePath + '.identity');
+  requireExactKeys(
+    identity,
+    ['organizationId', 'projectId', 'environmentId'],
+    sourcePath + '.identity',
+  );
+  const organizationId = requirePattern(
+    identity.organizationId,
+    /^org_[A-Za-z0-9_-]+$/u,
+    sourcePath + '.identity.organizationId',
+  );
+  const projectId = requirePattern(
+    identity.projectId,
+    /^proj_[A-Za-z0-9_-]+$/u,
+    sourcePath + '.identity.projectId',
+  );
+  if (identity.environmentId !== `${projectId}:dev`) {
+    throw new Error(
+      sourcePath + '.identity.environmentId must identify this project Development environment',
+    );
+  }
+  const applicationOrigin = requireHttpsOrigin(
+    source.applicationOrigin,
+    sourcePath + '.applicationOrigin',
+  );
+  const walletOrigin = requireHttpsOrigin(source.walletOrigin, sourcePath + '.walletOrigin');
+  const allowedOrigins = parseBrowserOrigins(source.allowedOrigins, sourcePath + '.allowedOrigins');
+  if (!allowedOrigins.includes(applicationOrigin) || !allowedOrigins.includes(walletOrigin)) {
+    throw new Error(sourcePath + '.allowedOrigins must include the application and hosted wallet');
+  }
+  const rawResources = structuredClone(requireObject(source.resources, sourcePath + '.resources'));
+  const gateway = requireObject(rawResources.gateway, sourcePath + '.resources.gateway');
+  requireExactKeys(gateway, ['workerName'], sourcePath + '.resources.gateway');
+  gateway.consoleD1Name = control.console.database.name;
+  const resources = parseResources(rawResources, sourcePath + '.resources');
+  const capabilities = parseCapabilities(source.capabilities, sourcePath + '.capabilities');
+  if (capabilities.billing.enabled) {
+    throw new Error(sourcePath + ' uses the existing account billing authority');
+  }
+  const consoleTarget = Object.freeze({
+    laneId: 'getsignal-testnet',
+    environment: 'getsignal-testnet-console',
+    origin: requireHttpsOrigin(source.consoleOrigin, sourcePath + '.consoleOrigin'),
+    siteOrigin: control.console.siteOrigin,
+    workerName: resources.gateway.workerName.replace('gateway', 'console'),
+    database: control.console.database,
+    emailDelivery: control.console.emailDelivery,
+    platformSupportEmails: control.console.platformSupportEmails,
+    placementRegion: 'aws:ap-southeast-1',
+    billing: capabilities.billing,
+  });
+  const site = Object.freeze({
+    kind: 'customer',
+    id: 'getsignal',
+    release: 'getsignal',
+    branch: 'main',
+    origin: applicationOrigin,
+    walletSiteOrigin: branding.walletSiteOrigin,
+    docsOrigin: branding.docsOrigin,
+    googleOidcClientId: branding.googleOidcClientId,
+    defaultNetwork: 'testnet',
+    availableNetworks: Object.freeze(['testnet']),
+  });
+  const provisioning = parseProvisioning(
+    source.provisioning,
+    'getsignal-testnet',
+    'testnet',
+    sourcePath + '.provisioning',
+  );
+  const lane = Object.freeze({
+    kind: 'customer',
+    id: 'getsignal-testnet',
+    release: 'getsignal',
+    network: 'testnet',
+    branch: 'main',
+    controlPlaneLane: control.id,
+    identity: Object.freeze({ organizationId, projectId, environmentId: identity.environmentId }),
+    site,
+    applicationOrigin,
+    allowedOrigins,
+    console: consoleTarget,
+    gatewayOrigin: requireHttpsOrigin(source.gatewayOrigin, sourcePath + '.gatewayOrigin'),
+    walletOrigin,
+    walletPagesProjectEnv: requireEnvironmentName(
+      source.walletPagesProjectEnv,
+      sourcePath + '.walletPagesProjectEnv',
+    ),
+    emailOtpDelivery: Object.freeze({
+      kind: 'email_provider',
+      provider: Object.freeze({ kind: 'resend', fromAddress: 'confirm@seams.sh' }),
+    }),
+    resources,
+    capabilities,
+    provisioning,
+  });
+  if (provisioning.kind === 'provisioned') {
+    const config = provisioning.gatewayDeploymentConfig;
+    const expectedTenant = control.provisioning.gatewayDeploymentConfig.tenant;
+    if (
+      config.resources.consoleD1.id !== control.console.database.id ||
+      config.tenant.namespace !== expectedTenant.namespace ||
+      config.tenant.orgId !== organizationId ||
+      config.tenant.projectId !== projectId ||
+      config.tenant.environmentId !== identity.environmentId
+    ) {
+      throw new Error(
+        sourcePath + ' must preserve the recorded account authority and exact project environment',
+      );
+    }
+    assertLaneOrigins(lane);
+    assertGatewayDeploymentConfigMatchesLane(lane);
+  }
+  return { lane, site: Object.freeze({ ...site, lanes: Object.freeze([lane]) }) };
+}
+
 function parseSite(value, releaseId, branch) {
   const sitePath = releaseId + '.site';
   const site = requireObject(value, sitePath);
@@ -552,6 +727,7 @@ function parseSite(value, releaseId, branch) {
     sitePath + '.walletSiteOrigin',
   );
   return Object.freeze({
+    kind: 'platform',
     id: releaseId,
     release: releaseId,
     branch,
@@ -589,15 +765,19 @@ function parseBackendLane(value, laneId, releaseId, network, branch, site, conso
     ],
     lanePath,
   );
+  const walletOrigin = requireHttpsOrigin(lane.walletOrigin, lanePath + '.walletOrigin');
   const parsed = Object.freeze({
+    kind: 'platform',
     id: laneId,
     release: releaseId,
     network,
     branch,
     site,
+    applicationOrigin: site.walletSiteOrigin,
+    allowedOrigins: Object.freeze([site.origin, site.walletSiteOrigin, walletOrigin]),
     console: consoleTarget,
     gatewayOrigin: requireHttpsOrigin(lane.gatewayOrigin, lanePath + '.gatewayOrigin'),
-    walletOrigin: requireHttpsOrigin(lane.walletOrigin, lanePath + '.walletOrigin'),
+    walletOrigin,
     walletPagesProjectEnv: requireEnvironmentName(
       lane.walletPagesProjectEnv,
       lanePath + '.walletPagesProjectEnv',
@@ -645,7 +825,7 @@ function expectedConsoleOrigin(lane) {
 
 function parseProvisioning(value, laneId, network, provisioningPath) {
   const provisioning = requireObject(value, provisioningPath);
-  const expectedRuntimeProfile = network === 'mainnet' ? 'mainnet_service' : 'testnet_live_demo';
+  const expectedRuntimeProfile = runtimeProfileForLane(laneId, network);
   const kind = requireString(provisioning.kind, provisioningPath + '.kind');
   if (kind === 'provisioned') {
     requireExactKeys(provisioning, ['kind', 'gatewayDeploymentConfig'], provisioningPath);
@@ -687,10 +867,16 @@ function parseProvisioning(value, laneId, network, provisioningPath) {
   throw new Error(provisioningPath + '.kind must be provisioned or pending');
 }
 
+function runtimeProfileForLane(laneId, network) {
+  if (laneId === 'getsignal-testnet') return 'testnet_service';
+  if (network === 'mainnet') return 'mainnet_service';
+  return 'testnet_live_demo';
+}
+
 function assertLaneOrigins(lane) {
   if (lane.provisioning.kind !== 'provisioned') return;
   const configOrigins = lane.provisioning.gatewayDeploymentConfig.origins;
-  const expectedCors = [lane.site.origin, lane.site.walletSiteOrigin, lane.walletOrigin].sort();
+  const expectedCors = [...lane.allowedOrigins].sort();
   const actualCors = [...configOrigins.allowedCors].sort();
   if (
     configOrigins.gateway !== lane.gatewayOrigin ||
@@ -923,13 +1109,13 @@ function assertUniqueResourceNames(lanes) {
   for (const lane of lanes) {
     names.push(
       lane.resources.gateway.workerName,
-      lane.resources.gateway.consoleD1Name,
       lane.resources.router.workerName,
       lane.resources.deriverA.workerName,
       lane.resources.deriverB.workerName,
       lane.resources.signingWorker.workerName,
       lane.resources.tenantRootControlPlane.workerName,
     );
+    if (lane.kind === 'platform') names.push(lane.resources.gateway.consoleD1Name);
   }
   for (const lane of lanes) {
     if (lane.provisioning.kind !== 'provisioned') continue;
@@ -954,20 +1140,20 @@ function regionalDatabaseIds(lane) {
   return ids;
 }
 
-function backendDatabaseIds(lane) {
-  return [
-    lane.provisioning.gatewayDeploymentConfig.resources.consoleD1.id,
-    ...regionalDatabaseIds(lane),
-  ];
-}
-
 function assertUniqueProvisionedIdentities(lanes) {
   const provisioned = lanes.filter((lane) => lane.provisioning.kind === 'provisioned');
-  assertUnique(provisioned.flatMap(backendDatabaseIds), 'backend D1 identities');
+  const accountDatabases = [];
+  const accountNamespaces = [];
+  for (const lane of provisioned) {
+    if (lane.kind !== 'platform') continue;
+    accountDatabases.push(lane.provisioning.gatewayDeploymentConfig.resources.consoleD1.id);
+    accountNamespaces.push(lane.provisioning.gatewayDeploymentConfig.tenant.namespace);
+  }
   assertUnique(
-    provisioned.map((lane) => lane.provisioning.gatewayDeploymentConfig.tenant.namespace),
-    'tenant namespaces',
+    [...accountDatabases, ...provisioned.flatMap(regionalDatabaseIds)],
+    'backend D1 identities',
   );
+  assertUnique(accountNamespaces, 'account namespaces');
   assertUnique(
     provisioned.map((lane) => lane.provisioning.gatewayDeploymentConfig.tenant.orgId),
     'tenant organizations',

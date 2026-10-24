@@ -27,6 +27,15 @@ export const GATEWAY_RUNTIME_PROFILE_KINDS = {
   mainnetService: 'mainnet_service',
 };
 const BACKEND_LANE_DEFINITIONS = Object.freeze({
+  'getsignal-testnet': Object.freeze({
+    runtimeProfileKind: 'testnet_service',
+    serviceNames: Object.freeze({
+      deriverA: 'router-ab-deriver-a-getsignal',
+      deriverB: 'router-ab-deriver-b-getsignal',
+      signingWorker: 'router-ab-signing-worker-getsignal',
+      mpcRouter: 'router-ab-mpc-router-getsignal',
+    }),
+  }),
   'staging-testnet': Object.freeze({
     runtimeProfileKind: 'testnet_live_demo',
     serviceNames: Object.freeze({
@@ -272,11 +281,7 @@ export const WALLET_REGIONS = Object.freeze(['US', 'WEUR', 'APAC', 'OC']);
 
 function parseResources(value) {
   const resources = requireObject(value, 'resources');
-  requireExactKeys(
-    resources,
-    ['workerName', 'ingressRegion', 'consoleD1', 'regions'],
-    'resources',
-  );
+  requireExactKeys(resources, ['workerName', 'ingressRegion', 'consoleD1', 'regions'], 'resources');
   const rawRegions = requireObject(resources.regions, 'resources.regions');
   requireExactKeys(rawRegions, WALLET_REGIONS, 'resources.regions');
   const regions = {};
@@ -373,7 +378,7 @@ function parseOrigins(value) {
   requireExactKeys(origins, ['gateway', 'allowedCors'], 'origins');
   return {
     gateway: requireHttpsUrl(origins.gateway, 'origins.gateway'),
-    allowedCors: parseOriginArray(origins.allowedCors, 'origins.allowedCors'),
+    allowedCors: parseBrowserOrigins(origins.allowedCors, 'origins.allowedCors'),
   };
 }
 
@@ -740,12 +745,32 @@ function requireRegistrationKeysMatch(keyset, topology) {
   );
 }
 
-function parseOriginArray(value, path) {
+export function parseBrowserOrigins(value, path) {
   if (!Array.isArray(value) || value.length === 0) {
     throw new Error(`${path} must be a non-empty array`);
   }
-  const origins = value.map((entry, index) => requireHttpsOrigin(entry, `${path}[${index}]`));
-  return [...new Set(origins)];
+  const origins = [];
+  for (const entry of value) {
+    const origin = requireString(entry, path);
+    let url;
+    try {
+      url = new URL(origin);
+    } catch {
+      throw new Error(`${path} must contain browser origins`);
+    }
+    const loopback =
+      url.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname);
+    if (
+      (url.protocol !== 'https:' && !loopback) ||
+      url.origin !== origin ||
+      url.username ||
+      url.password
+    ) {
+      throw new Error(`${path} requires exact HTTPS or loopback HTTP origins`);
+    }
+    origins.push(origin);
+  }
+  return Object.freeze([...new Set(origins)]);
 }
 
 function parseStringArray(value, path) {
@@ -843,14 +868,6 @@ function requireHttpsUrl(value, path) {
   }
   if (parsed.protocol !== 'https:') throw new Error(`${path} must be an absolute HTTPS URL`);
   return normalized.replace(/\/+$/, '');
-}
-
-function requireHttpsOrigin(value, path) {
-  const normalized = requireHttpsUrl(value, path);
-  const parsed = new URL(normalized);
-  if (parsed.origin !== normalized)
-    throw new Error(`${path} must be an HTTPS origin without a path`);
-  return parsed.origin;
 }
 
 function requireEpoch(value, path) {

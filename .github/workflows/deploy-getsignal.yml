@@ -104,6 +104,7 @@ jobs:
     if: inputs.operation == 'deploy-runtime'
     needs: [inspect, validate]
     uses: ./.github/workflows/deploy-getsignal-testnet-backend.yml
+    secrets: inherit
 
   activate:
     if: inputs.operation == 'deploy-runtime'

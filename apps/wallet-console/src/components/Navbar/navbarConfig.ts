@@ -3,8 +3,9 @@ import {
   Building2,
   Fingerprint,
   Globe,
+  LayoutGrid,
+  LifeBuoy,
   ListChecks,
-  PenLine,
   Rocket,
   Sprout,
   TrendingUp,
@@ -12,6 +13,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import type { DropdownPane, SiteNavbarConfig } from '@seams-internal/site-navbar';
+import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* The 'documentation' pane id historically maps to the "Features" trigger and
    vice versa; ids are kept stable so aria wiring and pane ordering don't churn. */
@@ -136,6 +138,8 @@ const pricingDropdownPane: DropdownPane = {
   ],
 };
 
+/* The same menu as on seams.sh: the company page and the home page with
+   every product are there; support opens this site's contact form. */
 const aboutDropdownPane: DropdownPane = {
   id: 'about',
   label: t('aboutUs'),
@@ -144,19 +148,26 @@ const aboutDropdownPane: DropdownPane = {
     {
       title: t('companyLink'),
       description: t('companyDescription'),
-      to: '/company/#company',
+      to: '/company/',
       icon: Building2,
       field: 'sky-sand',
     },
     {
-      title: t('blog'),
-      description: t('blogDescription'),
-      to: '/company/#blog',
-      icon: PenLine,
+      title: t('ourProducts'),
+      description: t('ourProductsDescription'),
+      to: '/',
+      icon: LayoutGrid,
       field: 'teal-peach',
     },
+    {
+      title: t('support'),
+      description: t('supportDescription'),
+      to: CONTACT_LINK_TARGET,
+      icon: LifeBuoy,
+      field: 'coral-tide',
+    },
   ],
-  footerLinks: [],
+  footerLinks: [{ label: t('contactUs'), to: CONTACT_LINK_TARGET }],
 };
 
 export const siteNavbarConfig: SiteNavbarConfig = {
@@ -177,7 +188,7 @@ export const siteNavbarConfig: SiteNavbarConfig = {
   },
   // The logo stays on the Wallet site; only the footer logo leads to seams.sh.
   homeHref: '/wallet',
-  aboutHref: '/company/#company',
+  aboutHref: '/company/',
   dashboardHref: '/dashboard',
   mobilePlanLinks: [
     {

@@ -50,7 +50,7 @@ const RECOVERY: readonly Feature[] = [
 const BIOMETRICS: readonly Feature[] = [
   { icon: Fingerprint, title: 'passkeys', copy: 'passkeysCopy', status: 'available' },
   { icon: ScanFace, title: 'faceId', copy: 'faceIdCopy', status: 'available' },
-  { icon: Mic, title: 'voiceId', copy: 'voiceIdCopy', status: 'planned' },
+  { icon: Mic, title: 'voiceId', copy: 'voiceIdCopy', status: 'available' },
 ];
 
 const SELF_HOSTED: readonly Feature[] = [

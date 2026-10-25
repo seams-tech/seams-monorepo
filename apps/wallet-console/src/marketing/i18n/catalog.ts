@@ -322,8 +322,8 @@ export const catalog = {
     ja: 'ユーザーの近くでも、自社のクラウドでも運用',
   },
   biometricDescription: {
-    en: 'Passkeys with Face ID and Touch ID. VoiceID is planned.',
-    ja: 'Face IDやTouch IDで使えるパスキー。VoiceIDは今後対応予定です。',
+    en: 'Passkeys with Face ID and Touch ID, plus VoiceID.',
+    ja: 'Face IDやTouch IDで使えるパスキーに加え、VoiceIDにも対応。',
   },
   allFeatures: { en: 'All features', ja: 'すべての機能' },
   componentsCard: { en: 'Wallet components', ja: 'ウォレットのコンポーネント' },

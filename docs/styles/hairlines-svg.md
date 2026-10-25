@@ -332,3 +332,17 @@ The keys and the interlock follow the line language of 2026-10-23, from the user
 Every capability figure runs from one point, (200, 160), because none of them depends on where the pointer is. Recompute the play paths in `WalletFigure.tsx` if a figure ever answers to the pointer's position again.
 
 Edit a figure's `.js`, then rebuild its `index.html` with `build.mjs`. The dev-only page `apps/wallet-console/figure-review/` shows each candidate beside the live figure it would replace, each live figure beside the detailed figure it replaced, then the real custody section. Open it at `http://localhost:4001/wallet-static/figure-review/`. The page is not in the build. `WalletFigureCandidates` in `WalletFigure.tsx` swaps the drawing only on that page. Delete the page and `WalletFigureCandidates` when the comparison is no longer needed.
+
+## Sign-in methods: blocks through planes
+
+Preview: `/dashboard-static/showcase/motion/method-blocks/`.
+
+On 2026-10-25 the user chose the "Analyze" scene of the reference video for the features page's biometrics section, after rejecting four other drafts. Three rounded blocks stand in a column through three thin planes. Each block is one sign-in method. Its top face carries its card's Lucide icon (`Fingerprint`, `ScanFace`, `Mic`), flattened to lines, turned 45° square to the face, and filling 55% of it. The planes replace the reference's thick frame, after the user asked for flat planes like the other wallet figures.
+
+Proportions come from the reference in block sides: planes 2.8 wide with a hole of 1.6, and 4.1 between the blocks. The planes sit at heights 14, 0 and -14, aligned at rest, with corner radii of 3 outside and 2 in the hole. Blocks have a corner radius of 3.5.
+
+One play head of 3.8 s runs forward on hover and backward on leave. The planes turn a quarter turn, top plane first and each lower one a beat later, to read the block inside them. That block's icon traces in the accent. The column then steps up one place: the top block shrinks away and grows back in at the foot. The planes read fingerprint, face, then voice. The block in the planes carries the accent.
+
+The drawing is line only. Each frame finds the hidden part of every edge: a point is hidden when a face turned to the viewer lies ahead of it along the camera ray (1, 1, 0.816). Hidden runs draw dotted and light. Seen runs draw mid grey on an outline and light on a crease or a plane's hole rim. Rounded walls draw only their outline. Runs end by bisection, and a screen-box check keeps the play at 60 frames a second. Icons under the lowest plane are not drawn.
+
+The features page shows the figure at 135% and holds the play for 5 s. Edit `apps/wallet-console/showcase/motion/method-blocks/method-blocks.js`, then rebuild its `index.html` with the Hairline `build.mjs`. The validator passes every rule except length (363 lines, limit 200).

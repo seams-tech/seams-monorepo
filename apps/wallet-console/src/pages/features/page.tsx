@@ -61,6 +61,8 @@ const SELF_HOSTED: readonly Feature[] = [
 
 // About one play of the front page's figures.
 const FIGURE_PLAY_MS = 3600;
+// The sign-in figure reads three blocks in turn, about 3.8 s, then holds.
+const METHODS_PLAY_MS = 5000;
 
 /* A large line figure from the front page. With `playMs` it plays once each
    time it comes into view, then rests; without it, it plays while it is in
@@ -263,14 +265,19 @@ export function FeaturesPage(): React.JSX.Element {
           >
             <div className="h2-shell">
               <SectionHead id="biometrics" title="biometricsTitle" copy="biometricsCopy" />
-              <FeatureCards features={BIOMETRICS} field="aqua-evergreen" />
-              <div className="features-actions">
-                <SiteLink
-                  to="/docs/concepts/auth-methods/passkeys"
-                  className="h2-btn h2-btn--primary"
-                >
-                  {t('readDocs')}
-                </SiteLink>
+              <div className="features-split">
+                <div>
+                  <FeatureCards features={BIOMETRICS} field="aqua-evergreen" stacked />
+                  <div className="features-actions">
+                    <SiteLink
+                      to="/docs/concepts/auth-methods/passkeys"
+                      className="h2-btn h2-btn--primary"
+                    >
+                      {t('readDocs')}
+                    </SiteLink>
+                  </div>
+                </div>
+                <FeatureFigure figure="methods" playMs={METHODS_PLAY_MS} />
               </div>
             </div>
           </section>

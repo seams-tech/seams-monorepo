@@ -188,3 +188,35 @@ html:lang(ja) #features-pricing-title {
   align-self: start;
   margin-bottom: 0;
 }
+
+/* a stacked card with a status puts the status after the title */
+.features-cards--stack .features-card:has(.features-card__status) {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+}
+
+.features-cards--stack .features-card:has(.features-card__status) .features-card__head {
+  display: contents;
+}
+
+.features-cards--stack .features-card__head .h2-fieldtile {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: start;
+}
+
+.features-cards--stack .features-card__status {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: center;
+}
+
+.features-cards--stack .features-card:has(.features-card__status) .features-card__title {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+}
+
+.features-cards--stack .features-card:has(.features-card__status) .features-card__copy {
+  grid-column: 2 / span 2;
+  grid-row: 2;
+}

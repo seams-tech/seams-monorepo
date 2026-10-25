@@ -6,6 +6,7 @@ import interlock from '../../../showcase/motion/interlock-layers/index.html?raw'
 import devices from '../../../showcase/motion/devices-edge/index.html?raw';
 import infrastructure from '../../../showcase/motion/lockin-boundary/index.html?raw';
 import signing from '../../../showcase/motion/threshold-signing/index.html?raw';
+import methods from '../../../showcase/motion/method-blocks/index.html?raw';
 import embed from './hairline/embed.js?raw';
 
 function scriptSource(html: string, id: 'hl-kernel' | 'hl-figure'): string {
@@ -20,9 +21,16 @@ function scriptSource(html: string, id: 'hl-kernel' | 'hl-figure'): string {
 // then the time in ms from the start of the play.
 type PlayPath = ReadonlyArray<readonly [x: number, y: number, ms: number]>;
 
-function figureDocument(html: string, pointerX: number, pointerY: number, play: PlayPath): string {
+function figureDocument(
+  html: string,
+  pointerX: number,
+  pointerY: number,
+  play: PlayPath,
+  hideSigningCaption = false,
+): string {
   const copy: Record<string, string> = {};
   for (const [key, translation] of Object.entries(figureCatalog)) copy[key] = translation[locale];
+  if (hideSigningCaption) copy.thresholdExplanation = '';
   const serializedCopy = JSON.stringify(copy).replaceAll('<', '\\u003c');
   return `<!doctype html>
 <html lang="${locale}" data-theme="light">
@@ -33,6 +41,7 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 #stage { width: 100%; height: 100%; touch-action: pan-y; --hairline-stroke: 0.65; }
 #stage svg { display: block; width: 100%; height: 100%; transform: scale(1.1); transform-origin: center; }
 #stage[data-hairline="threshold-signing"] svg { transform: translateX(2.5%) scale(1.44); }
+#stage[data-hairline="method-blocks"] svg { transform: scale(1.35); }
 @media (max-width: 480px) {
   #stage[data-hairline="threshold-signing"] svg { transform: translateX(1.5%); }
 }
@@ -70,7 +79,16 @@ const figures = {
   devices: figureEntry(t('linkedDevices'), devices, 200, 160, [[200, 160, 0]]),
   infrastructure: figureEntry(t('noLockIn'), infrastructure, 200, 160, [[200, 160, 0]]),
   signing: figureEntry(t('signingFigure'), signing, 200, 160, [[200, 160, 0]]),
+  methods: figureEntry(t('signInMethods'), methods, 200, 160, [[200, 160, 0]]),
 };
+
+const signingWithoutCaption = figureDocument(
+  signing,
+  figures.signing.pointerX,
+  figures.signing.pointerY,
+  figures.signing.play,
+  true,
+);
 
 export type WalletFigureName = keyof typeof figures;
 
@@ -99,13 +117,16 @@ export function WalletFigure({
   figure,
   playing,
   onHover,
+  hideSigningCaption = false,
 }: {
   figure: WalletFigureName;
   playing?: boolean;
   onHover?: (inside: boolean) => void;
+  hideSigningCaption?: boolean;
 }): React.JSX.Element {
   const { title, document: current } = figures[figure];
-  const source = React.useContext(WalletFigureCandidates)[figure] ?? current;
+  const figureSource = hideSigningCaption && figure === 'signing' ? signingWithoutCaption : current;
+  const source = React.useContext(WalletFigureCandidates)[figure] ?? figureSource;
   const frame = React.useRef<HTMLIFrameElement>(null);
   let command: HostCommand | null = null;
   if (playing !== undefined) command = playing ? 'play' : 'rest';

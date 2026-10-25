@@ -2667,6 +2667,11 @@ body:has(.h2-page) {
 
 /* ---------- get-started band (stacked two-column rows) ---------- */
 
+/* the Features menu links here; the fixed navbar covers the top */
+.h2-start-section {
+  scroll-margin-top: 80px;
+}
+
 /* the heading is a banner card, one inset above the first row's rule */
 .h2-starthead {
   margin-bottom: var(--h2-inset);

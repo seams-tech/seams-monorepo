@@ -632,7 +632,8 @@ export function H2Start(): React.JSX.Element {
 
   return (
     <section
-      className="h2-section h2-section--flush-bottom h2-section--banner h2-rule"
+      id="serverless"
+      className="h2-section h2-section--flush-bottom h2-section--banner h2-rule h2-start-section"
       aria-labelledby="h2-start-title"
     >
       <FieldBanner field="teal-peach" className="h2-starthead">

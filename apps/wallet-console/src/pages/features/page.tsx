@@ -67,13 +67,10 @@ const FIGURE_PLAY_MS = 3600;
    view. A visitor's hover plays it again. Reduced motion keeps it at rest. */
 function FeatureFigure({
   figure,
-  label,
   playMs,
   className,
 }: {
   figure: WalletFigureName;
-  /* the hero's signing figure carries its own caption, so it needs none */
-  label?: MessageKey;
   playMs?: number;
   className?: string;
 }): React.JSX.Element {
@@ -105,8 +102,7 @@ function FeatureFigure({
 
   return (
     <figure ref={ref} className={className ? `features-figure ${className}` : 'features-figure'}>
-      <WalletFigure figure={figure} playing={playing} />
-      {label ? <figcaption>{t(label)}</figcaption> : null}
+      <WalletFigure figure={figure} playing={playing} hideSigningCaption />
     </figure>
   );
 }
@@ -152,14 +148,14 @@ function SectionHead({
 }: {
   id: string;
   title: MessageKey;
-  copy: MessageKey;
+  copy?: MessageKey;
 }): React.JSX.Element {
   return (
     <div className="h2-split-head">
       <h2 id={`${id}-title`} className="h2-display">
         {t(title)}
       </h2>
-      <p className="h2-split-head__copy">{t(copy)}</p>
+      {copy ? <p className="h2-split-head__copy">{t(copy)}</p> : null}
     </div>
   );
 }
@@ -252,17 +248,10 @@ export function FeaturesPage(): React.JSX.Element {
             aria-labelledby="recovery-title"
           >
             <div className="h2-shell">
-              <SectionHead id="recovery" title="recoveryTitle" copy="recoveryCopy" />
+              <SectionHead id="recovery" title="recoveryTitle" />
               <div className="features-split">
-                <FeatureFigure
-                  figure="devices"
-                  label="linkedDevicesFigure"
-                  playMs={FIGURE_PLAY_MS}
-                />
-                <div>
-                  <FeatureCards features={RECOVERY} field="teal-peach" stacked />
-                  <p className="features-note">{t('sameAddress')}</p>
-                </div>
+                <FeatureFigure figure="devices" playMs={FIGURE_PLAY_MS} />
+                <FeatureCards features={RECOVERY} field="teal-peach" stacked />
               </div>
             </div>
           </section>
@@ -307,11 +296,7 @@ export function FeaturesPage(): React.JSX.Element {
                     </SiteLink>
                   </div>
                 </div>
-                <FeatureFigure
-                  figure="infrastructure"
-                  label="noLockInFigure"
-                  playMs={FIGURE_PLAY_MS}
-                />
+                <FeatureFigure figure="infrastructure" playMs={FIGURE_PLAY_MS} />
               </div>
             </div>
           </section>

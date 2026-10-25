@@ -121,12 +121,6 @@
   line-height: 1.6;
 }
 
-.features-note {
-  margin: 22px 0 0;
-  color: var(--h2-smoke);
-  font-size: var(--h2-text-body);
-}
-
 .features-actions {
   display: flex;
   flex-wrap: wrap;
@@ -169,20 +163,10 @@ html:lang(ja) #features-pricing-title {
   gap: 10px;
   margin: 0;
   padding: 20px 24px 24px;
-  border: 1px solid var(--h2-line);
-  border-radius: var(--h2-radius-card);
-  background: var(--h2-bg);
 }
 
 .features-figure .h2-wallet-figure {
   max-width: 460px;
-}
-
-.features-figure figcaption {
-  font-family: var(--h2-mono);
-  font-size: var(--h2-text-base);
-  letter-spacing: 0.015em;
-  color: var(--h2-smoke);
 }
 
 .features-cards--stack {

@@ -15,10 +15,6 @@ export const messages = {
     en: 'No seed phrases. No lost wallets.',
     ja: 'シードフレーズは不要。ウォレットを失いません。',
   },
-  recoveryCopy: {
-    en: 'Users open their wallet with a passkey. If they lose a device, they recover with email and keep the same wallet and address.',
-    ja: 'ユーザーはパスキーでウォレットを開きます。デバイスを紛失しても、メールで復元でき、ウォレットとアドレスはそのままです。',
-  },
   passkeySignIn: { en: 'Passkey sign-in', ja: 'パスキーでサインイン' },
   passkeySignInCopy: {
     en: 'One passkey creates the account and its wallet. There is no seed phrase to write down or lose.',
@@ -33,11 +29,6 @@ export const messages = {
   deviceLinkingCopy: {
     en: 'Users scan a QR code to add a phone or laptop. Each device signs with its own passkey.',
     ja: 'QRコードを読み取ってスマートフォンやノートPCを追加。各デバイスは自身のパスキーで署名します。',
-  },
-  linkedDevicesFigure: { en: 'Linked devices', ja: 'リンク済みデバイス' },
-  sameAddress: {
-    en: 'The wallet address stays the same, so no funds have to move.',
-    ja: 'ウォレットのアドレスは変わらないため、資産を移動する必要はありません。',
   },
 
   biometricsKicker: { en: 'Biometric authentication', ja: '生体認証' },
@@ -107,7 +98,6 @@ export const messages = {
     en: 'Apache-2.0 source with key export. Your users can leave with their keys at any time.',
     ja: 'Apache-2.0で公開し、鍵のエクスポートにも対応。ユーザーはいつでも鍵を持って移行できます。',
   },
-  noLockInFigure: { en: 'No lock-in', ja: 'ロックインなし' },
   contactUs: { en: 'Contact us', ja: 'お問い合わせ' },
   seePricing: { en: 'See pricing', ja: '料金を見る' },
   startFree: { en: 'Start free', ja: '無料で始める' },

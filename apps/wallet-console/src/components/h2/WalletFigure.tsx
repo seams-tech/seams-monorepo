@@ -20,9 +20,16 @@ function scriptSource(html: string, id: 'hl-kernel' | 'hl-figure'): string {
 // then the time in ms from the start of the play.
 type PlayPath = ReadonlyArray<readonly [x: number, y: number, ms: number]>;
 
-function figureDocument(html: string, pointerX: number, pointerY: number, play: PlayPath): string {
+function figureDocument(
+  html: string,
+  pointerX: number,
+  pointerY: number,
+  play: PlayPath,
+  hideSigningCaption = false,
+): string {
   const copy: Record<string, string> = {};
   for (const [key, translation] of Object.entries(figureCatalog)) copy[key] = translation[locale];
+  if (hideSigningCaption) copy.thresholdExplanation = '';
   const serializedCopy = JSON.stringify(copy).replaceAll('<', '\\u003c');
   return `<!doctype html>
 <html lang="${locale}" data-theme="light">
@@ -72,6 +79,14 @@ const figures = {
   signing: figureEntry(t('signingFigure'), signing, 200, 160, [[200, 160, 0]]),
 };
 
+const signingWithoutCaption = figureDocument(
+  signing,
+  figures.signing.pointerX,
+  figures.signing.pointerY,
+  figures.signing.play,
+  true,
+);
+
 export type WalletFigureName = keyof typeof figures;
 
 /* A dev review page shows a candidate drawing in a figure's place: it gets
@@ -99,13 +114,16 @@ export function WalletFigure({
   figure,
   playing,
   onHover,
+  hideSigningCaption = false,
 }: {
   figure: WalletFigureName;
   playing?: boolean;
   onHover?: (inside: boolean) => void;
+  hideSigningCaption?: boolean;
 }): React.JSX.Element {
   const { title, document: current } = figures[figure];
-  const source = React.useContext(WalletFigureCandidates)[figure] ?? current;
+  const figureSource = hideSigningCaption && figure === 'signing' ? signingWithoutCaption : current;
+  const source = React.useContext(WalletFigureCandidates)[figure] ?? figureSource;
   const frame = React.useRef<HTMLIFrameElement>(null);
   let command: HostCommand | null = null;
   if (playing !== undefined) command = playing ? 'play' : 'rest';

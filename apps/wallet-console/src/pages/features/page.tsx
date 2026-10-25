@@ -299,11 +299,11 @@ export function FeaturesPage(): React.JSX.Element {
                 <div>
                   <FeatureCards features={SELF_HOSTED} field="slate-amber" stacked />
                   <div className="features-actions">
-                    <SiteLink to={CONTACT_LINK_TARGET} className="h2-btn h2-btn--primary">
-                      {t('contactUs')}
-                    </SiteLink>
-                    <SiteLink to="/pricing/#enterprise" className="h2-btn h2-btn--outline">
+                    <SiteLink to="/pricing/#enterprise" className="h2-btn h2-btn--primary">
                       {t('seePricing')}
+                    </SiteLink>
+                    <SiteLink to={CONTACT_LINK_TARGET} className="h2-btn h2-btn--outline">
+                      {t('contactUs')}
                     </SiteLink>
                   </div>
                 </div>

@@ -278,9 +278,9 @@ export function FeaturesPage(): React.JSX.Element {
               <div className="features-actions">
                 <SiteLink
                   to="/docs/concepts/auth-methods/passkeys"
-                  className="h2-btn h2-btn--outline"
+                  className="h2-btn h2-btn--primary"
                 >
-                  {t('readPasskeyDocs')}
+                  {t('readDocs')}
                 </SiteLink>
               </div>
             </div>

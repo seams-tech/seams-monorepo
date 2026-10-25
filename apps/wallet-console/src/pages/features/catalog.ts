@@ -66,7 +66,7 @@ export const messages = {
     en: 'Approve with your voice, hands-free. Voice templates and recognition stay on the user’s device.',
     ja: '手を使わずに、声で承認。声のテンプレートと認識処理はユーザーのデバイスから出ません。',
   },
-  readPasskeyDocs: { en: 'Read the passkey guide', ja: 'パスキーのガイドを読む' },
+  readDocs: { en: 'Read the docs', ja: 'ドキュメントを読む' },
 
   globalKicker: { en: 'Global deployments', ja: 'グローバル展開' },
   globeTitle: { en: 'Closer to your users.', ja: 'ユーザーの近くで。' },

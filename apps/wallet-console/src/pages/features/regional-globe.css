@@ -46,20 +46,106 @@
 .wallet-regions__visual {
   min-width: 0;
   position: relative;
-}
-
-.wallet-regions canvas {
-  display: block;
-  position: absolute;
-  inset: 0;
-  width: 112%;
-  height: 100%;
-  cursor: grab;
   touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.wallet-regions canvas:active {
-  cursor: grabbing;
+/* The Hairline figures' light palette, stroke and classes (hairline kernel
+   styles.ts): plates filled with the plate colour, one bright stroke, a
+   silhouette, a default stroke and a dim stroke for dashed guides. */
+.wallet-regions__globe {
+  --hl-plate: #ffffff;
+  --hl-hi: #232327;
+  --hl-edge: #a4a4ac;
+  --hl-mid: #c3c3c9;
+  --hl-lo: #e0e0e4;
+  --hl-sw: 0.65;
+  --hl-ease: cubic-bezier(0.5, 0, 0.1, 1);
+  position: absolute;
+  inset: 4% 0;
+  width: 100%;
+  height: 92%;
+  overflow: visible;
+}
+
+.wallet-regions__globe :where(path, circle, line) {
+  fill: var(--hl-plate);
+  stroke: var(--hl-mid);
+  stroke-width: var(--hl-sw);
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  transition: stroke 260ms var(--hl-ease);
+}
+
+.wallet-regions__globe .nf {
+  fill: none;
+}
+
+.wallet-regions__globe .sil {
+  stroke: var(--hl-edge);
+}
+
+.wallet-regions__globe .lo {
+  stroke: var(--hl-lo);
+}
+
+.wallet-regions__globe .dash {
+  stroke-dasharray: 1 3;
+}
+
+.wallet-regions__globe .land {
+  fill: var(--hl-mid);
+  stroke: none;
+}
+
+.wallet-regions__globe .dot {
+  fill: var(--hl-edge);
+  stroke: none;
+  transition: fill 260ms var(--hl-ease);
+}
+
+.wallet-regions__globe .ring-0 {
+  stroke: var(--hl-edge);
+}
+
+.wallet-regions__globe .ring-2 {
+  stroke: var(--hl-lo);
+}
+
+.wallet-regions__globe [data-selected='true'] .ring-0 {
+  stroke: var(--hl-hi);
+}
+
+.wallet-regions__globe [data-selected='true'] .dot {
+  fill: var(--hl-hi);
+}
+
+.wallet-regions__globe [data-selected='true'] .ring-1 {
+  stroke: var(--hl-edge);
+}
+
+.wallet-regions__globe [data-selected='true'] .ring-2 {
+  stroke: var(--hl-mid);
+}
+
+/* Hairline captions: the figure's sans-serif text in the page's muted ink. */
+.wallet-regions__globe text {
+  fill: #777169;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  font-size: 7.4px;
+  letter-spacing: 0.4px;
+}
+
+.wallet-regions__visual:focus-visible {
+  outline-offset: -6px;
+  border-radius: var(--h2-radius-card);
 }
 
 @media (max-width: 700px) {
@@ -77,9 +163,5 @@
 
   .wallet-regions__visual {
     height: 340px;
-  }
-
-  .wallet-regions canvas {
-    width: 100%;
   }
 }

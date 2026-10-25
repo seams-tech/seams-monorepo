@@ -79,8 +79,8 @@ export const messages = {
   globeApac: { en: 'APAC', ja: 'アジア太平洋' },
   globeUs: { en: 'US', ja: '米国' },
   globeAccessibleName: {
-    en: 'Rotatable globe showing Europe, Asia Pacific, and US regions',
-    ja: 'ヨーロッパ、アジア太平洋、米国のリージョンを表示する回転可能な地球儀',
+    en: 'Globe with the Asia Pacific, Europe, and US regions. Play it to turn to each region.',
+    ja: 'アジア太平洋、ヨーロッパ、米国のリージョンを示す地球儀。再生すると各リージョンへ回転します。',
   },
 
   selfHostedKicker: { en: 'Self-hosted', ja: 'セルフホスト' },

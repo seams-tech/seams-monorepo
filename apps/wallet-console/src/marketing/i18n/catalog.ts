@@ -332,10 +332,7 @@ export const catalog = {
     ja: 'サインイン、支払い、復元の標準画面も、独自のUIも',
   },
   liveDemo: { en: 'Live demo', ja: 'ライブデモ' },
-  serverlessInfra: {
-    en: 'Serverless infra, pay for what you use',
-    ja: 'サーバーレス基盤、従量課金',
-  },
+  serverlessInfra: { en: 'Serverless infra', ja: 'サーバーレス基盤' },
   getStarted: { en: 'Get Started', ja: 'はじめに' },
   getStartedDescription: {
     en: 'Install the SDK, create a wallet, and sign with policy',

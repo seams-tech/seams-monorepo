@@ -49,12 +49,8 @@
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
-}
-
-/* The Hairline figures' light palette, stroke and classes (hairline kernel
-   styles.ts): plates filled with the plate colour, one bright stroke, a
-   silhouette, a default stroke and a dim stroke for dashed guides. */
-.wallet-regions__globe {
+  /* The Hairline figures' light palette (hairline kernel styles.ts), shared
+     by the SVG layers and the land canvas. */
   --hl-plate: #ffffff;
   --hl-hi: #232327;
   --hl-edge: #a4a4ac;
@@ -62,10 +58,23 @@
   --hl-lo: #e0e0e4;
   --hl-sw: 0.65;
   --hl-ease: cubic-bezier(0.5, 0, 0.1, 1);
+}
+
+.wallet-regions__land {
   position: absolute;
-  inset: 4% 0;
+  inset: 0;
   width: 100%;
-  height: 92%;
+  height: 100%;
+}
+
+/* The Hairline figures' classes (hairline kernel styles.ts): plates filled
+   with the plate colour, one bright stroke, a silhouette, a default stroke
+   and a dim stroke for dashed guides. */
+.wallet-regions__globe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   overflow: visible;
 }
 
@@ -95,8 +104,7 @@
   stroke-dasharray: 1 3;
 }
 
-.wallet-regions__globe .land {
-  fill: var(--hl-mid);
+.wallet-regions__globe .fo {
   stroke: none;
 }
 
@@ -141,6 +149,11 @@
     sans-serif;
   font-size: 7.4px;
   letter-spacing: 0.4px;
+  /* a plate-coloured halo keeps the caption clear of the land cells */
+  stroke: var(--hl-plate);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  paint-order: stroke;
 }
 
 .wallet-regions__visual:focus-visible {

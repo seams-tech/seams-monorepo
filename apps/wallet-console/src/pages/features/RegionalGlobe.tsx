@@ -424,7 +424,7 @@ export class RegionalGlobe extends React.Component {
               <circle className="sil" cx={CENTER.x} cy={CENTER.y} r={RADIUS} />
               <path ref={this.graticule} className="nf lo dash" />
               <path ref={this.land} className="land" />
-              <path ref={this.coast} className="nf" />
+              <path ref={this.coast} className="nf sil dash coast" />
               {this.connectors.map((ref, index) => (
                 <path key={index} ref={ref} className="nf sil" />
               ))}

@@ -95,6 +95,11 @@
   stroke-dasharray: 1 3;
 }
 
+/* Coastlines are dotted guides; a wider stroke lets each dot read. */
+.wallet-regions__globe .coast {
+  stroke-width: 1.1;
+}
+
 .wallet-regions__globe .land {
   fill: var(--hl-mid);
   stroke: none;

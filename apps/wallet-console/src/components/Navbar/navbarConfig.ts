@@ -47,10 +47,11 @@ const documentationDropdownPane: DropdownPane = {
     to: '/wallet#components',
     field: 'teal-peach',
   },
+  // the first row already opens /features/, so the footer leads to the front page
   footerLinks: [
-    { label: t('allFeatures'), to: '/features/' },
     // the front page's hero holds the live wallet demo
     { label: t('liveDemo'), to: '/wallet' },
+    { label: t('serverlessInfra'), to: '/wallet#serverless' },
   ],
 };
 

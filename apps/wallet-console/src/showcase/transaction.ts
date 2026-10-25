@@ -96,7 +96,13 @@ function confirm(): void {
 }
 
 function showReceipt(): void {
-  handle?.showReceipt({ state: receipt, view, onView: changeView, onDismiss: review });
+  handle?.showReceipt({
+    subject: 'transaction',
+    state: receipt,
+    view,
+    onView: changeView,
+    onDismiss: review,
+  });
 }
 
 function changeView(next: TransactionReceiptView): void {

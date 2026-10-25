@@ -151,6 +151,7 @@ function confirm(): void {
 
 function showReceipt(): void {
   handle.showReceipt({
+    subject: 'transaction',
     state: receipt,
     view,
     onView: (next) => {

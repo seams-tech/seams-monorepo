@@ -169,11 +169,6 @@ export function getSiteNavbarConfig(locale: Locale): SiteNavbarConfig {
     dashboardHref: '/dashboard',
     mobilePlanLinks: [
       {
-        title: 'Enterprise',
-        description: t('enterpriseNav'),
-        to: '/wallet/pricing/#enterprise',
-      },
-      {
         title: t('talkUs'),
         description: t('talkCopy'),
         to: CONTACT_LINK_TARGET,

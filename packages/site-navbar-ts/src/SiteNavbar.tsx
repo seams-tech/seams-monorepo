@@ -486,7 +486,6 @@ export function SiteNavbar({
   }, [closeMenus, isMobileMenuOpen, openDropdown]);
 
   const homeProps = getNavLinkProps(config.homeHref);
-  const aboutRootProps = getNavLinkProps(config.aboutHref);
   const getStartedProps = getNavLinkProps(config.dashboardHref);
 
   const openDashboardEntry = React.useCallback(() => {
@@ -662,6 +661,53 @@ export function SiteNavbar({
     );
   }
 
+  function renderMobileSubitem(link: MobileExtraLink): React.JSX.Element {
+    const linkNavProps = getNavLinkProps(link.to);
+    return (
+      <a
+        key={link.title}
+        className="navbar-static__mobile-subitem"
+        href={linkNavProps.href}
+        onClick={linkNavProps.onClick}
+      >
+        <span>{link.title}</span>
+        <small>{link.description}</small>
+      </a>
+    );
+  }
+
+  /* A phone menu section lists the same links as its desktop pane: the rows,
+     then the card and any site extras, then the footer links. */
+  function renderMobilePaneLinks(
+    pane: DropdownPane,
+    extraLinks: MobileExtraLink[] = [],
+  ): React.JSX.Element {
+    const cardLinks = pane.highlight ? [pane.highlight, ...extraLinks] : extraLinks;
+    return (
+      <>
+        <section className="navbar-static__mobile-section">
+          <h3 className="navbar-static__mobile-section-title">{pane.kicker}</h3>
+          {pane.rows.map(renderMobileSubitem)}
+        </section>
+        {cardLinks.map(renderMobileSubitem)}
+        {pane.footerLinks.map((link) => {
+          const linkNavProps = getNavLinkProps(link.to);
+          return (
+            <a
+              key={link.label}
+              className="navbar-static__mobile-subitem navbar-static__mobile-footer-link"
+              href={linkNavProps.href}
+              onClick={linkNavProps.onClick}
+            >
+              <span>{link.label}</span>
+              <Arrow size={12} />
+            </a>
+          );
+        })}
+      </>
+    );
+  }
+
   return (
     <nav
       ref={rootRef}
@@ -773,25 +819,7 @@ export function SiteNavbar({
           />
         </button>
         <MobileSubmenu open={isMobileProductsOpen}>
-          <section className="navbar-static__mobile-section">
-            <h3 className="navbar-static__mobile-section-title">
-              {documentationDropdownPane.kicker}
-            </h3>
-            {documentationDropdownPane.rows.map((row) => {
-              const rowProps = getNavLinkProps(row.to);
-              return (
-                <a
-                  key={row.title}
-                  className="navbar-static__mobile-subitem"
-                  href={rowProps.href}
-                  onClick={rowProps.onClick}
-                >
-                  <span>{row.title}</span>
-                  <small>{row.description}</small>
-                </a>
-              );
-            })}
-          </section>
+          {renderMobilePaneLinks(documentationDropdownPane)}
         </MobileSubmenu>
         <button
           type="button"
@@ -812,23 +840,7 @@ export function SiteNavbar({
           />
         </button>
         <MobileSubmenu open={isMobileDocumentationOpen}>
-          <section className="navbar-static__mobile-section">
-            <h3 className="navbar-static__mobile-section-title">{productsDropdownPane.kicker}</h3>
-            {productsDropdownPane.rows.map((row) => {
-              const rowProps = getNavLinkProps(row.to);
-              return (
-                <a
-                  key={row.title}
-                  className="navbar-static__mobile-subitem"
-                  href={rowProps.href}
-                  onClick={rowProps.onClick}
-                >
-                  <span>{row.title}</span>
-                  <small>{row.description}</small>
-                </a>
-              );
-            })}
-          </section>
+          {renderMobilePaneLinks(productsDropdownPane)}
         </MobileSubmenu>
         <button
           type="button"
@@ -849,31 +861,13 @@ export function SiteNavbar({
           />
         </button>
         <MobileSubmenu open={isMobileAboutOpen}>
-          <section className="navbar-static__mobile-section">
-            <h3 className="navbar-static__mobile-section-title">{aboutDropdownPane.kicker}</h3>
-            {aboutDropdownPane.rows.map((row) => {
-              const rowProps = getNavLinkProps(row.to);
-              return (
-                <a
-                  key={row.title}
-                  className="navbar-static__mobile-subitem"
-                  href={rowProps.href}
-                  onClick={rowProps.onClick}
-                >
-                  <span>{row.title}</span>
-                  <small>{row.description}</small>
-                </a>
-              );
-            })}
-          </section>
-          <a
-            className="navbar-static__mobile-subitem"
-            href={aboutRootProps.href}
-            onClick={aboutRootProps.onClick}
-          >
-            <span>{labels.companyOverview}</span>
-            <small>{labels.companyMission}</small>
-          </a>
+          {renderMobilePaneLinks(aboutDropdownPane, [
+            {
+              title: labels.companyOverview,
+              description: labels.companyMission,
+              to: config.aboutHref,
+            },
+          ])}
         </MobileSubmenu>
         <button
           type="button"
@@ -894,37 +888,7 @@ export function SiteNavbar({
           />
         </button>
         <MobileSubmenu open={isMobilePricingOpen}>
-          <section className="navbar-static__mobile-section">
-            <h3 className="navbar-static__mobile-section-title">{pricingDropdownPane.kicker}</h3>
-            {pricingDropdownPane.rows.map((row) => {
-              const rowProps = getNavLinkProps(row.to);
-              return (
-                <a
-                  key={row.title}
-                  className="navbar-static__mobile-subitem"
-                  href={rowProps.href}
-                  onClick={rowProps.onClick}
-                >
-                  <span>{row.title}</span>
-                  <small>{row.description}</small>
-                </a>
-              );
-            })}
-          </section>
-          {(config.mobilePlanLinks ?? []).map((link) => {
-            const linkNavProps = getNavLinkProps(link.to);
-            return (
-              <a
-                key={link.title}
-                className="navbar-static__mobile-subitem"
-                href={linkNavProps.href}
-                onClick={linkNavProps.onClick}
-              >
-                <span>{link.title}</span>
-                <small>{link.description}</small>
-              </a>
-            );
-          })}
+          {renderMobilePaneLinks(pricingDropdownPane, config.mobilePlanLinks)}
         </MobileSubmenu>
         <div className="navbar-static__mobile-cta-row">
           <a

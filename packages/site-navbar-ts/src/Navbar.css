@@ -896,6 +896,15 @@ html[data-seams-theme='light'] .navbar-static {
     color: var(--navbar-mobile-subitem-copy);
   }
 
+  /* a footer link has no description; its arrow follows the label, as in the
+     desktop pane's footer */
+  .navbar-static__mobile-footer-link {
+    grid-auto-flow: column;
+    justify-content: start;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
   .navbar-static__mobile-cta-row {
     display: flex;
     gap: 0.5rem;

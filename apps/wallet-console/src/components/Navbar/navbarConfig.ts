@@ -159,11 +159,4 @@ export const siteNavbarConfig: SiteNavbarConfig = {
   homeHref: '/wallet',
   aboutHref: about.href,
   dashboardHref: '/dashboard',
-  mobilePlanLinks: [
-    {
-      title: 'Enterprise',
-      description: t('enterpriseDescription'),
-      to: '/pricing/#enterprise',
-    },
-  ],
 };

@@ -105,7 +105,9 @@ const walletLanguagePages: Plugin = {
     server.middlewares.use(normalizePageRoute);
   },
   transformIndexHtml(html, context) {
-    if (context.path.includes('/showcase/')) return html;
+    if (context.path.includes('/showcase/')) {
+      return html.replace('</head>', '<meta name="robots" content="noindex" /></head>');
+    }
     const url = new URL(context.originalUrl || context.path, walletSiteUrl);
     return languageHtml(html, pageFromUrl(url), localeFromUrl(url));
   },
@@ -115,6 +117,31 @@ const walletLanguagePages: Plugin = {
       throw new Error('Wallet marketing build requires index.html');
     }
     const urls: string[] = [];
+    this.emitFile({
+      type: 'asset',
+      fileName: '404.html',
+      source: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Page not found | Seams</title>
+  </head>
+  <body>
+    <main>
+      <h1>Page not found</h1>
+      <p>This address does not match a public page.</p>
+      <a href="/">Seams Wallet</a>
+    </main>
+  </body>
+</html>`,
+    });
+    this.emitFile({
+      type: 'asset',
+      fileName: 'robots.txt',
+      source: `User-agent: *\nAllow: /\n\nSitemap: ${new URL('sitemap.xml', walletSiteUrl).href}\n`,
+    });
     for (const page of walletPages) {
       const english = escapeHtml(pageUrl(page, 'en'));
       const japanese = escapeHtml(pageUrl(page, 'ja'));

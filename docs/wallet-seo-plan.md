@@ -1,6 +1,19 @@
 # Wallet SEO implementation plan
 
-Status: proposed. Date: October 26, 2026. Scope: `seams-monorepo`.
+Status: initial focused changes implemented; broader work deferred. Date: October 26, 2026. Scope: `seams-monorepo`.
+
+October 26 implementation: clearer English and Japanese homepage titles, generated
+robots.txt and 404.html, showcase exclusions, and deployment-specific indexing headers.
+Staging and Console responses receive noindex. Production marketing remains indexable.
+The assembled robots file includes the docs sitemap when that artifact contains it.
+Cloudflare Pages uses the top-level 404.html to disable its implicit SPA fallback.
+Deployed HTTP behavior still requires verification.
+
+Validation: all 53 existing script checks passed. Build and typecheck could not complete
+because the demo imports external-near exports absent from the installed Wallet package.
+No production deployment or live acceptance run occurred.
+Build rendering, new landing pages, analytics, and performance refactors remain deferred
+under the request to keep this pass small.
 
 Make Wallet marketing pages readable in the first HTML response. Then improve search coverage for developers evaluating embedded wallets.
 Keep the existing Vite, React, translation, and deployment paths.

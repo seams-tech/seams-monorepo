@@ -131,6 +131,7 @@ async function runConsoleOperation(operation, site, component) {
     runCommand('pnpm', ['-C', 'apps/wallet-console', 'run', `build:${mode}`], { env: environment });
     assertFile(path.join(output, 'index.html'), 'Console entry');
     fs.writeFileSync(path.join(output, '_redirects'), '/* /index.html 200\n');
+    fs.appendFileSync(path.join(output, '_headers'), '\n/*\n  X-Robots-Tag: noindex\n');
     return;
   }
   if (operation === 'deploy') {
@@ -274,12 +275,23 @@ function buildFrontend(site, component, walletLanes) {
     writeWalletConsoleRedirects(site);
     copyPublicDocsArtifact();
     copySdkAssets(WALLET_SITE_OUTPUT, site.lanes);
+    const docsSitemap = path.join(WALLET_SITE_OUTPUT, 'docs', 'sitemap.xml');
+    if (fs.existsSync(docsSitemap)) {
+      fs.appendFileSync(
+        path.join(WALLET_SITE_OUTPUT, 'robots.txt'),
+        `Sitemap: ${new URL('/docs/sitemap.xml', site.walletSiteOrigin).href}\n`,
+      );
+    }
     if (site.id === 'staging') {
       fs.appendFileSync(
         path.join(WALLET_SITE_OUTPUT, '_headers'),
-        '\n/docs/*\n  X-Robots-Tag: noindex, nofollow\n',
+        '\n/*\n  X-Robots-Tag: noindex\n',
       );
     }
+    fs.appendFileSync(
+      path.join(WALLET_SITE_OUTPUT, '_headers'),
+      '\n/showcase/*\n  X-Robots-Tag: noindex\n/wallet-service/*\n  X-Robots-Tag: noindex\n',
+    );
     assertFile(path.join(WALLET_SITE_OUTPUT, 'index.html'), 'Wallet site entry');
     assertFile(path.join(WALLET_SITE_OUTPUT, 'ja', 'index.html'), 'Japanese Wallet site entry');
     assertFile(path.join(WALLET_SITE_OUTPUT, 'pricing', 'index.html'), 'Wallet pricing entry');

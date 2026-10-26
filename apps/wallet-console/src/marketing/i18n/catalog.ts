@@ -68,7 +68,10 @@ export const figureCatalog = {
 
 // Each message requires both languages. Components and document builds use this catalog.
 export const catalog = {
-  pageTitle: { en: 'Seams Wallet', ja: 'Seams Wallet | パスキーで使えるウォレット' },
+  pageTitle: {
+    en: 'Embedded Wallet SDK with Passkeys | Seams',
+    ja: 'パスキー対応の組み込みウォレットSDK | Seams',
+  },
   pageDescription: {
     en: 'Non-custodial embedded wallets opened with a passkey.',
     ja: 'パスキーで開く、ノンカストディアルの組み込みウォレット。認証、署名、復元をひとつのSDKで。',

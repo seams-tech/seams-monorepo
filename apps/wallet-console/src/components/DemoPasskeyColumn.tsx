@@ -214,16 +214,20 @@ function loadExternalWalletDemo() {
   return import('@/flows/demo/externalWallets/ExternalWalletDemo');
 }
 
+type WalletChoice =
+  | { source: 'seams'; external: 'unopened' | 'retained' }
+  | { source: 'external'; external: 'retained' };
+
 export class DemoPasskeyColumn extends React.Component<
   DemoPasskeyColumnProps,
-  { source: 'seams' | 'external' }
+  { choice: WalletChoice }
 > {
-  state: { source: 'seams' | 'external' } = { source: 'seams' };
+  state: { choice: WalletChoice } = { choice: { source: 'seams', external: 'unopened' } };
   private selectSeams = (): void => {
-    this.setState({ source: 'seams' });
+    this.setState({ choice: { source: 'seams', external: this.state.choice.external } });
   };
   private selectExternal = (): void => {
-    this.setState({ source: 'external' });
+    this.setState({ choice: { source: 'external', external: 'retained' } });
   };
   render() {
     return (
@@ -231,25 +235,26 @@ export class DemoPasskeyColumn extends React.Component<
         <div role="group" aria-label="Wallet source">
           <button
             type="button"
-            aria-pressed={this.state.source === 'seams'}
+            aria-pressed={this.state.choice.source === 'seams'}
             onClick={this.selectSeams}
           >
             Use a Seams wallet
           </button>
           <button
             type="button"
-            aria-pressed={this.state.source === 'external'}
+            aria-pressed={this.state.choice.source === 'external'}
             onClick={this.selectExternal}
           >
             Connect an existing wallet
           </button>
         </div>
-        {this.state.source === 'seams' ? (
-          <SeamsWalletDemo {...this.props} />
-        ) : (
-          <React.Suspense fallback={<DemoTxCardSkeleton />}>
-            <ExternalWalletDemo />
-          </React.Suspense>
+        {this.state.choice.source === 'seams' && <SeamsWalletDemo {...this.props} />}
+        {this.state.choice.external === 'retained' && (
+          <div hidden={this.state.choice.source !== 'external'}>
+            <React.Suspense fallback={<DemoTxCardSkeleton />}>
+              <ExternalWalletDemo active={this.state.choice.source === 'external'} />
+            </React.Suspense>
+          </div>
         )}
       </section>
     );

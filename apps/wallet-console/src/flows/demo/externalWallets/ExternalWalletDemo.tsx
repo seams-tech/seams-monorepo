@@ -1,8 +1,16 @@
 import { Component, type FormEvent } from 'react';
 import { ActionType } from '@seams/wallet';
-import { ExternalNearController, nearWalletName } from '@seams/wallet/external-near';
+import {
+  ExternalNearController,
+  nearWalletName,
+  type ExternalNearSubmission,
+} from '@seams/wallet/external-near';
 import { ExternalNearWalletPicker } from '@seams/wallet/react/external-near';
-import { ExternalEvmController, type ExternalEvmChain } from '@seams/wallet/external-evm';
+import {
+  ExternalEvmController,
+  type ExternalEvmChain,
+  type ExternalEvmSubmission,
+} from '@seams/wallet/external-evm';
 import { ExternalEvmWalletPicker } from '@seams/wallet/react/external-evm';
 import { FRONTEND_CONFIG } from '@/config';
 import { DEMO_CONTRACT_ID } from '@/shared/types';
@@ -17,11 +25,33 @@ function configuredEvmChains(): ExternalEvmChain[] {
   return chains;
 }
 
-export default class ExternalWalletDemo extends Component<
-  {},
-  { network: 'near' | 'evm'; message: string }
-> {
-  state: { network: 'near' | 'evm'; message: string } = { network: 'near', message: '' };
+type Observation =
+  | { kind: 'none' }
+  | {
+      kind: 'near';
+      submission: ExternalNearSubmission;
+      status: 'checking' | 'unresolved' | 'confirmed' | 'failed';
+    }
+  | {
+      kind: 'evm';
+      submission: ExternalEvmSubmission;
+      status: 'checking' | 'unresolved' | 'confirmed' | 'reverted';
+    };
+type RequestState = 'idle' | 'awaiting_wallet' | 'submission_unknown';
+type DemoState = {
+  network: 'near' | 'evm';
+  message: string;
+  observation: Observation;
+  request: RequestState;
+};
+
+export default class ExternalWalletDemo extends Component<{ active: boolean }, DemoState> {
+  state: DemoState = {
+    network: 'near',
+    message: '',
+    observation: { kind: 'none' },
+    request: 'idle',
+  };
   private near = new ExternalNearController(
     FRONTEND_CONFIG.nearNetwork,
     FRONTEND_CONFIG.nearRpcUrl,
@@ -33,6 +63,12 @@ export default class ExternalWalletDemo extends Component<
     this.unsubscribeNear = this.near.subscribe(this.refresh);
     this.unsubscribeEvm = this.evm.subscribe(this.refresh);
     this.evm.start(window);
+  }
+  componentDidUpdate(previous: { active: boolean }): void {
+    if (previous.active && !this.props.active) {
+      this.near.disconnect();
+      this.evm.disconnect();
+    }
   }
   componentWillUnmount(): void {
     this.unsubscribeNear?.();
@@ -53,13 +89,23 @@ export default class ExternalWalletDemo extends Component<
   };
   private send = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
+    if (
+      !this.props.active ||
+      this.state.request !== 'idle' ||
+      (this.state.observation.kind !== 'none' && this.state.observation.status === 'checking')
+    )
+      return;
     const form = new FormData(event.currentTarget);
     if (this.state.network === 'near') {
       const connection = this.near.getSnapshot().connection;
       const greeting = form.get('greeting');
       if (connection.kind !== 'connected' || typeof greeting !== 'string' || !greeting.trim())
         return;
-      this.setState({ message: `Approve in ${nearWalletName(connection.wallet)}.` });
+      this.setState({
+        message: `Approve in ${nearWalletName(connection.wallet)}.`,
+        request: 'awaiting_wallet',
+        observation: { kind: 'none' },
+      });
       const result = await this.near.sendTransaction(connection, {
         receiverId: DEMO_CONTRACT_ID,
         actions: [
@@ -73,13 +119,19 @@ export default class ExternalWalletDemo extends Component<
         ],
       });
       if (!result.ok) {
-        this.setState({ message: result.message });
+        this.setState({
+          message: result.message,
+          request: result.code === 'submission_unknown' ? 'submission_unknown' : 'idle',
+        });
         return;
       }
-      const outcome = await this.near.checkOutcome(result.value);
-      this.setState({
-        message: `${result.value.accountId}: ${outcome.kind}. Transaction: ${result.value.hash}`,
-      });
+      this.setState(
+        {
+          request: 'idle',
+          observation: { kind: 'near', submission: result.value, status: 'unresolved' },
+        },
+        this.recheck,
+      );
     } else {
       const connection = this.evm.getSnapshot().connection;
       const to = form.get('recipient');
@@ -91,7 +143,11 @@ export default class ExternalWalletDemo extends Component<
         !/^\d+$/.test(amount)
       )
         return;
-      this.setState({ message: `Approve in ${connection.wallet.name}.` });
+      this.setState({
+        message: `Approve in ${connection.wallet.name}.`,
+        request: 'awaiting_wallet',
+        observation: { kind: 'none' },
+      });
       const result = await this.evm.sendTransaction(connection, {
         to,
         data: '0x',
@@ -100,18 +156,63 @@ export default class ExternalWalletDemo extends Component<
         fees: { kind: 'wallet' },
       });
       if (!result.ok) {
-        this.setState({ message: result.message });
+        this.setState({
+          message: result.message,
+          request: result.code === 'submission_unknown' ? 'submission_unknown' : 'idle',
+        });
         return;
       }
-      const receipt = await this.evm.waitForReceipt(result.value);
-      this.setState({
-        message: `${result.value.account}: ${receipt.kind}. Transaction: ${result.value.hash}`,
-      });
+      this.setState(
+        {
+          request: 'idle',
+          observation: { kind: 'evm', submission: result.value, status: 'unresolved' },
+        },
+        this.recheck,
+      );
+    }
+  };
+  private acknowledgeUnknown = (): void => {
+    this.setState({
+      request: 'idle',
+      message: 'Check the original transaction before preparing another request.',
+    });
+  };
+  private recheck = async (): Promise<void> => {
+    const observation = this.state.observation;
+    if (observation.kind === 'none' || observation.status === 'checking') return;
+    switch (observation.kind) {
+      case 'near': {
+        this.setState({
+          observation: { kind: 'near', submission: observation.submission, status: 'checking' },
+        });
+        const result = await this.near.checkOutcome(observation.submission);
+        this.setState({
+          observation: { kind: 'near', submission: observation.submission, status: result.kind },
+          message: `${observation.submission.accountId}: ${result.kind}. Transaction: ${observation.submission.hash}`,
+        });
+        return;
+      }
+      case 'evm': {
+        this.setState({
+          observation: { kind: 'evm', submission: observation.submission, status: 'checking' },
+        });
+        const result = await this.evm.waitForReceipt(observation.submission);
+        this.setState({
+          observation: { kind: 'evm', submission: observation.submission, status: result.kind },
+          message: `${observation.submission.account}: ${result.kind}. Transaction: ${observation.submission.hash}`,
+        });
+        return;
+      }
+      default:
+        return assertNever(observation);
     }
   };
   render() {
     const near = this.near.getSnapshot();
     const evm = this.evm.getSnapshot();
+    const locked =
+      this.state.request !== 'idle' ||
+      (this.state.observation.kind !== 'none' && this.state.observation.status === 'checking');
     const selected = this.state.network === 'near' ? near : evm;
     return (
       <section aria-label="Connect an existing wallet">
@@ -148,13 +249,28 @@ export default class ExternalWalletDemo extends Component<
           )}
           <button
             type="submit"
-            disabled={selected.busy || selected.connection.kind !== 'connected'}
+            disabled={locked || selected.busy || selected.connection.kind !== 'connected'}
           >
             Approve transaction in wallet
           </button>
         </form>
+        {this.state.observation.kind !== 'none' &&
+          this.state.observation.status === 'unresolved' && (
+            <button type="button" onClick={this.recheck}>
+              Check transaction status
+            </button>
+          )}
+        {this.state.request === 'submission_unknown' && (
+          <button type="button" onClick={this.acknowledgeUnknown}>
+            I checked wallet activity
+          </button>
+        )}
         <p role="status">{this.state.message}</p>
       </section>
     );
   }
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unknown transaction source: ${value}`);
 }

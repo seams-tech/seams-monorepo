@@ -1,6 +1,6 @@
 # Refactor 185: Seams wallet or external wallet
 
-Status: implementation plan. No connector or UI changes are implemented by this document.
+Status: implemented on dev; release adoption and remaining real-wallet qualification are pending.
 Date: 2026-10-26.
 
 ## Outcome
@@ -10,7 +10,7 @@ Users can choose how to sign transactions within Seams:
 - **Use a Seams wallet:** create or unlock a Seams threshold wallet.
 - **Connect an existing wallet:** select a browser extension and approve requests there.
 
-The first release adds Meteor for NEAR and exposes the existing EVM extension
+The first release adds Meteor, HOT, and Intear for NEAR and exposes the existing EVM extension
 connector through the same entry point. External users can transact without
 creating or unlocking a Seams wallet. Each transaction uses the selected account
 and its wallet's signing capability.
@@ -66,32 +66,24 @@ Connection metadata or a successful transaction cannot substitute for that flow.
 
 ## NEAR adapter decision
 
-Start with `@hot-labs/near-connect` behind a small SDK boundary. Its documented
-wallet list includes Meteor. Its wallet integrations can load remote executor
-code inside sandboxed iframes. A pinned package version alone does not pin that
-remote code. [NEAR Connect documentation](https://github.com/azbang/near-connect).
+Use separate direct adapters for the requested wallets. No shared wallet registry
+or runtime connector fallback participates in provider selection.
 
-NEAR Wallet Selector provides `@near-wallet-selector/meteor-wallet` and explicitly
-lists Meteor as an injected wallet. Its README recommends exploring HOT Connect.
-[Wallet Selector documentation](https://github.com/near/wallet-selector).
+- Meteor uses the captured `meteorComV2` transport. Replies must match the request
+  ID. Its handshake can request the same inputs again before approval.
+- HOT uses the captured `hotExtension` API. Its documented API has no network
+  selector, so this release enables mainnet only.
+- Intear uses the V3 popup protocol at `https://wallet.intear.tech`. Every reply
+  must match both that origin and the request's popup window.
 
-Complete a short integration check before committing to the dependency:
+The Meteor SDK dependency was removed after browser acceptance exposed its Node
+Buffer dependency and package validation found missing license metadata. The
+replacement keeps only the extension protocol and Borsh transaction encoding.
+License notices and packed-package validation pass with the direct adapter.
 
-1. Prove that Meteor opens the installed extension for connection and approval.
-   A web-wallet redirect does not meet the requested extension acceptance case.
-2. Check testnet and mainnet availability, account discovery, transaction methods,
-   message signing, disconnect, and account-change behavior.
-3. Verify the actual deployment's Content Security Policy, popup behavior, and
-   iframe restrictions. Content Security Policy controls which resources can run.
-4. Record executor origins, update behavior, permissions, and supported controls
-   for selecting wallets. Expose only qualified wallets through Seams.
-5. Confirm that connection does not silently create an application-held access key.
-   Keep transaction approval with the external wallet in this release.
-
-If NEAR Connect cannot meet these requirements, use Wallet Selector's Meteor
-adapter. Record the observed reason and select one library before implementation.
-Ship one NEAR integration path. Do not retain a runtime fallback between libraries
-or create a new wallet registry or executor-hosting service.
+Wallets retain signing keys and approval. Intear's ephemeral session key only
+authenticates protocol requests and is never installed on chain. No adapter
+requests an application-held function-call key.
 
 ## State and operation contracts
 
@@ -320,54 +312,51 @@ failure. Report missing extension or RPC evidence as incomplete acceptance.
 - Public exports, guides, behavior contracts, type fixtures, and private composition agree.
 - Repeatable E2E evidence includes a real Meteor extension run and on-chain readback.
 
-## Implementation checkpoint — 2026-10-26
+## Implementation and verification checkpoint — 2026-10-26
 
-The SDK now has separate NEAR types, boundary validation, controller, Meteor
-adapter, and React bindings. Provider selection uses the official Meteor SDK
-3.24.0 with explicit `v1_ext` execution. NEAR Connect is not a dependency.
-The adapter captures the injected transport and checks for replacement. It does
-not subscribe to NEAR Connect's parent-frame wallet announcements. This assumes
-trusted application code; it does not authenticate arbitrary same-document scripts.
+Implemented on dev:
 
-The private demo has a wallet-source choice and separate external transaction
-controls. NEAR uses the configured greeting contract. EVM offers ordinary native
-transfers on configured chains. Neither external path requires Seams login.
+- Separate NEAR types, request validation, lifecycle controller, and wallet adapters.
+- Explicit Meteor, HOT, and Intear picker cards with transport/network labels.
+- Seams versus external wallet choice and separate NEAR/EVM transaction dispatch.
+- Pending-request disposal and generation checks that prevent stale completion
+  from changing a newer connection's state.
+- Submitted-transaction status checks, explicit unknown-submission acknowledgement,
+  and retained results when the user changes between Seams and external wallets.
+- Lazy browser dependencies, public entry points, documentation, and type fixtures.
 
-Checks completed: SDK type checking, static state fixtures, ESM build, declaration
-build, bloat check, and the controlled-provider Chromium lifecycle scenario.
-The app type-check passed with temporary paths to the new SDK declarations.
-Those temporary paths are not part of the repository configuration.
+Real Meteor testnet acceptance passed in Chrome profile Pta with wallet build
+`261022-1955` and account `cyan-loong.testnet`. The transaction called
+`set_greeting` on `seams-v1.testnet` with zero deposit. Final execution and exact
+contract readback passed. Transaction hash:
+`7mHpBFA5B6mmhfuqTxVUhNuixYDqCvkLWCBKAQMD6pxV`.
 
-Remaining work before completion:
+Evidence lives in
+`seams-wallet/docs/evidence/refactor-185-meteor-testnet-20261026.json`.
+The repeatable local acceptance page is
+`seams-wallet/tests/browser-app/external-wallet-acceptance.html`.
 
-- Publish and adopt an exact SDK release containing the new exports. The private
-  app still pins 0.22.0; its normal build cannot resolve the new NEAR entry points.
-- Verify the real Meteor extension with the user's Wallet profile and resolve
-  the supplied account label `misty-reef-hv6mdb` to its public NEAR account.
-- Run the composed UI scenario, real transaction readback, EVM extension case,
-  account-change handling, and keyboard interaction checks.
-- Complete NEP-413 capability support and a user-facing unresolved-outcome recheck.
-- Verify SDK dependency footprint and packed-package consumption before release.
+Six controlled Chromium scenarios pass. They cover the three adapters, stale
+requests, transport replacement, popup source binding, handshake replay under one
+request ID, disconnect cleanup, transaction encoding, and picker rendering.
+Each run writes JSON observations or screenshots.
 
-The controlled-provider test writes `external-near-observations.json`. It covers
-stale prepared requests, final outcome verification, and unknown submission after
-transport loss. It does not establish real Meteor compatibility or release readiness.
+SDK type checks, type fixtures, ESM/declaration builds, license notices,
+packed-package checks, and the bloat check pass. The private application type-check
+uses temporary paths to the new SDK declarations until an exact release exists.
+Those paths are not part of repository configuration.
 
-### Expanded NEAR wallet selection
+Remaining work:
 
-The requested wallet set is Meteor, HOT Wallet, and Intear Wallet. The picker uses
-three cards with explicit transport labels. Ledger remains outside this scope.
-`connect(wallet)` requires an explicit, typed wallet ID. Each adapter loads only
-when selected. Wallet changes invalidate prepared requests.
+1. Qualify real Intear and HOT accounts. HOT requires an installed extension and
+   a mainnet test procedure; the connector does not claim testnet support.
+2. Complete public message-signing capabilities and explicit multi-account selection
+   where each wallet supports them.
+3. Run composed product E2E across threshold, NEAR, and EVM wallet choices against
+   the packaged SDK, including network changes and transaction-status rechecks.
+4. Promote a verified SDK version through the existing release workflow. That
+   workflow publishes from `main`; work in this task remains on `dev`.
+5. Adopt the exact released package in the private app, then run normal private
+   checks and builds. The current 0.22.0 pin lacks the new NEAR exports.
 
-- Meteor retains its direct extension SDK adapter.
-- HOT calls its captured `window.hotExtension` API. Mainnet is enabled. Testnet
-  stays disabled because the documented API does not expose a network selector.
-- Intear uses its documented V3 popup protocol at `https://wallet.intear.tech`.
-  Every response requires the expected origin and popup window. Its ephemeral
-  request-authentication key stays in memory and is never installed on chain.
-
-Controlled Chromium tests cover all three adapters, transport replacement,
-Intear popup source binding, wallet network limits, and responsive picker rendering.
-They write JSON observations and desktop/mobile screenshots. Real-wallet
-qualification and exact SDK release adoption remain pending.
+No upstream issue or PR has been opened. No package or deployment was published.

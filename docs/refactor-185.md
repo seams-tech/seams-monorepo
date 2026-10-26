@@ -319,3 +319,36 @@ failure. Report missing extension or RPC evidence as incomplete acceptance.
 - Seams threshold transactions still work after switching between wallet sources.
 - Public exports, guides, behavior contracts, type fixtures, and private composition agree.
 - Repeatable E2E evidence includes a real Meteor extension run and on-chain readback.
+
+## Implementation checkpoint — 2026-10-26
+
+The SDK now has separate NEAR types, boundary validation, controller, Meteor
+adapter, and React bindings. Provider selection uses the official Meteor SDK
+3.24.0 with explicit `v1_ext` execution. NEAR Connect is not a dependency.
+The adapter captures the injected transport and checks for replacement. It does
+not subscribe to NEAR Connect's parent-frame wallet announcements. This assumes
+trusted application code; it does not authenticate arbitrary same-document scripts.
+
+The private demo has a wallet-source choice and separate external transaction
+controls. NEAR uses the configured greeting contract. EVM offers ordinary native
+transfers on configured chains. Neither external path requires Seams login.
+
+Checks completed: SDK type checking, static state fixtures, ESM build, declaration
+build, bloat check, and the controlled-provider Chromium lifecycle scenario.
+The app type-check passed with temporary paths to the new SDK declarations.
+Those temporary paths are not part of the repository configuration.
+
+Remaining work before completion:
+
+- Publish and adopt an exact SDK release containing the new exports. The private
+  app still pins 0.22.0; its normal build cannot resolve the new NEAR entry points.
+- Verify the real Meteor extension with the user's Wallet profile and resolve
+  the supplied account label `misty-reef-hv6mdb` to its public NEAR account.
+- Run the composed UI scenario, real transaction readback, EVM extension case,
+  account-change handling, and keyboard interaction checks.
+- Complete NEP-413 capability support and a user-facing unresolved-outcome recheck.
+- Verify SDK dependency footprint and packed-package consumption before release.
+
+The controlled-provider test writes `external-near-observations.json`. It covers
+stale prepared requests, final outcome verification, and unknown submission after
+transport loss. It does not establish real Meteor compatibility or release readiness.

@@ -91,7 +91,7 @@ export type DemoPasskeyColumnProps = {
   defaultModeWhenNoDetectedAccount?: HostedAuthMenuMode;
 };
 
-export function DemoPasskeyColumn({
+function SeamsWalletDemo({
   currentPage: controlledPage,
   onCurrentPageChange,
   defaultModeWhenNoDetectedAccount,
@@ -208,3 +208,50 @@ const SuspenseFallback = () => (
     style={{ height: 320, width: 'min(420px, calc(100vw - 2rem))' }}
   />
 );
+
+const ExternalWalletDemo = React.lazy(loadExternalWalletDemo);
+function loadExternalWalletDemo() {
+  return import('@/flows/demo/externalWallets/ExternalWalletDemo');
+}
+
+export class DemoPasskeyColumn extends React.Component<
+  DemoPasskeyColumnProps,
+  { source: 'seams' | 'external' }
+> {
+  state: { source: 'seams' | 'external' } = { source: 'seams' };
+  private selectSeams = (): void => {
+    this.setState({ source: 'seams' });
+  };
+  private selectExternal = (): void => {
+    this.setState({ source: 'external' });
+  };
+  render() {
+    return (
+      <section aria-label="Choose a wallet">
+        <div role="group" aria-label="Wallet source">
+          <button
+            type="button"
+            aria-pressed={this.state.source === 'seams'}
+            onClick={this.selectSeams}
+          >
+            Use a Seams wallet
+          </button>
+          <button
+            type="button"
+            aria-pressed={this.state.source === 'external'}
+            onClick={this.selectExternal}
+          >
+            Connect an existing wallet
+          </button>
+        </div>
+        {this.state.source === 'seams' ? (
+          <SeamsWalletDemo {...this.props} />
+        ) : (
+          <React.Suspense fallback={<DemoTxCardSkeleton />}>
+            <ExternalWalletDemo />
+          </React.Suspense>
+        )}
+      </section>
+    );
+  }
+}

@@ -54,6 +54,14 @@ html[data-modal-backdrop='none'] dialog.seams-confirmation-modal::backdrop {
   grid-template-columns: minmax(0, 28rem);
 }
 
+/* The SDK caps a hosted card only at the frame's width. The stage's column is
+   narrower by its padding, so the card follows the column and stays inside the
+   homepage's 440px frame. */
+.showcase-stage .seams-confirmation-surface,
+.showcase-stage .seams-confirmation-modal--hosted {
+  max-inline-size: 100%;
+}
+
 /* A minimised receipt docks as a toast in the frame's corner. */
 .showcase-stage:has([data-receipt-view='toast']) {
   grid-template-columns: minmax(0, 360px);

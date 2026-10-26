@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-26",
+  "surface": "http://localhost:4286/external-wallet-acceptance.html",
+  "browser": "Chrome profile Pta",
+  "wallet": "hot",
+  "network": "mainnet",
+  "accountId": "testtest9909.near",
+  "observedResult": {
+    "ok": true,
+    "connectionKind": "connected"
+  },
+  "approval": "User approved the extension connection prompt",
+  "initialAttempt": "User closed the first popup; the page returned an unavailable result and allowed a successful retry",
+  "transactionSubmitted": false,
+  "limits": "Connection verified. Real HOT transaction signing and composed product release adoption remain unverified.",
+  "controlledChecks": {
+    "command": "SEAMS_TEST_FRONTEND_URL=http://localhost:4293 pnpm -C tests exec playwright test -c playwright.wallet-browser.config.ts wallet-ui/external-near.browser.test.ts --project=chromium",
+    "repository": "seams-wallet",
+    "passed": 6,
+    "failed": 0
+  }
+}

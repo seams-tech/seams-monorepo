@@ -16,6 +16,7 @@ import {
 import type { TransactionReceiptView } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-receipt';
 import type { Side } from './checkoutMarket';
 import { checkoutAppearance } from './checkoutAppearance';
+import { showcasePreset } from './showcaseTheme';
 
 type Phase = 'mounting' | 'review' | 'review_again' | 'preparing' | 'approval' | 'closed';
 
@@ -88,7 +89,7 @@ export class CheckoutSession {
     }
     if (this.phase !== 'review') return;
     this.phase = 'preparing';
-    this.iframe.src = `${import.meta.env.BASE_URL}showcase/checkout/wallet/?side=${this.side}&lang=${locale}`;
+    this.iframe.src = `${import.meta.env.BASE_URL}showcase/checkout/wallet/?side=${this.side}&lang=${locale}&theme=${showcasePreset.id}`;
   };
 
   readonly cancel = (): void => this.finish(t('checkoutClosed'));

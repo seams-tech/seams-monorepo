@@ -25,7 +25,7 @@ import {
   recoveryCode,
 } from './accessMenus';
 import linkingCode from './linking-code.svg';
-import { paperIframeAppearance } from '@/context/app-themes';
+import { showcaseAppearance } from './showcaseTheme';
 
 const stage = document.getElementById('root');
 if (!stage) throw new Error('Authentication showcase requires a root element.');
@@ -36,7 +36,7 @@ function registration(
   return {
     kind: 'passkey',
     mode: 'register',
-    appearance: paperIframeAppearance(locale),
+    appearance: showcaseAppearance(locale),
     hostname: 'shop.example.com',
     closeLabel: t('back'),
     heading: t('createWallet'),
@@ -58,7 +58,7 @@ function login(
   return {
     kind: 'passkey',
     mode: 'login',
-    appearance: paperIframeAppearance(locale),
+    appearance: showcaseAppearance(locale),
     hostname: 'shop.example.com',
     closeLabel: t('back'),
     heading: t('unlockWallet'),

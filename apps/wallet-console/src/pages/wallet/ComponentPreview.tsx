@@ -4,6 +4,7 @@ import { Layers2, LockKeyhole } from 'lucide-react';
 import type { PreviewId } from './ComponentShowcase';
 import { EmbeddedPlayback } from './embeddedPlayback';
 import type { ModalBackdrop } from '@/showcase/modalBackdrop';
+import { useDemoTheme } from '@/context/demoTheme';
 
 type PreviewProps = {
   id: PreviewId;
@@ -77,6 +78,7 @@ export function ComponentPreview({
   onComplete,
   onInteract,
 }: PreviewProps): React.JSX.Element {
+  const { theme } = useDemoTheme();
   if (active) {
     const route = embeddedRoute(id);
     const title = embeddedTitle(id);
@@ -88,7 +90,7 @@ export function ComponentPreview({
         className="showcase-preview__embed"
         data-preview={id}
         title={title}
-        src={`${import.meta.env.BASE_URL}showcase/${route}/?lang=${locale}&backdrop=${backdrop}`}
+        src={`${import.meta.env.BASE_URL}showcase/${route}/?lang=${locale}&backdrop=${backdrop}&theme=${theme}`}
       />
     );
   }

@@ -13,7 +13,7 @@ import type {
   TransactionReceiptView,
 } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-receipt';
 import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/display';
-import { paperIframeAppearance } from '@/context/app-themes';
+import { showcaseAppearance, showcasePreset } from './showcaseTheme';
 import { playReceiptLifecycle } from './receiptLifecycle';
 import { sendExplorerLinksHome } from './sampleExplorer';
 import { configureModalBackdrop } from './modalBackdrop';
@@ -48,7 +48,7 @@ let stopLifecycle = (): void => {};
 
 function model(): ConfirmSurfaceModel {
   return {
-    appearance: paperIframeAppearance(locale),
+    appearance: showcaseAppearance(locale),
     content: {
       kind: 'transaction',
       review: {
@@ -65,7 +65,7 @@ function model(): ConfirmSurfaceModel {
       prompt: { kind: 'passkey' },
       transaction: {
         tree: null,
-        theme: 'light',
+        theme: showcasePreset.mode,
         explorers: { near: 'https://nearblocks.io', evm: explorer },
         decision: { kind: 'ready', onConfirm: confirm },
         confirmText: t('confirmPasskey'),

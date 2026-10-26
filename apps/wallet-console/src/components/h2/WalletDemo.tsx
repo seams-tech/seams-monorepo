@@ -10,8 +10,10 @@ import {
   DEMO_THEME_PRESETS,
   demoIframeAppearance,
   demoReactTokens,
+  demoThemePreset,
   type DemoThemeId,
 } from '@/context/app-themes';
+import { useDemoTheme } from '@/context/demoTheme';
 import { HeroDemoCell } from './WalletDemoSlot';
 
 function loadDemoPasskeyColumn() {
@@ -101,10 +103,9 @@ function WalletDemoContent({
 }: WalletDemoProps): React.JSX.Element {
   const { seams, loginState } = useSeams();
   const [demoPage, setDemoPage] = React.useState(0);
-  const [demoTheme, setDemoTheme] = React.useState<DemoThemeId>('paper');
+  const { theme: demoTheme, setTheme: setDemoTheme } = useDemoTheme();
   const themeTrackRef = useDragScroll<HTMLDivElement>();
-  const activePreset =
-    DEMO_THEME_PRESETS.find((theme) => theme.id === demoTheme) ?? DEMO_THEME_PRESETS[0];
+  const activePreset = demoThemePreset(demoTheme);
   const activeWalletId = loginState?.isLoggedIn ? loginState.walletId || '' : '';
 
   React.useEffect(() => {

@@ -306,6 +306,11 @@ export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
   },
 ];
 
+/** The preset that a theme id names; an unknown or missing id gives Paper. */
+export function demoThemePreset(id: string | null): DemoThemePreset {
+  return DEMO_THEME_PRESETS.find((preset) => preset.id === id) ?? DEMO_THEME_PRESETS[0];
+}
+
 /** Build the React `<Theme tokens={...}>` value for a preset (includes a contained shadow). */
 export function demoReactTokens(preset: DemoThemePreset): ThemeProps['tokens'] {
   const shadows = { lg: preset.mode === 'dark' ? CONTAINED_SHADOW_DARK : CONTAINED_SHADOW_LIGHT };

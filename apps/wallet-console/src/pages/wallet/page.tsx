@@ -12,6 +12,7 @@ import {
 import { startSiteAnchorScroll } from '@/app/router/siteRouting';
 import '@/styles/h2.css';
 import { ComponentShowcase } from './ComponentShowcase';
+import { DemoThemeProvider } from '@/context/demoTheme';
 
 export function WalletPage(): React.JSX.Element {
   React.useEffect(startSiteAnchorScroll, []);
@@ -19,13 +20,15 @@ export function WalletPage(): React.JSX.Element {
     <div className="h2-page h2-page--wallet">
       <NavbarCompact />
       <div className="h2-col">
-        <H2DemoHero
-          authDefaultModeWhenNoDetectedAccount="register"
-          title={t('heroTitle')}
-          sub={t('heroDescription')}
-        />
-        <H2Networks />
-        <ComponentShowcase />
+        <DemoThemeProvider>
+          <H2DemoHero
+            authDefaultModeWhenNoDetectedAccount="register"
+            title={t('heroTitle')}
+            sub={t('heroDescription')}
+          />
+          <H2Networks />
+          <ComponentShowcase />
+        </DemoThemeProvider>
         <H2Start />
         <H2Security />
         <H2Cta />

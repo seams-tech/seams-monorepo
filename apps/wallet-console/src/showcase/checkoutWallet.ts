@@ -16,6 +16,7 @@ import type {
   TransactionReceiptView,
 } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-receipt';
 import { checkoutAppearance } from './checkoutAppearance';
+import { showcasePreset } from './showcaseTheme';
 import { playReceiptLifecycle } from './receiptLifecycle';
 import { sendExplorerLinksHome } from './sampleExplorer';
 import { market, sideFrom } from './checkoutMarket';
@@ -115,7 +116,7 @@ function model(): ConfirmSurfaceModel {
       prompt: { kind: 'passkey' },
       transaction: {
         tree: null,
-        theme: 'light',
+        theme: showcasePreset.mode,
         explorers: { near: 'https://testnet.nearblocks.io', evm: explorer },
         decision: { kind: 'ready', onConfirm: confirm },
         confirmText: t('confirmPasskey'),

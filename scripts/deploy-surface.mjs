@@ -370,12 +370,15 @@ function writeWalletConsoleRedirects(site) {
 function writeCompanyCutoverFiles(site) {
   const walletOrigin = site.walletSiteOrigin;
   const redirects = [
-    `/wallet ${walletOrigin}/ 302`,
+    `/wallet ${walletOrigin}/ 301`,
+    `/wallet/ ${walletOrigin}/ 301`,
+    `/wallet/ja ${walletOrigin}/ja/ 301`,
+    `/wallet/ja/ ${walletOrigin}/ja/ 301`,
     // Wallet pricing moved to the Wallet site; the company site has no pricing page yet.
-    `/pricing ${walletOrigin}/pricing/ 302`,
-    `/pricing/* ${walletOrigin}/pricing/ 302`,
-    `/ja/pricing ${walletOrigin}/ja/pricing/ 302`,
-    `/ja/pricing/* ${walletOrigin}/ja/pricing/ 302`,
+    `/pricing ${walletOrigin}/pricing/ 301`,
+    `/pricing/* ${walletOrigin}/pricing/ 301`,
+    `/ja/pricing ${walletOrigin}/ja/pricing/ 301`,
+    `/ja/pricing/* ${walletOrigin}/ja/pricing/ 301`,
     '/dashboard/login /wallet-login-restart.html 200',
     `/dashboard ${walletOrigin}/dashboard 302`,
     `/dashboard/* ${walletOrigin}/dashboard/:splat 302`,
@@ -627,6 +630,7 @@ function buildSmokeChecks(site, component, walletLanes) {
       '/features/',
       '/ja/features/',
       '/sitemap.xml',
+      { path: '/robots.txt', isReady: walletRobotsIsReady },
       '/docs/',
       '/docs/concepts/',
       '/docs/releases',
@@ -644,6 +648,13 @@ function buildSmokeChecks(site, component, walletLanes) {
       '/sdk/workers/router_ab_ed25519_yao_client_bg.wasm',
     ]),
   );
+}
+
+async function walletRobotsIsReady(response) {
+  if (!response.headers.get('content-type')?.includes('text/plain')) return false;
+  const body = await response.text();
+  const sitemap = new URL('/sitemap.xml', response.url).href;
+  return body.includes('User-agent: *') && body.includes(`Sitemap: ${sitemap}`);
 }
 
 function smokeChecks(surface, origin, requests) {

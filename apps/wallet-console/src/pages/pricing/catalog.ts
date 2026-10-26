@@ -12,7 +12,10 @@ export const messages = {
     en: 'The first 300 users are free, and development is always free. As you grow, you pay per active user, with signing included.',
     ja: '最初の300ユーザーまでは無料。開発環境はいつでも無料です。利用が増えたら、署名を含むアクティブユーザー数に応じた料金で使えます。',
   },
-  pricingPageTitle: { en: 'Pricing | Seams Wallet', ja: '料金 | Seams Wallet' },
+  pricingPageTitle: {
+    en: 'Embedded Wallet SDK Pricing | Seams',
+    ja: '組み込みウォレットSDKの料金 | Seams',
+  },
   free: { en: 'Free', ja: 'Free' },
   freePrice: { en: '{zero}', ja: '{zero}' },
   growthPrice: { en: '{growthBase}', ja: '{growthBase}' },

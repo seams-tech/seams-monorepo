@@ -21,6 +21,14 @@ SDK release must complete before this checkout can build and deploy normally.
 Build rendering, new landing pages, analytics, and performance refactors remain deferred
 under the request to keep this pass small.
 
+Further focused improvements: pricing and features now have descriptive bilingual
+titles. Company-to-Wallet marketing redirects use permanent status codes, including
+the Japanese Wallet entry. Authentication redirects retain their existing behavior.
+The frontend deployment smoke check now requires a plain-text robots file with the
+correct sitemap URL. This detects the observed homepage fallback at that address.
+All 53 script checks pass after these changes. Typecheck remains blocked by the same
+unreleased external-near exports. Deployment is still pending SDK adoption.
+
 Make Wallet marketing pages readable in the first HTML response. Then improve search coverage for developers evaluating embedded wallets.
 Keep the existing Vite, React, translation, and deployment paths.
 

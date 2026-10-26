@@ -41,6 +41,7 @@ try {
   const robots = await context.request.get(`${origin}/robots.txt`);
   const robotsText = await saveResponse(robots, 'robots');
   assert.equal(robots.status(), 200);
+  assert.match(robots.headers()['content-type'] || '', /text\/plain/);
   assert.ok(robotsText.includes(`Sitemap: ${origin}/sitemap.xml`));
 
   for (const [index, path] of paths.entries()) {

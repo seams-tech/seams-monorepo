@@ -7,13 +7,11 @@ network, and tenant discovery supplies its registration credentials and RP ID.
 An unavailable mainnet lane displays an error; it never opens the testnet wallet.
 
 `/sdk/*` remains the exact installed SDK's embedded runtime and assets. The
-frontend build copies `/wallet-service/index.html`, then sets its approved
-relayer-origin metadata from the selected host lane and provisioned customer
-lanes sharing that wallet origin. GetSignal embeds `https://sign.seams.sh` and
+frontend build copies `/wallet-service/index.html` unchanged. The application
+supplies its relayer URL through SDK configuration.
+GetSignal embeds `https://sign.seams.sh` and
 retains its own project environment and gateway. Its application does not deploy
-a wallet host. The build removes any
-package-build relayer policy first. The wallet host rejects a parent-selected
-relayer URL unless that metadata approves its origin. The settings app connects
+a wallet host. The settings app connects
 to the same-origin wallet service.
 
 Build and deploy through the existing frontend workflow with `surface: wallet-host`

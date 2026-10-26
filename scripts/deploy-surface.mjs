@@ -7,7 +7,6 @@ import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import {
-  readDeploymentTargets,
   readFrontendSite,
   readConsoleFrontendSite,
 } from './deployment-targets.mjs';
@@ -274,7 +273,7 @@ function buildFrontend(site, component, walletLanes) {
     });
     writeWalletConsoleRedirects(site);
     copyPublicDocsArtifact();
-    copySdkAssets(WALLET_SITE_OUTPUT, site.lanes);
+    copySdkAssets(WALLET_SITE_OUTPUT);
     const docsSitemap = path.join(WALLET_SITE_OUTPUT, 'docs', 'sitemap.xml');
     if (fs.existsSync(docsSitemap)) {
       fs.appendFileSync(
@@ -328,7 +327,7 @@ function buildFrontend(site, component, walletLanes) {
         env: buildFrontendEnvironment(site, site.walletSiteOrigin),
       },
     );
-    copySdkAssets(output, hostedWalletLanes(lane));
+    copySdkAssets(output);
     assertFile(path.join(output, 'index.html'), 'Wallet settings entry');
     fs.writeFileSync(path.join(output, '_redirects'), '/wallet-settings /index.html 200\n');
     assertFile(path.join(output, 'wallet-service', 'index.html'), 'wallet-service entry');
@@ -402,50 +401,7 @@ function copyPublicDocsArtifact() {
   copyDirectory(PUBLIC_DOCS_ARTIFACT_ROOT, path.join(WALLET_SITE_OUTPUT, 'docs'));
 }
 
-function relayerOriginForLane(lane) {
-  const url = new URL(lane.gatewayOrigin);
-  if (
-    url.protocol !== 'https:' ||
-    url.username ||
-    url.password ||
-    url.pathname !== '/' ||
-    url.search ||
-    url.hash
-  ) {
-    throw new Error(`Invalid hosted wallet relayer origin for ${lane.network}`);
-  }
-  return url.origin;
-}
-
-function hostedWalletLanes(hostLane) {
-  const lanes = Object.values(readDeploymentTargets().backendLanes);
-  return lanes.filter(
-    (lane) =>
-      lane.walletOrigin === hostLane.walletOrigin &&
-      (lane.id === hostLane.id || lane.provisioning.kind === 'provisioned'),
-  );
-}
-
-function relayerMetaTag(origin) {
-  return `    <meta name="seams-wallet-relayer-origin" content="${origin}" />`;
-}
-
-function writeWalletServiceRelayerPolicy(destination, lanes) {
-  const htmlPath = path.join(destination, 'wallet-service', 'index.html');
-  const html = fs.readFileSync(htmlPath, 'utf8');
-  const withoutBuildPolicy = html.replace(
-    /^[ \t]*<meta name="seams-wallet-relayer-origin" content="[^"]*" \/>\n/gm,
-    '',
-  );
-  if (!withoutBuildPolicy.includes('</head>')) {
-    throw new Error('Installed wallet-service HTML has no head element');
-  }
-  const origins = [...new Set(lanes.map(relayerOriginForLane))];
-  const policy = origins.map(relayerMetaTag).join('\n');
-  fs.writeFileSync(htmlPath, withoutBuildPolicy.replace('</head>', `${policy}\n  </head>`));
-}
-
-function copySdkAssets(destination, lanes) {
+function copySdkAssets(destination) {
   const sdkOutput = path.join(resolveInstalledWalletRoot(), 'dist');
   const sdkEsm = path.join(sdkOutput, 'esm', 'sdk');
   const sdkWorkers = path.join(sdkOutput, 'workers');
@@ -456,7 +412,6 @@ function copySdkAssets(destination, lanes) {
   assertDirectory(sdkEsm, 'SDK ESM output');
   assertDirectory(sdkWorkers, 'SDK Workers output');
   assertFile(walletAssetsManifest, 'SDK wallet assets manifest');
-  assertWalletRelayerPolicy(walletAssetsManifest);
   assertFile(walletHeadersManifest, 'SDK wallet headers manifest');
   assertFile(pagesHeaders, 'SDK Cloudflare Pages headers');
   assertFile(path.join(walletService, 'index.html'), 'SDK wallet-service output');
@@ -467,35 +422,6 @@ function copySdkAssets(destination, lanes) {
   fs.copyFileSync(walletHeadersManifest, path.join(destination, 'headers.manifest.json'));
   fs.copyFileSync(pagesHeaders, path.join(destination, '_headers'));
   copyDirectory(walletService, path.join(destination, 'wallet-service'));
-  writeWalletServiceRelayerPolicy(destination, lanes);
-  assertWalletServiceRelayerOrigins(destination, lanes);
-}
-
-function assertWalletRelayerPolicy(manifestPath) {
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  if (!isRecord(manifest) || manifest.walletHostRelayerOriginPolicy !== 'document_meta_v1') {
-    throw new Error(
-      'The pinned @seams/wallet release cannot enforce approved relayer origins. Publish the updated Wallet release and update the exact package pins before deploying.',
-    );
-  }
-}
-
-function assertWalletServiceRelayerOrigins(destination, lanes) {
-  const html = fs.readFileSync(path.join(destination, 'wallet-service', 'index.html'), 'utf8');
-  const actualTags = [
-    ...html.matchAll(/<meta\b[^>]*\bname\s*=\s*["']seams-wallet-relayer-origin["'][^>]*>/gi),
-  ].map(([tag]) => tag);
-  const expectedTags = [...new Set(lanes.map(relayerOriginForLane))].map((origin) =>
-    relayerMetaTag(origin).trim(),
-  );
-  const policyNameCount = html.match(/seams-wallet-relayer-origin/gi)?.length ?? 0;
-  if (
-    policyNameCount !== expectedTags.length ||
-    actualTags.length !== expectedTags.length ||
-    actualTags.some((tag, index) => tag !== expectedTags[index])
-  ) {
-    throw new Error('Hosted wallet relayer policy differs from the selected deployment lanes');
-  }
 }
 
 export function buildFrontendEnvironment(site, frontendOrigin, sourceEnvironment = process.env) {
@@ -544,8 +470,6 @@ async function deployFrontend(site, component, walletLanes) {
     await runConsoleOperation('smoke', consoles, 'wallet-console');
     requireEnvironmentValues([site.walletSitePagesProjectEnv], process.env);
     assertDirectory(WALLET_SITE_OUTPUT, 'Wallet site Pages output');
-    assertWalletRelayerPolicy(path.join(WALLET_SITE_OUTPUT, 'wallet-assets.manifest.json'));
-    assertWalletServiceRelayerOrigins(WALLET_SITE_OUTPUT, site.lanes);
     const project = process.env[site.walletSitePagesProjectEnv];
     deployPagesProject(WALLET_SITE_OUTPUT, site, project);
     await ensurePagesCustomDomain(site.walletSiteOrigin, project);
@@ -555,8 +479,6 @@ async function deployFrontend(site, component, walletLanes) {
     for (const lane of walletLanes) {
       const output = walletHostOutput(lane);
       assertDirectory(output, 'Hosted wallet Pages output');
-      assertWalletRelayerPolicy(path.join(output, 'wallet-assets.manifest.json'));
-      assertWalletServiceRelayerOrigins(output, hostedWalletLanes(lane));
       deployPagesProject(output, site, process.env[lane.walletPagesProjectEnv]);
     }
   }

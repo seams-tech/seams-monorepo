@@ -12,6 +12,12 @@ Deployed HTTP behavior still requires verification.
 Validation: all 53 existing script checks passed. Build and typecheck could not complete
 because the demo imports external-near exports absent from the installed Wallet package.
 No production deployment or live acceptance run occurred.
+Follow-up: added `tests/e2e/wallet-marketing-seo.e2e.mjs` for the focused staging
+acceptance checks. Run it with `SEAMS_WALLET_SITE_ORIGIN` set to the staging origin.
+The initial staging run reached the site but failed because robots.txt lacked the
+expected sitemap reference. Evidence is under `output/playwright/wallet-marketing-seo/`.
+The published SDK remains 0.22.0. Its NEAR exports are absent, and the separate
+SDK release must complete before this checkout can build and deploy normally.
 Build rendering, new landing pages, analytics, and performance refactors remain deferred
 under the request to keep this pass small.
 

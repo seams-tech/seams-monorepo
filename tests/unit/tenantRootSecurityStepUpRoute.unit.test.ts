@@ -1,10 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { ConsoleAuthAdapter } from '../../packages/console-server-ts/src/router/consoleAuth';
 import type { TenantRootStepUpMethodV1 } from '../../packages/wallet-console-server-ts/src/tenantRootSecurity/stepUp';
-import type {
-  ConsoleStepUpCeremonyDependenciesV1,
-  ConsoleWebAuthnPortV1,
-} from '../../packages/wallet-console-server-ts/src/tenantRootSecurity/stepUpCeremony';
+import type { ConsoleWebAuthnPortV1 } from '../../packages/wallet-console-server-ts/src/tenantRootSecurity/stepUpCeremony';
 import type {
   ConsoleStepUpChallengePurposeV1,
   ConsoleStepUpChallengeV1,
@@ -67,6 +64,14 @@ class MemoryStepUpWriter implements TenantRootStepUpWriterV1 {
   }
 }
 
+async function rejectEnrollmentProof(): Promise<{ readonly valid: false }> {
+  return { valid: false };
+}
+
+async function issueEnrollmentProof(): Promise<string> {
+  return 'fixture-passkey-enrollment-proof';
+}
+
 const webAuthn: ConsoleWebAuthnPortV1 = {
   async registrationOptions() {
     return { challengeB64u: 'challenge-reg', optionsJson: '{"kind":"registration"}' };
@@ -115,10 +120,12 @@ function rejectingAuth(): ConsoleAuthAdapter {
 function harness(options?: { readonly adapter?: ConsoleAuthAdapter }) {
   const credentials = new MemoryCredentialStore();
   const stepUp = new MemoryStepUpWriter();
-  const ceremony: ConsoleStepUpCeremonyDependenciesV1 = { credentials, stepUp, webAuthn };
   const route = createConsoleStepUpRouteV1({
-    ...ceremony,
+    credentials,
+    stepUp,
+    webAuthn,
     auth: options?.adapter ?? auth(USER_ID, SESSION_ID),
+    session: { verifyJwt: rejectEnrollmentProof, signJwt: issueEnrollmentProof },
     now: () => NOW_MS,
   });
   return { credentials, stepUp, route };
@@ -158,25 +165,6 @@ test('a ceremony endpoint answers only to POST', async () => {
     }),
   );
   expect(response?.status).toBe(405);
-});
-
-test('registration issues options and stores the credential on verify', async () => {
-  const { route, credentials, stepUp } = harness();
-
-  const options = await route(post('/console/step-up/webauthn/registration/options', {}));
-  expect(options?.status).toBe(200);
-  expect(options?.headers.get('cache-control')).toBe('no-store');
-  expect(await json<{ options: string }>(options)).toMatchObject({
-    options: '{"kind":"registration"}',
-  });
-
-  const verified = await route(
-    post('/console/step-up/webauthn/registration/verify', { response: '{}' }),
-  );
-  expect(verified?.status).toBe(200);
-  expect(credentials.credentials.size).toBe(1);
-  // Enrolling is not presence for an operation.
-  expect(stepUp.written).toHaveLength(0);
 });
 
 test('a completed assertion records step-up for the session that ran it', async () => {

@@ -12,6 +12,7 @@ import type {
   ConsoleGoogleLoginResult,
 } from '@seams-internal/console-server/boundary/providerIdentity';
 import { billingCanonicalDigest } from '@seams-internal/console-server/billing/pricing';
+import { issueConsoleStepUpProviderEnrollmentProofV1 } from '../tenantRootSecurity/stepUpEnrollmentProof';
 import {
   isConsoleOrganizationAccessError,
   parseRedeemOrganizationInvitationRequest,
@@ -119,7 +120,10 @@ function consoleAuthFailureStatus(code: string): 400 | 401 | 500 | 501 {
 }
 
 function consoleAuthJson(body: unknown, status: number, setCookie?: string): Response {
-  const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8' });
+  const headers = new Headers({
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
   if (setCookie) headers.set('Set-Cookie', setCookie);
   return new Response(JSON.stringify(body), { status, headers });
 }
@@ -289,7 +293,18 @@ export class HostedConsoleAuthHandler {
     };
     const organizations = await this.options.account.listOrganizations(account);
     const organization = organizations[0];
-    if (organization) return this.issueOrganizationSession(account, organization.id);
+    const enrollmentProof = await issueConsoleStepUpProviderEnrollmentProofV1(
+      this.options.session,
+      account.userId,
+    );
+    if (organization) {
+      const cookie = await this.organizationSessionCookie(account, organization.id);
+      return consoleAuthJson(
+        { ok: true, session: { kind: 'console_session_v1' }, enrollmentProof },
+        200,
+        cookie,
+      );
+    }
     const token = await this.options.session.signJwt(account.userId, {
       kind: 'console_identity_v1',
       email: account.email,
@@ -297,7 +312,7 @@ export class HostedConsoleAuthHandler {
       provider: account.provider,
     });
     return consoleAuthJson(
-      { ok: true, session: { kind: 'console_identity_v1' } },
+      { ok: true, session: { kind: 'console_identity_v1' }, enrollmentProof },
       200,
       this.options.session.buildSetCookie(token),
     );

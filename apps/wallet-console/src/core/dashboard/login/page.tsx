@@ -6,6 +6,10 @@ import { DashboardAuthCard, type DashboardAuthProvider } from '@core/auth/Dashbo
 import SeamsWordmark from '@core/components/SeamsWordmark';
 import { fetchGoogleAuthOptions } from '@core/auth/googleIdentity';
 import {
+  rememberStepUpEnrollmentProof,
+  takeStepUpEnrollmentReturn,
+} from '@core/auth/stepUpEnrollmentProof';
+import {
   beginGithubOAuth,
   consumeGithubOAuthCallback,
   fetchGithubOAuthOptions,
@@ -86,7 +90,11 @@ const PLAN_LOGIN_TEXT: Record<DashboardPlanChoice, { title: string; description:
 };
 
 type DashboardLoginExchangeResponse =
-  | { readonly ok: true; readonly kind: 'console_identity_v1' | 'console_session_v1' }
+  | {
+      readonly ok: true;
+      readonly kind: 'console_identity_v1' | 'console_session_v1';
+      readonly enrollmentProof: string;
+    }
   | { readonly ok: false; readonly message: string };
 
 function dashboardLoginPlainObject(raw: unknown): object | null {
@@ -110,13 +118,14 @@ function parseDashboardLoginExchangeResponse(raw: unknown): DashboardLoginExchan
   if (!object) return null;
   const ok = dashboardLoginOwnValue(object, 'ok');
   if (ok === true) {
-    const response = dashboardLoginExactObject(raw, ['ok', 'session']);
+    const response = dashboardLoginExactObject(raw, ['ok', 'session', 'enrollmentProof']);
     const session =
       response && dashboardLoginExactObject(dashboardLoginOwnValue(response, 'session'), ['kind']);
     const kind = session && dashboardLoginOwnValue(session, 'kind');
-    return kind === 'console_identity_v1' || kind === 'console_session_v1'
-      ? { ok: true, kind }
-      : null;
+    const enrollmentProof = response && dashboardLoginOwnValue(response, 'enrollmentProof');
+    if (kind !== 'console_identity_v1' && kind !== 'console_session_v1') return null;
+    if (typeof enrollmentProof !== 'string' || !enrollmentProof) return null;
+    return { ok: true, kind, enrollmentProof };
   }
   if (ok !== false) return null;
   const response = dashboardLoginExactObject(raw, ['ok', 'code', 'message']);
@@ -179,6 +188,7 @@ async function exchangeDashboardSession(
     }
     throw new Error(message || `${providerLabel} session exchange failed (${response.status})`);
   }
+  rememberStepUpEnrollmentProof(responseBody.enrollmentProof);
   clearDashboardConsoleSignOut();
   return responseBody.kind;
 }
@@ -248,6 +258,11 @@ export function DashboardLoginPage(): React.JSX.Element {
      plan page (Platform Console). Everyone else continues as before. */
   const continueSignedIn = React.useCallback(
     async (pathname: '/dashboard' | '/dashboard/onboarding') => {
+      const enrollmentReturn = takeStepUpEnrollmentReturn();
+      if (pathname === '/dashboard' && enrollmentReturn) {
+        openPage(enrollmentReturn);
+        return;
+      }
       const intent = readPendingDashboardPlanIntent();
       if (readPendingDashboardInvitation()) clearPendingDashboardPlanIntent();
       else if (intent) {

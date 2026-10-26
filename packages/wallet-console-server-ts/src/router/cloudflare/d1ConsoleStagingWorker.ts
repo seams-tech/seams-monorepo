@@ -592,6 +592,7 @@ async function createConsoleHandler(
   // refuses without fresh step-up, and this is the only way to obtain it.
   const consoleStepUpRoute = createConsoleStepUpRouteV1({
     auth,
+    session,
     credentials: createD1ConsoleStepUpCredentialStoreV1({
       database: env.CONSOLE_DB,
       namespace,

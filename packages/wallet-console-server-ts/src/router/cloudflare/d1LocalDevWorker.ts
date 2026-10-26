@@ -1185,6 +1185,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
   });
   const consoleStepUpRoute = createConsoleStepUpRouteV1({
     auth,
+    session,
     credentials: createD1ConsoleStepUpCredentialStoreV1({
       database: env.CONSOLE_DB,
       namespace: localTenantStorageNamespace(env),

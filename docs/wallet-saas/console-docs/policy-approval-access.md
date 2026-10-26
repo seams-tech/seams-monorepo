@@ -33,3 +33,10 @@ approval count or claim that step-up succeeded.
 
 The same rules apply to key-export records. The server sets their two-approver
 quorum and checks each approver's fresh, session-bound step-up.
+
+The first Console step-up passkey requires proof from a Google or GitHub sign-in
+completed within five minutes. Adding another passkey requires a separate proof
+returned by an assertion with an existing passkey. Both proofs travel in the
+request body and expire after five minutes. A copied Console session alone cannot
+enroll a passkey. Registering a passkey does not authorize an operation. The user
+must complete a separate passkey assertion afterward.

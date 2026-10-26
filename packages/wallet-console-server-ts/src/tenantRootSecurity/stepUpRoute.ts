@@ -10,16 +10,24 @@ import {
   type ConsoleStepUpActorV1,
   type ConsoleStepUpCeremonyDependenciesV1,
   type ConsoleStepUpCeremonyErrorV1,
+  type ConsoleStepUpRegistrationAuthorizationV1,
 } from './stepUpCeremony';
 import { tenantRootRequestSessionIdV1 } from './routeGuard';
+import type { SessionAdapter } from '@seams-internal/console-server/boundary/session';
+import {
+  issueConsoleStepUpPasskeyEnrollmentProofV1,
+  verifyConsoleStepUpPasskeyEnrollmentProofV1,
+  verifyConsoleStepUpProviderEnrollmentProofV1,
+} from './stepUpEnrollmentProof';
 
 /**
  * The console step-up ceremony route.
  *
- * This is the one console surface that must NOT require step-up: it is how an
- * actor obtains it. It requires a signed-in console user and nothing more, and
- * it acts only on that user's own credentials — the actor is taken from the
- * verified session, never from the request body.
+ * Assertion starts from an authenticated Console session. First credential
+ * registration additionally requires proof of a recent provider sign-in.
+ * Later registration requires proof returned after an existing credential's
+ * assertion. This proof is separate from the bearer Console session.
+ * Every operation acts on the user named by the verified Console session.
  */
 
 /** Path prefix every ceremony endpoint shares. */
@@ -40,6 +48,7 @@ const CEREMONY_PATHS_V1: ReadonlySet<string> = new Set([
 /** Everything the ceremony route needs. */
 export interface ConsoleStepUpRouteDependenciesV1 extends ConsoleStepUpCeremonyDependenciesV1 {
   readonly auth: ConsoleAuthAdapter;
+  readonly session: Pick<SessionAdapter, 'signJwt' | 'verifyJwt'>;
   readonly now?: () => number;
 }
 
@@ -58,7 +67,38 @@ function statusFor(error: ConsoleStepUpCeremonyErrorV1): number {
     case 'assertion_rejected':
     case 'counter_regressed':
       return 400;
+    case 'enrollment_authorization_required':
+      return 403;
   }
+}
+
+async function authorizeRegistration(
+  dependencies: ConsoleStepUpRouteDependenciesV1,
+  actor: ConsoleStepUpActorV1,
+  body: Record<string, unknown>,
+  nowMs: number,
+): Promise<ConsoleStepUpRegistrationAuthorizationV1 | null> {
+  const existing = await dependencies.credentials.listCredentials({
+    orgId: actor.orgId,
+    userId: actor.userId,
+  });
+  if (existing.length > 0) {
+    const verified = await verifyConsoleStepUpPasskeyEnrollmentProofV1({
+      session: dependencies.session,
+      proof: body.enrollmentProof,
+      userId: actor.userId,
+      orgId: actor.orgId,
+      nowMs,
+    });
+    return verified.ok ? { kind: 'existing_passkey', passkeyProof: verified.proof } : null;
+  }
+  const verified = await verifyConsoleStepUpProviderEnrollmentProofV1({
+    session: dependencies.session,
+    proof: body.enrollmentProof,
+    userId: actor.userId,
+    nowMs,
+  });
+  return verified.ok ? { kind: 'fresh_sign_in', providerProof: verified.proof } : null;
 }
 
 function json(body: unknown, status: number): Response {
@@ -124,16 +164,31 @@ export function createConsoleStepUpRouteV1(
     try {
       switch (url.pathname) {
         case REGISTRATION_OPTIONS_PATH_V1: {
-          const started = await startConsoleStepUpRegistrationV1(dependencies, actor, nowMs);
+          const body = await readObject(request);
+          const authorization = await authorizeRegistration(dependencies, actor, body, nowMs);
+          if (authorization === null) {
+            return json({ ok: false, code: 'enrollment_authorization_required' }, 403);
+          }
+          const started = await startConsoleStepUpRegistrationV1(
+            dependencies,
+            actor,
+            authorization,
+            nowMs,
+          );
           return started.ok
             ? json({ ok: true, options: started.value.optionsJson }, 200)
             : refusal(started.error);
         }
         case REGISTRATION_VERIFY_PATH_V1: {
           const body = await readObject(request);
+          const authorization = await authorizeRegistration(dependencies, actor, body, nowMs);
+          if (authorization === null) {
+            return json({ ok: false, code: 'enrollment_authorization_required' }, 403);
+          }
           const finished = await finishConsoleStepUpRegistrationV1(
             dependencies,
             actor,
+            authorization,
             requiredText(body.response, 'response'),
             nowMs,
           );
@@ -165,12 +220,18 @@ export function createConsoleStepUpRouteV1(
             },
             nowMs,
           );
-          // The response says step-up was recorded and for how long it counts.
-          // It never returns the record itself: an operation reads that from
-          // the store, so a client cannot present one.
-          return finished.ok
-            ? json({ ok: true, method: finished.value.method, verifiedAtMs: nowMs }, 200)
-            : refusal(finished.error);
+          if (!finished.ok) return refusal(finished.error);
+          const enrollmentProof = await issueConsoleStepUpPasskeyEnrollmentProofV1(
+            dependencies.session,
+            actor.userId,
+            actor.orgId,
+          );
+          // The proof authorizes credential addition. Operations still read
+          // the server-held step-up record for this Console session.
+          return json(
+            { ok: true, method: finished.value.method, verifiedAtMs: nowMs, enrollmentProof },
+            200,
+          );
         }
         default:
           return null;

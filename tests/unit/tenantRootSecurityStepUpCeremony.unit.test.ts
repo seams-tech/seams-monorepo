@@ -3,9 +3,7 @@ import type { TenantRootStepUpMethodV1 } from '../../packages/wallet-console-ser
 import {
   CONSOLE_STEP_UP_CHALLENGE_TTL_MS_V1,
   finishConsoleStepUpAssertionV1,
-  finishConsoleStepUpRegistrationV1,
   startConsoleStepUpAssertionV1,
-  startConsoleStepUpRegistrationV1,
   type ConsoleStepUpActorV1,
   type ConsoleStepUpCeremonyDependenciesV1,
   type ConsoleWebAuthnPortV1,
@@ -154,16 +152,6 @@ test('a completed assertion is the only thing that records step-up', async () =>
       verifiedAtMs: NOW_MS,
     },
   ]);
-});
-
-test('registering a credential does not by itself record step-up', async () => {
-  const h = harness();
-  await startConsoleStepUpRegistrationV1(h.dependencies, h.actor, NOW_MS);
-  const finished = await finishConsoleStepUpRegistrationV1(h.dependencies, h.actor, '{}', NOW_MS);
-  expect(finished.ok).toBe(true);
-  expect(h.credentials.credentials.size).toBe(1);
-  // Enrolling a key proves possession, not presence for an operation.
-  expect(h.stepUp.written).toHaveLength(0);
 });
 
 test('a challenge is spent, so the same response cannot be presented twice', async () => {

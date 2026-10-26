@@ -59,12 +59,32 @@ const ORIGIN = `https://${RP_ID}`;
 const CUSTODY_LINEAGE_B64U = 'custody-lineage-rotation-demo';
 const ROOT_COMMITMENT_B64U = '6IKxMQFrUsHTM3CAGHz3aEI-_Mu1F7tJWrgSxBYP9E4';
 const RETRY_AT_MS = Date.parse('2026-09-06T13:00:00.000Z');
+const ENROLLMENT_PROOF = 'rotation-demo-provider-sign-in';
 
 /** The active lifecycle revision, so a test can move the root on mid-scenario. */
 let movedRevision = 7;
 
 /** The console clock, so a test can let an authorization expire. */
 let harnessNowMs = Date.parse('2026-09-06T12:00:00.000Z');
+
+function rotationEnrollmentSession() {
+  return {
+    async verifyJwt(token: string) {
+      if (token !== ENROLLMENT_PROOF) return { valid: false as const };
+      return {
+        valid: true as const,
+        payload: {
+          kind: 'console_step_up_provider_enrollment_v1',
+          sub: USER_ID,
+          iat: Math.floor(Date.parse('2026-09-06T12:00:00.000Z') / 1000),
+        },
+      };
+    },
+    async signJwt() {
+      return 'rotation-demo-passkey-enrollment-proof';
+    },
+  };
+}
 
 class DemonstrationStatusRouter {
   async fetch(request: Request): Promise<Response> {
@@ -309,6 +329,7 @@ async function withConsoleInternal(
     });
     const ceremony = createConsoleStepUpRouteV1({
       auth: auth(),
+      session: rotationEnrollmentSession(),
       credentials: createD1ConsoleStepUpCredentialStoreV1({
         database: temporary.database,
         namespace: NAMESPACE,
@@ -519,11 +540,16 @@ async function enrolCredential(
   ceremony: (request: Request) => Promise<Response | null>,
 ): Promise<void> {
   const options = await jsonOf<{ options: string }>(
-    await ceremony(post('/console/step-up/webauthn/registration/options', {})),
+    await ceremony(
+      post('/console/step-up/webauthn/registration/options', {
+        enrollmentProof: ENROLLMENT_PROOF,
+      }),
+    ),
   );
   const registered = await ceremony(
     post('/console/step-up/webauthn/registration/verify', {
       response: await page.evaluate(REGISTER_IN_PAGE, options.options),
+      enrollmentProof: ENROLLMENT_PROOF,
     }),
   );
   expect(registered?.status).toBe(200);

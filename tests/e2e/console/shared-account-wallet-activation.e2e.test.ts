@@ -1240,7 +1240,7 @@ async function verifyAutomaticWalletSetup(
     await expect(page.getByRole('heading', { name: 'Wallet setup unavailable' })).toBeVisible();
     expect(new URL(page.url()).origin).toBe(walletOrigin.origin);
     await expect(page.getByRole('link', { name: 'Account settings', exact: true })).toBeVisible();
-    expect(transport.authExchanges).toEqual([
+    expect(transport.authExchanges).toMatchObject([
       { status: 200, body: { ok: true, session: { kind: 'console_session_v1' } } },
     ]);
     expect(transport.enableRequests).toHaveLength(1);
@@ -1396,7 +1396,7 @@ async function verifyAutomaticWalletSetup(
     await expect(
       page.getByRole('button', { name: 'Accept invitation', exact: true }),
     ).toBeVisible();
-    expect(transport.authExchanges.at(-1)).toEqual({
+    expect(transport.authExchanges.at(-1)).toMatchObject({
       status: 200,
       body: { ok: true, session: { kind: 'console_identity_v1' } },
     });

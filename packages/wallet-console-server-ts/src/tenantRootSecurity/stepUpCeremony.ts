@@ -1,5 +1,9 @@
 import type { TenantRootStepUpMethodV1 } from './stepUp';
 import type {
+  VerifiedConsoleStepUpPasskeyEnrollmentProofV1,
+  VerifiedConsoleStepUpProviderEnrollmentProofV1,
+} from './stepUpEnrollmentProof';
+import type {
   ConsoleStepUpCredentialStoreV1,
   ConsoleStepUpCredentialV1,
 } from './stepUpCredentialStore';
@@ -36,7 +40,20 @@ export type ConsoleStepUpCeremonyErrorV1 =
   | { readonly kind: 'registration_rejected' }
   | { readonly kind: 'assertion_rejected' }
   | { readonly kind: 'counter_regressed' }
+  | { readonly kind: 'enrollment_authorization_required' }
   | { readonly kind: 'unsupported_runtime' };
+
+export type ConsoleStepUpRegistrationAuthorizationV1 =
+  | {
+      readonly kind: 'fresh_sign_in';
+      readonly providerProof: VerifiedConsoleStepUpProviderEnrollmentProofV1;
+      readonly passkeyProof?: never;
+    }
+  | {
+      readonly kind: 'existing_passkey';
+      readonly passkeyProof: VerifiedConsoleStepUpPasskeyEnrollmentProofV1;
+      readonly providerProof?: never;
+    };
 
 /** One ceremony outcome. */
 export type ConsoleStepUpOutcomeV1<T> =
@@ -112,12 +129,16 @@ export interface ConsoleStepUpActorV1 {
 export async function startConsoleStepUpRegistrationV1(
   dependencies: ConsoleStepUpCeremonyDependenciesV1,
   actor: ConsoleStepUpActorV1,
+  authorization: ConsoleStepUpRegistrationAuthorizationV1,
   nowMs: number,
 ): Promise<ConsoleStepUpOutcomeV1<ConsoleStepUpCeremonyOptionsV1>> {
   const existing = await dependencies.credentials.listCredentials({
     orgId: actor.orgId,
     userId: actor.userId,
   });
+  if (!registrationAuthorized(existing, actor, authorization)) {
+    return { ok: false, error: { kind: 'enrollment_authorization_required' } };
+  }
   const options = await dependencies.webAuthn.registrationOptions({
     userId: actor.userId,
     userName: actor.userName,
@@ -141,9 +162,17 @@ export async function startConsoleStepUpRegistrationV1(
 export async function finishConsoleStepUpRegistrationV1(
   dependencies: ConsoleStepUpCeremonyDependenciesV1,
   actor: ConsoleStepUpActorV1,
+  authorization: ConsoleStepUpRegistrationAuthorizationV1,
   responseJson: string,
   nowMs: number,
 ): Promise<ConsoleStepUpOutcomeV1<ConsoleStepUpRegistrationResultV1>> {
+  const existing = await dependencies.credentials.listCredentials({
+    orgId: actor.orgId,
+    userId: actor.userId,
+  });
+  if (!registrationAuthorized(existing, actor, authorization)) {
+    return { ok: false, error: { kind: 'enrollment_authorization_required' } };
+  }
   const challenge = await takeLiveChallenge(dependencies, actor, 'registration', nowMs);
   if (!challenge.ok) return challenge;
 
@@ -167,6 +196,29 @@ export async function finishConsoleStepUpRegistrationV1(
   // Registering a credential is not proof of presence for an operation: the
   // actor still runs an assertion to obtain step-up.
   return { ok: true, value: verified };
+}
+
+function registrationAuthorized(
+  existing: readonly ConsoleStepUpCredentialV1[],
+  actor: ConsoleStepUpActorV1,
+  authorization: ConsoleStepUpRegistrationAuthorizationV1,
+): boolean {
+  switch (authorization.kind) {
+    case 'fresh_sign_in':
+      return existing.length === 0 && authorization.providerProof.userId === actor.userId;
+    case 'existing_passkey':
+      return (
+        existing.length > 0 &&
+        authorization.passkeyProof.userId === actor.userId &&
+        authorization.passkeyProof.orgId === actor.orgId
+      );
+    default:
+      return assertNeverRegistrationAuthorization(authorization);
+  }
+}
+
+function assertNeverRegistrationAuthorization(value: never): never {
+  throw new Error(`Unknown registration authorization: ${String(value)}`);
 }
 
 /** Issues assertion options and records their challenge. */

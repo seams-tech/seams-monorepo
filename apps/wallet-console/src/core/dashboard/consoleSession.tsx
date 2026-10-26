@@ -13,6 +13,7 @@ import {
 } from './consoleHttp';
 import { readUnscopedConsoleSession } from './routes/onboarding/initialOrganizationApi';
 import { consoleDeploymentFor, type ConsoleNetwork } from '@core/runtime';
+import { clearStepUpEnrollmentProof } from '@core/auth/stepUpEnrollmentProof';
 
 interface DashboardConsoleSessionIdentity {
   userId: string;
@@ -294,6 +295,7 @@ const CONSOLE_SIGN_OUT_FLAG_KEY = 'seams.console.signedOut';
 export function markDashboardConsoleSignOut(): void {
   if (typeof window === 'undefined') return;
   try {
+    clearStepUpEnrollmentProof();
     window.sessionStorage.setItem(CONSOLE_SIGN_OUT_FLAG_KEY, '1');
   } catch {}
 }

@@ -6,6 +6,12 @@ import {
   requireConsoleBaseUrl,
 } from '@core/dashboard/consoleHttp';
 import { buildWalletAcceptHeaders, buildWalletJsonHeaders } from '../consoleWalletHttp';
+import {
+  clearStepUpEnrollmentProof,
+  readStepUpEnrollmentProof,
+  rememberStepUpEnrollmentReturn,
+} from '@core/auth/stepUpEnrollmentProof';
+import { markDashboardConsoleSignOut } from '@core/dashboard/consoleSession';
 import type {
   TenantRootRecoveryBackupV1,
   TenantRootRecoveryGovernanceV1,
@@ -34,6 +40,10 @@ type StatusResponse = {
   readonly ok?: boolean;
   readonly status?: TenantRootSecurityStatusV1;
 };
+
+type StepUpCeremony =
+  | { readonly kind: 'registration'; readonly enrollmentProof: string }
+  | { readonly kind: 'assertion'; readonly enrollmentProof?: never };
 
 export type DashboardRotationOutcome =
   | {
@@ -74,22 +84,26 @@ async function rotationPost(path: string, body: unknown): Promise<Response> {
   );
 }
 
-async function stepUpOptions(ceremony: 'registration' | 'assertion'): Promise<Response> {
-  return rotationPost(`/console/step-up/webauthn/${ceremony}/options`, {});
+async function stepUpOptions(ceremony: StepUpCeremony): Promise<Response> {
+  const body =
+    ceremony.kind === 'registration' ? { enrollmentProof: ceremony.enrollmentProof } : {};
+  return rotationPost(`/console/step-up/webauthn/${ceremony.kind}/options`, body);
 }
 
 async function verifyStepUpCredential(
-  ceremony: 'registration' | 'assertion',
+  ceremony: StepUpCeremony,
   credential: Credential | null,
 ): Promise<void> {
   if (credential === null)
     throw new DOMException('Passkey verification was cancelled.', 'AbortError');
   if (!(credential instanceof PublicKeyCredential))
     throw new Error('The browser returned an invalid passkey credential.');
-  const result = await rotationPost(`/console/step-up/webauthn/${ceremony}/verify`, {
+  const result = await rotationPost(`/console/step-up/webauthn/${ceremony.kind}/verify`, {
     response: JSON.stringify(credential.toJSON()),
     credentialIdB64u: credential.id,
+    ...(ceremony.kind === 'registration' ? { enrollmentProof: ceremony.enrollmentProof } : {}),
   });
+  if (ceremony.kind === 'registration' && result.status === 403) returnToFreshSignIn();
   if (!result.ok) throw new Error('Passkey verification failed. Try again.');
 }
 
@@ -106,6 +120,19 @@ async function ceremonyOptions(response: Response): Promise<string> {
   return body.options;
 }
 
+function returnToFreshSignIn(): never {
+  rememberStepUpEnrollmentReturn();
+  markDashboardConsoleSignOut();
+  window.location.assign('/dashboard/login');
+  throw new Error('Sign in again to register your first Console passkey.');
+}
+
+async function firstEnrollmentOptions(enrollmentProof: string): Promise<string> {
+  const response = await stepUpOptions({ kind: 'registration', enrollmentProof });
+  if (response.status === 403) return returnToFreshSignIn();
+  return ceremonyOptions(response);
+}
+
 export async function verifyCustodyStepUp(): Promise<void> {
   if (
     typeof PublicKeyCredential === 'undefined' ||
@@ -113,26 +140,29 @@ export async function verifyCustodyStepUp(): Promise<void> {
   ) {
     throw new Error('Use a browser that supports passkey verification.');
   }
-  let assertion = await stepUpOptions('assertion');
+  let assertion = await stepUpOptions({ kind: 'assertion' });
   if (assertion.status === 409) {
     const refusal: unknown = await parseConsoleJson(assertion);
     if (!responseObject(refusal) || refusal.code !== 'no_credential_registered') {
       throw new Error('Could not start passkey verification. Try again.');
     }
+    const enrollmentProof = readStepUpEnrollmentProof();
+    if (!enrollmentProof) returnToFreshSignIn();
     const options = PublicKeyCredential.parseCreationOptionsFromJSON(
-      JSON.parse(await ceremonyOptions(await stepUpOptions('registration'))),
+      JSON.parse(await firstEnrollmentOptions(enrollmentProof)),
     );
     await verifyStepUpCredential(
-      'registration',
+      { kind: 'registration', enrollmentProof },
       await navigator.credentials.create({ publicKey: options }),
     );
-    assertion = await stepUpOptions('assertion');
+    clearStepUpEnrollmentProof();
+    assertion = await stepUpOptions({ kind: 'assertion' });
   }
   const options = PublicKeyCredential.parseRequestOptionsFromJSON(
     JSON.parse(await ceremonyOptions(assertion)),
   );
   await verifyStepUpCredential(
-    'assertion',
+    { kind: 'assertion' },
     await navigator.credentials.get({ publicKey: options }),
   );
 }

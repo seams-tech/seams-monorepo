@@ -363,11 +363,16 @@ Future delivery work, separate from connector implementation:
 
 1. Finish Meteor's composed product E2E against the packaged SDK: Seams/external
    switching, reconnect, network constraints, and transaction-status rechecks.
-2. Prepare the exact SDK release and private-app adoption for the verified Meteor
-   path. The current 0.22.0 pin lacks the new NEAR exports. Publication uses the
+2. Prepare the next exact SDK release for Meteor message signing.
+   The current 0.23.0 pin includes NEAR connection and transaction exports. Publication uses the
    existing workflow on `main`; implementation work remains on `dev`.
-3. Address Meteor message-signing capabilities where required by the application.
-   Account selection currently occurs in the wallet's own connection prompt.
+3. Adopt Meteor's new `signMessage` API in GetSignal after the next exact SDK release.
+   The implementation on `seams-wallet/dev` verifies NEP-413 signatures and invalidates
+   pending messages on disconnect. All 27 NEAR browser checks pass across Chromium,
+   Firefox, and WebKit. A real Meteor testnet signature passed independent verification
+   and account-key readback. Evidence is in
+   `seams-wallet/docs/evidence/meteor-message-signing-20261026.md`.
+   Version 0.23.0 still requires this follow-up release for message signing.
 4. Verify HOT transaction signing separately from the completed connection check.
    The connector does not claim HOT testnet support.
 5. Revisit Intear real-wallet qualification and EVM work separately.

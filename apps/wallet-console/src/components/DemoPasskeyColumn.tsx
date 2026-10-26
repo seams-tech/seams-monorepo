@@ -91,7 +91,7 @@ export type DemoPasskeyColumnProps = {
   defaultModeWhenNoDetectedAccount?: HostedAuthMenuMode;
 };
 
-function SeamsWalletDemo({
+export function DemoPasskeyColumn({
   currentPage: controlledPage,
   onCurrentPageChange,
   defaultModeWhenNoDetectedAccount,
@@ -208,55 +208,3 @@ const SuspenseFallback = () => (
     style={{ height: 320, width: 'min(420px, calc(100vw - 2rem))' }}
   />
 );
-
-const ExternalWalletDemo = React.lazy(loadExternalWalletDemo);
-function loadExternalWalletDemo() {
-  return import('@/flows/demo/externalWallets/ExternalWalletDemo');
-}
-
-type WalletChoice =
-  | { source: 'seams'; external: 'unopened' | 'retained' }
-  | { source: 'external'; external: 'retained' };
-
-export class DemoPasskeyColumn extends React.Component<
-  DemoPasskeyColumnProps,
-  { choice: WalletChoice }
-> {
-  state: { choice: WalletChoice } = { choice: { source: 'seams', external: 'unopened' } };
-  private selectSeams = (): void => {
-    this.setState({ choice: { source: 'seams', external: this.state.choice.external } });
-  };
-  private selectExternal = (): void => {
-    this.setState({ choice: { source: 'external', external: 'retained' } });
-  };
-  render() {
-    return (
-      <section aria-label="Choose a wallet">
-        <div role="group" aria-label="Wallet source">
-          <button
-            type="button"
-            aria-pressed={this.state.choice.source === 'seams'}
-            onClick={this.selectSeams}
-          >
-            Use a Seams wallet
-          </button>
-          <button
-            type="button"
-            aria-pressed={this.state.choice.source === 'external'}
-            onClick={this.selectExternal}
-          >
-            Connect an existing wallet
-          </button>
-        </div>
-        {this.state.choice.source === 'seams' && <SeamsWalletDemo {...this.props} />}
-        {this.state.choice.external === 'retained' && (
-          <div hidden={this.state.choice.source !== 'external'}>
-            <React.Suspense fallback={<DemoTxCardSkeleton />}>
-              <ExternalWalletDemo active={this.state.choice.source === 'external'} />
-            </React.Suspense>
-          </div>
-        )}
-      </section>
-    );
-  }
-}

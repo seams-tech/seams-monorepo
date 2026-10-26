@@ -52,10 +52,11 @@ export default class ExternalWalletDemo extends Component<{ active: boolean }, D
     observation: { kind: 'none' },
     request: 'idle',
   };
-  private near = new ExternalNearController(
-    FRONTEND_CONFIG.nearNetwork,
-    FRONTEND_CONFIG.nearRpcUrl,
-  );
+  private near = new ExternalNearController({
+    network: FRONTEND_CONFIG.nearNetwork,
+    rpcUrl: FRONTEND_CONFIG.nearRpcUrl,
+    wallets: ['meteor'],
+  });
   private evm = new ExternalEvmController(configuredEvmChains());
   private unsubscribeNear: (() => void) | null = null;
   private unsubscribeEvm: (() => void) | null = null;

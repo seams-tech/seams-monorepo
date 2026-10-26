@@ -317,7 +317,10 @@ failure. Report missing extension or RPC evidence as incomplete acceptance.
 Implemented on dev:
 
 - Separate NEAR types, request validation, lifecycle controller, and wallet adapters.
-- Explicit Meteor, HOT, and Intear picker cards with transport/network labels.
+- Optional Meteor, HOT, and Intear adapters configured through an explicit `wallets` list.
+- The picker shows only enabled wallets, in configured order. The demo enables Meteor only.
+- `setWallets` updates the list at runtime and disconnects a removed active or connecting wallet.
+  An empty list disables all wallets. Disabled adapters stay unloaded.
 - Seams versus external wallet choice and separate NEAR/EVM transaction dispatch.
 - Pending-request disposal and generation checks that prevent stale completion
   from changing a newer connection's state.
@@ -336,10 +339,12 @@ Evidence lives in
 The repeatable local acceptance page is
 `seams-wallet/tests/browser-app/external-wallet-acceptance.html`.
 
-Six controlled Chromium scenarios pass. They cover the three adapters, stale
+Seven controlled Chromium scenarios pass. They cover the three adapters, stale
 requests, transport replacement, popup source binding, handshake replay under one
 request ID, disconnect cleanup, transaction encoding, and picker rendering.
-Each run writes JSON observations or screenshots.
+The configuration scenario also verifies disabled-wallet rejection, adapter loading,
+active-wallet removal, and pending-connection cancellation. Each run writes JSON
+observations or screenshots.
 
 SDK type checks, type fixtures, ESM/declaration builds, license notices,
 packed-package checks, and the bloat check pass. The private application type-check
@@ -348,12 +353,13 @@ Those paths are not part of repository configuration.
 
 ## Rollout order
 
-Meteor is the first release target. HOT follows. The user has no Intear or HOT
-account available in profile Pta and asked to leave those real-wallet checks pending.
+Meteor is the first release target. HOT follows. Real HOT mainnet connection and
+retry after popup cancellation were recorded in `docs/evidence/hot-connection-20261026.json`.
+That run submitted no transaction. HOT transaction signing remains unverified.
 Keep Intear qualification deferred. EVM connector work is also deferred until the
 NEAR rollout has been addressed.
 
-Remaining work, in order:
+Future delivery work, separate from connector implementation:
 
 1. Finish Meteor's composed product E2E against the packaged SDK: Seams/external
    switching, reconnect, network constraints, and transaction-status rechecks.
@@ -362,7 +368,7 @@ Remaining work, in order:
    existing workflow on `main`; implementation work remains on `dev`.
 3. Address Meteor message-signing capabilities where required by the application.
    Account selection currently occurs in the wallet's own connection prompt.
-4. Qualify HOT when an extension and suitable mainnet test account are available.
+4. Verify HOT transaction signing separately from the completed connection check.
    The connector does not claim HOT testnet support.
 5. Revisit Intear real-wallet qualification and EVM work separately.
 

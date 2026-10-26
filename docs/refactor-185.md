@@ -95,6 +95,56 @@ or create a new wallet registry or executor-hosting service.
 
 ## State and operation contracts
 
+### Module ownership
+
+Keep each chain connector independent. Follow the existing `externalEvm` layout.
+The application owns wallet choice and dispatch. A connector owns its provider
+connection and chain operations. Neither connector imports the other connector.
+
+```text
+seams-wallet/packages/wallet/src/
+  externalEvm/              Existing EVM connector
+    index.ts               Public exports
+    types.ts               Connection, operation, and result types
+    boundary.ts            Provider input and response validation
+    controller.ts          Connection lifecycle and operations
+  externalNear/            New NEAR connector
+    index.ts               Public exports
+    types.ts               Connection, operation, and result types
+    boundary.ts            Provider input and response validation
+    controller.ts          Connection lifecycle and operations
+    meteor.ts              Meteor adapter and dependency integration
+  react/
+    externalEvm.tsx         Existing EVM React binding
+    externalNear.tsx        NEAR subscription and picker
+
+seams-monorepo/apps/wallet-console/src/flows/demo/
+  externalWallets/          Host UI, selected source, and operation dispatch
+```
+
+Keep third-party NEAR imports inside `externalNear/meteor.ts`. The controller
+uses a narrow internal provider contract with required account, network, and
+operation inputs. Validate unknown provider results at the adapter boundary.
+Do not expose dependency-specific types in the public SDK API.
+
+Keep React, DOM presentation, Console authentication, and Seams custody out of
+connector domain types. React subscribes to controller state and invokes public
+operations. The application dispatches through the selected source's capability.
+
+Load the NEAR adapter only when the user selects the NEAR external path.
+Importing the EVM connector must not initialize NEAR discovery or load its executor.
+Controllers own listener cleanup and stale-operation cancellation. Dependency
+listeners and pending requests must have a verified cleanup strategy before adoption.
+
+Reuse existing helpers for validation, results, and exhaustive branches. Share
+additional code only when both connectors need the same behavior. Do not add a
+universal wallet base class, plugin registry, or generic multi-chain controller.
+Keep chain-specific transaction and outcome types explicit.
+
+Adapter qualification must also verify provider identity. An unsolicited iframe
+message must not replace the selected Meteor adapter. Wallet display metadata
+cannot establish provider identity, even when its wallet ID matches Meteor.
+
 Add an `ExternalNearController` beside `ExternalEvmController`. Keep provider
 objects inside the controller. Export normalized account and connection types.
 Reuse existing validation helpers and result conventions where they fit.

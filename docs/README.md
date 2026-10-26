@@ -24,6 +24,8 @@ of Platform and Wallet entry points and the reasons for that design.
 - [Pricing conversion funnel](feat-6-pricing-conversion-funnel.md): the plan for
   the steps after a pricing card click: sign-in, onboarding, card setup, and the
   contact form.
+- [Wallet SEO implementation](wallet-seo-plan.md): build rendering, crawl rules,
+  search content, deployment checks, and outcome measurement.
 - [Wallet database schema](wallet-saas/console-docs/wallet-db-schema.md).
 - [PostgreSQL and Hyperdrive preparation](future-plan-wallet-postgresql-preparation.md): a
   potential latency upgrade, remaining storage ports, and required hosted evidence.

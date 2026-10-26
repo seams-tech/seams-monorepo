@@ -57,7 +57,7 @@ export class EmbeddedPlayback {
 
   constructor(
     private readonly frame: HTMLIFrameElement,
-    kind: 'create' | 'transaction-modal' | 'prediction-market' | 'profile',
+    kind: 'create' | 'transaction-modal' | 'prediction-market' | 'profile' | 'voiceid',
     private readonly onComplete: () => void,
     private readonly onInteract: () => void,
   ) {
@@ -69,6 +69,7 @@ export class EmbeddedPlayback {
         this.steps = authenticationSteps;
         break;
       case 'transaction-modal':
+      case 'voiceid':
         this.steps = transferSteps;
         break;
       case 'prediction-market':

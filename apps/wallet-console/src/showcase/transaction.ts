@@ -51,6 +51,7 @@ function model(): ConfirmSurfaceModel {
     appearance: paperIframeAppearance(locale),
     content: {
       kind: 'transaction',
+      capture: null,
       review: {
         model: transfer,
         tree: buildDisplayTreeFromModel(transfer),

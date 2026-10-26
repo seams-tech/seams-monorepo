@@ -1,6 +1,6 @@
 import { Component, type FormEvent } from 'react';
 import { ActionType } from '@seams/wallet';
-import { ExternalNearController } from '@seams/wallet/external-near';
+import { ExternalNearController, nearWalletName } from '@seams/wallet/external-near';
 import { ExternalNearWalletPicker } from '@seams/wallet/react/external-near';
 import { ExternalEvmController, type ExternalEvmChain } from '@seams/wallet/external-evm';
 import { ExternalEvmWalletPicker } from '@seams/wallet/react/external-evm';
@@ -59,7 +59,7 @@ export default class ExternalWalletDemo extends Component<
       const greeting = form.get('greeting');
       if (connection.kind !== 'connected' || typeof greeting !== 'string' || !greeting.trim())
         return;
-      this.setState({ message: 'Approve in Meteor.' });
+      this.setState({ message: `Approve in ${nearWalletName(connection.wallet)}.` });
       const result = await this.near.sendTransaction(connection, {
         receiverId: DEMO_CONTRACT_ID,
         actions: [

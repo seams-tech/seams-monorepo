@@ -352,3 +352,22 @@ Remaining work before completion:
 The controlled-provider test writes `external-near-observations.json`. It covers
 stale prepared requests, final outcome verification, and unknown submission after
 transport loss. It does not establish real Meteor compatibility or release readiness.
+
+### Expanded NEAR wallet selection
+
+The requested wallet set is Meteor, HOT Wallet, and Intear Wallet. The picker uses
+three cards with explicit transport labels. Ledger remains outside this scope.
+`connect(wallet)` requires an explicit, typed wallet ID. Each adapter loads only
+when selected. Wallet changes invalidate prepared requests.
+
+- Meteor retains its direct extension SDK adapter.
+- HOT calls its captured `window.hotExtension` API. Mainnet is enabled. Testnet
+  stays disabled because the documented API does not expose a network selector.
+- Intear uses its documented V3 popup protocol at `https://wallet.intear.tech`.
+  Every response requires the expected origin and popup window. Its ephemeral
+  request-authentication key stays in memory and is never installed on chain.
+
+Controlled Chromium tests cover all three adapters, transport replacement,
+Intear popup source binding, wallet network limits, and responsive picker rendering.
+They write JSON observations and desktop/mobile screenshots. Real-wallet
+qualification and exact SDK release adoption remain pending.

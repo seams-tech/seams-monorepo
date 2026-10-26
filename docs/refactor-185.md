@@ -346,17 +346,24 @@ packed-package checks, and the bloat check pass. The private application type-ch
 uses temporary paths to the new SDK declarations until an exact release exists.
 Those paths are not part of repository configuration.
 
-Remaining work:
+## Rollout order
 
-1. Qualify real Intear and HOT accounts. HOT requires an installed extension and
-   a mainnet test procedure; the connector does not claim testnet support.
-2. Complete public message-signing capabilities and explicit multi-account selection
-   where each wallet supports them.
-3. Run composed product E2E across threshold, NEAR, and EVM wallet choices against
-   the packaged SDK, including network changes and transaction-status rechecks.
-4. Promote a verified SDK version through the existing release workflow. That
-   workflow publishes from `main`; work in this task remains on `dev`.
-5. Adopt the exact released package in the private app, then run normal private
-   checks and builds. The current 0.22.0 pin lacks the new NEAR exports.
+Meteor is the first release target. HOT follows. The user has no Intear or HOT
+account available in profile Pta and asked to leave those real-wallet checks pending.
+Keep Intear qualification deferred. EVM connector work is also deferred until the
+NEAR rollout has been addressed.
+
+Remaining work, in order:
+
+1. Finish Meteor's composed product E2E against the packaged SDK: Seams/external
+   switching, reconnect, network constraints, and transaction-status rechecks.
+2. Prepare the exact SDK release and private-app adoption for the verified Meteor
+   path. The current 0.22.0 pin lacks the new NEAR exports. Publication uses the
+   existing workflow on `main`; implementation work remains on `dev`.
+3. Address Meteor message-signing capabilities where required by the application.
+   Account selection currently occurs in the wallet's own connection prompt.
+4. Qualify HOT when an extension and suitable mainnet test account are available.
+   The connector does not claim HOT testnet support.
+5. Revisit Intear real-wallet qualification and EVM work separately.
 
 No upstream issue or PR has been opened. No package or deployment was published.

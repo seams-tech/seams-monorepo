@@ -110,8 +110,9 @@ function review(): void {
 
 function confirm(): void {
   voice = new VoicePrompt(document, t('approveVoiceId'), phrase, 'segments');
+  // The confirmer's toolbar closes the review, as for the SDK's own VoiceID approval.
   voice.record.hidden = true;
-  voice.cancel.addEventListener('click', review);
+  voice.cancel.hidden = true;
   handle?.update(model(voice.element));
   stopVoice = speak(voice);
 }

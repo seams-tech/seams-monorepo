@@ -1,12 +1,51 @@
 # VoiceID transaction confirmation phrases
 
-Status: the front-page canvas preview is implemented. SDK transaction-phrase
-verification and command-to-intent evaluation remain separate production work.
+Status: the front-page canvas preview is implemented. The SDK confirmation draft
+passed type checks, but Aurora failed its exact-field speech screen. The draft is
+saved outside the active SDK pending the speech-model choice. Command-to-intent
+work remains deferred by the user.
 
 The development and production previews pass browser checks for preparation,
 confirmation, cancellation, pause/resume, four themes, and 390px/320px layouts.
 Japanese controls and the English spoken phrase also passed a browser check. Evidence is written to
 `.artifacts/wallet-voiceid-showcase/result.json`, screenshots, and `trace.zip`.
+
+## Initial recognition results — October 27, 2026
+
+The implementation draft derives native NEAR and Arc USDC transfer phrases from
+the signing inputs. It keeps the request hash, review deadline, foreground Confirm
+action, and speaker threshold. Short amounts use an exact action/amount/asset
+check. Amounts that cannot fit a short phrase retain the random challenge without
+rounding. Enrollment and unlock keep the random phrase bank.
+
+The real-Aurora browser screen rejected all four correct baseline recordings:
+10 NEAR, 0.5 NEAR, 10 USDC, and 10.25 USDC. For example, “send ten near now” became
+“sent ten yar now.” This is a model limitation, not a reason to relax financial
+field checks. Clearer transfer wording also failed Aurora screening.
+
+Two larger local models were evaluated in an isolated Node process. These runs
+used synthetic Samantha speech at 160 words per minute, without a transcript hint.
+
+| Model                | Quantized model bytes | Observation                                                                                             |
+| -------------------- | --------------------: | ------------------------------------------------------------------------------------------------------- |
+| Moonshine Tiny       |            28,180,947 | Still omitted transfer words and asset names in the clearer phrases.                                    |
+| Whisper Tiny English |            40,843,851 | Preserved all four baseline amounts and assets with “transfer … NEAR tokens” and “transfer … USD coin.” |
+
+Whisper also retained negation and additional transfer words in the tested
+adversarial recordings. These measurements do not establish browser latency,
+human accuracy, or authentication safety. Browser integration, wrong-field checks,
+and full no-sign-on-rejection contracts remain required.
+
+The current SDK source and build retain their working random-challenge behavior.
+No larger-model dependency was added. The user must choose whether to add the
+larger local model download or keep transaction phrases in the demo for now.
+
+Local evidence: `.artifacts/voiceid-transaction-confirmation/`. It contains the
+implementation patch, generated audio, model hashes, and transcription reports.
+The patch includes the strict verifier and its draft browser/type fixtures; it
+must pass qualification before integration. The first browser run also exceeded
+its configured timeout after writing the report; the recognition mismatches were
+recorded independently of that infrastructure timeout.
 
 ## Scope and ownership
 

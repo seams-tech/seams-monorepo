@@ -61,6 +61,13 @@ html[data-modal-backdrop='none'] dialog.seams-confirmation-modal::backdrop {
   color: var(--seams-colors-textPrimary);
 }
 
+/* Give the inset NEAR mark more space inside its token circle. */
+.showcase-stage .seams-review-token > svg > path {
+  transform: scale(0.86);
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
 /* Completed progress stays legible on dark cards with muted button fills. */
 .showcase-stage [data-theme='dark'] .seams-receipt-step[data-state='complete'] {
   color: var(--seams-colors-textPrimary);

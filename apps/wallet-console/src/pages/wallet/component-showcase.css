@@ -236,6 +236,12 @@
 
 .showcase-preview__embed[data-preview='profile'] {
   height: 800px;
+}
+
+/* Cast the shadow outside each iframe so its edges cannot clip the card's lift. */
+.showcase-preview__embed[data-preview='profile'],
+.showcase-preview__embed[data-preview='transaction-modal'],
+.showcase-preview__embed[data-preview='voiceid'] {
   filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.12));
 }
 

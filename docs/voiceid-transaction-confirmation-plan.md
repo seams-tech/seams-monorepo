@@ -48,6 +48,57 @@ must pass qualification before integration. The first browser run also exceeded
 its configured timeout after writing the report; the recognition mismatches were
 recorded independently of that infrastructure timeout.
 
+## Hosted recognition screen — October 27, 2026
+
+Cloudflare Workers AI was tested through its real HTTP API with
+`@cf/openai/whisper-large-v3-turbo`. OpenAI and ElevenLabs remain untested because
+their API keys were unavailable in the local environment. The user was asked for
+their configured credential locations.
+
+Each run used the same 21 synthetic recordings, totaling 41.56 seconds. Fifteen
+recordings came from the Aurora screen. Six additional recordings covered clearer
+transfer wording, negation, and an additional instruction. All recordings used
+Samantha at 160 words per minute, with 16 kHz mono PCM audio.
+
+| Cloudflare configuration               | Exact normalized transcripts | Correct confirmations matched | False matches across 160 negative comparisons | Median HTTP time | Observed p95 |
+| -------------------------------------- | ---------------------------: | ----------------------------: | --------------------------------------------: | ---------------: | -----------: |
+| English only, no vocabulary hint       |                        17/21 |                           6/8 |                                             0 |           1.23 s |       4.12 s |
+| English with a fixed ticker vocabulary |                        21/21 |                           8/8 |                                             0 |           1.77 s |       4.90 s |
+
+The fixed hint was identical for every request:
+“Cryptocurrency vocabulary: NEAR, USDC, USD Coin, Ether, ETH, Bitcoin, BTC.”
+It contained no expected amount or confirmation sentence. Without that hint,
+Cloudflare rendered NEAR as “NIR” in four recordings. Strict matching rejected
+those results. Both runs correctly transcribed all four original short transfer
+examples that Aurora had rejected.
+
+The checker normalized case, terminal punctuation, explicit number spellings,
+and USDC letter spacing. It used no approximate text matching or phonetic
+substitutions. Negation, negative amounts, wrong actions/assets, missing amounts,
+and additional instructions remained distinct from the approved examples.
+
+These are 21 synthetic recordings and one sequential run per configuration.
+The 160 comparisons reuse those transcripts against eight expected confirmations.
+They are not 160 independent audio trials. HTTP timing includes network and service
+time. This screen did not test speaker verification, signing, human speech, or
+provider outages. Human recordings and integrated authorization contracts remain
+required before changing SDK behavior.
+
+The estimated model cost was $0.00036 per run at the
+[listed Cloudflare rate](https://developers.cloudflare.com/workers-ai/models/whisper-large-v3-turbo/).
+This is a duration-based estimate, not a billing statement.
+
+Local repeatable evidence is saved under
+`.artifacts/voiceid-transaction-confirmation/hosted/`, including both JSON reports,
+audio hashes, transcripts, request times, and comparison results. The standalone
+runner is `../hosted-evaluation.mjs` relative to that directory. Its provider
+arguments are `cloudflare`, `cloudflare-vocabulary`, `openai`, and `elevenlabs`.
+It uses local credentials without writing them to its reports.
+
+Cloudflare with the fixed vocabulary is a candidate for the next real-voice
+evaluation. Transaction phrases remain demo-only. No provider was integrated into
+the Wallet or deployed by this evaluation.
+
 ## Scope and ownership
 
 The application prepares the transaction intent. Its speech interface, command

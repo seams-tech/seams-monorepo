@@ -56,7 +56,7 @@ let phraseIndex = Math.floor(Math.random() * phrases.length);
 const SPEECH_START_MS = 700;
 const SPEECH_END_MS = 3100;
 const CHECK_MS = 3500;
-const SIGNED_MS = 4600;
+const SIGNED_MS = 5000;
 const ACTIVITY_INTERVAL_MS = 32;
 
 const explorer = 'https://basescan.org/';

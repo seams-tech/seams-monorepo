@@ -1,14 +1,41 @@
 # VoiceID transaction confirmation phrases
 
-Status: the front-page canvas preview is implemented. The user chose to keep
-transaction phrases demo-only for now. The SDK retains its random challenges and
-current models. The SDK confirmation draft is saved outside the active source.
-Command-to-intent work remains a separate optional decision for the user.
+Status: the front-page canvas preview is implemented. Exact-amount transaction
+phrases remain demo-only. The SDK adds per-request action-only phrase selection
+through `options.voiceId.confirmationCommand` in `seams-wallet` dev, pending its
+next package release. The private site continues to consume published 0.24.0.
+Command-to-intent interpretation remains the application's responsibility.
 
 The preview checks cover confirmation, cancellation, pause/resume, four themes,
 and 390px/320px layouts. A separate voice-first demo is available for comparison.
 Japanese controls and the English spoken phrase also passed a browser check. Evidence is written to
 `.artifacts/wallet-voiceid-showcase/result.json`, screenshots, and `trace.zip`.
+
+## Action-only SDK configuration
+
+An app can pass `options.voiceId.confirmationCommand`, for example
+“Sell 100 NEAR for USDC at $5.5.” The leading English verb selects a tested phrase
+family. The Wallet supplies the actual challenge, such as “Approve this sale at
+once.” It omits amounts, assets, and prices from the spoken phrase.
+
+Supported leading verbs are sell, buy, swap, send, and transfer. Other wording
+uses the existing random challenges. The configuration accepts only the command
+string, bounded to 256 characters. Invalid configuration fails before capture.
+Apps cannot supply the final challenge or verification thresholds. The supplied
+command remains part of the frozen signing request and operation hash.
+
+Enrollment and unlock retain their 32 default phrases. Eight action-specific
+phrases add no model weights or provider calls. Recognition still checks the
+complete bank. Each retry changes the phrase within its family. Existing
+transaction restrictions remain in force; this option does not enable swaps or
+turn text into a transaction.
+
+Validation passed for all 1,600 real-Aurora phrase/challenge comparisons, command
+selection and rejection cases, type fixtures, and real MPC signing on NEAR plus
+both Arc signer profiles. RPC responses were deterministic test fixtures.
+The speaker threshold remained 0.5. Evidence is saved in the public repository at
+`.artifacts/voiceid-confirmation-command/result.json` with the raw browser and
+signing reports. Package builds and the bloat check passed.
 
 ## Initial recognition results — October 27, 2026
 

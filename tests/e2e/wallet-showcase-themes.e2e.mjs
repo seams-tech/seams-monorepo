@@ -22,6 +22,21 @@ function successColors(element) {
   return { foreground: getComputedStyle(check).stroke, background: getComputedStyle(seal).fill };
 }
 
+function progressColors(container) {
+  const background = getComputedStyle(container).backgroundColor;
+  const steps = [];
+  for (const step of container.querySelectorAll('.seams-receipt-step')) {
+    const track = step.querySelector('.seams-receipt-track');
+    steps.push({
+      label: step.textContent.trim(),
+      state: step.dataset.state,
+      text: getComputedStyle(step).color,
+      bar: getComputedStyle(track, '::after').backgroundColor,
+    });
+  }
+  return { background, steps };
+}
+
 function positionForCapture(gallery) {
   const viewport = gallery.querySelector('.component-showcase__viewport');
   window.scrollTo({
@@ -97,6 +112,15 @@ async function verifyTheme(page, gallery, theme, width) {
   const receiptColors = await symbol.evaluate(surfaceColors);
   const receiptContrast = contrast(receiptColors.text, receiptColors.background);
   assert.ok(receiptContrast >= 3, `Receipt check contrast: ${receiptContrast}`);
+  const progress = await transaction.locator('.modal-container-root').evaluate(progressColors);
+  if (theme.mode === 'dark') {
+    assert.deepEqual(progress.steps.map(progressLabel), ['Signed', 'Broadcast', 'Confirmed']);
+    for (const step of progress.steps) {
+      assert.equal(step.state, 'complete');
+      assert.ok(contrast(step.text, progress.background) >= 4.5, `${step.label} label contrast`);
+      assert.ok(contrast(step.bar, progress.background) >= 3, `${step.label} bar contrast`);
+    }
+  }
   await gallery.evaluate(positionForCapture);
   await transaction.locator('.modal-container-root').screenshot({
     path: `${artifacts}/${theme.id}-${width}-receipt.png`,
@@ -105,7 +129,19 @@ async function verifyTheme(page, gallery, theme, width) {
   await expect(
     transaction.getByRole('button', { name: 'Confirm with passkey', exact: true }),
   ).toBeVisible();
-  return { theme: theme.id, width, success, successContrast, receiptColors, receiptContrast };
+  return {
+    theme: theme.id,
+    width,
+    success,
+    successContrast,
+    receiptColors,
+    receiptContrast,
+    progress,
+  };
+}
+
+function progressLabel(step) {
+  return step.label;
 }
 
 await mkdir(artifacts, { recursive: true });

@@ -59,6 +59,18 @@ html[data-modal-backdrop='none'] dialog.seams-confirmation-modal::backdrop {
   color: var(--seams-colors-textPrimary);
 }
 
+/* Completed progress stays legible on dark cards with muted button fills. */
+.showcase-stage [data-theme='dark'] .seams-receipt-step[data-state='complete'] {
+  color: var(--seams-colors-textPrimary);
+}
+
+.showcase-stage
+  [data-theme='dark']
+  .seams-receipt-step[data-state='complete']
+  .seams-receipt-track::after {
+  background: var(--seams-colors-textPrimary);
+}
+
 /* The SDK sizes a hosted transaction card to 28rem; the stage follows, so the card
    stays centred. */
 .showcase-stage:has([data-confirmation-kind='transaction']) {

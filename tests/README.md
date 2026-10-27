@@ -51,7 +51,8 @@ and `trace.zip` go to `.artifacts/wallet-voiceid-showcase/`.
 
 Authentication completion cards retain the selected theme for their surface, text,
 buttons, and checkmark. Receipt status icons use the theme's primary text color so
-they remain visible when Carbon uses dark button fills.
+they remain visible when Carbon uses dark button fills. Completed progress labels
+and bars also use primary text color in dark themes.
 
 Run `node tests/e2e/wallet-showcase-themes.e2e.mjs` to check registration, reset,
 the Next transition, and receipt contrast across all four themes and narrow screens.

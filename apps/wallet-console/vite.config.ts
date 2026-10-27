@@ -225,6 +225,7 @@ export default defineConfig(() => {
           showcaseAuthentication: `${appRoot}showcase/authentication/index.html`,
           showcaseTransaction: `${appRoot}showcase/transaction/index.html`,
           showcaseVoiceId: `${appRoot}showcase/voiceid/index.html`,
+          showcaseVoiceIdReverse: `${appRoot}showcase/voiceid-reverse/index.html`,
           showcaseCheckout: `${appRoot}showcase/checkout/index.html`,
           showcaseCheckoutWallet: `${appRoot}showcase/checkout/wallet/index.html`,
           showcaseMotion: `${appRoot}showcase/motion/index.html`,

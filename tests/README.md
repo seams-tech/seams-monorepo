@@ -41,11 +41,11 @@ to test another wallet page URL. Screenshots, `result.json`, and `trace.zip` go 
 `.artifacts/wallet-component-showcase/`.
 
 The VoiceID concept preview receives a prepared sale of 10 NEAR for USDC. It shows
-an example minimum output and slippage limit, prepares the short phrase “Sell ten
-NEAR.”, then plays simulated voice approval and the SDK receipt. The review, voice
+an example minimum output and slippage limit in the transaction details, then
+plays one “Sell ten NEAR” voice prompt and the SDK receipt. The review, voice
 prompt, and receipt use the theme selected in the hero demo: Paper, Carbon, Pastel,
 or Pastel Dark. The preview uses no microphone, model API, inference assets, or
-signing endpoint. Preparation and speech activity follow the canvas playback clock.
+signing endpoint. Speech activity follows the canvas playback clock.
 VoiceID and transaction receipts minimize into a toast and expand back in 240 ms.
 Their card bounds use clipping, shared title and checkmark use transforms, and details
 fade over 120 ms. Reversing a transition retains its current position. The toast docks
@@ -55,8 +55,10 @@ Run `node tests/e2e/wallet-receipt-transition.e2e.mjs` to check both directions,
 snapshot alignment, interruption, mobile layouts, and reduced motion. Screenshots,
 timing evidence in `result.json`, and `trace.zip` go to `.artifacts/wallet-receipt-transition/`.
 
-Run `node tests/e2e/wallet-voiceid-showcase.e2e.mjs` to check all four themes,
-preparation/capture cancellation, pause/resume, receipts, and mobile layouts. Screenshots, `result.json`,
+Run `node tests/e2e/wallet-voiceid-showcase.e2e.mjs` to check the front-page
+review-first flow and the separate `showcase/voiceid-reverse/` voice-first page.
+It checks one voice prompt per run, explicit trade confirmation, capture/checking
+cancellation, replay, pause/resume, four themes, receipts, and mobile layouts. Screenshots, `result.json`,
 and `trace.zip` go to `.artifacts/wallet-voiceid-showcase/`.
 
 Authentication completion cards retain the selected theme for their surface, text,

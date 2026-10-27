@@ -41,7 +41,7 @@ const themes = [
 ];
 
 function blockDemoMicrophone() {
-  if (location.pathname.includes('/showcase/voiceid/')) {
+  if (/\/showcase\/voiceid(?:-reverse)?\//.test(location.pathname)) {
     Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
       value: window.reportVoiceDemoMicrophoneRequest,
     });
@@ -62,7 +62,7 @@ function recordRequest(request) {
     modelRequests.push(request.url());
   }
   if (
-    request.frame().url().includes('/showcase/voiceid/') &&
+    /\/showcase\/voiceid(?:-reverse)?\//.test(request.frame().url()) &&
     (request.resourceType() === 'fetch' ||
       request.resourceType() === 'xhr' ||
       request.method() !== 'GET')
@@ -127,11 +127,6 @@ async function approve(gallery, name, theme) {
   await expect(voiceId.getByText('0.00005 NEAR', { exact: true })).toBeVisible();
   const review = await capture(gallery, `${name}-review`);
   await confirm.click();
-  await expect(voiceId.getByRole('status')).toHaveText('Preparing confirmation…');
-  await expect(
-    voiceId.getByText('Sell 10 NEAR for USDC at market price.', { exact: true }),
-  ).toBeVisible();
-  await capture(gallery, `${name}-preparation`);
   const phrase = voiceId.locator('[data-voiceid-phrase]');
   await expect(phrase).toBeVisible();
   await expect(phrase).toHaveCSS('color', theme.text);
@@ -183,17 +178,87 @@ async function checkPlaybackPause(page, gallery) {
   await gallery.getByRole('button', { name: 'Play playback', exact: true }).click();
   await page.mouse.move(5, 5);
   const voiceId = gallery.frameLocator('iframe[title="VoiceID"]');
-  await expect(voiceId.getByRole('status')).toHaveText('Preparing confirmation…');
+  await expect(voiceId.getByRole('status')).toHaveText('Listening');
   await gallery.getByRole('button', { name: 'Pause playback', exact: true }).click();
   await expect(voiceId.locator('html')).toHaveAttribute('data-showcase-clock', 'paused');
   await page.waitForTimeout(1800);
-  await expect(voiceId.getByRole('status')).toHaveText('Preparing confirmation…');
+  await expect(voiceId.getByRole('status')).toHaveText('Listening');
   await gallery.getByRole('button', { name: 'Play playback', exact: true }).click();
   await page.mouse.move(5, 5);
   await expect(voiceId.getByText('Sell ten NEAR.', { exact: true })).toBeVisible();
   await expect(voiceId.getByRole('status')).toContainText('Transaction complete', {
     timeout: 15000,
   });
+}
+
+async function checkReverse(page, url, theme, name) {
+  url.searchParams.set('theme', theme.id);
+  await page.goto(url.href);
+  await expect(page.locator('[data-voiceid-phrase]')).toHaveText('Sell ten NEAR for USDC.');
+  await expect(page.getByRole('status')).toHaveText('Listening');
+  await expect(page.getByRole('heading', { name: 'Review your trade', exact: true })).toHaveCount(
+    0,
+  );
+  await checkTheme(page, theme);
+  await page.screenshot({ path: `${artifacts}/${name}-voice.png` });
+  await expect(page.getByRole('status')).toHaveText('Checking your voice…');
+  await page.screenshot({ path: `${artifacts}/${name}-checking.png` });
+  await expect(page.getByRole('heading', { name: 'Review your trade', exact: true })).toBeVisible();
+  const confirm = page.getByRole('button', { name: 'Confirm trade', exact: true });
+  await expect(confirm).toBeVisible();
+  await expect(page.locator('.seams-voiceid-prompt')).toHaveCount(0);
+  await expect(page.locator('.seams-review-amount')).toHaveText('10 NEAR');
+  await expect(page.getByRole('button', { name: 'Confirm with VoiceID', exact: true })).toHaveCount(
+    0,
+  );
+  await page.waitForTimeout(700);
+  await expect(page.locator('.seams-transaction-receipt')).toHaveCount(0);
+  const layout = await page.evaluate(reverseLayout);
+  assert.equal(layout.fits, true, JSON.stringify(layout));
+  await page.screenshot({ path: `${artifacts}/${name}-review.png` });
+  await confirm.click();
+  await expect(page.locator('.seams-transaction-receipt')).toBeVisible({ timeout: 1500 });
+  await expect(page.locator('.seams-voiceid-prompt')).toHaveCount(0);
+  await expect(page.getByRole('status')).toContainText('Transaction complete');
+  await page.screenshot({ path: `${artifacts}/${name}-receipt.png` });
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Listening');
+  return { theme: theme.id, layout, oneVoicePrompt: true, explicitTradeConfirmation: true };
+}
+
+function reverseLayout() {
+  const card = document.querySelector('.seams-confirmation-modal--hosted').getBoundingClientRect();
+  return {
+    card: card.toJSON(),
+    width: innerWidth,
+    height: innerHeight,
+    fits:
+      card.left >= 0 &&
+      card.right <= innerWidth &&
+      card.top >= 0 &&
+      card.bottom <= innerHeight &&
+      document.documentElement.scrollWidth <= innerWidth,
+  };
+}
+
+async function cancelReverse(page, url) {
+  await page.goto(url.href);
+  for (const phase of ['listening', 'checking']) {
+    await expect(page.locator('.seams-voiceid-prompt')).toHaveAttribute('data-trade-stage', phase);
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    const retry = page.getByRole('button', { name: 'Try again', exact: true });
+    await expect(retry).toBeVisible();
+    await page.waitForTimeout(5000);
+    await expect(retry).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Review your trade', exact: true })).toHaveCount(
+      0,
+    );
+    await expect(page.locator('.seams-transaction-receipt')).toHaveCount(0);
+    await retry.click();
+  }
+  await expect(page.getByRole('button', { name: 'Confirm trade', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Listening');
 }
 
 await mkdir(artifacts, { recursive: true });
@@ -230,8 +295,8 @@ try {
     themedApprovals.push({ theme: theme.id, ...approval });
   }
 
-  await cancelAttempt(page, gallery, 'preparing');
   await cancelAttempt(page, gallery, 'listening');
+  await cancelAttempt(page, gallery, 'checking');
 
   const layouts = [];
   for (const width of [390, 320]) {
@@ -241,6 +306,20 @@ try {
     layouts.push({ width, ...approval });
   }
   await checkPlaybackPause(page, gallery);
+  const source = await gallery.locator('iframe[title="VoiceID"]').getAttribute('src');
+  const reverseUrl = new URL(source, origin);
+  reverseUrl.pathname = reverseUrl.pathname.replace('/voiceid/', '/voiceid-reverse/');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const reversed = [];
+  await page.setViewportSize({ width: 1440, height: 1100 });
+  for (const theme of themes) {
+    reversed.push(await checkReverse(page, reverseUrl, theme, `reverse-${theme.id}`));
+  }
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 1100 });
+    reversed.push(await checkReverse(page, reverseUrl, pastelDarkTheme, `reverse-${width}`));
+  }
+  await cancelReverse(page, reverseUrl);
   assert.deepEqual(errors, []);
   assert.deepEqual(modelRequests, []);
   assert.deepEqual(apiRequests, []);
@@ -260,9 +339,11 @@ try {
           signer: 'alex.near',
         },
         themedApprovals,
-        cancelledDuringPreparationAndCapture: true,
+        cancelledDuringCaptureAndChecking: true,
         playbackPauseAndResume: true,
         layouts,
+        reversed,
+        reverseCancellationAndReplay: true,
         errors,
         modelRequests,
         apiRequests,
@@ -273,7 +354,7 @@ try {
     ) + '\n',
   );
   console.log(
-    'Passed transaction-specific VoiceID preview, cancellation, playback, themes, and mobile layouts without model or microphone use.',
+    'Passed both VoiceID demo orders, single voice prompts, explicit trade confirmation, cancellation, playback, themes, and mobile layouts without model or microphone use.',
   );
 } finally {
   await context.tracing.stop({ path: `${artifacts}/trace.zip` });

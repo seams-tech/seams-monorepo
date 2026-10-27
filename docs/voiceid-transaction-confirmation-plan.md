@@ -5,8 +5,8 @@ transaction phrases demo-only for now. The SDK retains its random challenges and
 current models. The SDK confirmation draft is saved outside the active source.
 Command-to-intent work remains a separate optional decision for the user.
 
-The development and production previews pass browser checks for preparation,
-confirmation, cancellation, pause/resume, four themes, and 390px/320px layouts.
+The preview checks cover confirmation, cancellation, pause/resume, four themes,
+and 390px/320px layouts. A separate voice-first demo is available for comparison.
 Japanese controls and the English spoken phrase also passed a browser check. Evidence is written to
 `.artifacts/wallet-voiceid-showcase/result.json`, screenshots, and `trace.zip`.
 
@@ -149,39 +149,30 @@ Sources checked October 27, 2026:
 - [Jev question types](https://docs.typesafe.ai/introduction/quickstart)
 - [AuroraASR model card](https://huggingface.co/AuroraAI-Research/AuroraASR-1M)
 
-## 1. Front-page demo
+## 1. Front-page and separate voice-first demos
 
-Update `apps/wallet-console/src/showcase/voiceid.ts` in this repository. Preserve
-the existing SDK modal, themes, receipt, playback clock, and canvas controls.
+The front page keeps its review-first order: trade review, “Confirm with VoiceID,”
+one “Sell ten NEAR” voice prompt, then the receipt. The extra preparation screen
+and quote paragraph were removed at the user's request.
 
-Show this sequence:
+The separate `showcase/voiceid-reverse/` page starts with one voice prompt:
+“Sell ten NEAR for USDC.” After the simulated speaker check, it shows the trade
+review with one “Confirm trade” button. It waits for that click before showing
+signing and the receipt. There is no second voice prompt. Done replays the flow.
 
-1. **Prepared trade:** a sample sale of 10 NEAR for USDC. Label the quote as an
-   example. Show a fixed example minimum received, fee, and slippage limit.
-2. **Prepare confirmation:** a brief transition from the reviewed trade to its
-   short phrase. The copy says “Preparing confirmation.”
-3. **Read aloud:** show “Sell ten NEAR.” Play the existing simulated speech
-   activity, then “Checking your voice…”
-4. **Receipt:** show the existing signing, broadcast, and confirmation sequence.
-   Completion returns to the prepared review.
+Both pages share the SDK modal, transaction data, themes, receipt, and simulated
+playback. The spoken phrase remains English. Controls support English and Japanese.
+They make no microphone, model, provider API, or signing requests. The separate
+page is a UX experiment and does not change SDK authorization behavior.
 
-The preview starts at the Wallet boundary. It does not show the Wallet
-transcribing a trading command or obtaining a quote. Keep microphone access,
-model downloads, AI API calls, and real transactions out of the canvas demo.
-Label the new intent-specific confirmation as a concept preview until released.
+Cancellation during capture or checking stops pending transitions. The separate
+page offers Try again after cancellation. Cancelling the trade review starts a
+fresh voice attempt. Old callbacks cannot advance the cancelled attempt.
 
-Keep autoplay, manual confirmation, cancellation, pause/resume, theme changes,
-and replay functional. Cancelling during phrase preparation or capture cancels
-every pending transition. A new run cannot receive an old run's completion.
-
-Update English and Japanese interface copy. The spoken phrase remains English
-while the recognition model supports only English.
-
-Extend `tests/e2e/wallet-voiceid-showcase.e2e.mjs` to exercise the new sequence,
-cancel during preparation and capture, repeat with a fresh run, and inspect all
-four themes plus 390px and 320px widths. Save screenshots, a trace, and JSON
-evidence. Assert that the preview requests no microphone, inference assets,
-model API, or signing endpoint. Replace the old fixed-phrase assertions.
+`tests/e2e/wallet-voiceid-showcase.e2e.mjs` exercises both orders, explicit
+confirmation, cancellation, replay, pause/resume, four themes, and 390px/320px
+layouts. It saves screenshots, a trace, and JSON evidence. It checks that neither
+page requests microphone access, inference assets, provider APIs, or signing.
 
 ## 2. Future SDK phrase preparation — deferred
 

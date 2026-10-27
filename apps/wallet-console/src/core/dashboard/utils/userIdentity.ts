@@ -1,5 +1,22 @@
 import type { DashboardConsoleSessionClaims } from '../consoleSession';
 
+export function dashboardSignInLabel(provider: DashboardConsoleSessionClaims['provider']): string {
+  switch (provider) {
+    case 'google':
+      return 'Signed in with Google';
+    case 'github':
+      return 'Signed in with GitHub';
+    case null:
+      return '';
+    default:
+      return assertNeverProvider(provider);
+  }
+}
+
+function assertNeverProvider(provider: never): never {
+  throw new Error(`Unknown Console sign-in provider: ${String(provider)}`);
+}
+
 export interface DashboardIdentitySource {
   userId?: string | null;
   email?: string | null;

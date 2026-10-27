@@ -81,7 +81,7 @@ function clearSessionCookie(): string {
 function ready(): void {}
 async function recordVerifiedIdentity(): Promise<void> {}
 
-class GoogleAuthority {
+class ProviderAuthority {
   private readonly keys = generateKeyPairSync('rsa', { modulusLength: 2048 });
 
   token(): string {
@@ -103,8 +103,23 @@ class GoogleAuthority {
     return `${input}.${sign('RSA-SHA256', Buffer.from(input), this.keys.privateKey).toString('base64url')}`;
   }
 
-  async fetch(input: RequestInfo | URL): Promise<Response> {
-    expect(String(input)).toBe('https://www.googleapis.com/oauth2/v3/certs');
+  async fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+    switch (String(input)) {
+      case 'https://github.com/login/oauth/access_token':
+        expect(JSON.parse(String(init?.body))).toMatchObject({ code: 'github-acceptance-code' });
+        return Response.json({ access_token: 'github-acceptance-token' });
+      case 'https://api.github.com/user':
+        return Response.json({ id: 12345, login: 'octocat', name: 'GitHub acceptance' });
+      case 'https://api.github.com/user/emails':
+        return Response.json([{ email: 'octocat@gmail.com', primary: true, verified: true }]);
+      case 'https://www.googleapis.com/oauth2/v3/certs':
+        return this.googleKeys();
+      default:
+        throw new Error(`Unexpected provider request: ${String(input)}`);
+    }
+  }
+
+  private googleKeys(): Response {
     const key = this.keys.publicKey.export({ format: 'jwk' });
     return Response.json({
       keys: [
@@ -116,6 +131,7 @@ class GoogleAuthority {
 
 class ConsoleTransport {
   readonly exchanges: number[] = [];
+  readonly githubExchanges: number[] = [];
   readonly identitySessions: number[] = [];
 
   constructor(private readonly handler: HostedConsoleAuthHandler) {}
@@ -131,6 +147,8 @@ class ConsoleTransport {
     );
     if (new URL(incoming.url()).pathname === '/console/auth/google')
       this.exchanges.push(response.status);
+    if (new URL(incoming.url()).pathname === '/console/auth/github')
+      this.githubExchanges.push(response.status);
     if (new URL(incoming.url()).pathname === '/console/auth/session')
       this.identitySessions.push(response.status);
     await route.fulfill({
@@ -173,7 +191,66 @@ async function capture(page: Page, path: string): Promise<void> {
   await page.screenshot({ path, fullPage: true });
 }
 
-test('Google One Tap and explicit sign-in recover from unavailable prompts, cancellation, and rejected credentials', async ({
+async function completeGithubAuthorization(route: Route): Promise<void> {
+  const authorize = new URL(route.request().url());
+  const callback = authorize.searchParams.get('redirect_uri');
+  const state = authorize.searchParams.get('state');
+  if (!callback || !state) throw new Error('GitHub authorization omitted its callback or state');
+  const redirect = new URL(callback);
+  redirect.searchParams.set('code', 'github-acceptance-code');
+  redirect.searchParams.set('state', state);
+  await route.fulfill({ status: 302, headers: { Location: redirect.href } });
+}
+
+async function completeOnboarding(page: Page, provider: 'Google' | 'GitHub'): Promise<void> {
+  const organization = page.getByRole('form', { name: 'Create organization', exact: true });
+  await organization.getByLabel('Organization name').fill(`${provider} acceptance`);
+  await organization.getByRole('button', { name: 'Continue', exact: true }).click();
+  const project = page.getByRole('form', { name: 'Create project', exact: true });
+  await project.getByLabel('Project name').fill(`${provider} project`);
+  await project.getByRole('button', { name: 'Create project', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Account settings', exact: true })).toBeVisible();
+}
+
+async function verifyProfileProvider(
+  page: Page,
+  appUrl: string,
+  provider: 'Google' | 'GitHub',
+  email: string,
+  screenshotPath: string,
+): Promise<void> {
+  await page.goto(new URL('/dashboard/account-settings', appUrl).href);
+  const profile = page.locator('.dashboard-account-profile-card');
+  const label = `Signed in with ${provider}`;
+  await expect(profile.getByText(label, { exact: true })).toBeVisible();
+  await expect(profile.getByText(email, { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(profile.getByText(label, { exact: true })).toBeVisible();
+  await expect.poll(pageHasHorizontalOverflow.bind(null, page)).toBe(false);
+  const accountMenu = page.getByRole('button', { name: /Account menu for/ });
+  if (!(await accountMenu.isVisible())) {
+    await capture(page, screenshotPath.replace('.png', '-profile.png'));
+    await page.getByRole('button', { name: 'Open navigation', exact: true }).click();
+    const navigation = page.getByRole('dialog', { name: 'Navigation', exact: true });
+    await navigation.locator('.dashboard-mobile-account summary').click();
+    await expect(navigation.getByText(label, { exact: true })).toBeVisible();
+    await navigation.getByText(label, { exact: true }).scrollIntoViewIfNeeded();
+    await capture(page, screenshotPath);
+    await navigation.getByRole('button', { name: 'Close navigation', exact: true }).click();
+    return;
+  }
+  await page.getByRole('button', { name: /Account menu for/ }).click();
+  await expect(
+    page.getByRole('menu', { name: 'Account options' }).getByText(label, { exact: true }),
+  ).toBeVisible();
+  await capture(page, screenshotPath);
+  await page.getByRole('menu', { name: 'Account options' }).screenshot({
+    path: screenshotPath.replace('.png', '-menu.png'),
+  });
+  await page.keyboard.press('Escape');
+}
+
+test('Google sign-in recovers from prompt failures and both providers remain visible after onboarding, reloads, and account changes', async ({
   page,
   browser,
 }, testInfo) => {
@@ -236,11 +313,16 @@ test('Google One Tap and explicit sign-in recover from unavailable prompts, canc
       billingStripeWebhookSigningSecret: null,
       corsOrigins: [new URL(appUrl).origin],
     });
-    const authority = new GoogleAuthority();
+    const authority = new ProviderAuthority();
     const handler = new HostedConsoleAuthHandler({
       handler: router,
       identity: createConsoleProviderIdentity({
         googleOidcClientId: clientId,
+        githubOAuth: {
+          clientId: 'github-acceptance',
+          clientSecret: 'isolated-github-acceptance-secret',
+          callbackUrl: new URL('/dashboard/login', appUrl).href,
+        },
         fetchImpl: authority.fetch.bind(authority),
       }),
       recordVerifiedGoogleIdentity: recordVerifiedIdentity,
@@ -361,6 +443,50 @@ test('Google One Tap and explicit sign-in recover from unavailable prompts, canc
     } finally {
       await oneTapPage.close();
     }
+
+    await completeOnboarding(page, 'Google');
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await verifyProfileProvider(
+      page,
+      appUrl,
+      'Google',
+      'getsignal@example.test',
+      testInfo.outputPath('google-profile-and-menu-desktop.png'),
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await verifyProfileProvider(
+      page,
+      appUrl,
+      'Google',
+      'getsignal@example.test',
+      testInfo.outputPath('google-profile-and-menu-mobile.png'),
+    );
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.getByRole('button', { name: /Account menu for/ }).click();
+    await page.getByRole('menuitem', { name: 'Sign out', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Signed out', exact: true })).toBeVisible();
+    await page
+      .context()
+      .route('https://github.com/login/oauth/authorize?*', completeGithubAuthorization);
+    await page.getByRole('button', { name: 'Continue with GitHub', exact: true }).click();
+    await completeOnboarding(page, 'GitHub');
+    expect(transport.githubExchanges).toEqual([200]);
+    await verifyProfileProvider(
+      page,
+      appUrl,
+      'GitHub',
+      'octocat@gmail.com',
+      testInfo.outputPath('github-profile-and-menu-mobile.png'),
+    );
+    await expect(page.getByText('Signed in with Google', { exact: true })).toHaveCount(0);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await verifyProfileProvider(
+      page,
+      appUrl,
+      'GitHub',
+      'octocat@gmail.com',
+      testInfo.outputPath('github-profile-and-menu-desktop.png'),
+    );
     await writeFile(
       testInfo.outputPath('evidence.json'),
       JSON.stringify(
@@ -368,10 +494,11 @@ test('Google One Tap and explicit sign-in recover from unavailable prompts, canc
           passed: true,
           command:
             'pnpm -C tests exec playwright test -c playwright.config.ts e2e/console/google-sign-in.e2e.test.ts',
-          provider: 'controlled Google script and account chooser',
+          provider: 'controlled Google script, account chooser, and GitHub OAuth endpoints',
           console:
             'production auth, RSA verification, cookie sessions, and real D1 account services',
           exchanges: transport.exchanges,
+          githubExchanges: transport.githubExchanges,
           checks: [
             'script retry',
             'unavailable One Tap leaves button enabled after 25 seconds',
@@ -384,6 +511,10 @@ test('Google One Tap and explicit sign-in recover from unavailable prompts, canc
             'duplicate One Tap callbacks exchange only once',
             'sign-out survives reload without One Tap',
             'explicit sign-in after sign-out succeeds',
+            'Google provider appears in the profile and account menu after reload',
+            'GitHub OAuth replaces the signed-out Google account',
+            'GitHub provider stays correct with a Gmail email address',
+            'both provider labels fit desktop and mobile layouts',
           ],
         },
         null,

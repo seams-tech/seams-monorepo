@@ -55,6 +55,9 @@ import DashboardSidebarToggleIcon from '../icons/DashboardSidebarToggleIcon';
 import type { SidebarIconComponent, TopbarMenuKey, TopbarOption } from '../types';
 import { getDocsOrigin } from '@core/router/siteRouting';
 import type { ConsoleNetwork } from '@core/runtime';
+import { useDashboardConsoleSession } from '../consoleSession';
+import { dashboardSignInLabel } from '../utils/userIdentity';
+import { ProviderMark } from '@core/auth/ProviderMark';
 
 export type TopbarSearchItem = {
   label: string;
@@ -303,6 +306,8 @@ export function DashboardTopbar({
   const paletteReturnFocusRef = React.useRef<HTMLElement | null>(null);
   const accountMenu = useDashboardMenu({ dismissRootRef: topbarRef });
   const palette = useDashboardMenu({ dismiss: false });
+  const session = useDashboardConsoleSession();
+  const signInLabel = dashboardSignInLabel(session.claims?.provider ?? null);
   const accountName = accountLabel;
   const accountInitial = (accountName.trim().charAt(0) || 'A').toUpperCase();
   const searchEnabled = searchItems.length > 0 && Boolean(onNavigate);
@@ -381,10 +386,18 @@ export function DashboardTopbar({
       </button>
       <DashboardMenu
         menu={accountMenu}
-        className="dashboard-context-menu dashboard-context-menu--actions dashboard-account-menu__list"
+        className="dashboard-context-menu dashboard-account-menu__list"
         aria-label="Account options"
       >
-        <p className="dashboard-account-menu__identity">{accountName}</p>
+        <div className="dashboard-account-menu__identity">
+          <span>{accountName}</span>
+          {signInLabel ? (
+            <span className="dashboard-sign-in-method dashboard-account-menu__sign-in">
+              <ProviderMark provider={session.claims?.provider ?? null} />
+              {signInLabel}
+            </span>
+          ) : null}
+        </div>
         {dropdownOptions.accountSettings.map((option) => {
           const icon =
             option.icon === 'sun' ? (

@@ -363,14 +363,52 @@ textarea {
   left: auto;
   right: 0;
   min-width: 220px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.dashboard-account-menu__list .dashboard-context-menu__item {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--dashboard-ink);
+  font-size: var(--dashboard-text-supporting);
+  font-weight: 500;
+  line-height: 20px;
 }
 
 .dashboard-account-menu__identity {
-  margin: 0;
-  padding: 8px 10px;
+  display: grid;
+  gap: 2px;
+  margin: 0 0 4px;
+  padding: 8px 8px 10px;
   border-bottom: 1px solid var(--dashboard-line);
   font-size: var(--dashboard-text-supporting);
   font-weight: 600;
+  line-height: 20px;
+  color: var(--dashboard-ink);
+  overflow-wrap: anywhere;
+}
+
+.dashboard-account-menu__sign-in {
+  color: var(--dashboard-ink-soft);
+  font-size: var(--dashboard-text-caption);
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.dashboard-sign-in-method {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-sign-in-method > svg {
+  width: 1.15em;
+  height: 1.15em;
+  flex: 0 0 auto;
   color: var(--dashboard-ink);
 }
 

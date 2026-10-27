@@ -8,6 +8,9 @@ import { getDocsOrigin } from '@core/router/siteRouting';
 import SeamsWordmark from '@core/components/SeamsWordmark';
 import { GrainField } from '@seams-internal/grain-field';
 import type { DashboardProduct, DashboardProductId, SidebarGroup, TopbarOption } from '../types';
+import { useDashboardConsoleSession } from '../consoleSession';
+import { dashboardSignInLabel } from '../utils/userIdentity';
+import { ProviderMark } from '@core/auth/ProviderMark';
 
 export type DashboardLinkPropsFactory = (to: string) => {
   href: string;
@@ -528,6 +531,8 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
   workspace,
   homeProps,
 }: DashboardSidebarProps<Route, GroupKey>): React.JSX.Element {
+  const session = useDashboardConsoleSession();
+  const signInLabel = dashboardSignInLabel(session.claims?.provider ?? null);
   const mobile = React.useSyncExternalStore(
     subscribeMobileNavigation,
     isMobileNavigation,
@@ -654,6 +659,14 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
               {accountLabel}
             </summary>
             <div>
+              {signInLabel ? (
+                <div className="dashboard-account-menu__identity">
+                  <span className="dashboard-sign-in-method dashboard-account-menu__sign-in">
+                    <ProviderMark provider={session.claims?.provider ?? null} />
+                    {signInLabel}
+                  </span>
+                </div>
+              ) : null}
               {accountOptions.map((option) => (
                 <button
                   key={option.value}

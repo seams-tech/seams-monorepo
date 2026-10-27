@@ -18,6 +18,8 @@ import {
 } from '../../components/DashboardTable';
 import { DashboardInlineModal } from '../../components/DashboardInlineModal';
 import { markDashboardConsoleSignOut, useDashboardConsoleSession } from '../../consoleSession';
+import { dashboardSignInLabel } from '../../utils/userIdentity';
+import { ProviderMark } from '@core/auth/ProviderMark';
 import { consoleSessionHref } from '../../consoleNavigation';
 import { getDashboardProjectLabel } from '../../utils/scopeLabels';
 import {
@@ -65,6 +67,7 @@ export function AccountSettingsPage(props: {
 }): React.JSX.Element {
   const { go } = useSiteRouter();
   const session = useDashboardConsoleSession();
+  const signInLabel = dashboardSignInLabel(session.claims?.provider ?? null);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [actionErrorMessage, setActionErrorMessage] = React.useState<string>('');
@@ -587,6 +590,17 @@ export function AccountSettingsPage(props: {
               ) : null}
             </div>
           </div>
+          {signInLabel ? (
+            <div className="dashboard-account-static-field">
+              <span>Sign-in method</span>
+              <div className="dashboard-account-static-value">
+                <span className="dashboard-sign-in-method">
+                  <ProviderMark provider={session.claims?.provider ?? null} />
+                  {signInLabel}
+                </span>
+              </div>
+            </div>
+          ) : null}
           <div className="dashboard-account-static-field">
             <span>Backup emails</span>
             <div className="dashboard-account-static-value">

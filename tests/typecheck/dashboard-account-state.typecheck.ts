@@ -12,8 +12,22 @@ import type {
 import type { DashboardWorkspaceNavigation } from '../../apps/wallet-console/src/core/dashboard/layout/DashboardNavigation';
 
 declare const owner: Extract<DashboardConsoleSessionClaims, { role: 'OWNER' }>;
+declare const sessionWithoutProvider: Omit<typeof owner, 'provider'>;
+declare const rawProvider: string;
 declare const completed: Extract<DashboardOnboardingState, { currentStep: 'complete' }>;
 declare const activeWallet: Extract<ServiceStatus, { kind: 'active' }>;
+
+// @ts-expect-error The session requires an explicit provider or null.
+const missingSessionProvider: DashboardConsoleSessionClaims = sessionWithoutProvider;
+void missingSessionProvider;
+
+// @ts-expect-error Raw provider strings must pass through the session response parser.
+const unparsedSessionProvider: DashboardConsoleSessionClaims = { ...owner, provider: rawProvider };
+void unparsedSessionProvider;
+
+// @ts-expect-error Email domains do not identify a sign-in provider.
+const emailDomainProvider: DashboardConsoleSessionClaims['provider'] = 'gmail';
+void emailDomainProvider;
 
 // @ts-expect-error A member requires assigned project access.
 const memberWithAllProjects: DashboardConsoleSessionClaims = {
@@ -33,6 +47,7 @@ const missingProject: DashboardConsoleSessionClaims = {
   adminPermissions: [],
   projectAccess: { kind: 'all' },
   platformSupport: false,
+  provider: null,
 };
 void missingProject;
 

@@ -21,6 +21,7 @@ interface DashboardConsoleSessionIdentity {
   platformSupport: boolean;
   email?: string;
   name?: string;
+  provider: 'google' | 'github' | null;
   projectId: string | null;
 }
 
@@ -108,6 +109,7 @@ function parseClaims(raw: unknown): DashboardConsoleSessionClaims | null {
       platformSupport: row.platformSupport === true,
       email: email || undefined,
       name: name || undefined,
+      provider: row.provider === 'google' || row.provider === 'github' ? row.provider : null,
       projectId: projectId || null,
     },
     access,
@@ -128,6 +130,7 @@ function buildDashboardSessionClaims(
         platformSupport: identity.platformSupport,
         email: identity.email,
         name: identity.name,
+        provider: identity.provider,
         membershipId: access.membershipId,
         authorizationVersion: access.authorizationVersion,
         role: access.role,
@@ -142,6 +145,7 @@ function buildDashboardSessionClaims(
         platformSupport: identity.platformSupport,
         email: identity.email,
         name: identity.name,
+        provider: identity.provider,
         membershipId: access.membershipId,
         authorizationVersion: access.authorizationVersion,
         role: 'MEMBER',

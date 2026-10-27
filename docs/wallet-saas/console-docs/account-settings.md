@@ -1,6 +1,6 @@
 # Account Settings
 
-Date updated: July 26, 2026
+Date updated: October 27, 2026
 
 ## Objective
 
@@ -40,7 +40,7 @@ Ownership and membership changes use:
 
 The page contains:
 
-1. Profile display name, primary email, and backup emails.
+1. Profile display name, primary email, sign-in method, and backup emails.
 2. Organizations where the user has an active membership.
 3. Create, open, rename, and eligible delete actions.
 
@@ -51,6 +51,11 @@ the dashboard.
 
 The page remains reachable while onboarding is incomplete. The topbar Account Settings
 action always routes to this page.
+
+Google and GitHub sessions show the provider name and icon in the profile and account
+menu. The provider comes from the server session. Email addresses do not determine it.
+Sessions without a recognized provider omit this display. Desktop account-menu rows
+use a compact 36-pixel height. Mobile account actions retain their larger touch targets.
 
 ## Authorization
 
@@ -94,3 +99,7 @@ Organization directory queries join active memberships. They do not infer access
 - Ownership changes preserve at least one owner.
 - A user with removed or suspended membership cannot reopen the organization.
 - OIDC-managed primary email remains read-only.
+- Google and GitHub provider labels survive reloads and remain correct after signing
+  out and signing in with another provider, including a GitHub account with a Gmail address.
+- The provider appears in desktop and mobile account menus. The sign-in E2E scenario
+  saves profile and menu screenshots with its repeatable evidence report.

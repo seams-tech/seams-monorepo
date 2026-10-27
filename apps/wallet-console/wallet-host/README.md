@@ -9,6 +9,7 @@ An unavailable mainnet lane displays an error; it never opens the testnet wallet
 `/sdk/*` remains the exact installed SDK's embedded runtime and assets. The
 frontend build copies `/wallet-service/index.html` unchanged. The application
 supplies its relayer URL through SDK configuration.
+The build composes the optional `@seams/voiceid` host assets into the Wallet host.
 GetSignal embeds `https://sign.seams.sh` and
 retains its own project environment and gateway. Its application does not deploy
 a wallet host. The settings app connects

@@ -1,15 +1,13 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import {
-  readFrontendSite,
-  readConsoleFrontendSite,
-} from './deployment-targets.mjs';
+import { readFrontendSite, readConsoleFrontendSite } from './deployment-targets.mjs';
 import { formatFailedCheck, isFailedCheck, runReadinessChecks } from './deployment-smoke.mjs';
 
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
@@ -328,6 +326,7 @@ function buildFrontend(site, component, walletLanes) {
       },
     );
     copySdkAssets(output);
+    copyVoiceIdAssets(output);
     assertFile(path.join(output, 'index.html'), 'Wallet settings entry');
     fs.writeFileSync(path.join(output, '_redirects'), '/wallet-settings /index.html 200\n');
     assertFile(path.join(output, 'wallet-service', 'index.html'), 'wallet-service entry');
@@ -422,6 +421,24 @@ function copySdkAssets(destination) {
   fs.copyFileSync(walletHeadersManifest, path.join(destination, 'headers.manifest.json'));
   fs.copyFileSync(pagesHeaders, path.join(destination, '_headers'));
   copyDirectory(walletService, path.join(destination, 'wallet-service'));
+}
+
+function copyVoiceIdAssets(destination) {
+  const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'seams-voiceid-host-'));
+  const composedAssets = path.join(temporaryDirectory, 'assets');
+  try {
+    runCommand('pnpm', ['-C', WALLET_SITE_ROOT, 'exec', 'seams-voiceid-host', composedAssets]);
+    copyDirectory(
+      path.join(composedAssets, 'sdk', 'voiceid'),
+      path.join(destination, 'sdk', 'voiceid'),
+    );
+    fs.copyFileSync(
+      path.join(composedAssets, 'wallet-assets.manifest.json'),
+      path.join(destination, 'wallet-assets.manifest.json'),
+    );
+  } finally {
+    fs.rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
 }
 
 export function buildFrontendEnvironment(site, frontendOrigin, sourceEnvironment = process.env) {
@@ -567,6 +584,7 @@ function buildSmokeChecks(site, component, walletLanes) {
       { path: '/wallet-settings', isReady: walletSettingsApplicationIsReady },
       '/wallet-service/index.html',
       { path: '/wallet-assets.manifest.json', isReady: walletManifestMatchesInstalledVersion },
+      '/sdk/voiceid/host.js',
       '/sdk/workers/router_ab_ed25519_yao_client_bg.wasm',
     ]),
   );

@@ -1,0 +1,70 @@
+Seams VoiceID — Apple Silicon macOS prototype
+
+This internal prototype runs from this directory. Keep the directory in a stable
+location. The local service needs Node.js. The host needs no Python, Rust, or source
+checkout. The browser Wallet connects to the service on this Mac.
+This package is not signed for public distribution or notarized.
+Keychain access must already authorize the exact host executable. Native queries
+request noninteractive authentication. If access needs an OS dialog, the host
+returns a device-setup error. Do not keep retrying voice activation in that state.
+Stable host signing and one-time device authorization are still qualification work.
+
+1. Open Terminal in this package directory.
+
+2. Record three deliberate enrollment samples:
+
+   node enroll-web.mjs "$PWD"
+
+   Open the local address printed in Terminal. Select Record once for each sample.
+   Speak for about three seconds, then pause. Grant microphone access if macOS
+   requests it. Keep Terminal open until the page says Voice enrolled. The page
+   receives no audio. Only the voice template stays in your local Keychain.
+   The package contains no enrollment, recordings, transcripts, or evaluation fixtures.
+   The local page closes after 15 minutes without a Record click. Run the command
+   again to reopen it.
+
+3. Start the local VoiceID service:
+
+   node serve.mjs "$PWD"
+
+   Keep Terminal open while using the Wallet. The service listens only on
+   127.0.0.1:4318. Its native process starts on the first Wallet request and
+   stays open for later checks. A failed native process does not restart itself.
+   Restart the service deliberately after fixing a failure.
+
+4. Enable VoiceID in the application SDK configuration:
+
+   import { voiceIdAuthMethod } from '@seams/wallet';
+   const authMethods = [voiceIdAuthMethod()];
+
+   Pass authMethods to the Seams Wallet configuration. Use the VoiceID Wallet
+   build and existing local Wallet services. The Wallet loads the browser
+   VoiceID code on the first enabled request.
+
+5. Unlock the Wallet once with a passkey or Email OTP. Activate VoiceID through
+   registration.activateAuthMethod({ walletId, method: 'voiceid' }). Select
+   Activate in the Wallet, wait for listening, and say "I approve this operation".
+
+6. Lock the Wallet. Use auth.unlockWithAuthMethod with the registered VoiceID
+   method ID. Select Unlock in the Wallet and speak the same approval phrase.
+   The server issues a fresh session and the SDK installs the NEAR signer.
+
+7. Review a funded NEAR testnet transfer. Select Confirm. Wait for microphone
+   readiness. Say exactly "I approve this operation" or "I cancel this operation".
+
+To stop using VoiceID, remove it from SDK configuration and stop the local
+service. This preserves enrollment. Stop the service before enrolling again or
+deleting the template; it holds the Keychain namespace while it runs.
+To delete your enrollment deliberately:
+
+   ./bin/voiceid-host delete
+
+Moving the package requires restarting the service from its new location. Live microphone accuracy
+and a clean Mac remain acceptance checks. The MVP trusts your device and OS.
+Spoof detection is outside this profile. See NOTICE.txt and licenses/ for
+third-party attribution.
+
+Use the current VoiceID host and matching Wallet SDK. The approval-only host
+cannot activate a device key or sign an unlock challenge. The SDK plugin needs
+the native service, server verification, and method-bound custody envelope.
+The manual /voiceid page in the Wallet test app exposes each live-test step.

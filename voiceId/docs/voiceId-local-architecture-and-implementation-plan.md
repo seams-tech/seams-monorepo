@@ -1,12 +1,15 @@
 # Local VoiceID architecture and implementation plan
 
 Date: 2026-09-14
-Updated: 2026-10-22
+Updated: 2026-10-23
 Status: structure decisions, private Rust modules, domain types, and adapter
 contracts are in place, with boundary and compile-fail tests.
 The audio runtime shell now coordinates injected transcription and speaker
-adapters with a repeatable lifecycle journey. Concrete native model/capture/storage
-adapters, the host API, and product acceptance gates remain unimplemented.
+adapters with a repeatable lifecycle journey. Native Moonshine Tiny and ECAPA
+adapters pass a real-fixture reference-agreement journey. The macOS host implements
+microphone acquisition, three-capture enrollment, Keychain storage/deletion, and
+exact command checks. The macOS C ABI and compiled-caller journey are implemented.
+Live qualification and product acceptance gates remain open.
 The retained Python incremental Moonshine adapter is evaluation code.
 
 Related plans:
@@ -78,7 +81,8 @@ Use the existing Python package and model adapters as the evaluation baseline.
 The production engine is Rust, with a native shared library as the first artifact
 and explicitly provisioned runtime/model dependencies. The first development
 host is the current Apple Silicon Mac. Moonshine's native C API is the selected
-speech integration boundary. The native speaker backend remains an MVP decision.
+speech integration boundary. ECAPA exported to ONNX is the native speaker backend
+for the prototype. Population calibration remains open.
 PAD backend selection and target-robot qualification are later work.
 
 Keep execution direct, with bounded model work. Introduce process separation
@@ -183,14 +187,13 @@ Scaffolding steps 1 and 2, plus the domain/adapter contracts in step 3, are comp
 - `aarch64-apple-darwin` is the first native development target. This selects a
   build/integration host; the actual robot, array, camera, and environment still
   require L0 qualification.
-- The first deliverable is an embedded shared library (`cdylib`), with `rlib`
-  output for Rust composition/testing. Step 3 specifies host API responsibilities
-  and memory ownership; concrete C declarations and exports follow the runtime
-  shell. No executable service or IPC protocol is being introduced.
-- Moonshine stays a native dependency behind `adapters::native`. A standalone
-  Rust link/load probe against the provisioned Moonshine 0.0.71 arm64 artifact
-  returned C ABI version `20000`. Production stream integration and portable
-  release packaging remain implementation work.
+- The native deliverables include a shared library (`cdylib`), `rlib` output,
+  and the development CLI. ABI 1 has a compiled C journey. The CLI also hosts
+  one persistent stdio session for the browser prototype's loopback service.
+- Moonshine stays a native dependency behind `adapters::native`. The runtime
+  uses pinned Moonshine 0.1.5, C ABI `30000`, Tiny Streaming models, and native
+  ECAPA inference. Native fixture and browser journeys pass with network access
+  denied. Portable release packaging and live capture qualification remain open.
 - Domain, runtime, utterance, presence, attribution, and enrollment logic remain
   portable. Native capture/storage/clock/model bindings are excluded from WASM.
   Browser model execution and platform adapters remain independently qualified
@@ -206,8 +209,8 @@ The [engine contract checkpoint](../engine/README.md#domain-and-adapter-contract
 documents typed boundaries, ownership, limits, cancellation, and native host
 responsibilities. Twelve boundary tests and eight compile-fail tests cover the
 implemented value/type invariants. Step 4 now supplies the audio runtime and a
-lifecycle journey with generated PCM and model doubles. Real adapter implementations
-and concrete C exports follow. This progress does not complete the hardware,
+lifecycle journey with generated PCM and model doubles. Native adapters now process
+real fixtures. Concrete C exports follow. This progress does not complete the hardware,
 model, calibration, or release gates in L0-L7.
 
 ### Next implementation checkpoints — 2026-10-22
@@ -216,12 +219,19 @@ model, calibration, or release gates in L0-L7.
    deadlines, current-utterance/model correlation, audio-only attribution, single
    result consumption, cancellation, enrollment invalidation, and fresh-epoch restart.
    The integration journey regenerates `engine/target/runtime-lifecycle.e2e.json`.
-2. Native models: implement Rust Moonshine streaming against real fixture PCM.
-   Select the native speaker backend and compare its outputs with the Python baseline.
-   Verify model assets and measure startup, per-utterance cost, and cleanup.
-3. Local host: add microphone acquisition, speech endpoint detection, protected
-   enrollment storage, deletion, and a callable native host binding. Document one
-   local invocation and an offline smoke procedure.
+2. Native models: reference-agreement checkpoint implemented. Rust Moonshine 0.1.5
+   Tiny Streaming and ECAPA ONNX process real fixture PCM without Python or networking.
+   The journey checks verified assets, transcript/embedding agreement, boundary prefixes,
+   cancellation/restart recovery, and modified-model rejection. It records replay work
+   durations. Recognition quality, live latency, and release packaging remain open.
+3. Local host: development CLI implemented with CPAL capture, mono conversion,
+   resampling, bounded endpoint collection, deliberate three-capture enrollment,
+   serialized Keychain storage, and deletion. The synthetic host journey covers
+   real models/storage and exact first-person approve/cancel commands.
+   ABI 1 now exposes session, capture, result consumption, cancellation, and
+   enrollment operations. A compiled C caller checks real-time synthetic delivery,
+   expiry, stale handles, thread ownership, and protected enrollment lifecycle.
+   Live microphone qualification remains open.
 4. Wallet W0-W1: consume existing device/session authority, present one exact
    operation, and bind its spoken approval/cancellation to that attempt. Exercise
    the real path on testnet with a repeatable outcome report.
@@ -584,6 +594,14 @@ acceptance criteria and the robot runbook is executable. Until criteria are
 selected and measured, label the system experimental.
 
 ### L6 — Release the proprietary native package
+
+An internal Apple Silicon macOS package now contains the native host, ABI 1
+library and header, verified runtime assets, loopback service, and notices.
+The builder writes an archive and checksum. Its runtime metadata excludes research
+templates and fixtures. The package journey checks relocation, asset hashes,
+signatures, and idle service behavior without opening Keychain. Real-model
+native and browser checks remain separate. Live capture, clean-host qualification,
+Developer ID signing, notarization, and publication remain open.
 
 - [ ] Build and publish a versioned artifact from `seams-monorepo` using the
       selected release mechanism. Include required runtime/model dependencies,

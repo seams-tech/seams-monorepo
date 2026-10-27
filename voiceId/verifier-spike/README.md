@@ -4,6 +4,61 @@ Use this folder for offline model, corpus, calibration, fuzz, and resilience
 evaluation. The former browser and HTTP verifier application has been removed.
 Existing browser-recorded fixtures remain historical research inputs.
 
+## Native Rust model journey
+
+The native prototype uses Moonshine 0.1.5 and a full-waveform ECAPA ONNX export.
+The retained Python 0.0.71 profile remains a historical evaluation baseline.
+The native path uses one pinned version. It has no runtime model downloads.
+
+Use Python 3.11, `ffmpeg`, and the current Apple Silicon macOS host.
+Create a private environment from the selected checkout:
+
+```sh
+voiceid_repo=/absolute/path/to/selected/seams-monorepo
+python3.11 -m venv "$voiceid_repo/voiceId/verifier-spike/.cache/native-models/.venv"
+voiceid_python="$voiceid_repo/voiceId/verifier-spike/.cache/native-models/.venv/bin/python"
+"$voiceid_python" -m pip install -e "$voiceid_repo/voiceId/verifier-spike[native-export]"
+"$voiceid_python" "$voiceid_repo/voiceId/verifier-spike/prepare_native_models.py" \
+  --directory "$voiceid_repo/voiceId/verifier-spike/.cache/native-models" \
+  --fixtures /absolute/path/to/consented/voiceid-fixture-manifest.json
+```
+
+Provisioning downloads public models from the existing immutable manifest.
+It checks asset hashes, exports ECAPA with ONNX STFT, and compares the export
+with original SpeechBrain inference. Both encoders use the same normalized PCM.
+Only peaks above one require scaling. The command records that scale per case.
+Tracer warnings remain visible. Variable-length reference agreement is the export check.
+
+The preparation command requires three owner enrollment recordings and one longer
+owner verification recording. It creates eleven prefixes around decoder block
+and update boundaries. These prefixes remain derived cases from one recording.
+PCM, embeddings, and reference inputs remain inside the ignored private cache.
+The command sends no fixture media to a service.
+
+From the separate `seams-wallet` directory, use the absolute private manifest:
+
+```sh
+cargo build --offline --locked --release --example native_models_journey \
+  --manifest-path "$voiceid_repo/voiceId/engine/Cargo.toml"
+/usr/bin/sandbox-exec -p '(version 1) (allow default) (deny network*)' \
+  "$voiceid_repo/voiceId/engine/target/release/examples/native_models_journey" \
+  "$voiceid_repo/voiceId/verifier-spike/.cache/native-models/native-inputs.json" \
+  "$voiceid_repo/voiceId/engine/target/native-models.e2e.json"
+```
+
+Provision Cargo dependencies before the offline build on a clean host.
+The executable performs inference directly through verified native libraries.
+It requires no Python process. The macOS sandbox denies all network access.
+The JSON report contains identities, comparisons, outcomes, and replay timings.
+It contains no media, embeddings, or transcript text. Failed runs write a failure report.
+
+The [dated native report](reports/native-models-2026-10-22.json) records reference
+agreement for 30 recordings and eleven derived prefixes. It also records
+cancellation/restart recovery, old-epoch rejection, and modified-model rejection.
+The report does not establish population accuracy, live latency, enrollment
+collection, protected storage, or wallet signing. The `0.6` speaker threshold
+is a fixture development setting.
+
 ## Fixture Import
 
 Capture fixtures in the browser demo, download the manifest and audio files,
@@ -140,8 +195,10 @@ target-device latency and resource qualification remain open.
 
 Use the stream as a context manager or call `close()` on cancellation or a capture
 discontinuity. Finishing, cancelling, or failing closes the stream and decoder;
-subsequent calls cannot reuse that utterance. The existing cross-request isolation
-invariant is preserved by allocating a fresh decoder per utterance. The decoder
+subsequent calls cannot reuse that utterance. Each utterance receives a fresh decoder.
+The 0.0.71 evaluation profile does not establish VAD isolation or complete
+final-buffer processing. The native journey above owns the corrected host-boundary
+profile. The evaluation decoder
 stays open across that utterance's chunks. Decoder load time remains part of the
 latency budget until reuse is independently qualified.
 

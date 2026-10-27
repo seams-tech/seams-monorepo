@@ -1,0 +1,16 @@
+{
+  "status": "funded",
+  "network": "testnet",
+  "walletId": "misty-reef-hv6mdb",
+  "source": "official_testnet_faucet",
+  "funderAccountId": "voiceid-51b602d3-ef76-4d24-964a-a8fde5665b77.testnet",
+  "accountId": "c66c7627b5adb5d43c24692c85fba0e98d06dab9853648943470c99b323fe926",
+  "amountYocto": "50000000000000000000000",
+  "fundingTransactionHash": "DV1moqGHBC1qxHxq9Fe2JJvUUWDXL3RVpD742qbMjmod",
+  "funderDeleted": true,
+  "refundBeneficiary": "testnet",
+  "refundTransactionHash": "HWKvJyCU41YEWGrwjqoqnAki9cwa69fH2dYX1FjyBysz",
+  "funderPrivateKeyPersisted": false,
+  "balanceYocto": "50000000000000000000000",
+  "blockHeight": 274488216
+}

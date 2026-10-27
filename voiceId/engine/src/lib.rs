@@ -14,3 +14,7 @@ pub mod enrollment;
 pub mod presence;
 pub mod runtime;
 pub mod utterance;
+
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+pub mod ffi;

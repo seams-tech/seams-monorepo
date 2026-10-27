@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "voiceid_local_bridge_journey_v1",
+  "status": "passed",
+  "keychainAccess": "none; fake capture host",
+  "nativeReplySerialization": "production Rust serializer with synthetic values",
+  "unauthorizedOriginRejectedBeforeLaunch": true,
+  "statusChecksAndApprovalsShareOneNativeProcess": true,
+  "voiceGatedActivationAndUnlockMessagesForwarded": true,
+  "invalidActivationRejectedBeforeNativeHost": true,
+  "abandonedCaptureCancelled": true,
+  "secondWalletOriginRejected": true,
+  "hostFailureDoesNotRestart": true,
+  "safeNativeFailureDiagnostics": true,
+  "keychainDenialEndsStreamWithSetupError": true,
+  "nativeLaunches": 1
+}

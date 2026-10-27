@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "voiceid-browser-journey-v1",
+  "status": "passed",
+  "models": "real_native_moonshine_and_ecapa",
+  "capture": "real_time_synthetic_pcm_replay",
+  "store": "disposable_login_keychain_namespace",
+  "browser": "real_chromium_extension_and_native_messaging",
+  "boundary": "production_wallet_review_beforeSigning",
+  "transactionBroadcast": false,
+  "walletWorktree": "/Users/pta/.codex/worktrees/voiceid/seams-wallet",
+  "disposableNamespaceDeleted": true,
+  "nativeNetworkAccess": "denied_by_macos_sandbox",
+  "nativeHostSha256": "27c4dbd90d1997db51c695650ad152c75be94ebb317ce1b1dbc78a4973f522ee",
+  "extensionBridgeSha256": "f7d18f0e8cb4a9e184724feae11c901da032f7966e291bc945bb535accd4987d",
+  "cases": [
+    {
+      "case": "wallet_origin_opt_in",
+      "result": "required_after_real_native_enrollment_status"
+    },
+    {
+      "case": "application_origin",
+      "result": "cannot_connect"
+    },
+    {
+      "case": "signing_without_voice",
+      "result": "rejected"
+    },
+    {
+      "case": "enrolled_approval",
+      "result": "one_signing_admission",
+      "operationFrozen": true,
+      "reuse": "rejected"
+    },
+    {
+      "case": "cancel-44k1",
+      "result": "zero_additional_signing_admissions"
+    },
+    {
+      "case": "different-speaker",
+      "result": "zero_additional_signing_admissions"
+    },
+    {
+      "case": "extra-words",
+      "result": "zero_additional_signing_admissions"
+    },
+    {
+      "case": "cancel_pending_startup",
+      "result": "zero_additional_signing_admissions"
+    },
+    {
+      "case": "cancel_after_capture_started",
+      "result": "zero_additional_signing_admissions"
+    },
+    {
+      "case": "review_expiry",
+      "result": "zero_additional_signing_admissions"
+    },
+    {
+      "case": "new_operation_after_cancel_and_expiry",
+      "result": "fresh_native_approval_required"
+    }
+  ],
+  "walletProbeSha256": "15139df7532f0100671eaf6ed6652bd4e477e52707f099a8e75270d27b0f5779"
+}

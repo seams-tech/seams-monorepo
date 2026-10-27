@@ -5,10 +5,10 @@ runtime. It will combine current speech with recent visual and spatial context
 when available. Raw media, biometric templates, and inference stay on the local
 device. ZK and hosted biometric verification are outside the selected design.
 
-The proprietary engine and wallet provider will be developed here and shipped
-as versioned compiled artifacts: native first, with WASM as a separately
-qualified target. The optional public provider contract and wallet extension
-belong in `seams-wallet`; its SDK can integrate VoiceID without private source.
+The proprietary engine and native host are developed here and shipped as
+versioned compiled artifacts: native first, with WASM as a separately
+qualified target. The public Wallet approval integration belongs in
+`seams-wallet`; its SDK can integrate VoiceID without private source.
 The retained Python package is the evaluation baseline.
 
 The former browser recording, upload service, HTTP verifier, hosted deployment,
@@ -20,30 +20,45 @@ evaluation tools, research material, and private local fixtures remain.
 
 - [Local architecture and implementation](docs/voiceId-local-architecture-and-implementation-plan.md)
 - [MPC wallet extension](docs/voiceId-mpc-wallet-extension-plan.md)
+- [Wallet auth method and lazy plugin](docs/voiceId-wallet-auth-method.md)
 - [Legacy removal record](docs/voiceId-legacy-removal-plan.md)
 - [Architecture discussion history](docs/voiceId-architecture-discussion-2026-09-13.md)
 
 The [private Rust engine](engine/README.md) now includes validated domain types,
 adapter contracts, and a bounded audio runtime with a repeatable lifecycle journey.
 Its first target is an embedded native shared library on Apple Silicon macOS.
-Native Moonshine/model integration, capture, storage, host exports, and the wallet
-extension remain unimplemented. Nothing in this checkpoint authorizes robot actions
-or signing.
+Native Moonshine Tiny and ECAPA adapters process real local fixture PCM.
+A macOS development host adds microphone acquisition, deliberate three-capture
+enrollment, local Keychain storage, deletion, and exact spoken-command checks.
+The macOS shared library exports ABI 1 for native consumers. A compiled C caller
+verifies its lifecycle. The [browser prototype](browser/README.md) connects the
+wallet-owned review gate to a native process through a local loopback service.
+The earlier synthetic journey confirmed MPC signing and a testnet transfer.
+The loopback transport now passes an offline end-to-end test. Its full native
+and Wallet journey still needs a fresh run. The internal macOS package includes
+the host, shared library, runtime assets, local service, and notices. Live
+microphone and clean-Mac qualification remain open. See the
+[package setup](browser/SETUP.txt).
+Engine results carry no robot or signing authority.
 
-The first MVP assumes a user-controlled, authorized device. It checks the enrolled
-speaker and explicit approval for one pending wallet operation under existing
-authority. Spoof detection, visual confirmation, and authenticated capture are deferred.
+The first MVP assumes a user-controlled, authorized device. The current local
+gate checks the enrolled speaker before one wallet operation. The selected
+[auth-method design](docs/voiceId-wallet-auth-method.md) adds a device-bound
+credential and custody envelope so VoiceID can issue a fresh Wallet Session.
+Spoof detection, visual confirmation, and authenticated capture are deferred.
 
 ## Private engine
 
 `engine/` is one unpublished Rust package with modules for domain values, runtime
 coordination, utterances, presence, attribution, enrollment, adapters, and robot
-consumers. Native adapter code has its own target-specific module. The public
-wallet contract and private wallet provider will stay outside this crate.
+consumers. Native adapter code has its own target-specific module. The local
+host transports opaque perception bindings. Wallet operation construction,
+authentication, and signing remain in the public Wallet repository.
 
-The engine has no external dependencies, callable host API, or placeholder
-verification behavior. See [engine checks and decisions](engine/README.md) for
-native/WASM builds and the standalone Rust-to-Moonshine link/load probe.
+The portable engine compiles for native and WASM targets. Native model adapters
+use explicitly provisioned Moonshine and ONNX Runtime libraries with verified
+model files. Inference runs without Python or network access. See
+[engine checks and decisions](engine/README.md) for builds and the real-model journey.
 
 ## Retained source
 
@@ -58,9 +73,10 @@ adaptation:
   finalization, cancellation, and offline phrase/intent evaluation;
 - bounded stage execution used by resilience evaluation.
 
-The current file decoder converts imported media to mono 16 kHz PCM. It is for
-fixtures and offline evaluation. The new live capture path must preserve
-microphone-array channels until spatial processing finishes.
+The file decoder converts imported media to mono 16 kHz PCM for offline evaluation.
+The macOS wallet prototype also uses a mono path. Microphone-array spatial
+processing remains a separate robot capability. That future path must preserve
+channels until spatial processing finishes.
 
 `verifier-spike/` contains consent/provenance, corpus, model-manifest,
 calibration, benchmark, fuzz, and resilience tooling. Dated reports remain
@@ -89,8 +105,12 @@ Heavy model benchmarks require their optional dependencies and locally
 provisioned, checksum-verified model assets. Inference must not silently download
 a model or use a remote fallback.
 
-The next step is native streaming transcription and native speaker-backend
-qualification against the retained reference models. Live capture, protected
-enrollment storage, and concrete C declarations/exports follow. L0 owns the MVP
+Use the [macOS local host](engine/README.md#macos-local-host) for deliberate enrollment
+and voice checks. The next step is live recognition qualification through the
+loopback browser prototype. Native fixture replay, synthetic host composition,
+a compiled C caller, and the previous funded browser-to-MPC testnet journey
+have repeatable reports. Live recognition quality and resource budgets remain open.
+L0 owns the MVP
 microphone profile and measured resource/error budgets. L1 coordinates the minimal
-public provider contract with wallet W0. Wallet signing requires W0-W1 composition.
+public provider contract with wallet W0. Wallet W1 now has a confirmed synthetic
+speech testnet transfer. It still needs live capture and uncertain-outcome qualification.

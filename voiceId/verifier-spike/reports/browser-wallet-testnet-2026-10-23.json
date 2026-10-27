@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "voiceid-wallet-journey-v1",
+  "status": "passed",
+  "capture": "real_time_synthetic_pcm_replay",
+  "models": "real_native_moonshine_and_ecapa",
+  "browser": "real_chromium_extension_and_native_messaging",
+  "nativeNetworkAccess": "denied_by_macos_sandbox",
+  "signing": {
+    "status": "passed",
+    "chain": "deterministic_near_rpc",
+    "onChainConfirmed": false,
+    "ownerAuthority": "registered_wallet_with_owner_passkey_unlock_after_quota_exhaustion",
+    "signing": "real_ed25519_yao_mpc",
+    "signatureVerification": "registered_wallet_public_key",
+    "preparationQuota": {
+      "afterDenials": 0,
+      "afterOwnerUnlockAndSigning": 2
+    },
+    "cancellationPreventedFinalization": true,
+    "differentSpeakerPreventedFinalization": true,
+    "extraWordsPreventedFinalization": true,
+    "observedVoiceOutcomes": [
+      "cancelled",
+      "rejected",
+      "rejected",
+      "approved"
+    ],
+    "owner": {
+      "walletId": "solar-raven-uz4p4a",
+      "accountId": "a50b7ec703752ed60b2c5ec69066c7c7d20f7d52f6dfdaa099226be1d982c63e",
+      "publicKey": "ed25519:C7GSKc6xnhnaTKPLjpQV7nwtQDQ1e5eryWxy9UkrBMhX"
+    },
+    "transfers": [
+      {
+        "signedTransactionSha256": "4520ff43285ce1ff2743d503e59587ecd7df869700ca0eea14f513c849aa8b5c",
+        "signerId": "a50b7ec703752ed60b2c5ec69066c7c7d20f7d52f6dfdaa099226be1d982c63e",
+        "receiverId": "a50b7ec703752ed60b2c5ec69066c7c7d20f7d52f6dfdaa099226be1d982c63e",
+        "amountYocto": "1",
+        "nonce": "2"
+      }
+    ]
+  },
+  "testnet": {
+    "onChainConfirmed": true,
+    "funding": {
+      "source": "official_testnet_faucet",
+      "funderAccountId": "voiceid-d0ff4da6-7894-41d9-8ea9-2b6220344943.testnet",
+      "accountId": "a50b7ec703752ed60b2c5ec69066c7c7d20f7d52f6dfdaa099226be1d982c63e",
+      "amountYocto": "50000000000000000000000",
+      "fundingTransactionHash": "G2sHPHMJBmpqJiAw5dq5C61WhzmiFHrcKnrTVnWPgwGQ",
+      "funderDeleted": true,
+      "refundBeneficiary": "testnet",
+      "refundTransactionHash": "6jQsKRCy5esLcFefksQ5oB471zjJsQaLkzNn1qMMHgGm",
+      "funderPrivateKeyPersisted": false
+    },
+    "transfers": [
+      {
+        "signedTransactionSha256": "e2b438898c7e157d9ae6884a970812a60ca02686dea62676dce747a899c99716",
+        "signerId": "a50b7ec703752ed60b2c5ec69066c7c7d20f7d52f6dfdaa099226be1d982c63e",
+        "receiverId": "a50b7ec703752ed60b2c5ec69066c7c7d20f7d52f6dfdaa099226be1d982c63e",
+        "amountYocto": "1",
+        "nonce": "274280515000001"
+      }
+    ],
+    "transactionId": "5FDPRQykY9XXRfBJBh5UQ3ifQnWdBem8uBTdFc34piZE",
+    "finalExecutionStatus": "FINAL",
+    "explorerUrl": "https://testnet.nearblocks.io/txns/5FDPRQykY9XXRfBJBh5UQ3ifQnWdBem8uBTdFc34piZE"
+  },
+  "nativeHostSha256": "27c4dbd90d1997db51c695650ad152c75be94ebb317ce1b1dbc78a4973f522ee",
+  "extensionBridgeSha256": "971d996ea62a110b4e95db9c66a5ac4937f6ba171f15257624dbda5749c173a9",
+  "walletScenarioSha256": "ec3b87fb589ca3bd50354fd66b5136b5f2d47148e80966e184d676f4769b91ca",
+  "walletCommit": "7a21c7d0415e494fdb65a89be5d4956b77383e99",
+  "disposableAuthorityAndEnrollmentDeleted": true
+}

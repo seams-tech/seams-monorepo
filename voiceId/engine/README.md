@@ -1,10 +1,18 @@
 # Private VoiceID engine
 
-Audio runtime checkpoint as of 2026-10-22. The portable engine coordinates one
-bounded utterance through injected transcription and speaker adapters. It checks
+Browser/native checkpoint as of 2026-10-23. The portable engine coordinates one
+bounded utterance through transcription and speaker adapters. It checks
 continuity, deadlines, output correlation, enrollment changes, and result consumption.
-There is no concrete model/capture/storage adapter, enrollment collection,
-robot action, wallet integration, or callable C host API yet.
+Native Moonshine Tiny and ECAPA adapters process local fixture PCM.
+The macOS development host adds capture, enrollment collection, Keychain storage,
+deletion, and command checks. ABI 1 exposes those engine lifecycles to a native
+C caller. The development executable also serves the persistent local bridge
+used by the [browser prototype](../browser/README.md). The earlier composed
+journey reached the wallet's signing boundary with real models and synthetic
+speech, then confirmed a funded NEAR testnet transfer. The loopback transport
+still needs a fresh composed run. A relocatable package includes the host,
+shared library, runtime assets, and loopback service.
+Live microphone qualification, clean-Mac installation, and robot actions remain open.
 
 The first MVP assumes a user-controlled, authorized device. It uses speaker
 matching and local approval of one exact wallet operation under existing authority.
@@ -23,27 +31,24 @@ and assurance-aware admission remain unimplemented contract work.
 | --- | --- |
 | Production language | Rust, edition 2024. Keep the existing Python package as evaluation/reference tooling. |
 | First native host | The current Apple Silicon macOS development host, `aarch64-apple-darwin`. Target-robot hardware and sensor qualification remain open. |
-| First artifact | An embedded native shared library, built as `cdylib`. Step 3 defines host ownership below; concrete C layouts/exports follow the runtime shell. An `rlib` supports Rust composition and tests. No daemon or IPC service is introduced. |
-| Speech backend | Moonshine's native C API behind an adapter, starting with the existing 0.0.71 evaluation artifact. Native dependencies include its matching ONNX Runtime library. |
-| Browser direction | Compile the portable engine for `wasm32-unknown-unknown`. Browser capture, storage, model execution, and host bindings are separately qualified adapters. |
-| Package boundary | One unpublished private crate in `seams-monorepo/voiceId/engine`; the public wallet extension and private wallet provider remain outside this crate. |
+| First artifact | An embedded native shared library, built as `cdylib`, plus the development CLI. An `rlib` supports Rust composition and tests. The loopback service owns one persistent stdio host process. |
+| Speech backend | Moonshine 0.1.5, C ABI 30000, Tiny Streaming quantized models, and ONNX Runtime 1.23.2. The host supplies utterance boundaries. |
+| Speaker backend | Full-waveform ECAPA ONNX export from the pinned SpeechBrain reference. CPU inference uses ONNX Runtime through `ort`. |
+| Browser direction | The prototype uses a local loopback service on macOS. The portable engine also compiles for `wasm32-unknown-unknown`; browser model execution remains separate work. |
+| Package boundary | One unpublished private crate in `seams-monorepo/voiceId/engine`. Its native host transports opaque perception bindings. Wallet operation construction, authentication, and signing remain in the public Wallet repository. |
 
-The shared-library artifact currently has no VoiceID entry points. Its successful
-build establishes packaging structure only. The Rust contracts are available to
-private composition/tests; they are neither C ABI layouts nor a public Wallet API.
+Native model paths resolve from the metadata file's directory. The loader verifies
+each model and library before inference. The package uses relative asset paths.
 
-The Rust link/load probe in
-[`../verifier-spike/moonshine_link_probe.rs`](../verifier-spike/moonshine_link_probe.rs)
-passed against the installed arm64 Moonshine library on 2026-09-15, reporting
-C ABI version `20000`. It executes independently of Python. The library directory
-from the Python installation was used only as an already provisioned source of
-native binaries. No runtime dependency on the Python interpreter was added.
+The shared library exports the macOS [C API](include/voiceid.h).
+Its native C journey links only the compiled library and this header.
+The Rust contracts remain separate from C layouts and the public Wallet API.
 
-That probe establishes native linking and loading. It does not establish Rust
-streaming inference, Tiny Streaming accuracy/latency, clean-machine distribution,
-or robot performance. Implement and qualify the real adapter later, then package
-the required native libraries and license notices through the chosen release
-workflow. Avoid embedding developer-machine paths in production artifacts.
+The real-model journey replaces the earlier link/load probe. Python provisions
+assets, exports ECAPA, and prepares reference inputs. The Rust executable loads
+verified local libraries and performs all inference without Python. Clean-machine
+distribution and live recognition qualification remain open. Package required
+native libraries and license notices through the release workflow.
 
 Rust's [`cdylib` output](https://doc.rust-lang.org/reference/linkage.html) supports
 the native library boundary. The
@@ -69,9 +74,8 @@ The first six modules stay portable. Model-specific values are normalized at
 adapter boundaries. Consumers use engine results; perception never depends on
 consumer policy. The composition entry point supplies adapters to `AudioRuntime`.
 Domain and adapter contracts are exposed through documented Rust
-modules; native bindings and consumer implementation stay private. Unsafe code
-is denied; any future FFI exception must be narrowly scoped and reviewed in the
-native adapter or host binding.
+modules. Unsafe code is denied outside narrowly scoped native ABI bindings.
+The native module exposes safe Rust constructors and owned handles.
 
 The local plan's [guiding security principles](../docs/voiceId-local-architecture-and-implementation-plan.md#guiding-security-principles)
 govern runtime and adapter implementation, including bounded freshness, artifact
@@ -155,29 +159,54 @@ Media, transcripts, and plaintext templates deliberately lack `Debug` and `Clone
 Borrowed data cannot outlive its owner through these safe Rust contracts. Explicit
 backend copies remain possible; their bounded lifetime and cleanup must be tested
 when implemented. Dropping a buffer currently releases allocation ownership and
-does **not** guarantee memory erasure. Protected persistence is a contract only;
-no encryption backend or device key implementation exists yet.
+does **not** guarantee memory erasure. The macOS prototype stores ECAPA templates
+in the user's encrypted login Keychain. It disables iCloud synchronization.
+Its random local device identifier is storage metadata. Wallet-authorized device
+binding remains W0 work. The prototype makes no hardware-attestation claim.
 
-### Native host boundary ownership
+### Native C boundary ownership
 
-The future C binding owns an opaque engine/session handle and bounded request/result
-handles. Its minimum responsibilities are session creation/closure, local capture
-submission, polling owned results, cancellation, and explicit local enrollment
-operations. Native capture adapters and host-supplied media enter the same validated
-capture boundary; there is no second perception path.
+The macOS [header](include/voiceid.h) defines ABI 1. Call `voiceid_abi_version()`
+before opening a session. The API owns model/session/request state behind numeric
+handles. The registry accepts four sessions per OS thread. A handle works only
+on its creating thread. Closing invalidates all requests owned by that session.
+Handle allocation uses a random initial value and never wraps or reuses values
+during the library lifetime.
 
-Host input pointers are borrowed only during a submission call. The binding checks
-lengths before allocation and copies accepted input into engine-owned buffers before
-returning. Output memory remains engine-owned until an explicit release call; a host
-may copy permitted output before release. Rust `Vec`, `String`, trait objects, and
-enum layouts never cross C directly. Handles are scoped to one engine instance;
-destroying it invalidates them and drains native readers before releasing buffers.
+`voiceid_open_v1` verifies model metadata and acquires the enrollment namespace's
+exclusive process lease. It opens no microphone. The consumer supplies canonical
+mono 16 kHz PCM. The CLI's CoreAudio path and C submissions use the same runtime,
+transcriber, speaker matcher, enrollment gates, and protected store.
 
-These are ownership/API responsibilities, with **no exported functions or fixed wire
-layout in this checkpoint**. Concrete C declarations, enum tags, handle validation,
-and panic/error translation follow the runtime shell so the binding exposes real
-lifecycle operations. Browser bindings are separately implemented against the same
-portable values. Wallet requests and wallet secrets stay outside both boundaries.
+Begin an attempt before acquiring its first sample. Map source timestamps to
+`voiceid_now_v1`'s monotonic epoch. Submit contiguous chunks of at most 1,600 samples,
+then finish and take once. Timeout is 250–30,000 ms. The cumulative limit is
+160,000 samples. Cancellation, expiry, deletion, close, and discontinuity prevent
+result reuse. A stopped capture requires closing and reopening the session.
+
+The host owns every input and output buffer. The boundary checks lengths and
+alignment before copying accepted input. The caller must supply valid allocations
+for those lengths. A result uses 24 caller-owned bytes. It contains the request
+identity, expiry, speaker outcome, and exact command. It exports no transcript,
+template, embedding, Rust allocation, or borrowed pointer. Failures clear outputs.
+An invalid output pointer cannot consume a pending result.
+
+Deliberate enrollment has one request handle and three non-overlapping captures.
+Each capture passes the same speech collector and native embedding gate.
+The third consistent capture commits the template. Setup expires after 90 seconds.
+Cancellation discards partial setup. Deletion first invalidates pending work.
+Empty-namespace cleanup consumes its session and removes only empty device metadata.
+
+All calls are synchronous. Use one dedicated native thread and send cancellation
+between work calls. Native calls retain inputs until their readers finish.
+The consumer must recheck its own cancellation before using a returned result.
+Contained Rust panics clear the current thread's registry and return an error.
+Close every session before unloading the library.
+
+These results describe perception. The wallet consumer owns the exact presented
+operation, existing authority, and operation-bound approval lifecycle. Native result
+delivery alone grants no signing permission. Browser origin/transport integration
+remains a separate boundary.
 
 ## Checks
 
@@ -192,7 +221,9 @@ cargo build --offline --locked --manifest-path ../seams-monorepo/voiceId/engine/
 cargo build --offline --locked --manifest-path ../seams-monorepo/voiceId/engine/Cargo.toml --release --target wasm32-unknown-unknown
 ```
 
-The manifest has no dependencies on Wallet, Python, Moonshine, or model assets.
+The portable modules have no model dependencies. Native-only dependencies provide
+dynamic loading, ONNX inference, JSON boundaries, and SHA-256 artifact checks.
+Cargo does not download model assets or ONNX Runtime libraries during a build.
 Artifacts remain under this crate's ignored `target/` directory. These commands
 do not modify Wallet source or its Cargo lockfiles. The current 12 boundary tests
 cover media limits/format, epoch binding, text finality, presence horizon, visual
@@ -212,28 +243,170 @@ It writes `voiceId/engine/target/runtime-lifecycle.e2e.json`, with named outcome
 and explicit test-double provenance. The report contains no media, embeddings,
 or transcripts. The ignored artifact is regenerated by the command.
 
-To repeat the optional native link/load probe from that same directory, set the
-native library directory to an explicitly provisioned Moonshine 0.0.71 artifact:
+## Native model journey
+
+Follow the [provisioning and replay procedure](../verifier-spike/README.md#native-rust-model-journey)
+to generate private inputs and run `examples/native_models_journey.rs`.
+The journey compares canonical transcript hashes, ECAPA embedding direction,
+speaker scores, and runtime outcomes with independent Python model calls.
+It checks cancellation/restart recovery, old-epoch rejection, and modified-model rejection.
+
+Moonshine receives at most 1,600 source samples per call and updates after each
+8,000 source samples. Finalization appends one zero block and aligns the total
+to 1,280 samples. This preserves the final source samples in Moonshine's block
+ingestion. Model padding does not extend the captured source interval.
+The selected profile disables internal VAD. The host owns speech boundaries.
+The model identity commits to assets, libraries, and preprocessing settings.
+Moonshine's [ingestion loop](https://github.com/moonshine-ai/moonshine/blob/v0.1.5/core/transcriber.cpp#L1286-L1323)
+requires complete blocks. Its [stop/drain path](https://github.com/moonshine-ai/moonshine/blob/v0.1.5/core/transcriber.cpp#L698-L858)
+retains pending audio for final transcription.
+
+The ECAPA export includes the original filterbank, full-utterance mean normalization,
+and embedding network. It accepts one variable-length mono 16 kHz waveform.
+The journey requires embedding cosine agreement of at least `0.99999` and a
+speaker-score difference of at most `0.001`. The development acceptance threshold
+of `0.6` and simple sample-count/RMS gates lack population qualification.
+
+The report separates original recordings from derived boundary prefixes.
+Enrollment uses a Python reference mean from three owner enrollment recordings.
+Native enrollment collection remains open. Accelerated fixture replay does not
+measure live capture latency or establish recognition quality. Overlap detection,
+PAD, wallet signing, and protected storage remain outside this journey.
+
+The initial native comparison used 160-sample final padding and implicit Python
+updates. Review found two faults in that comparison:
+
+| Candidate cause | Evidence and decision |
+| --- | --- |
+| Incorrect C structure layout or resource lifetime | Installed ABI sizes/offsets and owned-handle cleanup match the pinned C declarations. No defect found in those paths. |
+| Final source samples remain outside a complete model block | The upstream loop consumes only complete 1,280-sample blocks. Finalization now aligns the total after one zero block. |
+| Python padding triggers an extra partial decode | Explicit source-sample updates now match Rust. Padding causes no partial update before stop. |
+| Random model output | The earlier output differences do not prove randomness. That claim remains unestablished. |
+
+Measured: canonical transcripts agree for all journey cases. Embeddings and
+speaker scores agree within the report's declared bounds. The network-denied
+executable completes cancellation/restart and model-corruption scenarios.
+
+Inferred: the corrected profile feeds every real source sample to the model.
+The ingestion code and block alignment support that conclusion.
+
+Unknown: recognition accuracy, live endpoint behavior, and live latency.
+The next local-host checkpoint must measure these with consented microphone
+attempts and known spoken commands on the selected Mac.
+
+## macOS local host
+
+`voiceid-host` supplies one explicitly activated local flow. It never opens the
+microphone during startup, status, or device inspection. Enrollment and command
+checks start capture only after the user presses Enter. Dropping capture stops
+the stream. The host stores a voice template after three consistent captures.
+It writes no microphone recording or transcript file.
+
+Build from the separate `seams-wallet` directory. Use the selected checkout's
+absolute path, including its worktree path when applicable:
 
 ```sh
-voiceid_moonshine_lib_dir=/absolute/path/to/provisioned/moonshine
-voiceid_probe_dir=$(mktemp -d /tmp/voiceid-native-link.XXXXXX)
-rustc --edition=2024 ../seams-monorepo/voiceId/verifier-spike/moonshine_link_probe.rs \
-  -L "native=$voiceid_moonshine_lib_dir" \
-  -C "link-arg=-Wl,-rpath,$voiceid_moonshine_lib_dir" \
-  -o "$voiceid_probe_dir/moonshine-link-probe"
-"$voiceid_probe_dir/moonshine-link-probe"
+voiceid_repo=/absolute/path/to/selected/seams-monorepo
+cargo build --offline --locked --release --bin voiceid-host \
+  --manifest-path "$voiceid_repo/voiceId/engine/Cargo.toml"
+voiceid_host="$voiceid_repo/voiceId/engine/target/release/voiceid-host"
+voiceid_models="$voiceid_repo/voiceId/verifier-spike/.cache/native-models/native-inputs.json"
+"$voiceid_host" devices
+"$voiceid_host" enroll "$voiceid_models"
+"$voiceid_host" check "$voiceid_models"
+"$voiceid_host" status
+"$voiceid_host" delete
 ```
 
-This macOS development probe requires `libmoonshine.dylib` and its matching
-`libonnxruntime.1.23.2.dylib`. It remains outside the dependency-free scaffold.
+Use the [existing provisioning procedure](../verifier-spike/README.md#native-rust-model-journey)
+to create model metadata first. The host reads only model paths, hashes, and
+speaker settings. It ignores research templates and fixture cases.
+
+For enrollment, read a sentence for three to six seconds after each prompt.
+The collector requires two seconds of voiced frames per capture. All three
+speaker embeddings must have pairwise similarity of at least `0.6`.
+This is a development gate with no population-calibration claim.
+
+For a command check, say **“I approve this operation”** or **“I cancel this operation.”**
+The host requires a matched speaker and the exact final phrase. Extra words,
+contradictory commands, and unrecognized speech produce no recognized command.
+The displayed result performs no wallet action.
+
+CPAL acquires the default microphone format. The adapter accepts float PCM at
+16, 44.1, or 48 kHz with up to eight channels. It averages channels, resamples
+through Rubato, removes filter delay, and emits 160-sample mono frames at 16 kHz.
+The inspected Mac profile is 48 kHz mono float. Acquisition requests its current rate.
+The audio callback performs no model inference or Keychain work.
+
+A 640 ms queue bounds capture output. Overflow, device errors, and source-clock
+steps above 2 ms invalidate capture. The host brackets CPAL's stream clock with
+local monotonic reads before starting acquisition. The 25 ms absolute clock bound
+remains an engineering assumption for live qualification.
+
+The collector retains 200 ms of pre-roll and ends after 800 ms of quiet audio.
+Its RMS threshold is `0.006`. Command capture requires half a second of voiced
+frames. Ten seconds is the maximum collected utterance. These settings require
+live evaluation in quiet and noisy rooms.
+
+The Keychain store holds an exclusive application-namespace lease throughout
+each host operation. Another VoiceID process receives a conflict while it is held.
+This serializes reads, replacement, deletion, capture, and result consumption.
+The persistent bridge keeps one native session and its loaded enrollment under
+that lease. Status checks and approval attempts reuse the loaded enrollment.
+Stopping the service releases the lease before enrollment can change.
+The expected enrollment version also enters the Security query. The login
+Keychain API alone does not establish an atomic conditional update.
+[Apple's implementation](https://github.com/apple-oss-distributions/Security/blob/main/OSX/libsecurity_keychain/lib/SecItem.cpp#L5017-L5113)
+searches for items before mutating their handles.
+
+Lease files contain no template or device key. They remain under
+`~/Library/Application Support/Seams/VoiceID/locks/` so their inodes stay stable.
+All VoiceID hosts must use this store boundary. Direct OS administration remains
+inside the trusted-device assumption.
+
+### Repeatable host journey
+
+Run from `seams-wallet`, with the variables above:
+
+```sh
+cargo build --offline --locked --release --lib --example local_host_journey \
+  --manifest-path "$voiceid_repo/voiceId/engine/Cargo.toml"
+/usr/bin/sandbox-exec -p '(version 1) (allow default) (deny network*)' \
+  "$voiceid_repo/voiceId/engine/target/release/examples/local_host_journey" \
+  "$voiceid_models" "$voiceid_repo/voiceId/engine/target/local-host.e2e.json"
+```
+
+The journey uses macOS `say` voices and `ffmpeg` to create known synthetic speech.
+It runs the production normalizer, collector, real models, and a disposable
+Keychain namespace. A child process checks exclusive namespace admission.
+The journey checks enrollment consistency, approve/cancel recognition, extra-word
+rejection, a different speaker, single result consumption, advancing/stale versions,
+cancelled/expired mutations, deletion, capture gaps, and callback bounds.
+It removes its Keychain items and preserves completed cases when a later step fails.
+
+The same command compiles a C11 caller with strict compiler warnings, links the
+release library, and replays the synthetic media with real elapsed time.
+Its ten named scenarios cover C layout, bounds, thread/namespace ownership,
+enrollment, cancellation, approve/cancel recognition, speaker/extra-word rejection,
+expiry, single consumption, capture gaps, close/reopen, and deletion.
+The combined report records library/header hashes and the C caller's outcomes.
+
+The [dated host report](../verifier-spike/reports/local-host-2026-10-23.json)
+contains outcomes, model identities, and synthetic PCM hashes. It contains no
+media, embeddings, or transcript text. Synthetic replay does not establish live
+microphone timing, human recognition accuracy, or spoof resistance.
+
+The imperative phrase “approve this operation” produced “approved this operation”
+in both native replay and an unchanged Python control on full source audio.
+The first-person phrase matched in the reference control and native journey.
+This supports the selected phrase. It does not establish a population accuracy rate.
 
 ## Next checkpoint
 
-Step 4's audio runtime and lifecycle journey are implemented. Next, stream real
-fixture PCM through a native Rust Moonshine adapter and qualify a native speaker
-backend against the retained Python reference. Then add live capture, protected
-enrollment, the C host binding, and wallet W0-W1 composition.
+The runtime, native models, local host flows, and C boundary are implemented.
+Next, complete a deliberate live user journey through the local bridge and
+measure capture timing, endpoint behavior, and command recognition. The Wallet
+already gates the selected NEAR signing path under existing device/session authority.
 
 Keep unimplemented capabilities unavailable. Test doubles stay inside the
 integration test; no production adapter returns placeholder identity success.

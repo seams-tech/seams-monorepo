@@ -1,10 +1,13 @@
 # Local VoiceID extension for MPC wallet signing
 
 Date: 2026-09-14
-Updated: 2026-10-21
-Status: proposed extension; no VoiceID wallet factor or signing integration is
-implemented by this plan. Local gating and standalone remote admission are
-separate delivery stages.
+Updated: 2026-10-23
+Status: the browser/native local gate is implemented on isolated VoiceID branches.
+The real-model browser journey runs MPC, verifies the signature, and confirms a
+reviewed transfer on NEAR testnet. Live microphone qualification remains open.
+The selected next delivery stage is a fresh Wallet Session auth method. Its
+[device, custody, and server contract](voiceId-wallet-auth-method.md) is the
+current implementation target.
 
 Related plans:
 
@@ -28,21 +31,20 @@ the transaction-approval, local custody/access, and server-admission boundaries.
 
 ## First MVP trust model
 
-Assume the user controls the device, its OS, and the signing runtime. Signing
-uses authority established on that device during wallet setup or through the
-existing device-linking flow. Linking requires scanning and approval from an
-authorized owner device. Voice approval cannot enroll an unauthorized device or
-replace wallet recovery, unlock, session authority, or server admission.
+Assume the user physically possesses an open, active device and controls its OS
+and signing runtime. Initial VoiceID activation uses an existing owner unlock.
+Device linking still requires scanning and approval from an authorized owner
+device. A later voice-only unlock uses a registered device key and server proof.
 
 The MVP checks the current enrolled speaker, usable audio, and explicit approval
 of the exact presented operation. It preserves operation expiry, cancellation,
 single consumption, and the wallet's existing authorization checks.
 
 Spoof detection and resistance to cloned or replayed speech are outside MVP
-acceptance. Camera evidence, authenticated capture, hardware attestation, and a
-new server-recognized VoiceID factor are later work. Protocol replay and reuse of
-an earlier approval remain rejected. Voice is a local approval interaction within
-existing device authority. This profile makes no spoof-resistance or liveness claim.
+acceptance. The physically present user is assumed able to notice an attempted
+recording replay. Camera evidence, authenticated capture, and hardware
+attestation remain later work. Protocol replay and reuse of an earlier
+assertion remain rejected. This profile makes no spoof-resistance claim.
 
 ## Public extension and proprietary provider
 
@@ -52,12 +54,11 @@ VoiceID implementation. The engine, model integration, calibration, and private
 provider implementation remain in `seams-monorepo/voiceId` and are delivered as
 versioned proprietary native/WASM artifacts with any required host bindings.
 
-The integrating wallet runtime explicitly supplies a provider implementing the
-public contract. Public SDK builds, examples, and contract tests work without
-private source, models, or release credentials. VoiceID is optional: importing
-the base SDK does not load the engine or fetch biometric model assets. Use the
-existing wallet package conventions for an optional module/export; introduce a
-separate package only if the delivery boundary needs it.
+The SDK selects the VoiceID auth-method plugin. Its browser code loads on first
+enabled use and invokes a loopback service with a persistent native host. Public
+SDK builds and contract tests work without private source, models, or release
+credentials. Importing the base SDK loads no private engine or biometric model
+assets. The existing authentication and signing runtime retain their authority.
 
 ### Minimal provider surface
 
@@ -156,15 +157,16 @@ Custody terms retain their existing meanings:
 - An additional device authorization key signs admission assertions only. It is
   distinct from all MPC signing material and never substitutes for an MPC share.
 
-Prefer a linked device's suitably scoped signing lane for the standalone native
-device pilot. This avoids giving the robot the wallet custody seed. Verify that
-the existing device-linking/provisioning flow supports the selected runtime;
-the reviewed specification is not proof that a native robot adapter exists.
+The first Wallet auth-method pilot targets the existing browser wallet on its
+authorized device. It reseals the wallet custody seed under a random device-held
+factor secret. The native host releases only that factor secret after VoiceID
+checks and never receives the wallet custody seed. A linked device keeps its
+existing scoped authority; this method does not elevate it to an owner root.
 
-Adding VoiceID as an owner-level seed-envelope unlock method is a separate
-custody expansion. If later selected, it must protect the same existing seed
-under a cryptographic device key and preserve the authenticated wallet/key
-manifest binding. It is outside the initial pilot.
+VoiceID as an owner-level seed-envelope unlock method is now selected. It
+protects the same existing seed under a random, device-held factor secret and
+preserves the authenticated wallet/key manifest binding. The
+[auth-method contract](voiceId-wallet-auth-method.md) defines this expansion.
 
 ## Transaction approval flow
 
@@ -324,20 +326,56 @@ actual method recorded accurately. The first MVP requires no PAD result.
 
 ### W0 — Define one narrow integration contract
 
-- [ ] Choose the native host, wallet lane/protocol, test network, initial asset
+The private native boundary now exists. ABI 1 exposes bounded session, capture,
+enrollment, cancellation, and single-use perception results. Its compiled C journey
+passes with real models, protected storage, and real elapsed-time expiry.
+The browser prototype composes that engine with the public wallet review gate.
+The [runbook](../browser/README.md) records setup and repeatable evidence.
+
+Repository inspection on 2026-10-23 established these integration boundaries:
+
+| Concern | Existing owner | Integration requirement |
+| --- | --- | --- |
+| Signing orchestration | `seams-wallet/packages/wallet/src/core/runtime` | The existing browser wallet invokes the local loopback bridge. |
+| Operation identity | Frozen wallet-iframe request and execution configuration | SHA-256 covers the wallet, exact transfer, network, review identity, generation, and expiry. The existing signer retains its canonical intent/display digest and operation state. |
+| Existing authority | Selected lane identity, `WalletSessionRef`, quota, and threshold-session types | Voice success cannot construct or replace those values. |
+| Presentation lifecycle | `TransactionReviewWire` and `TransactionReviewAdmission` | Preserve connection/request/surface/generation identity, activation, expiry, cancellation, and the signing boundary. |
+| Local voice result | Private native ABI 1 request/result handles | Consume once within the same pending wallet operation. Reject another operation, generation, session, or host lifetime. |
+| Native wallet orchestration | No embedded wallet SDK crate exists in this checkout | The runtime README's embedded-SDK statement is stale. A standalone native wallet needs orchestration work beyond the C perception interface. |
+
+The selected host is the existing browser wallet with a loopback service and a
+persistent native process. The wallet origin owns admission. The bridge checks
+its caller, protocol version, operation binding, cancellation, and lifecycle.
+The native process owns its microphone, models, and Keychain enrollment lease.
+
+The first profile implements one reviewed NEAR testnet transfer. It uses the
+existing canonical transaction, intent/display digest, and session authorization.
+Present that frozen operation before collecting **“I approve this operation”** or
+**“I cancel this operation.”** Revalidate all bindings before MPC participation.
+The public contract exercises changed operations, late replies, cancellation,
+expiry, single consumption, and a fresh replacement. The private journey adds
+real native models, another speaker, spoken cancellation, and extra words.
+It verifies a real Ed25519 Yao signature against the registered key, then confirms
+a funded one-yoctoNEAR transfer on testnet. Three denied preparations exhaust the
+existing quota. The owner passkey unlocks a new session before approval.
+The [testnet evidence](../verifier-spike/reports/browser-wallet-testnet-2026-10-23.json)
+records funding, finality, public-key verification, and disposable-state cleanup.
+Live capture and uncertain broadcast outcomes remain open.
+
+- [x] Choose the native host, wallet lane/protocol, test network, initial asset
       and transaction allowlist. Keep the first real signing exercise on testnet.
-- [ ] Map challenge and approval fields to existing wallet operation, session,
+- [x] Map challenge and approval fields to existing wallet operation, session,
       authority, quota, canonicalization, and confirmation boundaries.
-- [ ] Define the minimal public provider contract and optional extension surface
+- [x] Define the minimal public provider contract and optional extension surface
       in `seams-wallet`, coordinating with local-plan L1. Specify distinct local
       approval and device-assertion variants, boundary parsers, and cancellation.
-- [ ] Select the private artifact/native binding and version/capability contract.
+- [x] Select the private artifact/native binding and version/capability contract.
       Document the browser wallet-origin boundary for later L7 integration.
-- [ ] Add public contract tests with deterministic provider doubles independent
+- [x] Add public contract tests with deterministic provider doubles independent
       of private assets. Keep real model/provider evaluation in `seams-monorepo`.
-- [ ] Select the local trusted process boundary and how it exclusively controls
+- [x] Select the local trusted process boundary and how it exclusively controls
       the integration's signing entry point.
-- [ ] Set approval timeout, retry/rate limits, approval/cancellation vocabulary, risk
+- [x] Set approval timeout, retry/rate limits, approval/cancellation vocabulary, risk
       limits, and measurable acceptance criteria.
 
 Exit: a public extension contract and a private provider delivery boundary for
@@ -350,24 +388,25 @@ MPC behavior. No proprietary source is required to build or test the extension.
       lane/session material. Do not add a VoiceID factor yet.
 - [ ] Require an authorized setup device or an owner-approved linked device.
       Voice enrollment or approval cannot provision signing authority on another device.
-- [ ] Add the operation-bound challenge, deterministic summary, and pending
+- [x] Add the operation-bound challenge, deterministic summary, and pending
       approval lifecycle within the existing wallet workflow.
-- [ ] Adapt local VoiceID to the wallet's active approval profile without PAD,
+- [x] Adapt local VoiceID to the wallet's active approval profile without PAD,
       random spoken cues, visual evidence, or authenticated sensor capture.
       Keep wallet server challenges outside ordinary robot interactions.
-- [ ] Implement the optional public extension in `seams-wallet` and the private
+- [x] Implement the optional public extension in `seams-wallet` and the private
       provider in `seams-monorepo`. Integrate the actual compiled native release
       using local-plan L2 for the prototype. Clean-host distribution follows L6;
       robot visual-context and spoof-detection milestones do not block W1.
-- [ ] Gate the actual client signing entry point; keep secret material and the
+- [x] Gate the actual client signing entry point; keep secret material and the
       reusable session handle inaccessible to the conversational caller.
 - [ ] Add exact-operation consumption, failure, cancellation, restart, and
       uncertain-outcome behavior.
 - [ ] Run an E2E scenario covering owner approval, another speaker, a changed
       operation, expiry, cancellation, and duplicate approval delivery. Produce a
       repeatable report with operation outcomes and timings, excluding biometric media.
-- [ ] Exercise the complete path on testnet and qualify the wallet-specific
-      captures. A successful robot demo alone does not pass this gate.
+- [x] Confirm the complete path on testnet with synthetic speech, native models,
+      real owner authority, and real MPC. Retain the signature and receipt evidence.
+- [ ] Qualify wallet-specific live captures and uncertain broadcast outcomes.
 - [ ] Verify the native provider against the public contract. Missing providers,
       unsupported versions/profiles, cancellation, and artifact/bridge failure
       cannot bypass approval. Clean-host distribution remains local-plan L6 work.

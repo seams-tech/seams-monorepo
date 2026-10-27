@@ -40,15 +40,16 @@ The default page is `http://localhost:4001/wallet`. Set `SEAMS_WALLET_SITE_ORIGI
 to test another wallet page URL. Screenshots, `result.json`, and `trace.zip` go to
 `.artifacts/wallet-component-showcase/`.
 
-The VoiceID preview selects a phrase for each approval and avoids consecutive repeats.
-Its six SDK-supported phrases include “No crying in the casino.” The review, voice
+The VoiceID concept preview receives a prepared sale of 10 NEAR for USDC. It shows
+an example minimum output and slippage limit, prepares the short phrase “Sell ten
+NEAR.”, then plays simulated voice approval and the SDK receipt. The review, voice
 prompt, and receipt use the theme selected in the hero demo: Paper, Carbon, Pastel,
-or Pastel Dark. It previews a simulated 2.5 NEAR transfer from `alex.near` to `shop.near`,
-with a NEAR transaction ID and a Nearblocks link. The voice capture remains simulated.
+or Pastel Dark. The preview uses no microphone, model API, inference assets, or
+signing endpoint. Preparation and speech activity follow the canvas playback clock.
 VoiceID and transaction receipts minimize into a toast and expand back in 240 ms.
 
-Run `node tests/e2e/wallet-voiceid-showcase.e2e.mjs` to check all four themes, prompt
-cancellation, phrase changes, receipts, and mobile layouts. Screenshots, `result.json`,
+Run `node tests/e2e/wallet-voiceid-showcase.e2e.mjs` to check all four themes,
+preparation/capture cancellation, pause/resume, receipts, and mobile layouts. Screenshots, `result.json`,
 and `trace.zip` go to `.artifacts/wallet-voiceid-showcase/`.
 
 Authentication completion cards retain the selected theme for their surface, text,

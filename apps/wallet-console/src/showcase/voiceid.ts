@@ -14,7 +14,6 @@ import type {
 } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-receipt';
 import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/display';
 import { VoicePrompt } from '@voiceid-ui/capture/prompt';
-import type { SpokenPhrase } from '@voiceid-ui/browser/phrase';
 import { showcaseAppearance, showcasePreset } from './showcaseTheme';
 import { schedulePlayback } from './playbackClock';
 import { playReceiptLifecycle, shortenReceiptTransition } from './receiptLifecycle';
@@ -23,39 +22,59 @@ import { configureModalBackdrop } from './modalBackdrop';
 
 configureModalBackdrop();
 
-/* The SDK's transaction confirmer with its VoiceID card on sample data. A
-   simulated voice reads the phrase; the card checks it and hands its progress
-   segments to the receipt. No microphone opens and nothing is signed or sent. */
+/* A concept preview of a prepared trade becoming a short voice confirmation.
+   The application supplies the intent. Capture, phrase preparation and the
+   transaction lifecycle are simulated without microphone or network requests. */
 
-const transfer: TxDisplayModel = {
-  chain: 'near',
-  signerAccount: 'alex.near',
-  operations: [
-    {
-      id: 'transfer',
-      kind: 'generic.contractCall',
-      label: t('transferNear'),
-      to: 'shop.near',
-    },
-  ],
-  totals: { nativeValue: '2.5', nativeSymbol: 'NEAR', estimatedFee: '0.00005', feeSymbol: 'NEAR' },
+const trade = {
+  sellAmount: '10',
+  spokenAmount: 'ten',
+  sellAsset: 'NEAR',
+  receiveAsset: 'USDC',
+  minimumReceived: '28.40',
+  slippage: '0.5%',
+  fee: '0.00005',
+  signer: 'alex.near',
 };
 
-const phrases: readonly SpokenPhrase[] = [
-  'no crying in the casino',
-  "i'm here for the tech",
-  'if you panic panic early',
-  'exit liquidity for all passengers',
-  'dump on them slowly',
-  'approve this transfer at once',
-];
-let phraseIndex = Math.floor(Math.random() * phrases.length);
-// When the simulated voice starts and stops, when the card checks it, and
-// when the signed receipt takes the card over.
-const SPEECH_START_MS = 700;
-const SPEECH_END_MS = 3100;
-const CHECK_MS = 3500;
-const SIGNED_MS = 5000;
+function tradeCopy(template: string): string {
+  return template
+    .replaceAll('{amount}', trade.sellAmount)
+    .replaceAll('{spokenAmount}', trade.spokenAmount)
+    .replaceAll('{asset}', trade.sellAsset)
+    .replaceAll('{receiveAsset}', trade.receiveAsset)
+    .replaceAll('{minimumReceived}', trade.minimumReceived)
+    .replaceAll('{slippage}', trade.slippage);
+}
+
+const transaction: TxDisplayModel = {
+  chain: 'near',
+  signerAccount: trade.signer,
+  operations: [
+    {
+      id: 'swap',
+      kind: 'near.action',
+      actionType: 'functionCall',
+      label: tradeCopy(t('voiceTradeAction')),
+      fields: [
+        { label: t('minimumReceived'), value: `${trade.minimumReceived} ${trade.receiveAsset}` },
+        { label: t('slippageLimit'), value: trade.slippage },
+        { label: t('receivingAccount'), value: trade.signer },
+        { label: t('quoteValidity'), value: t('exampleQuoteValidity') },
+      ],
+    },
+  ],
+  totals: {
+    nativeValue: trade.sellAmount,
+    nativeSymbol: trade.sellAsset,
+    estimatedFee: trade.fee,
+    feeSymbol: trade.sellAsset,
+  },
+};
+
+const PREPARATION_MS = 1400;
+const SPEECH_MS = 3000;
+const CHECK_MS = 1500;
 const ACTIVITY_INTERVAL_MS = 32;
 
 const explorer = 'https://nearblocks.io/';
@@ -63,10 +82,10 @@ const stage = document.getElementById('root') as HTMLElement;
 sendExplorerLinksHome(stage, explorer);
 let handle: ConfirmationSurfaceHandle | null = null;
 let voice: VoicePrompt | null = null;
+let playback: VoiceTradePlayback | null = null;
 let receipt: TransactionReceiptState = { kind: 'signing' };
 let view: TransactionReceiptView = 'expanded';
-let stopVoice = (): void => {};
-let stopLifecycle = (): void => {};
+let stopLifecycle: () => void = noPlayback;
 
 function model(capture: HTMLElement | null): ConfirmSurfaceModel {
   return {
@@ -75,16 +94,16 @@ function model(capture: HTMLElement | null): ConfirmSurfaceModel {
       kind: 'transaction',
       capture,
       review: {
-        model: transfer,
-        tree: buildDisplayTreeFromModel(transfer),
+        model: transaction,
+        tree: buildDisplayTreeFromModel(transaction),
         detailsInitiallyOpen: false,
       },
       header: {
-        heading: t('reviewTransfer'),
+        heading: t('reviewTrade'),
         website: { kind: 'ready', text: 'shop.example.com' },
         chainDetails: { kind: 'ready', text: 'NEAR' },
       },
-      body: { kind: 'empty' },
+      body: { kind: 'text', text: tradeCopy(t('voiceTradeQuote')) },
       // An unlocked VoiceID session confirms without a passkey, so the button has no fingerprint.
       prompt: { kind: 'session' },
       transaction: {
@@ -102,7 +121,8 @@ function model(capture: HTMLElement | null): ConfirmSurfaceModel {
 
 function review(): void {
   stopLifecycle();
-  stopVoice();
+  playback?.stop();
+  playback = null;
   voice?.dispose();
   voice = null;
   handle?.dispose();
@@ -111,65 +131,98 @@ function review(): void {
     parent: stage,
     presentation: { variant: 'modal', context: 'wallet-iframe' },
     model: model(null),
-    onClosed: () => {},
+    onClosed: noPlayback,
   });
 }
 
 function confirm(): void {
-  const phrase = phrases[phraseIndex];
-  // A random forward step keeps consecutive approvals from repeating a phrase.
-  const step = 1 + Math.floor(Math.random() * (phrases.length - 1));
-  phraseIndex = (phraseIndex + step) % phrases.length;
-  voice = new VoicePrompt(document, t('approveVoiceId'), phrase, 'segments');
+  if (playback) return;
+  // The released SDK supplies the visual shell. Its phrase recognizer is not
+  // invoked by this preview of the planned transaction-specific confirmation.
+  voice = new VoicePrompt(
+    document,
+    t('approveTradeVoiceId'),
+    'approve this transfer at once',
+    'segments',
+  );
   // The confirmer's toolbar closes the review, as for the SDK's own VoiceID approval.
   voice.record.hidden = true;
   voice.cancel.hidden = true;
+  playback = new VoiceTradePlayback(voice);
   handle?.update(model(voice.element));
-  stopVoice = speak(voice);
 }
 
-/** Plays the microphone's part: a spoken phrase, a pause, then the check. */
-function speak(prompt: VoicePrompt): () => void {
-  const speech = new SimulatedSpeech(prompt);
-  prompt.capture({ kind: 'listening' });
-  const cancels = [
-    schedulePlayback(speech.start, SPEECH_START_MS),
-    schedulePlayback(speech.stop, SPEECH_END_MS),
-    schedulePlayback(() => prompt.capture({ kind: 'processing' }), CHECK_MS),
-    schedulePlayback(signed, SIGNED_MS),
-  ];
-  return () => {
-    speech.stop();
-    for (const cancel of cancels) cancel();
-  };
-}
+type VoicePlaybackState =
+  | { kind: 'preparing' }
+  | { kind: 'listening' }
+  | { kind: 'checking' }
+  | { kind: 'settled' }
+  | { kind: 'cancelled' };
 
-/** Recorder activity for a voice reading the phrase at a natural pace. */
-class SimulatedSpeech {
-  private timer: number | null = null;
+/** The canvas clock controls every stage, including the simulated waveform. */
+class VoiceTradePlayback {
+  private state: VoicePlaybackState = { kind: 'preparing' };
+  private stopDelay: () => void = noPlayback;
+  private stopActivity: () => void = noPlayback;
   private tick = 0;
 
-  constructor(private readonly prompt: VoicePrompt) {}
-
-  start = (): void => {
-    this.timer = window.setInterval(this.speak, ACTIVITY_INTERVAL_MS);
-  };
+  constructor(private readonly prompt: VoicePrompt) {
+    prompt.element.dataset.tradeStage = this.state.kind;
+    prompt.title.textContent = t('voiceTradePreview');
+    prompt.phrase.textContent = tradeCopy(t('voiceTradeIntent'));
+    delete prompt.phrase.dataset.voiceidPhrase;
+    prompt.status.textContent = t('preparingVoiceConfirmation');
+    this.stopDelay = schedulePlayback(this.listen, PREPARATION_MS);
+  }
 
   stop = (): void => {
-    if (this.timer === null) return;
-    window.clearInterval(this.timer);
-    this.timer = null;
-    this.prompt.capture({ kind: 'activity', rms: 0, speech: false });
+    this.state = { kind: 'cancelled' };
+    this.stopDelay();
+    this.stopActivity();
   };
 
-  // Syllables ride on a slower phrase contour, as a spoken sentence does.
-  private speak = (): void => {
+  private listen = (): void => {
+    if (this.state.kind !== 'preparing') return;
+    this.state = { kind: 'listening' };
+    this.prompt.element.dataset.tradeStage = this.state.kind;
+    this.prompt.title.textContent = t('voiceReadAloud');
+    const phrase = tradeCopy('Sell {spokenAmount} {asset}');
+    this.prompt.phrase.textContent = `${phrase}.`;
+    this.prompt.phrase.dataset.voiceidPhrase = phrase.toLowerCase();
+    this.prompt.capture({ kind: 'listening' });
+    this.prompt.status.textContent = t('voiceListening');
+    this.activity();
+    this.stopDelay = schedulePlayback(this.check, SPEECH_MS);
+  };
+
+  private check = (): void => {
+    if (this.state.kind !== 'listening') return;
+    this.state = { kind: 'checking' };
+    this.stopActivity();
+    this.prompt.capture({ kind: 'activity', rms: 0, speech: false });
+    this.prompt.capture({ kind: 'processing' });
+    this.prompt.element.dataset.tradeStage = this.state.kind;
+    this.prompt.status.textContent = t('voiceChecking');
+    this.stopDelay = schedulePlayback(this.finish, CHECK_MS);
+  };
+
+  private finish = (): void => {
+    if (this.state.kind !== 'checking') return;
+    this.state = { kind: 'settled' };
+    signed();
+  };
+
+  private activity = (): void => {
+    if (this.state.kind !== 'listening') return;
     this.tick += 1;
     const syllable = Math.sin(this.tick * 0.45) ** 2;
     const contour = 0.7 + 0.3 * Math.sin(this.tick * 0.13);
     this.prompt.capture({ kind: 'activity', rms: 0.05 + syllable * contour * 0.13, speech: true });
+    this.stopActivity = schedulePlayback(this.activity, ACTIVITY_INTERVAL_MS);
   };
 }
+
+function noPlayback(): void {}
 
 function signed(): void {
   stopLifecycle = playReceiptLifecycle(showReceipt, '4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw');

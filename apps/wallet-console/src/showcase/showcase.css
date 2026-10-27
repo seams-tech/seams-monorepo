@@ -94,6 +94,13 @@ html[data-modal-backdrop='none'] dialog.seams-confirmation-modal::backdrop {
   max-inline-size: 100%;
 }
 
+/* The complete trade compresses into its short spoken confirmation. */
+.showcase-stage .seams-voiceid-prompt[data-trade-stage='preparing'] .seams-voiceid-phrase {
+  font-size: 26px;
+  line-height: 1.35;
+  letter-spacing: -0.6px;
+}
+
 /* A minimised receipt docks as a toast in the frame's corner. */
 .showcase-stage:has([data-receipt-view='toast']) {
   grid-template-columns: minmax(0, 360px);

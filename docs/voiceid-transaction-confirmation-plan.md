@@ -1,6 +1,12 @@
 # VoiceID transaction confirmation phrases
 
-Status: implementation plan. The first deliverable is the front-page canvas demo.
+Status: the front-page canvas preview is implemented. SDK transaction-phrase
+verification and command-to-intent evaluation remain separate production work.
+
+The development and production previews pass browser checks for preparation,
+confirmation, cancellation, pause/resume, four themes, and 390px/320px layouts.
+Japanese controls and the English spoken phrase also passed a browser check. Evidence is written to
+`.artifacts/wallet-voiceid-showcase/result.json`, screenshots, and `trace.zip`.
 
 ## Scope and ownership
 

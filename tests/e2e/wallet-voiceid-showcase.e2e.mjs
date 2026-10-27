@@ -6,6 +6,8 @@ const origin = process.env.SEAMS_WALLET_SITE_ORIGIN || 'http://localhost:4001/wa
 const artifacts = '.artifacts/wallet-voiceid-showcase';
 const errors = [];
 const modelRequests = [];
+const apiRequests = [];
+let microphoneRequests = 0;
 const pastelDarkTheme = {
   id: 'pastel-dark',
   label: 'Pastel Dark',
@@ -38,10 +40,17 @@ const themes = [
   pastelDarkTheme,
 ];
 
-function seedDemoPhrases() {
+function blockDemoMicrophone() {
   if (location.pathname.includes('/showcase/voiceid/')) {
-    Math.random = Number.bind(null, 0);
+    Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+      value: window.reportVoiceDemoMicrophoneRequest,
+    });
   }
+}
+
+function recordMicrophoneRequest() {
+  microphoneRequests += 1;
+  throw new Error('The canvas preview must not request the microphone.');
 }
 
 function recordError(error) {
@@ -51,6 +60,14 @@ function recordError(error) {
 function recordRequest(request) {
   if (/\.onnx(?:$|\?)|ort-wasm/.test(request.url())) {
     modelRequests.push(request.url());
+  }
+  if (
+    request.frame().url().includes('/showcase/voiceid/') &&
+    (request.resourceType() === 'fetch' ||
+      request.resourceType() === 'xhr' ||
+      request.method() !== 'GET')
+  ) {
+    apiRequests.push(request.url());
   }
 }
 
@@ -93,14 +110,19 @@ async function checkTheme(voiceId, theme) {
   );
 }
 
-async function approve(gallery, name, theme, previousPhrase) {
+async function approve(gallery, name, theme) {
   const voiceId = gallery.frameLocator('iframe[title="VoiceID"]');
   const confirm = voiceId.getByRole('button', { name: 'Confirm with VoiceID', exact: true });
   await expect(confirm).toBeVisible();
   await checkTheme(voiceId, theme);
-  await expect(voiceId.locator('.seams-review-eyebrow')).toHaveText('Transfer NEAR');
-  await expect(voiceId.locator('.seams-review-amount')).toHaveText('2.5 NEAR');
-  await expect(voiceId.locator('.seams-review-recipient')).toContainText('shop.near');
+  await expect(voiceId.locator('.seams-review-eyebrow')).toHaveText('Sell NEAR for USDC');
+  await expect(
+    voiceId.getByRole('heading', { name: 'Review your trade', exact: true }),
+  ).toBeVisible();
+  await expect(voiceId.locator('.seams-review-amount')).toHaveText('10 NEAR');
+  await expect(
+    voiceId.getByText(/Concept preview · Example quote: receive at least 28.40 USDC/),
+  ).toBeVisible();
   await expect(voiceId.locator('.seams-review-account')).toContainText('alex.near');
   await expect(
     voiceId.locator('.seams-review-fields').getByText('NEAR', { exact: true }),
@@ -108,12 +130,16 @@ async function approve(gallery, name, theme, previousPhrase) {
   await expect(voiceId.getByText('0.00005 NEAR', { exact: true })).toBeVisible();
   const review = await capture(gallery, `${name}-review`);
   await confirm.click();
+  await expect(voiceId.getByRole('status')).toHaveText('Preparing confirmation…');
+  await expect(
+    voiceId.getByText('Sell 10 NEAR for USDC at market price.', { exact: true }),
+  ).toBeVisible();
+  await capture(gallery, `${name}-preparation`);
   const phrase = voiceId.locator('[data-voiceid-phrase]');
   await expect(phrase).toBeVisible();
   await expect(phrase).toHaveCSS('color', theme.text);
   const phraseText = await phrase.textContent();
-  assert.ok(phraseText.length > 0);
-  assert.notEqual(phraseText, previousPhrase);
+  assert.equal(phraseText, 'Sell ten NEAR.');
   await expect(voiceId.getByRole('status')).toHaveText('Listening');
   await checkTheme(voiceId, theme);
   await capture(gallery, `${name}-prompt`);
@@ -122,8 +148,7 @@ async function approve(gallery, name, theme, previousPhrase) {
     timeout: 15000,
   });
   await checkTheme(voiceId, theme);
-  await expect(voiceId.locator('.seams-review-amount')).toHaveText('2.5 NEAR');
-  await expect(voiceId.locator('.seams-receipt-destination')).toContainText('shop.near');
+  await expect(voiceId.locator('.seams-review-amount')).toHaveText('10 NEAR');
   await expect(voiceId.getByRole('link', { name: 'View transaction' })).toHaveAttribute(
     'href',
     'https://nearblocks.io/',
@@ -139,13 +164,49 @@ async function approve(gallery, name, theme, previousPhrase) {
   return { phrase: phraseText, ...review };
 }
 
+async function cancelAttempt(page, gallery, phase) {
+  const voiceId = gallery.frameLocator('iframe[title="VoiceID"]');
+  const confirm = voiceId.getByRole('button', { name: 'Confirm with VoiceID', exact: true });
+  await confirm.click();
+  await expect(voiceId.locator('.seams-voiceid-prompt')).toHaveAttribute('data-trade-stage', phase);
+  await voiceId.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(confirm).toBeVisible();
+  // An old callback must not publish a receipt after its attempt was cancelled.
+  await page.waitForTimeout(6500);
+  await expect(confirm).toBeVisible();
+  await expect(voiceId.locator('.seams-voiceid-prompt')).toHaveCount(0);
+  await expect(voiceId.getByRole('status').filter({ hasText: 'Transaction complete' })).toHaveCount(
+    0,
+  );
+}
+
+async function checkPlaybackPause(page, gallery) {
+  await page.setViewportSize({ width: 1440, height: 1100 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await gallery.getByRole('button', { name: 'Play playback', exact: true }).click();
+  await page.mouse.move(5, 5);
+  const voiceId = gallery.frameLocator('iframe[title="VoiceID"]');
+  await expect(voiceId.getByRole('status')).toHaveText('Preparing confirmation…');
+  await gallery.getByRole('button', { name: 'Pause playback', exact: true }).click();
+  await expect(voiceId.locator('html')).toHaveAttribute('data-showcase-clock', 'paused');
+  await page.waitForTimeout(1800);
+  await expect(voiceId.getByRole('status')).toHaveText('Preparing confirmation…');
+  await gallery.getByRole('button', { name: 'Play playback', exact: true }).click();
+  await page.mouse.move(5, 5);
+  await expect(voiceId.getByText('Sell ten NEAR.', { exact: true })).toBeVisible();
+  await expect(voiceId.getByRole('status')).toContainText('Transaction complete', {
+    timeout: 15000,
+  });
+}
+
 await mkdir(artifacts, { recursive: true });
 const browser = await chromium.launch({ channel: 'chrome' });
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1100 },
   reducedMotion: 'reduce',
 });
-await context.addInitScript(seedDemoPhrases);
+await context.exposeBinding('reportVoiceDemoMicrophoneRequest', recordMicrophoneRequest);
+await context.addInitScript(blockDemoMicrophone);
 await context.tracing.start({ screenshots: true, snapshots: true });
 try {
   const page = await context.newPage();
@@ -157,8 +218,6 @@ try {
     exact: true,
   });
   await gallery.getByRole('radio', { name: 'VoiceID', exact: true }).locator('..').click();
-  const voiceId = gallery.frameLocator('iframe[title="VoiceID"]');
-  const confirm = voiceId.getByRole('button', { name: 'Confirm with VoiceID', exact: true });
   const themedApprovals = [];
   for (const theme of themes) {
     await page
@@ -170,28 +229,25 @@ try {
       'src',
       new RegExp(`theme=${theme.id}$`),
     );
-    const approval = await approve(gallery, `desktop-${theme.id}`, theme, null);
-    assert.equal(approval.phrase, 'No crying in the casino.');
+    const approval = await approve(gallery, `desktop-${theme.id}`, theme);
     themedApprovals.push({ theme: theme.id, ...approval });
   }
 
-  // Cancelling a prompt returns to review; the next approval gets a new phrase.
-  await confirm.click();
-  const cancelledPhrase = await voiceId.locator('[data-voiceid-phrase]').textContent();
-  await voiceId.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(confirm).toBeVisible();
+  await cancelAttempt(page, gallery, 'preparing');
+  await cancelAttempt(page, gallery, 'listening');
 
   const layouts = [];
-  let previousPhrase = cancelledPhrase;
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 1100 });
     await gallery.scrollIntoViewIfNeeded();
-    const approval = await approve(gallery, `mobile-${width}`, pastelDarkTheme, previousPhrase);
+    const approval = await approve(gallery, `mobile-${width}`, pastelDarkTheme);
     layouts.push({ width, ...approval });
-    previousPhrase = approval.phrase;
   }
+  await checkPlaybackPause(page, gallery);
   assert.deepEqual(errors, []);
   assert.deepEqual(modelRequests, []);
+  assert.deepEqual(apiRequests, []);
+  assert.equal(microphoneRequests, 0);
   await writeFile(
     `${artifacts}/result.json`,
     JSON.stringify(
@@ -199,19 +255,28 @@ try {
         passed: true,
         origin,
         voiceIdApprovalToReceipt: true,
-        transfer: { network: 'NEAR', amount: '2.5 NEAR', from: 'alex.near', to: 'shop.near' },
+        trade: {
+          network: 'NEAR',
+          sell: '10 NEAR',
+          receive: 'USDC',
+          minimumReceived: '28.40 USDC',
+          signer: 'alex.near',
+        },
         themedApprovals,
-        cancelledPhrase,
+        cancelledDuringPreparationAndCapture: true,
+        playbackPauseAndResume: true,
         layouts,
         errors,
         modelRequests,
+        apiRequests,
+        microphoneRequests,
       },
       null,
       2,
     ) + '\n',
   );
   console.log(
-    'Passed VoiceID phrase changes, four SDK themes, receipts, mobile layouts, and zero model downloads.',
+    'Passed transaction-specific VoiceID preview, cancellation, playback, themes, and mobile layouts without model or microphone use.',
   );
 } finally {
   await context.tracing.stop({ path: `${artifacts}/trace.zip` });

@@ -26,6 +26,8 @@ of Platform and Wallet entry points and the reasons for that design.
   contact form.
 - [Wallet SEO implementation](wallet-seo-plan.md): build rendering, crawl rules,
   search content, deployment checks, and outcome measurement.
+- [VoiceID transaction confirmations](voiceid-transaction-confirmation-plan.md):
+  the canvas preview and short confirmation phrases derived from prepared intents.
 - [Wallet database schema](wallet-saas/console-docs/wallet-db-schema.md).
 - [PostgreSQL and Hyperdrive preparation](future-plan-wallet-postgresql-preparation.md): a
   potential latency upgrade, remaining storage ports, and required hosted evidence.

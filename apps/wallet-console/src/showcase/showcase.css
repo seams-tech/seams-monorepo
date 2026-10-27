@@ -49,7 +49,9 @@ html[data-modal-backdrop='none'] dialog.seams-confirmation-modal::backdrop {
 }
 
 /* Align the wordmark's visible letters with the adjacent text. */
-.showcase-stage .seams-receipt-footer .seams-receipt-wordmark {
+.showcase-stage .seams-receipt-footer .seams-receipt-wordmark,
+.showcase-stage .seams-auth-footer-brand .seams-receipt-wordmark,
+.showcase-stage .seams-account-footer .seams-account-wordmark {
   position: relative;
   top: 1px;
 }

@@ -36,10 +36,10 @@ class ReceiptPlayback {
 
 function noDelay(): void {}
 
-const RECEIPT_MINIMIZE_MS = 240;
+const RECEIPT_TRANSITION_MS = 240;
 
-/** Keep the SDK's card and text motion synchronized during the shorter minimize transition. */
-export function shortenReceiptMinimization(surface: HTMLElement): void {
+/** Keep the SDK's card and text motion synchronized when minimizing or expanding a receipt. */
+export function shortenReceiptTransition(surface: HTMLElement): void {
   const animations: Animation[] = [];
   let endTime = 0;
   for (const animation of surface.getAnimations({ subtree: true })) {
@@ -49,7 +49,7 @@ export function shortenReceiptMinimization(surface: HTMLElement): void {
     animations.push(animation);
     endTime = Math.max(endTime, animationEnd);
   }
-  const playbackRate = Math.max(1, endTime / RECEIPT_MINIMIZE_MS);
+  const playbackRate = Math.max(1, endTime / RECEIPT_TRANSITION_MS);
   for (const animation of animations) animation.updatePlaybackRate(playbackRate);
 }
 

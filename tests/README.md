@@ -45,7 +45,7 @@ Its six SDK-supported phrases include “No crying in the casino.” The review,
 prompt, and receipt use the theme selected in the hero demo: Paper, Carbon, Pastel,
 or Pastel Dark. It previews a simulated 2.5 NEAR transfer from `alex.near` to `shop.near`,
 with a NEAR transaction ID and a Nearblocks link. The voice capture remains simulated.
-VoiceID and transaction receipts minimize into a toast in 240 ms.
+VoiceID and transaction receipts minimize into a toast and expand back in 240 ms.
 
 Run `node tests/e2e/wallet-voiceid-showcase.e2e.mjs` to check all four themes, prompt
 cancellation, phrase changes, receipts, and mobile layouts. Screenshots, `result.json`,

@@ -90,6 +90,8 @@ interface FixtureSetup {
   readonly finance: NativeMember;
   readonly operator: NativeMember;
   readonly privateMember: NativeMember;
+  /** More members with the access of `privateMember`, for journeys that need more people. */
+  readonly extra: readonly NativeMember[];
 }
 
 interface VerifiedMember {
@@ -146,13 +148,22 @@ function readSetup(input: unknown): FixtureSetup {
   const organisations = object(record.organisations, 'organisations');
   exactKeys(organisations, ['primary', 'foreign']);
   const members = object(record.members, 'members');
-  exactKeys(members, ['finance', 'operator', 'privateMember']);
+  const hasExtra = Object.hasOwn(members, 'extra');
+  exactKeys(
+    members,
+    hasExtra
+      ? ['finance', 'operator', 'privateMember', 'extra']
+      : ['finance', 'operator', 'privateMember'],
+  );
+  if (hasExtra && (!Array.isArray(members.extra) || members.extra.length === 0))
+    throw new Error('Invalid extra members');
   return {
     primary: readNativeOrganisation(organisations.primary),
     foreign: readNativeOrganisation(organisations.foreign),
     finance: readNativeMember(members.finance),
     operator: readNativeMember(members.operator),
     privateMember: readNativeMember(members.privateMember),
+    extra: hasExtra ? (members.extra as readonly unknown[]).map(readNativeMember) : [],
   };
 }
 
@@ -637,6 +648,8 @@ class AccountWorkerFixture {
     const finance = await this.verifyMember(input.finance);
     const operator = await this.verifyMember(input.operator);
     const privateMember = await this.verifyMember(input.privateMember);
+    const extra: VerifiedMember[] = [];
+    for (const member of input.extra) extra.push(await this.verifyMember(member));
     const primary = await this.createOrganisation(primaryOrgId, owner);
     const foreign = await this.createOrganisation(foreignOrgId, foreignOwner);
     this.core = await compose(this.bindings.ACCOUNT_DB, true);
@@ -691,6 +704,12 @@ class AccountWorkerFixture {
       'operator',
       primaryProjectId,
     );
+    const extraMembers: Record<string, string>[] = [];
+    for (const member of extra)
+      extraMembers.push({
+        platformUserId: member.verified.userId,
+        membershipId: await this.addMember(primary, member, 'operator', primaryProjectId),
+      });
     await this.core.billing.grantManualSupportCredit(primary, {
       amountMinor: 2000,
       reasonCode: 'e2e_acceptance',
@@ -704,7 +723,7 @@ class AccountWorkerFixture {
       envelopes[key] = await this.signedProvision(delivery);
     }
     const tokens: Record<string, string> = {};
-    for (const member of [owner, foreignOwner, finance, operator, privateMember])
+    for (const member of [owner, foreignOwner, finance, operator, privateMember, ...extra])
       tokens[member.native.nativeUserId] = member.token;
     return {
       version: 1,
@@ -725,6 +744,7 @@ class AccountWorkerFixture {
           platformUserId: privateMember.verified.userId,
           membershipId: privateMembershipId,
         },
+        ...(extraMembers.length === 0 ? {} : { extra: extraMembers }),
       },
       googleIdTokens: tokens,
       deliveries,

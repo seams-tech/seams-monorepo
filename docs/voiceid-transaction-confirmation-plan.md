@@ -1,9 +1,9 @@
 # VoiceID transaction confirmation phrases
 
-Status: the front-page canvas preview is implemented. The SDK confirmation draft
-passed type checks, but Aurora failed its exact-field speech screen. The draft is
-saved outside the active SDK pending the speech-model choice. Command-to-intent
-work remains deferred by the user.
+Status: the front-page canvas preview is implemented. The user chose to keep
+transaction phrases demo-only for now. The SDK retains its random challenges and
+current models. The SDK confirmation draft is saved outside the active source.
+Command-to-intent work remains a separate optional decision for the user.
 
 The development and production previews pass browser checks for preparation,
 confirmation, cancellation, pause/resume, four themes, and 390px/320px layouts.
@@ -36,9 +36,10 @@ adversarial recordings. These measurements do not establish browser latency,
 human accuracy, or authentication safety. Browser integration, wrong-field checks,
 and full no-sign-on-rejection contracts remain required.
 
-The current SDK source and build retain their working random-challenge behavior.
-No larger-model dependency was added. The user must choose whether to add the
-larger local model download or keep transaction phrases in the demo for now.
+The user chose the demo-only scope after reviewing these results. The current
+SDK source and build retain their working random-challenge behavior. No
+larger-model dependency was added. Production transaction phrases require a
+separate decision to resume recognition qualification and SDK integration.
 
 Local evidence: `.artifacts/voiceid-transaction-confirmation/`. It contains the
 implementation patch, generated audio, model hashes, and transcription reports.
@@ -131,7 +132,7 @@ four themes plus 390px and 320px widths. Save screenshots, a trace, and JSON
 evidence. Assert that the preview requests no microphone, inference assets,
 model API, or signing endpoint. Replace the old fixed-phrase assertions.
 
-## 2. SDK phrase preparation
+## 2. Future SDK phrase preparation — deferred
 
 Implement production behavior in `seams-wallet`, primarily in
 `packages/voiceid/src/capture/approval.ts`, `browser/phrase.ts`, and the shared
@@ -215,7 +216,7 @@ A remote model requires an explicit decision about transaction-data disclosure
 and the operator's service boundary. Keep provider credentials out of the
 browser. On timeout or uncertainty, retain the ordinary review path.
 
-## Delivery order
+## Future delivery order — deferred after the demo
 
 1. Implement and verify the lightweight canvas preview.
 2. Add typed transaction phrases and exact field checking in the optional SDK.

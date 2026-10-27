@@ -28,18 +28,17 @@ configureModalBackdrop();
    segments to the receipt. No microphone opens and nothing is signed or sent. */
 
 const transfer: TxDisplayModel = {
-  chain: 'evm',
-  chainId: 8453,
-  signerAccount: `0x4201${'0'.repeat(32)}891c`,
+  chain: 'near',
+  signerAccount: 'alex.near',
   operations: [
     {
       id: 'transfer',
       kind: 'generic.contractCall',
-      label: t('transferEth'),
-      to: `0x2F01${'0'.repeat(32)}4EC9`,
+      label: t('transferNear'),
+      to: 'shop.near',
     },
   ],
-  totals: { nativeValue: '0.025', nativeSymbol: 'ETH', estimatedFee: '0.000001', feeSymbol: 'ETH' },
+  totals: { nativeValue: '2.5', nativeSymbol: 'NEAR', estimatedFee: '0.00005', feeSymbol: 'NEAR' },
 };
 
 const phrases: readonly SpokenPhrase[] = [
@@ -59,7 +58,7 @@ const CHECK_MS = 3500;
 const SIGNED_MS = 5000;
 const ACTIVITY_INTERVAL_MS = 32;
 
-const explorer = 'https://basescan.org/';
+const explorer = 'https://nearblocks.io/';
 const stage = document.getElementById('root') as HTMLElement;
 sendExplorerLinksHome(stage, explorer);
 let handle: ConfirmationSurfaceHandle | null = null;
@@ -83,7 +82,7 @@ function model(capture: HTMLElement | null): ConfirmSurfaceModel {
       header: {
         heading: t('reviewTransfer'),
         website: { kind: 'ready', text: 'shop.example.com' },
-        chainDetails: { kind: 'ready', text: 'Base' },
+        chainDetails: { kind: 'ready', text: 'NEAR' },
       },
       body: { kind: 'empty' },
       // An unlocked VoiceID session confirms without a passkey, so the button has no fingerprint.
@@ -91,7 +90,7 @@ function model(capture: HTMLElement | null): ConfirmSurfaceModel {
       transaction: {
         tree: null,
         theme: showcasePreset.mode,
-        explorers: { near: 'https://nearblocks.io', evm: explorer },
+        explorers: { near: explorer },
         decision: { kind: 'ready', onConfirm: confirm },
         confirmText: t('confirmVoiceId'),
         cancelText: t('cancel'),
@@ -173,13 +172,11 @@ class SimulatedSpeech {
 }
 
 function signed(): void {
-  stopLifecycle = playReceiptLifecycle((state) => {
-    receipt = state;
-    showReceipt();
-  });
+  stopLifecycle = playReceiptLifecycle(showReceipt, '4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw');
 }
 
-function showReceipt(): void {
+function showReceipt(state: TransactionReceiptState): void {
+  receipt = state;
   handle?.showReceipt({
     subject: 'transaction',
     state: receipt,
@@ -191,7 +188,7 @@ function showReceipt(): void {
 
 function changeView(next: TransactionReceiptView): void {
   view = next;
-  showReceipt();
+  showReceipt(receipt);
 }
 
 review();

@@ -98,6 +98,14 @@ async function approve(gallery, name, theme, previousPhrase) {
   const confirm = voiceId.getByRole('button', { name: 'Confirm with VoiceID', exact: true });
   await expect(confirm).toBeVisible();
   await checkTheme(voiceId, theme);
+  await expect(voiceId.locator('.seams-review-eyebrow')).toHaveText('Transfer NEAR');
+  await expect(voiceId.locator('.seams-review-amount')).toHaveText('2.5 NEAR');
+  await expect(voiceId.locator('.seams-review-recipient')).toContainText('shop.near');
+  await expect(voiceId.locator('.seams-review-account')).toContainText('alex.near');
+  await expect(
+    voiceId.locator('.seams-review-fields').getByText('NEAR', { exact: true }),
+  ).toBeVisible();
+  await expect(voiceId.getByText('0.00005 NEAR', { exact: true })).toBeVisible();
   const review = await capture(gallery, `${name}-review`);
   await confirm.click();
   const phrase = voiceId.locator('[data-voiceid-phrase]');
@@ -114,6 +122,17 @@ async function approve(gallery, name, theme, previousPhrase) {
     timeout: 15000,
   });
   await checkTheme(voiceId, theme);
+  await expect(voiceId.locator('.seams-review-amount')).toHaveText('2.5 NEAR');
+  await expect(voiceId.locator('.seams-receipt-destination')).toContainText('shop.near');
+  await expect(voiceId.getByRole('link', { name: 'View transaction' })).toHaveAttribute(
+    'href',
+    'https://nearblocks.io/',
+  );
+  await voiceId.getByText('Receipt details', { exact: true }).click();
+  const transactionId = await voiceId.locator('.seams-review-hash').getAttribute('title');
+  assert.match(transactionId, /^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
+  await expect(voiceId.getByText('alex.near', { exact: true })).toBeVisible();
+  await voiceId.getByText('Receipt details', { exact: true }).click();
   await capture(gallery, `${name}-receipt`);
   await voiceId.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(confirm).toBeVisible();
@@ -180,6 +199,7 @@ try {
         passed: true,
         origin,
         voiceIdApprovalToReceipt: true,
+        transfer: { network: 'NEAR', amount: '2.5 NEAR', from: 'alex.near', to: 'shop.near' },
         themedApprovals,
         cancelledPhrase,
         layouts,

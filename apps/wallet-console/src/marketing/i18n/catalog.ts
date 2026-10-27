@@ -426,6 +426,7 @@ export const catalog = {
   },
   continueGoogle: { en: 'Continue with Google', ja: 'Googleで続ける' },
   transferEth: { en: 'Transfer ETH', ja: 'ETHを送金' },
+  transferNear: { en: 'Transfer NEAR', ja: 'NEARを送金' },
   reviewTransfer: { en: 'Review your transfer', ja: '送金内容を確認' },
   confirmPasskey: { en: 'Confirm with passkey', ja: 'パスキーで確認' },
   confirmVoiceId: { en: 'Confirm with VoiceID', ja: 'VoiceIDで確認' },

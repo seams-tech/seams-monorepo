@@ -90,13 +90,11 @@ function review(): void {
 }
 
 function confirm(): void {
-  stopLifecycle = playReceiptLifecycle((state) => {
-    receipt = state;
-    showReceipt();
-  });
+  stopLifecycle = playReceiptLifecycle(showReceipt, `0x7a4b${'0'.repeat(56)}91c2`);
 }
 
-function showReceipt(): void {
+function showReceipt(state: TransactionReceiptState): void {
+  receipt = state;
   handle?.showReceipt({
     subject: 'transaction',
     state: receipt,
@@ -108,7 +106,7 @@ function showReceipt(): void {
 
 function changeView(next: TransactionReceiptView): void {
   view = next;
-  showReceipt();
+  showReceipt(receipt);
 }
 
 review();

@@ -145,20 +145,18 @@ handle.element.setAttribute('data-seams-review-frame', '');
 attachConfirmSurfaceResizeChoreographer(handle.element);
 
 function confirm(): void {
-  playReceiptLifecycle((state) => {
-    receipt = state;
-    showReceipt();
-  });
+  playReceiptLifecycle(showReceipt, `0x7a4b${'0'.repeat(56)}91c2`);
 }
 
-function showReceipt(): void {
+function showReceipt(state: TransactionReceiptState): void {
+  receipt = state;
   handle.showReceipt({
     subject: 'transaction',
     state: receipt,
     view,
     onView: (next) => {
       view = next;
-      showReceipt();
+      showReceipt(receipt);
     },
     onDismiss: () => post({ type: 'checkout-finished', confirmed: true }),
   });

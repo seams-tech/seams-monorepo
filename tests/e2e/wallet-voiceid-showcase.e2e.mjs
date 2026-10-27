@@ -120,9 +120,6 @@ async function approve(gallery, name, theme) {
     voiceId.getByRole('heading', { name: 'Review your trade', exact: true }),
   ).toBeVisible();
   await expect(voiceId.locator('.seams-review-amount')).toHaveText('10 NEAR');
-  await expect(
-    voiceId.getByText(/Concept preview · Example quote: receive at least 28.40 USDC/),
-  ).toBeVisible();
   await expect(voiceId.locator('.seams-review-account')).toContainText('alex.near');
   await expect(
     voiceId.locator('.seams-review-fields').getByText('NEAR', { exact: true }),

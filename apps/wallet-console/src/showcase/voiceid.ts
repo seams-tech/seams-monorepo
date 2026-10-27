@@ -43,9 +43,7 @@ function tradeCopy(template: string): string {
     .replaceAll('{amount}', trade.sellAmount)
     .replaceAll('{spokenAmount}', trade.spokenAmount)
     .replaceAll('{asset}', trade.sellAsset)
-    .replaceAll('{receiveAsset}', trade.receiveAsset)
-    .replaceAll('{minimumReceived}', trade.minimumReceived)
-    .replaceAll('{slippage}', trade.slippage);
+    .replaceAll('{receiveAsset}', trade.receiveAsset);
 }
 
 const transaction: TxDisplayModel = {
@@ -104,7 +102,7 @@ function model(capture: HTMLElement | null): ConfirmSurfaceModel {
         website: { kind: 'ready', text: 'shop.example.com' },
         chainDetails: { kind: 'ready', text: 'NEAR' },
       },
-      body: { kind: 'text', text: tradeCopy(t('voiceTradeQuote')) },
+      body: { kind: 'empty' },
       // An unlocked VoiceID session confirms without a passkey, so the button has no fingerprint.
       prompt: { kind: 'session' },
       transaction: {

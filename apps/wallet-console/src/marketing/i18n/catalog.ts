@@ -437,10 +437,6 @@ export const catalog = {
     en: 'Sell {amount} {asset} for {receiveAsset} at market price.',
     ja: '{amount} {asset}を成行で{receiveAsset}に交換します。',
   },
-  voiceTradeQuote: {
-    en: 'Concept preview · Example quote: receive at least {minimumReceived} {receiveAsset}. Slippage limit {slippage}.',
-    ja: 'コンセプトプレビュー · 見積例：最低{minimumReceived} {receiveAsset}を受け取ります。スリッページ上限は{slippage}。',
-  },
   minimumReceived: { en: 'Minimum received', ja: '最低受取額' },
   slippageLimit: { en: 'Slippage limit', ja: 'スリッページ上限' },
   receivingAccount: { en: 'Receiving account', ja: '受取アカウント' },

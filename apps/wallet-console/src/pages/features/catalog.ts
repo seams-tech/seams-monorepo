@@ -43,8 +43,6 @@ export const messages = {
     en: 'Biometric data stays on the user’s device. Seams receives only a signed proof that the user approved.',
     ja: '生体情報はユーザーのデバイスから出ません。Seamsが受け取るのは、ユーザーが承認したことを示す署名付きの証明だけです。',
   },
-  available: { en: 'Available', ja: '提供中' },
-  planned: { en: 'Planned', ja: '対応予定' },
   passkeys: { en: 'Passkeys', ja: 'パスキー' },
   passkeysCopy: {
     en: 'WebAuthn passkeys on every modern browser, synced by the platform or kept on a security key.',

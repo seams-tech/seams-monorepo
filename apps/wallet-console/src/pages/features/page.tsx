@@ -29,7 +29,6 @@ type Feature = {
   icon: LucideIcon;
   title: MessageKey;
   copy: MessageKey;
-  status?: 'available' | 'planned';
 };
 
 /* The anchors the Features menu links to, in page order, each with its menu
@@ -48,9 +47,9 @@ const RECOVERY: readonly Feature[] = [
 ];
 
 const BIOMETRICS: readonly Feature[] = [
-  { icon: Fingerprint, title: 'passkeys', copy: 'passkeysCopy', status: 'available' },
-  { icon: ScanFace, title: 'faceId', copy: 'faceIdCopy', status: 'available' },
-  { icon: Mic, title: 'voiceId', copy: 'voiceIdCopy', status: 'available' },
+  { icon: Fingerprint, title: 'passkeys', copy: 'passkeysCopy' },
+  { icon: ScanFace, title: 'faceId', copy: 'faceIdCopy' },
+  { icon: Mic, title: 'voiceId', copy: 'voiceIdCopy' },
 ];
 
 const SELF_HOSTED: readonly Feature[] = [
@@ -121,7 +120,7 @@ function FeatureCards({
 }): React.JSX.Element {
   return (
     <ul className={stacked ? 'features-cards features-cards--stack' : 'features-cards'}>
-      {features.map(({ icon: Icon, title, copy, status }) => (
+      {features.map(({ icon: Icon, title, copy }) => (
         <li key={title} className="features-card">
           <div className="features-card__head">
             {/* the front page's beige icon tile, with the section's grain in grey */}
@@ -129,11 +128,6 @@ function FeatureCards({
               <GrainField field={field} />
               <Icon size={18} strokeWidth={1.7} />
             </span>
-            {status ? (
-              <span className={`features-card__status features-card__status--${status}`}>
-                {t(status)}
-              </span>
-            ) : null}
           </div>
           <h3 className="features-card__title">{t(title)}</h3>
           <p className="features-card__copy">{t(copy)}</p>

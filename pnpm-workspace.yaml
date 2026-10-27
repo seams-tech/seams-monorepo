@@ -20,6 +20,6 @@ allowBuilds:
   utf-8-validate: true
   workerd: true
 minimumReleaseAgeExclude:
-  - '@seams/wallet-server@0.24.0'
-  - '@seams/wallet@0.24.0'
-  - '@seams/voiceid@0.24.0'
+  - '@seams/wallet-server@0.25.0'
+  - '@seams/wallet@0.25.0'
+  - '@seams/voiceid@0.25.0'

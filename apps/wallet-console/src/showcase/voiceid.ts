@@ -17,7 +17,7 @@ import { VoicePrompt } from '@voiceid-ui/capture/prompt';
 import type { SpokenPhrase } from '@voiceid-ui/browser/phrase';
 import { showcaseAppearance, showcasePreset } from './showcaseTheme';
 import { schedulePlayback } from './playbackClock';
-import { playReceiptLifecycle } from './receiptLifecycle';
+import { playReceiptLifecycle, shortenReceiptMinimization } from './receiptLifecycle';
 import { sendExplorerLinksHome } from './sampleExplorer';
 import { configureModalBackdrop } from './modalBackdrop';
 
@@ -189,6 +189,7 @@ function showReceipt(state: TransactionReceiptState): void {
 function changeView(next: TransactionReceiptView): void {
   view = next;
   showReceipt(receipt);
+  if (next === 'toast' && handle) shortenReceiptMinimization(handle.element);
 }
 
 review();

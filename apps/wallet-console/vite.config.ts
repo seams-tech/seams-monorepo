@@ -166,6 +166,24 @@ const walletLanguagePages: Plugin = {
   },
 };
 
+// The SDK's VoiceID card renders the voice-glow React component with Preact, and
+// the SDK's own iframe build maps its React imports to preact/compat. The showcase
+// does the same for that one package, so the page's React stays untouched.
+const voiceGlowOnPreact: Plugin = {
+  name: 'seams-voice-glow-on-preact',
+  enforce: 'pre',
+  resolveId(source, importer) {
+    if (!importer || !/[\\/]voice-glow[\\/]/.test(importer)) return null;
+    if (source === 'react' || source === 'react-dom') {
+      return this.resolve('preact/compat', importer, { skipSelf: true });
+    }
+    if (source === 'react/jsx-runtime') {
+      return this.resolve('preact/jsx-runtime', importer, { skipSelf: true });
+    }
+    return null;
+  },
+};
+
 export default defineConfig(() => {
   const appRoot = fileURLToPath(new URL('.', import.meta.url));
   const appSrc = `${appRoot}src`;
@@ -175,12 +193,15 @@ export default defineConfig(() => {
   const walletUi = `${dirname(createRequire(import.meta.url).resolve('@seams/wallet/package.json'))}/dist/esm`;
   return {
     base,
-    plugins: [react(), walletLanguagePages],
+    plugins: [react(), walletLanguagePages, voiceGlowOnPreact],
     server: {
       host: 'localhost',
       port: 4005,
       strictPort: true,
     },
+    // Served as source, so voiceGlowOnPreact also resolves its imports in dev, and
+    // voice-glow and the pre-bundled SDK surfaces share one Preact.
+    optimizeDeps: { exclude: ['voice-glow', 'preact'] },
     resolve: {
       dedupe: ['react', 'react-dom'],
       alias: {
@@ -200,6 +221,7 @@ export default defineConfig(() => {
           showcaseAccount: `${appRoot}showcase/account/index.html`,
           showcaseAuthentication: `${appRoot}showcase/authentication/index.html`,
           showcaseTransaction: `${appRoot}showcase/transaction/index.html`,
+          showcaseVoiceId: `${appRoot}showcase/voiceid/index.html`,
           showcaseCheckout: `${appRoot}showcase/checkout/index.html`,
           showcaseCheckoutWallet: `${appRoot}showcase/checkout/wallet/index.html`,
           showcaseMotion: `${appRoot}showcase/motion/index.html`,

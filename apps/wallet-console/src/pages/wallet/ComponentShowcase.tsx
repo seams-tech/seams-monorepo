@@ -6,7 +6,7 @@ import { BackgroundPreview, type BackgroundPreviewKind } from './BackgroundPrevi
 import { FieldBanner } from '@/components/h2/sections';
 import './component-showcase.css';
 
-export type PreviewId = 'create' | 'transaction-modal' | 'prediction-market' | 'profile';
+export type PreviewId = 'create' | 'transaction-modal' | 'prediction-market' | 'profile' | 'voiceid';
 
 type Preview = {
   id: PreviewId;
@@ -27,6 +27,7 @@ const previews: readonly Preview[] = [
   defaultPreview,
   { id: 'prediction-market', label: t('customComponents'), x: 840, y: -70 },
   { id: 'profile', label: t('recoverLink'), x: 1260, y: 60 },
+  { id: 'voiceid', label: t('voiceId'), x: 1680, y: -20 },
 ];
 
 type BackgroundPlacement = { kind: BackgroundPreviewKind; x: number; y: number };
@@ -45,8 +46,8 @@ const backgroundPreviews: readonly BackgroundPlacement[] = [
   { kind: 'payment', x: 840, y: 400 },
   { kind: 'recovery', x: 1260, y: -400 },
   { kind: 'unlock', x: 1260, y: 520 },
-  { kind: 'unlock', x: 1680, y: -250 },
-  { kind: 'receipt', x: 1680, y: 300 },
+  { kind: 'unlock', x: 1680, y: -620 },
+  { kind: 'receipt', x: 1680, y: 600 },
   { kind: 'payment', x: 2100, y: -240 },
 ];
 

@@ -24,6 +24,8 @@ function embeddedRoute(id: PreviewId): string {
       return 'transaction';
     case 'prediction-market':
       return 'checkout';
+    case 'voiceid':
+      return 'voiceid';
   }
 }
 
@@ -37,6 +39,8 @@ function embeddedTitle(id: PreviewId): string {
       return t('transactionModal');
     case 'prediction-market':
       return t('predictionMarket');
+    case 'voiceid':
+      return t('voiceId');
   }
 }
 

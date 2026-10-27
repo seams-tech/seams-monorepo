@@ -40,6 +40,15 @@ The default page is `http://localhost:4001/wallet`. Set `SEAMS_WALLET_SITE_ORIGI
 to test another wallet page URL. Screenshots, `result.json`, and `trace.zip` go to
 `.artifacts/wallet-component-showcase/`.
 
+The VoiceID preview selects a phrase for each approval and avoids consecutive repeats.
+Its six SDK-supported phrases include “No crying in the casino.” The review, voice
+prompt, and receipt use the theme selected in the hero demo: Paper, Carbon, Pastel,
+or Pastel Dark. The voice capture and transfer remain simulated.
+
+Run `node tests/e2e/wallet-voiceid-showcase.e2e.mjs` to check all four themes, prompt
+cancellation, phrase changes, receipts, and mobile layouts. Screenshots, `result.json`,
+and `trace.zip` go to `.artifacts/wallet-voiceid-showcase/`.
+
 ## Public site navigation
 
 Pricing plan links select the card named by the URL fragment. Each card has a

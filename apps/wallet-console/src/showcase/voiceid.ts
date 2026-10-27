@@ -15,7 +15,7 @@ import type {
 import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/display';
 import { VoicePrompt } from '@voiceid-ui/capture/prompt';
 import type { SpokenPhrase } from '@voiceid-ui/browser/phrase';
-import { paperIframeAppearance } from '@/context/app-themes';
+import { showcaseAppearance, showcasePreset } from './showcaseTheme';
 import { schedulePlayback } from './playbackClock';
 import { playReceiptLifecycle } from './receiptLifecycle';
 import { sendExplorerLinksHome } from './sampleExplorer';
@@ -42,7 +42,15 @@ const transfer: TxDisplayModel = {
   totals: { nativeValue: '0.025', nativeSymbol: 'ETH', estimatedFee: '0.000001', feeSymbol: 'ETH' },
 };
 
-const phrase: SpokenPhrase = 'approve this transfer at once';
+const phrases: readonly SpokenPhrase[] = [
+  'no crying in the casino',
+  "i'm here for the tech",
+  'if you panic panic early',
+  'exit liquidity for all passengers',
+  'dump on them slowly',
+  'approve this transfer at once',
+];
+let phraseIndex = Math.floor(Math.random() * phrases.length);
 // When the simulated voice starts and stops, when the card checks it, and
 // when the signed receipt takes the card over.
 const SPEECH_START_MS = 700;
@@ -63,7 +71,7 @@ let stopLifecycle = (): void => {};
 
 function model(capture: HTMLElement | null): ConfirmSurfaceModel {
   return {
-    appearance: paperIframeAppearance(locale),
+    appearance: showcaseAppearance(locale),
     content: {
       kind: 'transaction',
       capture,
@@ -82,7 +90,7 @@ function model(capture: HTMLElement | null): ConfirmSurfaceModel {
       prompt: { kind: 'session' },
       transaction: {
         tree: null,
-        theme: 'light',
+        theme: showcasePreset.mode,
         explorers: { near: 'https://nearblocks.io', evm: explorer },
         decision: { kind: 'ready', onConfirm: confirm },
         confirmText: t('confirmVoiceId'),
@@ -109,6 +117,10 @@ function review(): void {
 }
 
 function confirm(): void {
+  const phrase = phrases[phraseIndex];
+  // A random forward step keeps consecutive approvals from repeating a phrase.
+  const step = 1 + Math.floor(Math.random() * (phrases.length - 1));
+  phraseIndex = (phraseIndex + step) % phrases.length;
   voice = new VoicePrompt(document, t('approveVoiceId'), phrase, 'segments');
   // The confirmer's toolbar closes the review, as for the SDK's own VoiceID approval.
   voice.record.hidden = true;

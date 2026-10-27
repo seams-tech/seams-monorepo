@@ -92,14 +92,16 @@ export class EmbeddedPlayback {
   private takeOver = (event: Event): void => {
     if (!event.isTrusted) return;
     this.stopped = true;
-    for (const child of this.documents) delete child.documentElement.dataset.showcaseAutoplay;
+    for (const child of this.documents) {
+      if (child.documentElement) delete child.documentElement.dataset.showcaseAutoplay;
+    }
     this.clearVisit();
     this.onInteract();
   };
 
   private collectDocuments(frame: HTMLIFrameElement): Document[] {
     const document = frame.contentDocument;
-    if (!document) return [];
+    if (!document?.documentElement) return [];
     if (!this.documents.has(document)) {
       this.documents.add(document);
       document.addEventListener('pointerdown', this.takeOver, true);

@@ -47,6 +47,13 @@ prompt, and receipt use the theme selected in the hero demo: Paper, Carbon, Past
 or Pastel Dark. The preview uses no microphone, model API, inference assets, or
 signing endpoint. Preparation and speech activity follow the canvas playback clock.
 VoiceID and transaction receipts minimize into a toast and expand back in 240 ms.
+Their card bounds use clipping, shared title and checkmark use transforms, and details
+fade over 120 ms. Reversing a transition retains its current position. The toast docks
+above the canvas fade, and unrelated demo animations retain their own timing.
+
+Run `node tests/e2e/wallet-receipt-transition.e2e.mjs` to check both directions,
+snapshot alignment, interruption, mobile layouts, and reduced motion. Screenshots,
+timing evidence in `result.json`, and `trace.zip` go to `.artifacts/wallet-receipt-transition/`.
 
 Run `node tests/e2e/wallet-voiceid-showcase.e2e.mjs` to check all four themes,
 preparation/capture cancellation, pause/resume, receipts, and mobile layouts. Screenshots, `result.json`,

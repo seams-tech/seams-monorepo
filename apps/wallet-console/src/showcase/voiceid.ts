@@ -16,7 +16,8 @@ import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/di
 import { VoicePrompt } from '@voiceid-ui/capture/prompt';
 import { showcaseAppearance, showcasePreset } from './showcaseTheme';
 import { schedulePlayback } from './playbackClock';
-import { playReceiptLifecycle, shortenReceiptTransition } from './receiptLifecycle';
+import { playReceiptLifecycle } from './receiptLifecycle';
+import { transitionReceiptView } from './receiptTransition';
 import { sendExplorerLinksHome } from './sampleExplorer';
 import { configureModalBackdrop } from './modalBackdrop';
 
@@ -240,9 +241,9 @@ function showReceipt(state: TransactionReceiptState): void {
 }
 
 function changeView(next: TransactionReceiptView): void {
+  if (!handle || next === view) return;
   view = next;
-  showReceipt(receipt);
-  if (handle) shortenReceiptTransition(handle.element);
+  transitionReceiptView(handle.element, next, showReceipt.bind(null, receipt));
 }
 
 review();

@@ -14,7 +14,8 @@ import type {
 } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-receipt';
 import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/display';
 import { showcaseAppearance, showcasePreset } from './showcaseTheme';
-import { playReceiptLifecycle, shortenReceiptTransition } from './receiptLifecycle';
+import { playReceiptLifecycle } from './receiptLifecycle';
+import { transitionReceiptView } from './receiptTransition';
 import { sendExplorerLinksHome } from './sampleExplorer';
 import { configureModalBackdrop } from './modalBackdrop';
 
@@ -105,9 +106,9 @@ function showReceipt(state: TransactionReceiptState): void {
 }
 
 function changeView(next: TransactionReceiptView): void {
+  if (!handle || next === view) return;
   view = next;
-  showReceipt(receipt);
-  if (handle) shortenReceiptTransition(handle.element);
+  transitionReceiptView(handle.element, next, showReceipt.bind(null, receipt));
 }
 
 review();

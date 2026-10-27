@@ -106,4 +106,77 @@ html[data-modal-backdrop='none'] dialog.seams-confirmation-modal::backdrop {
   grid-template-columns: minmax(0, 360px);
   justify-content: end;
   align-content: end;
+  padding-bottom: 48px;
+}
+
+.showcase-stage
+  [data-showcase-receipt-transition]
+  > .seams-confirmation-modal:not(.showcase-receipt-overlay)
+  .modal-container-root {
+  opacity: 0 !important;
+}
+
+.showcase-receipt-overlay,
+.showcase-receipt-shape,
+.showcase-receipt-border,
+.showcase-receipt-background,
+.showcase-receipt-contents {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.showcase-receipt-overlay {
+  z-index: 3;
+  inline-size: auto;
+  max-inline-size: none;
+  max-block-size: none;
+  overflow: visible;
+}
+
+.showcase-receipt-shape {
+  filter: drop-shadow(0 2px 4px rgb(15 23 42 / 0.08));
+}
+
+.showcase-receipt-border {
+  background: var(--seams-colors-borderPrimary);
+}
+
+.showcase-receipt-background {
+  background: var(--seams-colors-colorBackground);
+}
+
+.showcase-receipt-overlay .showcase-receipt-content {
+  position: absolute;
+  box-sizing: border-box;
+  margin: 0;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.showcase-receipt-overlay .seams-transaction-toast {
+  background: transparent;
+}
+
+.showcase-receipt-anchor {
+  position: absolute;
+  margin: 0;
+  transform-origin: top left;
+}
+
+/* Shared title geometry stays consistent as its font size changes. */
+.showcase-stage .seams-transaction-toast-text > strong {
+  font-weight: 550;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+/* Progress reflects the transaction state immediately when its toast is revealed. */
+.showcase-stage .seams-toast-progress,
+.showcase-stage .seams-toast-progress-fill {
+  animation: none;
 }

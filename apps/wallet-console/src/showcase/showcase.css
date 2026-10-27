@@ -48,6 +48,11 @@ html[data-modal-backdrop='none'] dialog.seams-confirmation-modal::backdrop {
     0 10px 20px rgba(15, 23, 42, 0.1);
 }
 
+/* The status glyph needs text contrast even when the primary button is a dark slab. */
+.showcase-stage .seams-receipt-symbol {
+  color: var(--seams-colors-textPrimary);
+}
+
 /* The SDK sizes a hosted transaction card to 28rem; the stage follows, so the card
    stays centred. */
 .showcase-stage:has([data-confirmation-kind='transaction']) {

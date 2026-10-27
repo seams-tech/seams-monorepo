@@ -20,10 +20,10 @@
   width: 100%;
   box-sizing: border-box;
   padding: 32px 24px 24px;
-  border: 1px solid #e7e5e4;
-  border-radius: 24px;
-  background: white;
-  color: #171717;
+  border: 1px solid var(--seams-colors-borderPrimary);
+  border-radius: var(--seams-shape-card, 24px);
+  background: var(--seams-colors-colorBackground);
+  color: var(--seams-colors-textPrimary);
   font-family: 'Hanken Grotesk', sans-serif;
   text-align: center;
   box-shadow: 0 12px 32px #0000000d;
@@ -58,14 +58,14 @@
   height: 45px;
   margin-bottom: 18px;
   border-radius: 50%;
-  box-shadow: 0 0 0 6px #f5f5f4;
+  box-shadow: 0 0 0 6px var(--seams-colors-passkeyHaloBackground);
   animation: authentication-result-halo 300ms cubic-bezier(0.2, 0, 0, 1) 700ms both;
 }
 
 .authentication-result__icon::after {
   position: absolute;
   inset: 0;
-  border: 1.5px solid #171717;
+  border: 1.5px solid var(--seams-colors-textPrimary);
   border-radius: 50%;
   opacity: 0;
   content: '';
@@ -80,11 +80,11 @@
 }
 
 .authentication-result__track {
-  stroke: #e7e5e4;
+  stroke: var(--seams-colors-borderPrimary);
 }
 
 .authentication-result__arc {
-  stroke: #171717;
+  stroke: var(--seams-colors-textPrimary);
   stroke-dasharray: 100;
   stroke-dashoffset: 0;
   transform: rotate(-90deg);
@@ -96,14 +96,14 @@
 }
 
 .authentication-result__seal {
-  fill: #171717;
+  fill: var(--seams-colors-buttonBackground);
   transform-box: fill-box;
   transform-origin: center;
   animation: authentication-result-seal 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 600ms both;
 }
 
 .authentication-result__check {
-  stroke: white;
+  stroke: var(--seams-colors-textButton);
   stroke-dasharray: 1;
   stroke-dashoffset: 0;
   animation: authentication-result-check 320ms cubic-bezier(0.65, 0, 0.35, 1) 820ms both;
@@ -144,7 +144,7 @@ html[data-showcase-clock='paused'] .authentication-result__icon::after {
 
 .authentication-result p {
   margin: 0 0 22px;
-  color: #737373;
+  color: var(--seams-colors-textSecondary);
   font-size: 14px;
   line-height: 1.45;
   text-wrap: balance;
@@ -164,7 +164,7 @@ html[data-showcase-clock='paused'] .authentication-result__icon::after {
   width: 100%;
   min-height: 48px;
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--seams-shape-control, 12px);
   font: inherit;
   font-weight: 500;
   cursor: pointer;
@@ -187,17 +187,17 @@ html[data-showcase-clock='paused'] .authentication-result__icon::after {
 }
 
 .authentication-result button:focus-visible {
-  outline: 2px solid #171717;
+  outline: 2px solid var(--seams-colors-focus);
   outline-offset: 2px;
 }
 
 .authentication-result [data-showcase-next] {
-  background: #171717;
-  color: white;
+  background: var(--seams-colors-buttonBackground);
+  color: var(--seams-colors-textButton);
 }
 
 .authentication-result [data-showcase-next]:hover {
-  background: #292929;
+  background: var(--seams-colors-buttonHoverBackground);
 }
 
 .authentication-result [data-showcase-next] svg {
@@ -211,13 +211,13 @@ html[data-showcase-clock='paused'] .authentication-result__icon::after {
 }
 
 .authentication-result [data-authentication-reset] {
-  border-color: #e7e5e4;
-  background: white;
-  color: #171717;
+  border-color: var(--seams-colors-secondaryButtonBorder, var(--seams-colors-borderPrimary));
+  background: var(--seams-colors-secondaryButtonBackground, var(--seams-colors-surface));
+  color: var(--seams-colors-secondaryButtonText, var(--seams-colors-textPrimary));
 }
 
 .authentication-result [data-authentication-reset]:hover {
-  background: #f5f5f4;
+  background: var(--seams-colors-secondaryButtonHoverBackground, var(--seams-colors-hover));
 }
 
 @keyframes authentication-result-in {
@@ -239,7 +239,7 @@ html[data-showcase-clock='paused'] .authentication-result__icon::after {
 
 @keyframes authentication-result-halo {
   from {
-    box-shadow: 0 0 0 0 #f5f5f4;
+    box-shadow: 0 0 0 0 var(--seams-colors-passkeyHaloBackground);
   }
 }
 

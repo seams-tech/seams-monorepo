@@ -8,6 +8,11 @@ import './showcase.css';
 import './authentication.css';
 import { schedulePlayback } from './playbackClock';
 import {
+  createCspStylesheetManager,
+  getDefaultCspNonce,
+} from '@wallet-ui/core/browser/walletIframe/csp-stylesheet';
+import { appearanceTokenCssRule } from '@wallet-ui/core/signingEngine/uiConfirm/ui/appearance-token-vars';
+import {
   mountAuthMenuSurface,
   type AuthMenuSurfaceHandle,
 } from '@wallet-ui/SeamsWeb/walletIframe/host/ui/auth-menu/mountAuthMenuSurface';
@@ -25,7 +30,7 @@ import {
   recoveryCode,
 } from './accessMenus';
 import linkingCode from './linking-code.svg';
-import { showcaseAppearance } from './showcaseTheme';
+import { showcaseAppearance, showcasePreset } from './showcaseTheme';
 
 const stage = document.getElementById('root');
 if (!stage) throw new Error('Authentication showcase requires a root element.');
@@ -94,7 +99,14 @@ let state: AuthenticationState = {
   model: initialModel,
 };
 const result = document.createElement('section');
-result.className = 'authentication-result';
+result.id = 'authentication-result';
+result.className = 'seams-wallet-ui authentication-result';
+result.dataset.theme = showcasePreset.mode;
+createCspStylesheetManager({
+  doc: document,
+  baseCss: appearanceTokenCssRule(result.id, showcaseAppearance(locale)),
+  nonce: getDefaultCspNonce,
+}).ensureBase();
 result.hidden = true;
 result.tabIndex = -1;
 result.innerHTML = `

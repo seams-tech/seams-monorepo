@@ -49,6 +49,15 @@ Run `node tests/e2e/wallet-voiceid-showcase.e2e.mjs` to check all four themes, p
 cancellation, phrase changes, receipts, and mobile layouts. Screenshots, `result.json`,
 and `trace.zip` go to `.artifacts/wallet-voiceid-showcase/`.
 
+Authentication completion cards retain the selected theme for their surface, text,
+buttons, and checkmark. Receipt status icons use the theme's primary text color so
+they remain visible when Carbon uses dark button fills.
+
+Run `node tests/e2e/wallet-showcase-themes.e2e.mjs` to check registration, reset,
+the Next transition, and receipt contrast across all four themes and narrow screens.
+Screenshots, contrast measurements in `result.json`, and `trace.zip` go to
+`.artifacts/wallet-showcase-themes/`.
+
 ## Public site navigation
 
 Pricing plan links select the card named by the URL fragment. Each card has a

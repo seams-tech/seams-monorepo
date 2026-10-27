@@ -13,8 +13,8 @@ import type {
   TransactionReceiptView,
 } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-receipt';
 import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/display';
-import { VoicePrompt } from '@wallet-ui/plugins/voiceid/capture/prompt';
-import type { SpokenPhrase } from '@wallet-ui/plugins/voiceid/browser/phrase';
+import { VoicePrompt } from '@voiceid-ui/capture/prompt';
+import type { SpokenPhrase } from '@voiceid-ui/browser/phrase';
 import { paperIframeAppearance } from '@/context/app-themes';
 import { schedulePlayback } from './playbackClock';
 import { playReceiptLifecycle } from './receiptLifecycle';
@@ -42,7 +42,7 @@ const transfer: TxDisplayModel = {
   totals: { nativeValue: '0.025', nativeSymbol: 'ETH', estimatedFee: '0.000001', feeSymbol: 'ETH' },
 };
 
-const phrase: SpokenPhrase = 'i am ready to open my wallet';
+const phrase: SpokenPhrase = 'approve this transfer at once';
 // When the simulated voice starts and stops, when the card checks it, and
 // when the signed receipt takes the card over.
 const SPEECH_START_MS = 700;

@@ -190,7 +190,9 @@ export default defineConfig(() => {
   const base = process.env.VITE_ASSET_BASE_PATH || '/';
   // The homepage showcase renders the installed SDK release's own wallet
   // surfaces, which the package does not export.
-  const walletUi = `${dirname(createRequire(import.meta.url).resolve('@seams/wallet/package.json'))}/dist/esm`;
+  const packageRequire = createRequire(import.meta.url);
+  const walletUi = `${dirname(packageRequire.resolve('@seams/wallet/package.json'))}/dist/esm`;
+  const voiceIdUi = `${dirname(packageRequire.resolve('@seams/voiceid/package.json'))}/dist/esm`;
   return {
     base,
     plugins: [react(), walletLanguagePages, voiceGlowOnPreact],
@@ -210,6 +212,7 @@ export default defineConfig(() => {
         '@wallet-product': `${appSrc}/products/wallet`,
         '@app': `${appSrc}/app`,
         '@wallet-ui': walletUi,
+        '@voiceid-ui': voiceIdUi,
       },
     },
     build: {

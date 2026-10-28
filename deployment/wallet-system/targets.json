@@ -961,7 +961,7 @@
               "rpcUrl": "https://rpc.testnet.fastnear.com",
               "initialBalanceYocto": "10000000000000000000000"
             },
-            "googleOidcClientId": null
+            "googleOidcClientId": "746651470554-67nj9aqqt44b726im8teg9qcp08ms78j.apps.googleusercontent.com"
           }
         },
         "privateRoles": {

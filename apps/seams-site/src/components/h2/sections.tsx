@@ -349,7 +349,7 @@ function BannerSection({
   children,
 }: {
   id: string;
-  /* the fragment that links to this band, e.g. /ecommerce#bakeryos */
+  /* the fragment that links to this band, e.g. /ecommerce#kitchen */
   anchor?: string;
   field: GrainFieldName;
   title: string;
@@ -553,14 +553,14 @@ const pillars: Pillar[] = [
     field: 'apricot-beam',
     copy: (
       <>
-        <strong>BakeryOS turns orders into a bake plan.</strong> One production run shows as a
+        <strong>Satyr Kitchen turns orders into a bake plan.</strong> One production run shows as a
         workflow, a timeline of ovens and staff, and a 3D view of the bakery.
       </>
     ),
     mock: (
       <PortalShot
         shot="bakery-timeline"
-        alt="BakeryOS: a 3D view of the bakery above the timeline of three batches"
+        alt="Satyr Kitchen: a 3D view of the bakery above the timeline of three batches"
         className="h2-shot--card h2-shot--bottom"
       />
     ),
@@ -861,7 +861,7 @@ export function H2WorkflowCanvas(): React.JSX.Element {
             <div className="h2-mockrow">
               <span className="h2-mockrow__main">
                 Added to the bake plan
-                <small>BakeryOS &middot; 2 trays</small>
+                <small>Satyr Kitchen &middot; 2 trays</small>
               </span>
               <span className="h2-chip h2-chip--green">Planned</span>
             </div>
@@ -900,7 +900,7 @@ export function H2Cases(): React.JSX.Element {
   );
 }
 
-/* ---------- BakeryOS (production inside the suite) ---------- */
+/* ---------- Satyr Kitchen (production inside the suite) ---------- */
 
 const productionViews: readonly UseCase[] = [
   {
@@ -931,10 +931,10 @@ export function H2Production(): React.JSX.Element {
     <>
       <BannerSection
         id="h2-production-title"
-        anchor="bakeryos"
+        anchor="kitchen"
         field="apricot-beam"
-        title="BakeryOS: from orders to the oven"
-        sub="BakeryOS is the production workspace inside Satyr. It turns orders and preorders into production runs, and it shows one run in three views."
+        title="Satyr Kitchen: from orders to the oven"
+        sub="Satyr Kitchen is the production workspace inside Satyr. It turns orders and preorders into production runs, and it shows one run in three views."
       />
       <section
         className="h2-section h2-section--band h2-rule"
@@ -1569,7 +1569,7 @@ export function H2Start(): React.JSX.Element {
 export function H2Duo(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const satyrProps = linkProps('/ecommerce');
-  const bakeryProps = linkProps('/ecommerce#bakeryos');
+  const bakeryProps = linkProps('/ecommerce#kitchen');
 
   return (
     <section className="h2-section h2-section--snug h2-rule" aria-labelledby="h2-duo-title">
@@ -1579,7 +1579,7 @@ export function H2Duo(): React.JSX.Element {
             From the shop to the oven
           </h2>
           <p className="h2-duo__copy">
-            Satyr runs the sales side of the business, and BakeryOS plans what the kitchen makes.
+            Satyr runs the sales side of the business, and Satyr Kitchen plans what you bake.
             Both work from the same orders.
           </p>
         </div>
@@ -1612,7 +1612,7 @@ export function H2Duo(): React.JSX.Element {
           <a className="h2-duo__panel" href={bakeryProps.href} onClick={bakeryProps.onClick}>
             <h3 className="h2-duo__title">
               <FieldTile field="apricot-beam" icon={Croissant} />
-              BakeryOS
+              Satyr Kitchen
             </h3>
             <p className="h2-duo__panel-copy">
               Orders and preorders become production runs. See each run as a workflow, a timeline of
@@ -1621,14 +1621,14 @@ export function H2Duo(): React.JSX.Element {
             <div className="h2-duo__visual">
               <div className="h2-chat" style={{ maxWidth: 324 }}>
                 <div className="h2-chat__bubble">
-                  <small>BakeryOS · 06:02</small>
+                  <small>Satyr Kitchen · 06:02</small>
                   Saturday plan ready: 6 runs from 212 preorders. Oven 1 starts at 07:10.
                 </div>
                 <div className="h2-chat__bubble h2-chat__bubble--reply">Looks good ✓</div>
               </div>
             </div>
             <span className="h2-duo__cta">
-              Explore BakeryOS
+              Explore Satyr Kitchen
               <ArrowRightAnim size={12} />
             </span>
           </a>
@@ -1951,7 +1951,7 @@ function getFooterGroups(t: Translate): { heading: string; links: H2FooterLink[]
       heading: t('products'),
       links: [
         { label: 'Satyr', to: '/ecommerce' },
-        { label: 'BakeryOS', to: '/ecommerce#bakeryos' },
+        { label: 'Satyr Kitchen', to: '/ecommerce#kitchen' },
         { label: 'Seams Wallet', to: '/wallet' },
       ],
     },

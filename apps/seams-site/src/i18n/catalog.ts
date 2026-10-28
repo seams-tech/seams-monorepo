@@ -25,8 +25,8 @@ export const messages = {
     ja: '注文と予約から生産ランをつくります。ひとつのランを、ワークフロー、オーブンとスタッフのタイムライン、ベーカリーの3Dビューで表示します。',
   },
   exploreBakery: {
-    en: 'Explore BakeryOS',
-    ja: 'BakeryOSを見る',
+    en: 'Explore Satyr Kitchen',
+    ja: 'Satyr Kitchenを見る',
   },
   walletCopy: {
     en: 'A stablecoin wallet that opens with a passkey. Keys are split between the device and the server, so neither side can sign alone.',

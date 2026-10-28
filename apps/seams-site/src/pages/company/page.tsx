@@ -41,9 +41,9 @@ function getProducts(t: Translate): readonly Product[] {
       field: 'azure-coral',
     },
     {
-      title: 'BakeryOS',
+      title: 'Satyr Kitchen',
       copy: t('bakeryCopy'),
-      to: '/ecommerce#bakeryos',
+      to: '/ecommerce#kitchen',
       cta: t('exploreBakery'),
       field: 'apricot-beam',
     },

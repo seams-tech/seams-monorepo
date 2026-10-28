@@ -125,7 +125,7 @@ export type HeroLink = { label: string; to: string };
    with the same fields as the navbar's product rows. */
 const productForks: readonly { label: string; to: string; field: GrainFieldName }[] = [
   { label: 'Satyr', to: '/ecommerce', field: 'azure-coral' },
-  { label: 'BakeryOS', to: '/ecommerce#bakeryos', field: 'apricot-beam' },
+  { label: 'Satyr Kitchen', to: '/ecommerce#kitchen', field: 'apricot-beam' },
   { label: 'Wallet', to: '/wallet', field: 'teal-peach' },
 ];
 

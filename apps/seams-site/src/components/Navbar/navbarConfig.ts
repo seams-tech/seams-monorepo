@@ -9,18 +9,18 @@ import {
 } from '@seams-internal/site-navbar';
 
 /* seams.sh is the landing site for three products: Satyr (the ecommerce
-   suite for cafés and pâtisseries), BakeryOS (its production workspace, with
-   robotics to come) and Seams Wallet (a standalone stablecoin wallet). BakeryOS
-   has its section on the Satyr page. Satyr and BakeryOS have no docs yet: these
+   suite for cafés and pâtisseries), Satyr Kitchen (its production workspace, with
+   robotics to come) and Seams Wallet (a standalone stablecoin wallet). Satyr Kitchen
+   has its section on the Satyr page. Satyr and Satyr Kitchen have no docs yet: these
    placeholder paths are the one place to point them at the real pages. The site
    shows no pricing for now; Wallet pricing lives on the Wallet site. */
 const productLinks = {
   satyr: { landing: '/ecommerce', docs: '/docs/satyr/' },
-  bakeryOs: { landing: '/ecommerce#bakeryos', docs: '/docs/bakeryos/' },
+  kitchen: { landing: '/ecommerce#kitchen', docs: '/docs/kitchen/' },
   wallet: { landing: '/wallet', docs: '/docs/' },
 } as const;
 
-const BAKERY_OS = 'BakeryOS';
+const SATYR_KITCHEN = 'Satyr Kitchen';
 const SEAMS_WALLET = 'Seams Wallet';
 
 /* The 'documentation' pane id historically maps to the "Products" trigger and
@@ -39,9 +39,9 @@ function documentationDropdownPane(t: Translate): DropdownPane {
         field: 'azure-coral',
       },
       {
-        title: BAKERY_OS,
+        title: SATYR_KITCHEN,
         description: t('bakeryNav'),
-        to: productLinks.bakeryOs.landing,
+        to: productLinks.kitchen.landing,
         icon: Bot,
         field: 'apricot-beam',
       },
@@ -77,9 +77,9 @@ function productsDropdownPane(t: Translate): DropdownPane {
         field: 'azure-coral',
       },
       {
-        title: BAKERY_OS,
+        title: SATYR_KITCHEN,
         description: t('bakeryDocs'),
-        to: productLinks.bakeryOs.docs,
+        to: productLinks.kitchen.docs,
         icon: Bot,
         field: 'apricot-beam',
       },

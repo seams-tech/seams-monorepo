@@ -21,8 +21,8 @@ import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* Satyr product page (ICP: café and pâtisserie owners), set like the wallet
    site: a split hero on a moving field, then banner-headed bands for the
-   suite, the workflows, BakeryOS and the approvals. Each band has an anchor
-   (#suite, #workflows, #bakeryos, #control) that the navbar and footer use. */
+   suite, the workflows, Satyr Kitchen and the approvals. Each band has an anchor
+   (#suite, #workflows, #kitchen, #control) that the navbar and footer use. */
 
 const heroScenes: readonly HeroScene[] = [
   {
@@ -58,7 +58,7 @@ const heroScenes: readonly HeroScene[] = [
     view: (
       <PortalShot
         shot="bakery-details"
-        alt="BakeryOS: a 3D view of the bakery with the details of one batch of financiers"
+        alt="Satyr Kitchen: a 3D view of the bakery with the details of one batch of financiers"
         className="h2-shot--card"
       />
     ),

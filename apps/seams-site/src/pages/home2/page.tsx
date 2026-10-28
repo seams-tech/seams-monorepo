@@ -19,8 +19,8 @@ import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* Umbrella front page, led by Satyr: a simple headline over a café's live
    feed, then a paged two-panel scene band (Satyr's views at the left,
-   BakeryOS at the right), the shop-to-oven split, the suite, and one band
-   for Seams Wallet. The Satyr and BakeryOS scenes are real Portal screens;
+   Satyr Kitchen at the right), the shop-to-oven split, the suite, and one band
+   for Seams Wallet. The Satyr and Satyr Kitchen scenes are real Portal screens;
    the Slack scene is an HTML mock. */
 
 /* ---------- hero: headline + paged scenes ---------- */
@@ -44,7 +44,7 @@ type HeroScene = {
   left: React.ReactNode;
 };
 
-/* Left column pages through Satyr's views; the BakeryOS plan stays fixed in
+/* Left column pages through Satyr's views; the Satyr Kitchen plan stays fixed in
    the right column, like the reference hero's assistant card. */
 const heroScenes: HeroScene[] = [
   {
@@ -88,7 +88,7 @@ function HomeHeroCurrent(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const contactProps = linkProps(CONTACT_LINK_TARGET);
   const satyrProps = linkProps('/ecommerce');
-  const bakeryProps = linkProps('/ecommerce#bakeryos');
+  const bakeryProps = linkProps('/ecommerce#kitchen');
   const [page, setPage] = React.useState(0);
   const scene = heroScenes[page];
 
@@ -159,19 +159,19 @@ function HomeHeroCurrent(): React.JSX.Element {
             className="h2-heroscene__aside"
             href={bakeryProps.href}
             onClick={bakeryProps.onClick}
-            aria-label="Explore BakeryOS"
+            aria-label="Explore Satyr Kitchen"
           >
             <div className="h2-heroscene__intro">
               <FieldTile field="apricot-beam" icon={Croissant} />
               <div>
-                <p className="h2-heroscene__intro-title">BakeryOS</p>
+                <p className="h2-heroscene__intro-title">Satyr Kitchen</p>
                 <p className="h2-heroscene__intro-sub">Orders become a bake plan for the kitchen</p>
               </div>
             </div>
             <div className="h2-heroscene__aside-body">
               <PortalShot
                 shot="bakery-details"
-                alt="BakeryOS: a 3D view of the bakery with the details of one batch of financiers"
+                alt="Satyr Kitchen: a 3D view of the bakery with the details of one batch of financiers"
                 className="h2-shot--card"
                 eager
               />

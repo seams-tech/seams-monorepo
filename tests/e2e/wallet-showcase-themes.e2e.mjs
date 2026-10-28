@@ -19,7 +19,40 @@ function surfaceColors(element) {
 function successColors(element) {
   const check = element.querySelector('.authentication-result__check');
   const seal = element.querySelector('.authentication-result__seal');
-  return { foreground: getComputedStyle(check).stroke, background: getComputedStyle(seal).fill };
+  const arc = element.querySelector('.authentication-result__arc');
+  const icon = element.querySelector('.authentication-result__icon');
+  const next = element.querySelector('[data-showcase-next]');
+  const reset = element.querySelector('[data-authentication-reset]');
+  const probe = document.createElement('span');
+  element.append(probe);
+  const tokens = {};
+  for (const name of ['buttonBackground', 'textButton', 'secondaryButtonBackground', 'secondaryButtonText']) {
+    probe.style.color = `var(--seams-colors-${name})`;
+    tokens[name] = getComputedStyle(probe).color;
+  }
+  probe.remove();
+  return {
+    foreground: getComputedStyle(check).stroke,
+    background: getComputedStyle(seal).fill,
+    arc: getComputedStyle(arc).stroke,
+    ripple: getComputedStyle(icon, '::after').borderTopColor,
+    nextBackground: getComputedStyle(next).backgroundColor,
+    nextText: getComputedStyle(next).color,
+    resetBackground: getComputedStyle(reset).backgroundColor,
+    resetText: getComputedStyle(reset).color,
+    tokens,
+  };
+}
+
+function assertSuccessTheme(success) {
+  assert.equal(success.background, success.tokens.buttonBackground);
+  assert.equal(success.arc, success.tokens.buttonBackground);
+  assert.equal(success.ripple, success.tokens.buttonBackground);
+  assert.equal(success.foreground, success.tokens.textButton);
+  assert.equal(success.nextBackground, success.tokens.buttonBackground);
+  assert.equal(success.nextText, success.tokens.textButton);
+  assert.equal(success.resetBackground, success.tokens.secondaryButtonBackground);
+  assert.equal(success.resetText, success.tokens.secondaryButtonText);
 }
 
 function progressColors(container) {
@@ -86,6 +119,7 @@ async function verifyTheme(page, gallery, theme, width) {
   const result = authentication.locator('.authentication-result');
   assert.deepEqual(await result.evaluate(surfaceColors), menuColors);
   const success = await result.evaluate(successColors);
+  assertSuccessTheme(success);
   const successContrast = contrast(success.foreground, success.background);
   assert.ok(successContrast >= 3, `Success check contrast: ${successContrast}`);
   await gallery.evaluate(positionForCapture);
@@ -97,6 +131,14 @@ async function verifyTheme(page, gallery, theme, width) {
     await authentication.locator('.seams-signup-menu-root').evaluate(surfaceColors),
     menuColors,
   );
+  await authentication.getByRole('button', { name: 'Unlock wallet', exact: true }).click();
+  await authentication.getByRole('button', { name: /(?:Continue|Unlock) with passkey/ }).click();
+  await expect(authentication.getByRole('heading', { name: "You're in", exact: true })).toBeVisible();
+  const loginSuccess = await result.evaluate(successColors);
+  assertSuccessTheme(loginSuccess);
+  assert.deepEqual(loginSuccess, success);
+  await result.screenshot({ path: `${artifacts}/${theme.id}-${width}-unlocked.png` });
+  await authentication.getByRole('button', { name: 'Start over', exact: true }).click();
   await authentication.getByRole('button', { name: 'Create wallet with passkey' }).click();
   await authentication.getByRole('button', { name: 'Next', exact: true }).click();
   const transaction = gallery.frameLocator('iframe[title="Transaction modal"]');
@@ -133,6 +175,7 @@ async function verifyTheme(page, gallery, theme, width) {
     theme: theme.id,
     width,
     success,
+    loginSuccess,
     successContrast,
     receiptColors,
     receiptContrast,

@@ -24,9 +24,10 @@
   border-radius: var(--seams-shape-card, 24px);
   background: var(--seams-colors-colorBackground);
   color: var(--seams-colors-textPrimary);
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: var(--seams-font-family, 'Hanken Grotesk', sans-serif);
   text-align: center;
-  box-shadow: 0 12px 32px #0000000d;
+  box-shadow: var(--seams-shadows-lg,
+    0 12px 32px color-mix(in srgb, var(--seams-colors-textPrimary), transparent 95%));
   animation: authentication-result-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
@@ -58,14 +59,15 @@
   height: 45px;
   margin-bottom: 18px;
   border-radius: 50%;
-  box-shadow: 0 0 0 6px var(--seams-colors-passkeyHaloBackground);
+  box-shadow: 0 0 0 6px var(--seams-colors-passkeyHaloBackground,
+    color-mix(in srgb, var(--seams-colors-colorBackground), var(--seams-colors-buttonBackground) 10%));
   animation: authentication-result-halo 300ms cubic-bezier(0.2, 0, 0, 1) 700ms both;
 }
 
 .authentication-result__icon::after {
   position: absolute;
   inset: 0;
-  border: 1.5px solid var(--seams-colors-textPrimary);
+  border: 1.5px solid var(--seams-colors-buttonBackground);
   border-radius: 50%;
   opacity: 0;
   content: '';
@@ -84,7 +86,7 @@
 }
 
 .authentication-result__arc {
-  stroke: var(--seams-colors-textPrimary);
+  stroke: var(--seams-colors-buttonBackground);
   stroke-dasharray: 100;
   stroke-dashoffset: 0;
   transform: rotate(-90deg);
@@ -239,7 +241,8 @@ html[data-showcase-clock='paused'] .authentication-result__icon::after {
 
 @keyframes authentication-result-halo {
   from {
-    box-shadow: 0 0 0 0 var(--seams-colors-passkeyHaloBackground);
+    box-shadow: 0 0 0 0 var(--seams-colors-passkeyHaloBackground,
+      color-mix(in srgb, var(--seams-colors-colorBackground), var(--seams-colors-buttonBackground) 10%));
   }
 }
 

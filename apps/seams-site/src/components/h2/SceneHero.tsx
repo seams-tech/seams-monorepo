@@ -1,150 +1,152 @@
 import React from 'react';
 import {
-  Bot,
-  Box,
   ChevronLeft,
   ChevronRight,
   Hash,
   Home,
-  ListChecks,
-  Lock,
-  ScrollText,
+  Inbox,
+  MessageSquare,
+  Receipt,
   ShieldCheck,
+  Store,
 } from 'lucide-react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
-import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import '@/styles/h2.css';
 
-/* Split hero shared by the umbrella and Ecommerce Agents pages, set like the
-   wallet site's: the headline on white at the left, and product scenes on a
-   moving gradient at the right. Chips under the card and the pager on the
-   bottom rule page through the scenes. The scenes are HTML mocks with the
-   footprint of the product screens they stand for. */
+/* Split hero shared by the umbrella and Satyr pages, set like the wallet
+   site's: the headline on white at the left, and product scenes on a moving
+   gradient at the right. Chips under the card and the pager on the bottom
+   rule page through the scenes. The scenes are HTML mocks with the footprint
+   of the product screens they stand for. */
 
 /* ---------- product scene mocks ---------- */
 
+/* The Satyr Portal on a café's day: agents' work lands here, and the items
+   that wait for a person are flagged. */
 export function DashboardWindow(): React.JSX.Element {
   return (
-    <div className="h2-window" role="img" aria-label="Seams merchant dashboard overview">
+    <div className="h2-window" role="img" aria-label="Satyr Portal overview for a café">
       <div className="h2-window__side">
-        <div className="h2-window__brand">
-          <SeamsWordmark height={14} />
-        </div>
+        <div className="h2-window__brand">Satyr</div>
         <div className="h2-window__navitem is-active">
           <Home aria-hidden /> Home
         </div>
         <div className="h2-window__navitem">
-          <Bot aria-hidden /> Agents
+          <MessageSquare aria-hidden /> Chat
         </div>
         <div className="h2-window__navitem">
-          <ListChecks aria-hidden /> Policies
+          <Store aria-hidden /> Shop
+        </div>
+        <div className="h2-window__navitem">
+          <Receipt aria-hidden /> Orders
+        </div>
+        <div className="h2-window__navitem">
+          <Inbox aria-hidden /> Inbox
         </div>
         <div className="h2-window__navitem">
           <ShieldCheck aria-hidden /> Approvals
         </div>
-        <div className="h2-window__navitem">
-          <ScrollText aria-hidden /> Audit
-        </div>
       </div>
       <div className="h2-window__main">
-        <p className="h2-window__title">Store overview</p>
+        <p className="h2-window__title">Kanda Bakery &amp; Café · today</p>
         <div className="h2-stats">
           <span className="h2-stat">
-            <small>Actions today</small>
-            <strong>1,284</strong>
+            <small>Orders today</small>
+            <strong>64</strong>
           </span>
           <span className="h2-stat">
-            <small>Held for approval</small>
-            <strong>3</strong>
-          </span>
-          <span className="h2-stat">
-            <small>Agents active</small>
+            <small>Waiting for you</small>
             <strong>2</strong>
           </span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Support agent (AI)
-            <small>emails + refunds ≤ ¥10,000</small>
+          <span className="h2-stat">
+            <small>Mail answered</small>
+            <strong>18</strong>
           </span>
-          <span className="h2-chip h2-chip--green">Active</span>
         </div>
         <div className="h2-mockrow">
           <span className="h2-mockrow__main">
-            Discount 12% · cart #8841
-            <small>waiting on owner approval</small>
+            Autumn menu published
+            <small>Shop agent · 14 items · storefront</small>
+          </span>
+          <span className="h2-chip h2-chip--green">Live</span>
+        </div>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            Refund ¥4,200 · order #2377
+            <small>Moves money · approve in the Portal</small>
           </span>
           <span className="h2-chip h2-chip--amber">Held</span>
         </div>
         <div className="h2-mockrow">
           <span className="h2-mockrow__main">
-            Restock order signed
-            <small>sig 0x8c31…f27</small>
+            Gift box enquiry answered
+            <small>Inbox agent · 2 sources cited</small>
           </span>
-          <span className="h2-chip h2-chip--plain">Logged</span>
+          <span className="h2-chip h2-chip--plain">Sent</span>
         </div>
         <div className="h2-mockrow">
           <span className="h2-mockrow__main">
-            Support inbox triaged
-            <small>14 tickets · 2 escalated to owner</small>
+            Failed payment · order #2391
+            <small>Morning brief · linked to the order</small>
           </span>
-          <span className="h2-chip h2-chip--plain">Logged</span>
+          <span className="h2-chip h2-chip--plain">Reported</span>
         </div>
         <div className="h2-mockrow">
           <span className="h2-mockrow__main">
-            Price update · autumn catalog
-            <small>runs 06:00 JST · within ±5% band</small>
+            Saturday bake plan
+            <small>BakeryOS · 6 runs from 212 preorders</small>
           </span>
-          <span className="h2-chip h2-chip--green">Scheduled</span>
+          <span className="h2-chip h2-chip--green">Planned</span>
         </div>
       </div>
     </div>
   );
 }
 
+/* Satyr in the café's Slack: an approval card in the thread, then the
+   on-demand brief. */
 export function IntegrationsWindow(): React.JSX.Element {
   return (
     <div
       className="h2-window"
       role="img"
-      aria-label="Approval request delivered to a Slack channel"
+      aria-label="Satyr asks for a menu approval in a Slack channel"
     >
       <div className="h2-window__side h2-window__side--slack">
-        <div className="h2-window__brand">Kanda Goods</div>
+        <div className="h2-window__brand">Kanda Bakery</div>
         <div className="h2-window__navitem">
           <Hash aria-hidden /> general
         </div>
         <div className="h2-window__navitem is-active">
-          <Hash aria-hidden /> store-ops
+          <Hash aria-hidden /> cafe-ops
         </div>
         <div className="h2-window__navitem">
-          <Hash aria-hidden /> support
+          <Hash aria-hidden /> orders
         </div>
         <div className="h2-window__navitem">
-          <Hash aria-hidden /> restocks
+          <Hash aria-hidden /> kitchen
         </div>
       </div>
       <div className="h2-window__main">
-        <p className="h2-window__title"># store-ops</p>
+        <p className="h2-window__title"># cafe-ops</p>
         <div className="h2-chat">
           <div className="h2-chat__bubble">
-            <small>Seams Harness · APP · 09:14</small>
-            Held for approval: support agent wants to send a 12% discount for cart #8841 (¥12,400).
-            Policy: discounts over 10% need an owner.
+            <small>Satyr · APP · 09:14</small>
+            Approval needed: the shop agent wants to publish the autumn menu, with 14 items and 3
+            new prices.
           </div>
           <div className="h2-chat__bubble">
-            <small>Seams Harness · APP · 09:14</small>
-            Approve with your passkey to release the action.
+            <small>Satyr · APP · 09:14</small>
+            An owner or admin can approve it on this card. Nothing goes live before that.
           </div>
           <div className="h2-chat__bubble h2-chat__bubble--reply">
-            Approved ✓ signed sig 0x8c31…f27, offer email sent
+            Approved ✓ the menu is live on the storefront
           </div>
           <div className="h2-chat__bubble">
-            <small>Seams Harness · APP · 09:31</small>
-            Daily digest: 1,284 actions inside policy, 3 held, 0 declined. Full audit trail on the
-            dashboard.
+            <small>Satyr · APP · 09:31</small>
+            Morning brief: 1 failed payment and 2 late orders. Each item links to its order.
           </div>
         </div>
       </div>
@@ -152,52 +154,32 @@ export function IntegrationsWindow(): React.JSX.Element {
   );
 }
 
-/* An HTML replica of the transaction confirmer, showing a multi-step escrow
-   release. `sheet` draws it as the bottom-sheet drawer, with a drag handle,
-   docked to the edge of the panel below it. */
-export function WalletTransactionPreview({ sheet = false }: { sheet?: boolean }) {
+/* A BakeryOS production plan: the day's runs, built from orders and
+   preorders. */
+export function ProductionRunMock(): React.JSX.Element {
   return (
-    <div
-      className="h2-wallet-confirm"
-      role="img"
-      aria-label="Transaction confirmer preview: escrow release for an order"
-    >
-      <div
-        className={`h2-wallet-confirm__card h2-txmock${sheet ? ' h2-wallet-confirm__card--sheet' : ''}`}
-      >
-        {sheet ? <span className="h2-txmock__handle" /> : null}
-        <p className="h2-txmock__title">Review transaction</p>
-        <p className="h2-txmock__meta">
-          <Lock aria-hidden /> localhost
-          <Box aria-hidden /> Tempo | ChainID: 42431
-        </p>
-        <p className="h2-txmock__desc">Release escrow for order #8841: delivery confirmed.</p>
-        <div className="h2-txmock__tree">
-          <p>
-            Transaction to contract <strong className="h2-txmock__addr">0xE5C7...F204</strong>
-          </p>
-          <p className="h2-txmock__step">
-            Calling <strong>verifyDelivery()</strong>
-            <span className="h2-txmock__args">{'{ "trackingId": "YMT-2984-8841" }'}</span>
-          </p>
-          <p className="h2-txmock__step">
-            Calling <strong>swapUsdcToJpyc()</strong>
-            <span className="h2-txmock__args">{'{ "rate": "155.2", "maxSlippage": "0.5%" }'}</span>
-          </p>
-          <p className="h2-txmock__step">
-            Calling <strong>releaseEscrow()</strong>
-            <span className="h2-txmock__args">
-              {'{ "orderId": "#8841", "amount": 12_400, "currency": "JPYC" }'}
-            </span>
-          </p>
-          <p className="h2-txmock__step">
-            Calling <strong>closeOrder()</strong> using 180k gas
-          </p>
-        </div>
-        <div className="h2-txmock__actions">
-          <span className="h2-txmock__btn h2-txmock__btn--ghost">Cancel</span>
-          <span className="h2-txmock__btn h2-txmock__btn--solid">Confirm</span>
-        </div>
+    <div className="h2-mockcard" role="img" aria-label="BakeryOS production plan for Saturday">
+      <p className="h2-mockcard__title">Saturday · 212 preorders</p>
+      <div className="h2-mockrow">
+        <span className="h2-mockrow__main">
+          Croissants · 120
+          <small>Proofing · ready 06:40</small>
+        </span>
+        <span className="h2-chip h2-chip--green">Done</span>
+      </div>
+      <div className="h2-mockrow">
+        <span className="h2-mockrow__main">
+          Financiers · 6 trays of 24
+          <small>Oven 1 · 07:10 to 07:24</small>
+        </span>
+        <span className="h2-chip h2-chip--amber">Baking</span>
+      </div>
+      <div className="h2-mockrow">
+        <span className="h2-mockrow__main">
+          Gift boxes · 40
+          <small>Pack after cooling · 10:30</small>
+        </span>
+        <span className="h2-chip h2-chip--plain">Planned</span>
       </div>
     </div>
   );
@@ -215,11 +197,11 @@ export type HeroScene = {
 export type HeroLink = { label: string; to: string };
 
 /* Compact product forks under the CTAs, each on its own moving gradient chip,
-   with the same fields as the wallet site's forks. */
+   with the same fields as the navbar's product rows. */
 const productForks: readonly { label: string; to: string; field: GrainFieldName }[] = [
+  { label: 'Satyr', to: '/ecommerce', field: 'azure-coral' },
+  { label: 'BakeryOS', to: '/ecommerce#bakeryos', field: 'apricot-beam' },
   { label: 'Wallet', to: '/wallet', field: 'teal-peach' },
-  { label: 'Harness', to: '/ecommerce', field: 'mauve-ember' },
-  { label: 'API', to: '/docs/concepts/', field: 'azure-coral' },
 ];
 
 /* the hero field moves at half the site pace, so the motion behind the

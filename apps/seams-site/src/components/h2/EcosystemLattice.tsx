@@ -14,20 +14,20 @@ function markStyle(mark: EcosystemLogoMark): React.CSSProperties {
 }
 
 export function EcosystemLattice(): React.JSX.Element {
-  const label = `Tools Seams connects: ${ECOSYSTEM_LOGO_MARKS.map((m) => m.label).join(', ')}`;
+  const label = `Tools Satyr connects: ${ECOSYSTEM_LOGO_MARKS.map((m) => m.label).join(', ')}`;
   return (
     <div className="h2-lattice" role="img" aria-label={label}>
       <div className="h2-lattice__plane">
         {ECOSYSTEM_LOGO_MARKS.map((mark) => (
           <span key={mark.id} className="h2-latticemark" style={markStyle(mark)} title={mark.label}>
             <svg
-              viewBox="0 0 24 24"
+              viewBox={mark.viewBox ?? '0 0 24 24'}
               aria-hidden
               focusable="false"
               style={mark.glyphSize ? { width: mark.glyphSize, height: mark.glyphSize } : undefined}
             >
               {mark.glyphs.map((glyph, i) => (
-                <path key={i} d={glyph.d} fill={glyph.fill} />
+                <path key={i} d={glyph.d} fill={glyph.fill} fillRule={glyph.fillRule} />
               ))}
             </svg>
           </span>

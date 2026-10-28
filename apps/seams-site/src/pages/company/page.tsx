@@ -34,25 +34,25 @@ type CompanyLink = {
 function getProducts(t: Translate): readonly Product[] {
   return [
     {
-      title: t('embeddedWallet'),
-      copy: t('embeddedCopy'),
-      to: '/wallet',
-      cta: t('exploreWallet'),
-      field: 'sky-sand',
-    },
-    {
-      title: t('ecommerceAgents'),
-      copy: t('agentsCopy'),
+      title: 'Satyr',
+      copy: t('satyrCopy'),
       to: '/ecommerce',
-      cta: t('exploreAgents'),
+      cta: t('exploreSatyr'),
       field: 'azure-coral',
     },
     {
-      title: t('policyAudit'),
-      copy: t('policyCopy'),
-      to: '/docs/concepts/policy/mandates',
-      cta: t('readPolicy'),
-      field: 'slate-amber',
+      title: 'BakeryOS',
+      copy: t('bakeryCopy'),
+      to: '/ecommerce#bakeryos',
+      cta: t('exploreBakery'),
+      field: 'apricot-beam',
+    },
+    {
+      title: 'Seams Wallet',
+      copy: t('walletCopy'),
+      to: '/wallet',
+      cta: t('exploreWallet'),
+      field: 'teal-peach',
     },
   ];
 }
@@ -60,16 +60,16 @@ function getProducts(t: Translate): readonly Product[] {
 function getPrinciples(t: Translate): readonly Principle[] {
   return [
     {
-      title: t('usersKeys'),
-      copy: t('usersKeysCopy'),
+      title: t('ownerDecides'),
+      copy: t('ownerDecidesCopy'),
     },
     {
-      title: t('policyFirst'),
-      copy: t('policyFirstCopy'),
+      title: t('everyReceipt'),
+      copy: t('everyReceiptCopy'),
     },
     {
-      title: t('oneSdk'),
-      copy: t('oneSdkCopy'),
+      title: t('secretsOut'),
+      copy: t('secretsOutCopy'),
     },
   ];
 }
@@ -163,11 +163,11 @@ export function CompanyPage(): React.JSX.Element {
                   <ArrowRightAnim size={12} />
                 </SiteLink>
                 <SiteLink
-                  to="/docs/concepts/"
+                  to="/ecommerce"
                   external={false}
                   className="h2-btn h2-btn--outline h2-btn--lg"
                 >
-                  {t('readDocs')}
+                  {t('exploreSatyr')}
                   <ArrowRightAnim size={12} />
                 </SiteLink>
               </div>

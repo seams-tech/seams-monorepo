@@ -50,11 +50,12 @@ export type MobileExtraLink = {
 /** The site's own menus and link targets; the navbar supplies the design. */
 export type SiteNavbarConfig = {
   labels: SiteNavbarLabels;
-  panes: Record<DropdownId, DropdownPane>;
+  /** A site without plans leaves out the pricing pane, and the bar shows no Pricing menu. */
+  panes: Record<Exclude<DropdownId, 'pricing'>, DropdownPane> & { pricing?: DropdownPane };
   homeHref: string;
   aboutHref: string;
   dashboardHref: string;
-  /** Extra links under the mobile Plans section, e.g. a sales contact. */
+  /** Extra links under the mobile Plans section, e.g. a sales contact. They need the pricing pane. */
   mobilePlanLinks?: MobileExtraLink[];
 };
 
@@ -181,7 +182,7 @@ export function SiteNavbar({
     productsDropdownPane,
     documentationDropdownPane,
     aboutDropdownPane,
-    pricingDropdownPane,
+    ...(pricingDropdownPane ? [pricingDropdownPane] : []),
   ];
   const rootRef = React.useRef<HTMLElement | null>(null);
   const dropdownButtonRefs = React.useRef<Record<DropdownId, HTMLButtonElement | null>>({
@@ -732,7 +733,7 @@ export function SiteNavbar({
           <div className="navbar-static__links">
             {renderDropdownTrigger(documentationDropdownPane)}
             {renderDropdownTrigger(productsDropdownPane)}
-            {renderDropdownTrigger(pricingDropdownPane)}
+            {pricingDropdownPane ? renderDropdownTrigger(pricingDropdownPane) : null}
             {renderDropdownTrigger(aboutDropdownPane)}
           </div>
         </div>
@@ -869,27 +870,31 @@ export function SiteNavbar({
             },
           ])}
         </MobileSubmenu>
-        <button
-          type="button"
-          className="navbar-static__mobile-link navbar-static__mobile-link--button"
-          aria-expanded={isMobilePricingOpen}
-          onClick={() => {
-            setIsMobilePricingOpen((open) => !open);
-            setIsMobileProductsOpen(false);
-            setIsMobileDocumentationOpen(false);
-            setIsMobileAboutOpen(false);
-          }}
-        >
-          <span>{pricingDropdownPane.label}</span>
-          <ChevronDown
-            size={16}
-            className={`navbar-static__chevron${isMobilePricingOpen ? ' is-open' : ''}`}
-            aria-hidden
-          />
-        </button>
-        <MobileSubmenu open={isMobilePricingOpen}>
-          {renderMobilePaneLinks(pricingDropdownPane, config.mobilePlanLinks)}
-        </MobileSubmenu>
+        {pricingDropdownPane ? (
+          <>
+            <button
+              type="button"
+              className="navbar-static__mobile-link navbar-static__mobile-link--button"
+              aria-expanded={isMobilePricingOpen}
+              onClick={() => {
+                setIsMobilePricingOpen((open) => !open);
+                setIsMobileProductsOpen(false);
+                setIsMobileDocumentationOpen(false);
+                setIsMobileAboutOpen(false);
+              }}
+            >
+              <span>{pricingDropdownPane.label}</span>
+              <ChevronDown
+                size={16}
+                className={`navbar-static__chevron${isMobilePricingOpen ? ' is-open' : ''}`}
+                aria-hidden
+              />
+            </button>
+            <MobileSubmenu open={isMobilePricingOpen}>
+              {renderMobilePaneLinks(pricingDropdownPane, config.mobilePlanLinks)}
+            </MobileSubmenu>
+          </>
+        ) : null}
         <div className="navbar-static__mobile-cta-row">
           <a
             className="navbar-static__pill navbar-static__pill--solid"

@@ -3,7 +3,8 @@ import {
   CakeSlice,
   Coffee,
   Croissant,
-  Fingerprint,
+  Mail,
+  ShieldCheck,
   ShoppingBag,
   Tag,
   Truck,
@@ -13,9 +14,8 @@ import { type GrainFieldName } from '@seams-internal/grain-field';
 import { FieldTile } from '@/components/h2/sections';
 
 /* The front page hero's live card: a bakery-café with an online shop, run by
-   agents. Tasks arrive at the top, show "Running" for a beat, and land on
-   their result; a payment over the owner's limit is held for a passkey. It
-   shows the store and café automation the platform sells. */
+   Satyr's agents. Tasks arrive at the top, show "Running" for a beat, and land
+   on their result; a payment over the owner's limit is held for approval. */
 
 type TaskTone = 'done' | 'queued' | 'held';
 
@@ -41,7 +41,7 @@ const shopTasks: readonly ShopTask[] = [
     icon: ShoppingBag,
     field: 'azure-coral',
     task: 'Online order #2391 · pickup 8:30',
-    detail: 'Shop agent · paid on Shopify',
+    detail: 'Shop agent · paid online by card',
     result: 'Queued',
     tone: 'queued',
   },
@@ -60,6 +60,14 @@ const shopTasks: readonly ShopTask[] = [
     detail: 'Ops agent · over ¥50,000 needs the owner',
     result: 'Held',
     tone: 'held',
+  },
+  {
+    icon: Mail,
+    field: 'sky-sand',
+    task: 'Gift boxes for 12 guests',
+    detail: 'Inbox agent · reply drafted with sources',
+    result: 'Drafted',
+    tone: 'queued',
   },
   {
     icon: Tag,
@@ -124,7 +132,7 @@ export function ShopOpsFeed(): React.JSX.Element {
     <div
       className="h2-ops"
       role="img"
-      aria-label="Live feed of a bakery-café run by agents: bake plans, online orders, stock reorders and markdowns, with a large supplier payment held for the owner"
+      aria-label="Live feed of a bakery-café run by Satyr's agents: bake plans, online orders, mail replies, stock reorders and markdowns, with a large supplier payment held for the owner"
     >
       <div className="h2-ops__head">
         <span className="h2-ops__title">
@@ -158,8 +166,8 @@ export function ShopOpsFeed(): React.JSX.Element {
         </ul>
       </div>
       <div className="h2-ops__foot">
-        <Fingerprint aria-hidden />
-        Spends over your limits wait for your passkey
+        <ShieldCheck aria-hidden />
+        Payments over your limit wait for your approval
       </div>
     </div>
   );

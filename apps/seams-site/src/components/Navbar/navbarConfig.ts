@@ -8,15 +8,16 @@ import {
   type SiteNavbarConfig,
 } from '@seams-internal/site-navbar';
 
-/* seams.sh is the landing site for three products: Satyr (ecommerce agents
-   and café management), BakeryOS (robotics for bakeries; its thesis is open)
-   and Seams Wallet (a standalone stablecoin wallet). Satyr and BakeryOS have
-   no docs or pricing pages yet: these placeholder paths are the one place to
-   point them at the real pages. Wallet pricing lives on the Wallet site. */
+/* seams.sh is the landing site for three products: Satyr (the ecommerce
+   suite for cafés and pâtisseries), BakeryOS (its production workspace, with
+   robotics to come) and Seams Wallet (a standalone stablecoin wallet). BakeryOS
+   has its section on the Satyr page. Satyr and BakeryOS have no docs yet: these
+   placeholder paths are the one place to point them at the real pages. The site
+   shows no pricing for now; Wallet pricing lives on the Wallet site. */
 const productLinks = {
-  satyr: { landing: '/ecommerce', docs: '/docs/satyr/', pricing: '/pricing/#satyr' },
-  bakeryOs: { landing: '/bakeryos', docs: '/docs/bakeryos/', pricing: '/pricing/#bakeryos' },
-  wallet: { landing: '/wallet', docs: '/docs/', pricing: '/wallet/pricing/' },
+  satyr: { landing: '/ecommerce', docs: '/docs/satyr/' },
+  bakeryOs: { landing: '/ecommerce#bakeryos', docs: '/docs/bakeryos/' },
+  wallet: { landing: '/wallet', docs: '/docs/' },
 } as const;
 
 const BAKERY_OS = 'BakeryOS';
@@ -53,12 +54,12 @@ function documentationDropdownPane(t: Translate): DropdownPane {
       },
     ],
     highlight: {
-      title: t('liveDemo'),
-      description: t('liveDemoCopy'),
-      to: productLinks.wallet.landing,
-      field: 'teal-peach',
+      title: t('satyrTour'),
+      description: t('satyrTourCopy'),
+      to: productLinks.satyr.landing,
+      field: 'azure-coral',
     },
-    footerLinks: [{ label: t('planPricing'), to: productLinks.wallet.pricing }],
+    footerLinks: [{ label: t('talkUs'), to: CONTACT_LINK_TARGET }],
   };
 }
 
@@ -103,49 +104,6 @@ function productsDropdownPane(t: Translate): DropdownPane {
   };
 }
 
-function pricingDropdownPane(t: Translate): DropdownPane {
-  return {
-    id: 'pricing',
-    label: t('pricing'),
-    kicker: t('plans'),
-    rows: [
-      {
-        title: t('satyrProduct'),
-        description: t('satyrPricing'),
-        to: productLinks.satyr.pricing,
-        icon: Store,
-        field: 'azure-coral',
-      },
-      {
-        title: BAKERY_OS,
-        description: t('bakeryPricing'),
-        to: productLinks.bakeryOs.pricing,
-        icon: Bot,
-        field: 'apricot-beam',
-      },
-      {
-        title: SEAMS_WALLET,
-        description: t('walletPricing'),
-        to: productLinks.wallet.pricing,
-        icon: Wallet,
-        meta: t('freePrice'),
-        field: 'teal-peach',
-      },
-    ],
-    // Enterprise takes the large card; the phone menu lists it under the plans.
-    highlight: {
-      title: 'Enterprise',
-      description: t('enterpriseNav'),
-      to: '/wallet/pricing/#enterprise',
-      field: 'onyx-dusk',
-    },
-    footerLinks: [
-      { label: t('comparePlans'), to: productLinks.wallet.pricing },
-      { label: t('estimatePrice'), to: '/wallet/pricing/#calculator' },
-    ],
-  };
-}
-
 export function getSiteNavbarConfig(locale: Locale): SiteNavbarConfig {
   const t = translate.bind(null, locale);
   const about = aboutMenu(locale);
@@ -162,17 +120,9 @@ export function getSiteNavbarConfig(locale: Locale): SiteNavbarConfig {
       products: productsDropdownPane(t),
       documentation: documentationDropdownPane(t),
       about: about.pane,
-      pricing: pricingDropdownPane(t),
     },
     homeHref: '/',
     aboutHref: about.href,
     dashboardHref: '/dashboard',
-    mobilePlanLinks: [
-      {
-        title: t('talkUs'),
-        description: t('talkCopy'),
-        to: CONTACT_LINK_TARGET,
-      },
-    ],
   };
 }

@@ -3,27 +3,28 @@ import type { Translate } from '@/i18n/catalog';
 import { LanguageSelector } from '@/i18n/LanguageSelector';
 import React from 'react';
 import {
-  Bot,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Fingerprint,
+  Croissant,
   KeyRound,
   ListChecks,
+  Mail,
   MonitorSmartphone,
   ScrollText,
   Server,
-  Share2,
+  ShoppingBag,
   SlidersHorizontal,
   Smartphone,
-  Wallet,
+  Store,
 } from 'lucide-react';
 import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { EcosystemLattice } from '@/components/h2/EcosystemLattice';
+import { ProductionRunMock } from '@/components/h2/SceneHero';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
@@ -36,7 +37,7 @@ import {
 import '@/styles/h2.css';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
-/* Shared section library for the h2 marketing pages (/, /wallet, /ecommerce).
+/* Shared section library for the h2 marketing pages (/, /ecommerce, /company).
    Every component renders inside a `.h2-page > .h2-col` wrapper and styles
    itself from src/styles/h2.css. */
 
@@ -341,19 +342,22 @@ function FieldBanner({
    the rules, with the heading left and the actions right. */
 function BannerSection({
   id,
+  anchor,
   field,
   title,
   sub,
   children,
 }: {
   id: string;
+  /* the fragment that links to this band, e.g. /ecommerce#bakeryos */
+  anchor?: string;
   field: GrainFieldName;
   title: string;
   sub?: string;
   children?: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <section className="h2-section h2-section--banner h2-rule" aria-labelledby={id}>
+    <section id={anchor} className="h2-section h2-section--banner h2-rule" aria-labelledby={id}>
       <FieldBanner field={field}>
         <div>
           <h2 id={id} className="h2-display h2-banner__title">
@@ -371,18 +375,19 @@ function BannerSection({
 
 export function H2Ecosystem(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
-  const docsProps = linkProps('/docs/concepts/');
+  const satyrProps = linkProps('/ecommerce');
 
   return (
     <>
       <BannerSection
         id="h2-eco-title"
+        anchor="integrations"
         field="teal-peach"
-        title="Plugs into the tools stores already run"
-        sub="Storefronts, payments, messaging, and support, connected through scoped credentials."
+        title="Connects to the tools a café already uses"
+        sub="Slack, Gmail, Shopify, Square, Stripe and your files. Each connection has its own access, and you can disconnect it at any time."
       >
-        <a className="h2-btn h2-btn--outline" href={docsProps.href} onClick={docsProps.onClick}>
-          Read the docs
+        <a className="h2-btn h2-btn--outline" href={satyrProps.href} onClick={satyrProps.onClick}>
+          Explore Satyr
           <ArrowRightAnim size={12} />
         </a>
       </BannerSection>
@@ -481,139 +486,179 @@ type Pillar = {
   mock: React.ReactNode;
 };
 
+/* The suite's areas, one tab each. The mocks are the Portal's lists for a
+   café on an ordinary day. */
 const pillars: Pillar[] = [
   {
-    id: 'auth',
-    label: 'Authentication',
-    icon: Fingerprint,
-    field: 'sky-sand',
-    copy: (
-      <>
-        <strong>Passkeys, biometric login, and account recovery.</strong> One identity layer for
-        merchants, staff, and the agents working on their behalf.
-      </>
-    ),
-    mock: (
-      <div className="h2-mockcard" role="img" aria-label="Sign-in methods list">
-        <p className="h2-mockcard__title">Sign in to your store</p>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Passkey
-            <small>face_id · this device</small>
-          </span>
-          <span className="h2-chip h2-chip--green">Ready</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Email one-time code
-            <small>otp · 10 min expiry</small>
-          </span>
-          <span className="h2-chip h2-chip--plain">Fallback</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Account recovery
-            <small>email + linked device</small>
-          </span>
-          <span className="h2-chip h2-chip--plain">Configured</span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: 'wallets',
-    label: 'Embedded Wallets',
-    icon: Wallet,
-    field: 'teal-peach',
-    copy: (
-      <>
-        <strong>Non-custodial embedded wallets and signed customer actions.</strong> Keys are split
-        between the user&rsquo;s device and your infrastructure: neither can sign alone.
-      </>
-    ),
-    mock: <SplitKeyVisual />,
-  },
-  {
-    id: 'permissions',
-    label: 'Credentials & permissions',
-    icon: ListChecks,
+    id: 'shop',
+    label: 'Shop and menus',
+    icon: Store,
     field: 'azure-coral',
     copy: (
       <>
-        <strong>Limits, approvals, roles, and audit.</strong> Configurable policy decides what each
-        credential can do before anything executes.
+        <strong>Menus, products and the storefront.</strong> Agents draft menus and product
+        descriptions with you, and publish a menu when you approve it.
       </>
     ),
     mock: (
-      <div className="h2-mockcard" role="img" aria-label="Policy rules list">
-        <p className="h2-mockcard__title">Store policy</p>
+      <div className="h2-mockcard" role="img" aria-label="Menus list">
+        <p className="h2-mockcard__title">Menus</p>
         <div className="h2-mockrow">
           <span className="h2-mockrow__main">
-            Discounts up to 10%
-            <small>role: support</small>
+            Autumn menu
+            <small>14 items · storefront</small>
           </span>
-          <span className="h2-chip h2-chip--green">Allowed</span>
+          <span className="h2-chip h2-chip--green">Live</span>
         </div>
         <div className="h2-mockrow">
           <span className="h2-mockrow__main">
-            Refunds over ¥50,000
-            <small>role: any</small>
+            Gift boxes
+            <small>6 items · online only</small>
+          </span>
+          <span className="h2-chip h2-chip--green">Live</span>
+        </div>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            Winter menu
+            <small>draft · 3 new prices</small>
           </span>
           <span className="h2-chip h2-chip--amber">Needs approval</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Price changes
-            <small>role: owner only</small>
-          </span>
-          <span className="h2-chip h2-chip--amber">Step-up auth</span>
         </div>
       </div>
     ),
   },
   {
-    id: 'delegated',
-    label: 'Delegated access',
-    icon: Share2,
-    field: 'mauve-ember',
+    id: 'orders',
+    label: 'Orders and payments',
+    icon: ShoppingBag,
+    field: 'slate-amber',
     copy: (
       <>
-        <strong>Credential delegation for staff, and agent identity for attribution.</strong> The
-        Seams Harness gives every agent its own scoped credentials and a full evidence trail.
+        <strong>Orders, payments, refunds and gift cards.</strong> Card payments go to your own
+        Stripe or Square account. Ask in Slack for a brief on failed payments and late orders.
       </>
     ),
     mock: (
-      <div className="h2-mockcard" role="img" aria-label="Delegated credentials list">
-        <p className="h2-mockcard__title">Delegated credentials</p>
+      <div className="h2-mockcard" role="img" aria-label="Orders list">
+        <p className="h2-mockcard__title">Orders</p>
         <div className="h2-mockrow">
           <span className="h2-mockrow__main">
-            Support agent (AI)
-            <small>emails + refunds ≤ ¥10,000</small>
+            #2391 · gift boxes ×2
+            <small>pickup Sat 10:30</small>
           </span>
-          <span className="h2-chip h2-chip--green">Active</span>
+          <span className="h2-chip h2-chip--green">Paid</span>
         </div>
         <div className="h2-mockrow">
           <span className="h2-mockrow__main">
-            Ops staff: Kenji
-            <small>listings + inventory</small>
+            #2388 · financiers ×12
+            <small>card declined · in the morning brief</small>
           </span>
-          <span className="h2-chip h2-chip--green">Active</span>
+          <span className="h2-chip h2-chip--amber">Failed</span>
         </div>
         <div className="h2-mockrow">
           <span className="h2-mockrow__main">
-            Pricing agent (AI)
-            <small>expired 2 days ago</small>
+            #2377 · refund ¥4,200
+            <small>moves money · approve in the Portal</small>
           </span>
-          <span className="h2-chip h2-chip--plain">Revoked</span>
+          <span className="h2-chip h2-chip--amber">Held</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'inbox',
+    label: 'Inbox',
+    icon: Mail,
+    field: 'sky-sand',
+    copy: (
+      <>
+        <strong>Customer and supplier mail, answered.</strong> The inbox agent drafts each reply
+        with the sources it used, and links each sender to the right customer or supplier.
+      </>
+    ),
+    mock: (
+      <div className="h2-mockcard" role="img" aria-label="Inbox list">
+        <p className="h2-mockcard__title">Inbox</p>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            Gift boxes for 12 guests
+            <small>customer · reply drafted, 2 sources</small>
+          </span>
+          <span className="h2-chip h2-chip--plain">Drafted</span>
+        </div>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            Butter price from May
+            <small>supplier · linked to Hokkaido Dairy</small>
+          </span>
+          <span className="h2-chip h2-chip--green">Linked</span>
+        </div>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            You have won a prize
+            <small>moved out of the inbox</small>
+          </span>
+          <span className="h2-chip h2-chip--plain">Spam</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'production',
+    label: 'Production',
+    icon: Croissant,
+    field: 'apricot-beam',
+    copy: (
+      <>
+        <strong>BakeryOS turns orders into a bake plan.</strong> One production run shows as a
+        workflow, a timeline of ovens and staff, and a 3D view of the bakery.
+      </>
+    ),
+    mock: <ProductionRunMock />,
+  },
+  {
+    id: 'vault',
+    label: 'Vault',
+    icon: KeyRound,
+    field: 'mauve-ember',
+    copy: (
+      <>
+        <strong>Logins and keys that agents use but never see.</strong> Keep them in the Satyr Vault
+        or in your own 1Password.
+      </>
+    ),
+    mock: (
+      <div className="h2-mockcard" role="img" aria-label="Vault items list">
+        <p className="h2-mockcard__title">Vault</p>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            Supplier portal login
+            <small>used by the stock agent</small>
+          </span>
+          <span className="h2-chip h2-chip--green">In use</span>
+        </div>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            Delivery partner login
+            <small>1Password · Kanda vault</small>
+          </span>
+          <span className="h2-chip h2-chip--plain">Linked</span>
+        </div>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            Old wholesale login
+            <small>no agent can use it</small>
+          </span>
+          <span className="h2-chip h2-chip--plain">Off</span>
         </div>
       </div>
     ),
   },
 ];
 
-export function H2Pillars(): React.JSX.Element {
+export function H2Pillars({ link = true }: { link?: boolean } = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
-  const docsProps = linkProps('/docs/concepts/');
+  const satyrProps = linkProps('/ecommerce');
   const [active, setActive] = React.useState(0);
   const pillar = pillars[active];
 
@@ -621,19 +666,22 @@ export function H2Pillars(): React.JSX.Element {
     <>
       <BannerSection
         id="h2-pillars-title"
-        field="teal-peach"
-        title="One SDK for the whole account stack"
-        sub="Authentication, wallets, credentials, and delegated access share one policy model."
+        anchor="suite"
+        field="azure-coral"
+        title="One suite for the whole business"
+        sub="The online shop, the inbox and the kitchen work from the same orders."
       >
-        <a className="h2-btn h2-btn--primary" href={docsProps.href} onClick={docsProps.onClick}>
-          Explore documentation
-          <ArrowRightAnim size={12} />
-        </a>
+        {link ? (
+          <a className="h2-btn h2-btn--primary" href={satyrProps.href} onClick={satyrProps.onClick}>
+            Explore Satyr
+            <ArrowRightAnim size={12} />
+          </a>
+        ) : null}
       </BannerSection>
       <section className="h2-section h2-section--band h2-rule" aria-labelledby="h2-pillars-title">
         <div className="h2-shell">
           <div className="h2-pillars">
-            <div className="h2-pillars__list" role="tablist" aria-label="Platform pillars">
+            <div className="h2-pillars__list" role="tablist" aria-label="Suite areas">
               {pillars.map((p, i) => (
                 <button
                   key={p.id}
@@ -659,54 +707,56 @@ export function H2Pillars(): React.JSX.Element {
   );
 }
 
-/* ---------- bento band (control plane) ---------- */
+/* ---------- bento band (approvals and receipts) ---------- */
 
-function PreflightMock(): React.JSX.Element {
+function SlackApprovalMock(): React.JSX.Element {
   return (
-    <div className="h2-mockcard" role="img" aria-label="Preflight checks before an agent action">
-      <p className="h2-mockcard__title">Preflight checks: send discount offer</p>
+    <div className="h2-mockcard" role="img" aria-label="Approval card in a Slack thread">
+      <p className="h2-mockcard__title">Approval card · #cafe-ops</p>
       <div className="h2-mockrow">
-        <span className="h2-mockrow__main">Credentials valid</span>
-        <span className="h2-chip h2-chip--green">Pass</span>
+        <span className="h2-mockrow__main">
+          Publish the autumn menu
+          <small>prepared by the shop agent · 14 items</small>
+        </span>
+        <span className="h2-chip h2-chip--amber">Approval needed</span>
       </div>
       <div className="h2-mockrow">
-        <span className="h2-mockrow__main">Agent identity verified</span>
-        <span className="h2-chip h2-chip--green">Pass</span>
-      </div>
-      <div className="h2-mockrow">
-        <span className="h2-mockrow__main">Discount permission</span>
-        <span className="h2-chip h2-chip--amber">Admin approval</span>
+        <span className="h2-mockrow__main">
+          Who can approve
+          <small>an owner or an admin</small>
+        </span>
+        <span className="h2-chip h2-chip--plain">2 people</span>
       </div>
       <div className="h2-mockbtns" aria-hidden>
         <span className="h2-mockbtn h2-mockbtn--approve">Approve</span>
-        <span className="h2-mockbtn h2-mockbtn--cancel">Cancel</span>
+        <span className="h2-mockbtn h2-mockbtn--cancel">Decline</span>
       </div>
     </div>
   );
 }
 
-function ApprovalGateMock(): React.JSX.Element {
+function MoneyGateMock(): React.JSX.Element {
   return (
-    <div className="h2-mockcard" role="img" aria-label="Approval gate requiring passkey">
-      <p className="h2-mockcard__title">Approval gate</p>
+    <div className="h2-mockcard" role="img" aria-label="A refund held for approval in the Portal">
+      <p className="h2-mockcard__title">Refund ¥4,200 · order #2377</p>
       <div className="h2-mockrow">
         <span className="h2-mockrow__main">
-          Order inventory restock
-          <small>¥180,000 · supplier: Kyoto Craft Co.</small>
+          Moves money
+          <small>a chat card cannot approve it</small>
         </span>
         <span className="h2-chip h2-chip--amber">Held</span>
       </div>
       <div className="h2-mockrow">
         <span className="h2-mockrow__main">
-          Confirm with passkey
-          <small>owner presence required</small>
+          Approve in the Portal
+          <small>owner</small>
         </span>
         <span className="h2-chip h2-chip--plain">Waiting</span>
       </div>
       <div className="h2-mockrow">
         <span className="h2-mockrow__main">
-          Decision logged to audit trail
-          <small>evidence retained</small>
+          Receipt
+          <small>the provider's confirmation is kept</small>
         </span>
         <span className="h2-chip h2-chip--plain">Auto</span>
       </div>
@@ -719,62 +769,64 @@ export function H2Bento(): React.JSX.Element {
     <>
       <BannerSection
         id="h2-bento-title"
+        anchor="control"
         field="mauve-ember"
-        title="Agents act only inside policy"
-        sub="Every action runs through the same checks: permissions, limits, thresholds, expiry. Risky actions route to a human."
+        title="Agents act inside your rules"
+        sub="Agents prepare the work. People approve the changes that matter, and every action leaves a receipt."
       />
       <section className="h2-section h2-section--bento h2-rule" aria-labelledby="h2-bento-title">
         <div className="h2-shell">
           <div className="h2-bento">
             <div className="h2-bento__card h2-bento__card--lg">
               <div className="h2-bento__visual">
-                <PreflightMock />
+                <SlackApprovalMock />
               </div>
               <div>
-                <h3 className="h2-bento__title">Checks before execution</h3>
+                <h3 className="h2-bento__title">Approve in the thread</h3>
                 <p className="h2-bento__copy">
-                  The Seams harness verifies credentials, identity, and permissions before an action
-                  runs and emits a log either way.
+                  An agent posts each change to the shop as a card in Slack. An owner or admin
+                  approves it there, and the agent goes on.
                 </p>
               </div>
             </div>
             <div className="h2-bento__card h2-bento__card--lg">
               <div className="h2-bento__visual">
-                <ApprovalGateMock />
+                <MoneyGateMock />
               </div>
               <div>
-                <h3 className="h2-bento__title">Human approval where it matters</h3>
+                <h3 className="h2-bento__title">Money moves only from the Portal</h3>
                 <p className="h2-bento__copy">
-                  Funds, pricing, and public actions can require passkey or biometric confirmation
-                  from the owner before they go through.
+                  A chat card cannot approve a refund or a payment. The approval happens in the
+                  Portal, and Satyr keeps the provider&rsquo;s confirmation.
                 </p>
               </div>
             </div>
             <div className="h2-bento__card h2-bento__card--sm">
               <FieldTile field="azure-coral" icon={ListChecks} />
               <div>
-                <h3 className="h2-bento__title">Roles &amp; limits</h3>
+                <h3 className="h2-bento__title">Roles</h3>
                 <p className="h2-bento__copy">
-                  Scope what support, ops, and agents can each do: amounts, actions, expiry.
+                  Owners, admins and members each get their own access to each connected tool.
                 </p>
               </div>
             </div>
             <div className="h2-bento__card h2-bento__card--sm">
               <FieldTile field="mauve-ember" icon={ScrollText} />
               <div>
-                <h3 className="h2-bento__title">Audit trail</h3>
+                <h3 className="h2-bento__title">Receipts</h3>
                 <p className="h2-bento__copy">
-                  Every decision, allowed, held, or blocked, lands in an evidence trail you can
-                  export.
+                  Each action records who asked for it, what changed and what the provider
+                  confirmed.
                 </p>
               </div>
             </div>
             <div className="h2-bento__card h2-bento__card--sm">
               <FieldTile field="aqua-evergreen" icon={KeyRound} />
               <div>
-                <h3 className="h2-bento__title">Recovery built in</h3>
+                <h3 className="h2-bento__title">Secrets stay out</h3>
                 <p className="h2-bento__copy">
-                  Accounts recover through email and linked devices: no seed phrases, no lockouts.
+                  Agents use logins and API keys from the Vault, but no key enters a prompt or a
+                  transcript.
                 </p>
               </div>
             </div>
@@ -787,31 +839,50 @@ export function H2Bento(): React.JSX.Element {
 
 /* ---------- workflows (canvas + use-case covers) ---------- */
 
-const useCases: readonly {
+type UseCase = {
   title: string;
   field: GrainFieldName;
   coverLabel: string;
   copy: string;
-}[] = [
+};
+
+const useCases: readonly UseCase[] = [
   {
-    title: 'Automate storefront ops',
+    title: 'Run the online shop',
     field: 'sky-sand',
-    coverLabel: 'Storefront ops',
-    copy: 'Let an agent watch cart abandonment, inventory alerts, and support tickets, then follow up, prepare refunds, and update listings inside the limits you set.',
+    coverLabel: 'Shop',
+    copy: 'Agents draft menus and product descriptions with you, and publish each menu to the storefront when you approve it.',
   },
   {
-    title: 'Delegate to staff safely',
+    title: 'Answer the inbox',
     field: 'aqua-evergreen',
-    coverLabel: 'Staff delegation',
-    copy: 'Give part-time staff and contractors scoped credentials instead of shared logins. Limits and roles apply automatically; access expires on schedule.',
+    coverLabel: 'Inbox',
+    copy: 'The inbox agent reads customer and supplier mail, drafts each reply with its sources, and moves spam out of the way.',
   },
   {
-    title: 'Agent checkout with mandates',
+    title: 'Watch payments and orders',
     field: 'azure-coral',
-    coverLabel: 'Agent checkout',
-    copy: 'Buyer-side agents purchase under signed mandates with per-week budgets: merchants see verified identity and a clean audit trail on every order.',
+    coverLabel: 'Orders',
+    copy: 'Ask in Slack for a brief on failed payments and late orders. Each item links to its order, and an agent can look into it for you.',
   },
 ];
+
+function UseCaseCards({ cases }: { cases: readonly UseCase[] }): React.JSX.Element {
+  return (
+    <div className="h2-cases">
+      {cases.map((c) => (
+        <div className="h2-case" key={c.title}>
+          <div className="h2-case__cover" aria-hidden>
+            <GrainField field={c.field} />
+            <span>{c.coverLabel}</span>
+          </div>
+          <h3 className="h2-case__title">{c.title}</h3>
+          <p className="h2-case__copy">{c.copy}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function H2WorkflowCanvas(): React.JSX.Element {
   return (
@@ -819,48 +890,52 @@ export function H2WorkflowCanvas(): React.JSX.Element {
       <div
         className="h2-flow__canvas"
         role="img"
-        aria-label="A storefront event flowing through preflight checks into a signed action"
+        aria-label="A gift box order flowing through checks into the bake plan and a confirmation email"
       >
-        <span className="h2-flow__tag">Seams Harness &middot; cart-recovery flow</span>
+        <span className="h2-flow__tag">Satyr &middot; gift box order</span>
         <div className="h2-flow__row">
           <div className="h2-mockcard h2-flow__node h2-flow__node--first">
-            <p className="h2-mockcard__title">Storefront event</p>
+            <p className="h2-mockcard__title">New order</p>
             <div className="h2-mockrow">
               <span className="h2-mockrow__main">
-                Cart abandoned
-                <small>3 items &middot; ¥12,400</small>
+                Gift boxes ×12
+                <small>¥64,800 &middot; pickup Sat 10:30</small>
               </span>
               <span className="h2-chip h2-chip--plain">New</span>
             </div>
           </div>
           <span className="h2-flow__link" aria-hidden />
           <div className="h2-mockcard h2-flow__node">
-            <p className="h2-mockcard__title">Preflight checks</p>
+            <p className="h2-mockcard__title">Checks</p>
             <div className="h2-mockrow">
-              <span className="h2-mockrow__main">Credentials valid</span>
+              <span className="h2-mockrow__main">Stock for Saturday</span>
               <span className="h2-chip h2-chip--green">Pass</span>
             </div>
             <div className="h2-mockrow">
-              <span className="h2-mockrow__main">Agent identity</span>
+              <span className="h2-mockrow__main">Pickup slot</span>
               <span className="h2-chip h2-chip--green">Pass</span>
             </div>
             <div className="h2-mockrow">
-              <span className="h2-mockrow__main">Discount 10%</span>
+              <span className="h2-mockrow__main">Company discount 10%</span>
               <span className="h2-chip h2-chip--amber">Owner approval</span>
             </div>
           </div>
           <span className="h2-flow__link" aria-hidden />
           <div className="h2-mockcard h2-flow__node h2-flow__node--last">
-            <p className="h2-mockcard__title">Action</p>
+            <p className="h2-mockcard__title">Actions</p>
             <div className="h2-mockrow">
               <span className="h2-mockrow__main">
-                Offer email sent
-                <small>sig 0x8c31…f27</small>
+                Added to the bake plan
+                <small>BakeryOS &middot; 2 trays</small>
               </span>
-              <span className="h2-chip h2-chip--green">Signed</span>
+              <span className="h2-chip h2-chip--green">Planned</span>
             </div>
             <div className="h2-mockrow">
-              <span className="h2-mockrow__main">Logged to audit trail</span>
+              <span className="h2-mockrow__main">Confirmation email</span>
+              <span className="h2-chip h2-chip--green">Sent</span>
+            </div>
+            <div className="h2-mockrow">
+              <span className="h2-mockrow__main">Receipt recorded</span>
               <span className="h2-chip h2-chip--plain">Auto</span>
             </div>
           </div>
@@ -871,41 +946,88 @@ export function H2WorkflowCanvas(): React.JSX.Element {
 }
 
 export function H2Cases(): React.JSX.Element {
-  const { linkProps } = useSiteRouter();
-  const docsProps = linkProps('/docs/concepts/policy/mandates');
-
   return (
     <>
       <BannerSection
         id="h2-cases-title"
+        anchor="workflows"
         field="mauve-ember"
-        title="Turn store operations into governed workflows"
-        sub="Agents watch the store, prepare responses, and act inside the limits you set."
-      >
-        <a className="h2-btn h2-btn--primary" href={docsProps.href} onClick={docsProps.onClick}>
-          Explore documentation
-          <ArrowRightAnim size={12} />
-        </a>
-      </BannerSection>
+        title="Turn café work into agent workflows"
+        sub="Agents watch the shop and the inbox, prepare the work, and act inside the limits that you set."
+      />
       <section className="h2-section h2-section--band h2-rule" aria-labelledby="h2-cases-title">
         <div className="h2-shell">
           <H2WorkflowCanvas />
-
-          <div className="h2-cases">
-            {useCases.map((c) => (
-              <div className="h2-case" key={c.title}>
-                <div className="h2-case__cover" aria-hidden>
-                  <GrainField field={c.field} />
-                  <span>{c.coverLabel}</span>
-                </div>
-                <h3 className="h2-case__title">{c.title}</h3>
-                <p className="h2-case__copy">{c.copy}</p>
-              </div>
-            ))}
-          </div>
+          <UseCaseCards cases={useCases} />
         </div>
       </section>
     </>
+  );
+}
+
+/* ---------- BakeryOS (production inside the suite) ---------- */
+
+const productionViews: readonly UseCase[] = [
+  {
+    title: 'Workflow canvas',
+    field: 'apricot-beam',
+    coverLabel: 'Workflow',
+    copy: 'Draw each recipe as steps: mix, rest, fill, bake, cool and pack. Each step names its equipment and its time.',
+  },
+  {
+    title: 'Resource timeline',
+    field: 'slate-amber',
+    coverLabel: 'Timeline',
+    copy: 'See which oven, mixer and person each run uses, hour by hour, and find clashes before the shift starts.',
+  },
+  {
+    title: '3D bakery',
+    field: 'copper-mist',
+    coverLabel: '3D view',
+    copy: 'Watch the run move through a 3D model of your kitchen before you bake it for real.',
+  },
+];
+
+export function H2Production(): React.JSX.Element {
+  return (
+    <>
+      <BannerSection
+        id="h2-production-title"
+        anchor="bakeryos"
+        field="apricot-beam"
+        title="BakeryOS: from orders to the oven"
+        sub="BakeryOS is the production workspace inside Satyr. It turns orders and preorders into production runs, and it shows one run in three views."
+      />
+      <section
+        className="h2-section h2-section--band h2-rule"
+        aria-labelledby="h2-production-title"
+      >
+        <div className="h2-shell">
+          <UseCaseCards cases={productionViews} />
+        </div>
+      </section>
+    </>
+  );
+}
+
+/* ---------- Seams Wallet (the other product, one band) ---------- */
+
+export function H2WalletBand(): React.JSX.Element {
+  const { linkProps } = useSiteRouter();
+  const walletProps = linkProps('/wallet');
+
+  return (
+    <BannerSection
+      id="h2-wallet-title"
+      field="teal-peach"
+      title="Also from Seams: Seams Wallet"
+      sub="A stablecoin wallet that opens with a passkey. Keys are split between the device and the server, so neither side can sign alone."
+    >
+      <a className="h2-btn h2-btn--outline" href={walletProps.href} onClick={walletProps.onClick}>
+        Explore Seams Wallet
+        <ArrowRightAnim size={12} />
+      </a>
+    </BannerSection>
   );
 }
 
@@ -1504,65 +1626,71 @@ export function H2Start(): React.JSX.Element {
   );
 }
 
-/* ---------- two products, one account layer ---------- */
+/* ---------- two products: the shop and the kitchen ---------- */
 
 export function H2Duo(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
-  const walletProps = linkProps('/wallet');
-  const agentsProps = linkProps('/ecommerce');
+  const satyrProps = linkProps('/ecommerce');
+  const bakeryProps = linkProps('/ecommerce#bakeryos');
 
   return (
     <section className="h2-section h2-section--snug h2-rule" aria-labelledby="h2-duo-title">
       <div className="h2-shell">
         <div className="h2-duo__head">
           <h2 id="h2-duo-title" className="h2-display">
-            Two products, one account layer
+            From the shop to the oven
           </h2>
           <p className="h2-duo__copy">
-            Built on the same keys, credentials, and policy engine: one product for embedding
-            wallets, another for putting agents to work on your store.
+            Satyr runs the sales side of the business, and BakeryOS plans what the kitchen makes.
+            Both work from the same orders.
           </p>
         </div>
         <div className="h2-duo__grid">
-          <a className="h2-duo__panel" href={walletProps.href} onClick={walletProps.onClick}>
+          <a className="h2-duo__panel" href={satyrProps.href} onClick={satyrProps.onClick}>
             <h3 className="h2-duo__title">
-              <FieldTile field="teal-peach" icon={Wallet} />
-              Embedded Wallet
+              <FieldTile field="azure-coral" icon={Store} />
+              Satyr
             </h3>
             <p className="h2-duo__panel-copy">
-              Passkey-secured, non-custodial wallets for your users: recovery built in, every action
-              signed, keys split so neither side can sign alone.
-            </p>
-            <div className="h2-duo__visual">
-              <SplitKeyVisual />
-            </div>
-            <span className="h2-duo__cta">
-              Explore Embedded Wallet
-              <ArrowRightAnim size={12} />
-            </span>
-          </a>
-          <a className="h2-duo__panel" href={agentsProps.href} onClick={agentsProps.onClick}>
-            <h3 className="h2-duo__title">
-              <FieldTile field="azure-coral" icon={Bot} />
-              Ecommerce Agents
-            </h3>
-            <p className="h2-duo__panel-copy">
-              Give AI agents and staff scoped credentials to run your store: limits, approvals, and
-              an audit trail on every action.
+              Agents run the online shop, menus, orders, payments and the inbox. Changes wait for
+              your approval in Slack or in the Portal.
             </p>
             <div className="h2-duo__visual">
               <div className="h2-chat" style={{ maxWidth: 324 }}>
                 <div className="h2-chat__bubble">
-                  <small>Seams Harness · 09:14</small>
-                  Held: 12% discount for cart #8841 needs owner approval.
+                  <small>Satyr · 09:14</small>
+                  Approval needed: autumn menu, 14 items, 3 new prices.
                 </div>
                 <div className="h2-chat__bubble h2-chat__bubble--reply">
-                  Approved ✓ signed and sent
+                  Approved ✓ the menu is live
                 </div>
               </div>
             </div>
             <span className="h2-duo__cta">
-              Explore Ecommerce Agents
+              Explore Satyr
+              <ArrowRightAnim size={12} />
+            </span>
+          </a>
+          <a className="h2-duo__panel" href={bakeryProps.href} onClick={bakeryProps.onClick}>
+            <h3 className="h2-duo__title">
+              <FieldTile field="apricot-beam" icon={Croissant} />
+              BakeryOS
+            </h3>
+            <p className="h2-duo__panel-copy">
+              Orders and preorders become production runs. See each run as a workflow, a timeline of
+              ovens and staff, and a 3D view of the bakery.
+            </p>
+            <div className="h2-duo__visual">
+              <div className="h2-chat" style={{ maxWidth: 324 }}>
+                <div className="h2-chat__bubble">
+                  <small>BakeryOS · 06:02</small>
+                  Saturday plan ready: 6 runs from 212 preorders. Oven 1 starts at 07:10.
+                </div>
+                <div className="h2-chat__bubble h2-chat__bubble--reply">Looks good ✓</div>
+              </div>
+            </div>
+            <span className="h2-duo__cta">
+              Explore BakeryOS
               <ArrowRightAnim size={12} />
             </span>
           </a>
@@ -1586,58 +1714,56 @@ type FaqGroup = {
   items: readonly FaqItem[];
 };
 
-const whatIsSeams: FaqItem = {
-  q: 'What is Seams?',
-  a: 'Seams is key and credential infrastructure for ecommerce: one SDK for authentication, non-custodial wallets, a credentials and permissions layer, and delegated access for staff and AI agents.',
-  more: { label: 'Documentation', to: '/docs/concepts/' },
+const whatIsSatyr: FaqItem = {
+  q: 'What is Satyr?',
+  a: 'Satyr is an ecommerce suite for cafés and pâtisseries. Agents run the online shop, menus, orders, payments, the inbox and the bake plan, and they work with your team in Slack and in the Portal.',
+  more: { label: 'Explore Satyr', to: '/ecommerce' },
 };
 
 const agentsFaq: FaqItem = {
-  q: 'What can AI agents do with Seams?',
-  a: 'Agents get their own identity and scoped credentials. They can act on commerce events: follow-ups, refunds, listing updates, but only inside the merchant’s policy. Risky actions route to a human approval gate with passkey or biometric confirmation.',
-  more: { label: 'Ecommerce Agents', to: '/ecommerce' },
+  q: 'What can the agents do?',
+  a: 'They draft and publish menus and product descriptions, answer customer and supplier mail with drafts that cite their sources, report failed payments and late orders, and turn orders into a bake plan. They act only through the access that you give them.',
+  more: { label: 'Agent workflows', to: '/ecommerce#workflows' },
 };
 
 const controlFaq: FaqItem = {
-  q: 'How do merchants stay in control?',
-  a: 'Policy runs before anything executes: roles, amount limits, thresholds, expiry, and revocation. Every decision is attributed and logged, and delegated credentials can be revoked at any time.',
-  more: { label: 'Permissions & policy', to: '/docs/concepts/policy/mandates' },
+  q: 'How do I stay in control?',
+  a: 'Agents prepare changes, and an owner or admin approves them from a Slack card or in the Portal. A change that moves money is approved only in the Portal. Every action leaves a receipt.',
+  more: { label: 'Approvals and receipts', to: '/ecommerce#control' },
 };
 
-const custodyFaq: FaqItem = {
-  q: 'Is Seams custodial?',
-  a: 'No. Signing keys are split between the user’s device and your infrastructure: neither side can sign alone, and exporting a key always requires a fresh authorized flow from the owner.',
-  more: { label: 'Custody model', to: '/docs/concepts/custody/' },
+const secretsFaq: FaqItem = {
+  q: 'Do agents see our passwords and keys?',
+  a: 'No. Logins and API keys stay in the Vault: the Satyr Vault or your own 1Password. Agents use them without seeing them, and no key enters a prompt or a transcript.',
 };
 
-const apiAuthFaq: FaqItem = {
-  q: 'How does API authentication work?',
-  a: 'Your backend authenticates with API keys; end users and agents authenticate with passkeys and scoped credentials. Signing always requires the user-side key share, so API keys alone can never move funds or export keys.',
-  more: { label: 'Sign-in methods', to: '/docs/concepts/auth-methods/' },
+const toolsFaq: FaqItem = {
+  q: 'Which tools does Satyr connect to?',
+  a: 'Slack, Gmail, Shopify, Square, Stripe, Google Drive, Dropbox, Notion and Airtable. Card payments go to your own Stripe or Square account.',
+  more: { label: 'Integrations', to: '/#integrations' },
+};
+
+const modelsFaq: FaqItem = {
+  q: 'Which AI models does Satyr use?',
+  a: 'You choose. Sign in with your ChatGPT account, add your own OpenAI API key, or use the models that Satyr provides.',
 };
 
 const startFaq: FaqItem = {
   q: 'How do we get started?',
-  a: 'The SDK is self-serve: install it, register an account with a passkey, and apply a policy template. For marketplaces and merchant fleets, contact us and we’ll plan the rollout together.',
-  more: { label: 'Guides', to: '/docs/guides/' },
-};
-
-const meteringFaq: FaqItem = {
-  q: 'How is usage metered?',
-  a: 'Plans are based on monthly active users. Each user includes 300 signatures a month, pooled across your app. The first 300 users are free. See the pricing page for details.',
-  more: { label: 'See pricing', to: '/wallet/pricing/' },
+  a: 'Talk to us. We connect your shop, your Slack workspace and your mailbox with you, and we set the first approval rules together.',
+  more: { label: 'Contact us', to: CONTACT_LINK_TARGET },
 };
 
 const footerFaqs = {
   home: [
-    { heading: 'Product', items: [whatIsSeams, agentsFaq] },
-    { heading: 'Security', items: [controlFaq, custodyFaq] },
-    { heading: 'Getting started', items: [startFaq, meteringFaq] },
+    { heading: 'Product', items: [whatIsSatyr, agentsFaq] },
+    { heading: 'Control', items: [controlFaq, secretsFaq] },
+    { heading: 'Getting started', items: [startFaq, modelsFaq] },
   ],
   ecommerce: [
-    { heading: 'Agents', items: [agentsFaq, controlFaq] },
-    { heading: 'Security', items: [custodyFaq, apiAuthFaq] },
-    { heading: 'Getting started', items: [startFaq, meteringFaq] },
+    { heading: 'Agents', items: [agentsFaq, toolsFaq] },
+    { heading: 'Control', items: [controlFaq, secretsFaq] },
+    { heading: 'Getting started', items: [startFaq, modelsFaq] },
   ],
 } satisfies Record<string, readonly FaqGroup[]>;
 
@@ -1886,16 +2012,24 @@ function getFooterGroups(t: Translate): { heading: string; links: H2FooterLink[]
     {
       heading: t('products'),
       links: [
-        { label: t('embeddedWallet'), to: '/wallet' },
-        { label: t('ecommerceAgents'), to: '/ecommerce' },
-        { label: t('custodyModel'), to: '/docs/concepts/custody/' },
-        { label: t('walletSessions'), to: '/docs/concepts/sessions/wallet-sessions' },
+        { label: 'Satyr', to: '/ecommerce' },
+        { label: 'BakeryOS', to: '/ecommerce#bakeryos' },
+        { label: 'Seams Wallet', to: '/wallet' },
       ],
     },
     {
-      heading: t('platform'),
+      heading: 'Satyr',
       links: [
-        { label: t('authentication'), to: '/docs/concepts/auth-methods/' },
+        { label: t('theSuite'), to: '/ecommerce#suite' },
+        { label: t('agentWorkflows'), to: '/ecommerce#workflows' },
+        { label: t('approvalsReceipts'), to: '/ecommerce#control' },
+        { label: t('integrations'), to: '/#integrations' },
+      ],
+    },
+    {
+      heading: 'Seams Wallet',
+      links: [
+        { label: t('custodyModel'), to: '/docs/concepts/custody/' },
         { label: t('passkeys'), to: '/docs/concepts/auth-methods/passkeys' },
         { label: t('walletsSignatures'), to: '/docs/concepts/threshold-signing/' },
         { label: t('permissionsPolicy'), to: '/docs/concepts/policy/mandates' },
@@ -1906,15 +2040,7 @@ function getFooterGroups(t: Translate): { heading: string; links: H2FooterLink[]
       links: [
         { label: t('documentation'), to: '/docs/concepts/' },
         { label: t('architecture'), to: '/docs/concepts/architecture' },
-        { label: t('walletIframe'), to: '/docs/concepts/custody/wallet-iframe' },
-      ],
-    },
-    {
-      heading: t('resources'),
-      links: [
         { label: t('guides'), to: '/docs/guides/' },
-        { label: t('useCases'), to: '/docs/use-cases/' },
-        { label: t('pricing'), to: '/pricing/' },
       ],
     },
     {
@@ -1939,18 +2065,18 @@ function getFooterGroups(t: Translate): { heading: string; links: H2FooterLink[]
 
 const ctaCopy = {
   home: {
-    field: 'teal-peach',
-    title: 'Build with the Seams SDK',
-    sub: 'Passkey sign-in, split-key wallets, and account recovery. Free for up to 300 users.',
-    secondary: { label: 'Explore docs', to: '/docs/' },
-    primary: { label: 'Start building', to: '/dashboard' },
+    field: 'azure-coral',
+    title: 'Put agents to work in your café',
+    sub: 'We connect the shop, Slack and your mailbox with you, and we set the first approval rules together.',
+    secondary: { label: 'Explore Satyr', to: '/ecommerce' },
+    primary: { label: 'Talk to us', to: CONTACT_LINK_TARGET },
   },
   ecommerce: {
     field: 'mauve-ember',
-    title: 'Put agents to work on your store',
-    sub: 'Scoped credentials, approvals, and an audit trail on every action.',
-    secondary: { label: 'Talk to us', to: CONTACT_LINK_TARGET },
-    primary: { label: 'Start building', to: '/docs/concepts/policy/mandates' },
+    title: 'See Satyr run your shop',
+    sub: 'Tell us what you sell and where. We show you Satyr on your own shop.',
+    secondary: { label: 'See the integrations', to: '/#integrations' },
+    primary: { label: 'Talk to us', to: CONTACT_LINK_TARGET },
   },
 } satisfies Record<
   string,

@@ -1,14 +1,9 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Slack, Store, Wallet } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Croissant, Slack, Store } from 'lucide-react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
-import {
-  DashboardWindow,
-  IntegrationsWindow,
-  WalletTransactionPreview,
-} from '@/components/h2/SceneHero';
+import { DashboardWindow, IntegrationsWindow, ProductionRunMock } from '@/components/h2/SceneHero';
 import { ShopOpsFeed } from '@/components/h2/ShopOpsFeed';
-import { SeamsAuthMenuMock } from '@/components/h2/SeamsAuthMenuMock';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import {
   FieldTile,
@@ -17,50 +12,16 @@ import {
   H2Ecosystem,
   H2Footer,
   H2Pillars,
-  H2Security,
+  H2WalletBand,
 } from '@/components/h2/sections';
 import '@/styles/h2.css';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
-/* Umbrella front page: a simple headline, then a paged two-panel scene band
-   showing the products (mock placeholders with the same footprint as the real
-   screenshots/videos that will replace them), and the
-   two-platforms split that routes each ICP to its page. */
-
-type HeroWalletPreview =
-  | {
-      kind: 'createWallet';
-      sub: string;
-    }
-  | {
-      kind: 'transactionConfirm';
-      sub: string;
-    };
-
-const createWalletPreview: HeroWalletPreview = {
-  kind: 'createWallet',
-  sub: 'Non-custodial wallets, opened with a passkey',
-};
-
-const transactionWalletPreview: HeroWalletPreview = {
-  kind: 'transactionConfirm',
-  sub: 'Review a demo transaction before signing',
-};
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled hero wallet preview: ${String(value)}`);
-}
-
-function renderHeroWalletPreview(preview: HeroWalletPreview): React.JSX.Element {
-  switch (preview.kind) {
-    case 'createWallet':
-      return <SeamsAuthMenuMock />;
-    case 'transactionConfirm':
-      return <WalletTransactionPreview sheet />;
-    default:
-      return assertNever(preview);
-  }
-}
+/* Umbrella front page, led by Satyr: a simple headline over a café's live
+   feed, then a paged two-panel scene band (Satyr's views at the left,
+   BakeryOS at the right), the shop-to-oven split, the suite, and one band
+   for Seams Wallet. The scenes are mock placeholders with the same footprint
+   as the real screenshots/videos that will replace them. */
 
 /* ---------- hero: headline + paged scenes ---------- */
 
@@ -81,38 +42,34 @@ type HeroScene = {
   title: string;
   sub: string;
   left: React.ReactNode;
-  wallet: HeroWalletPreview;
 };
 
-/* Left column pages through views of the agents product; the wallet shell
-   stays fixed in the right column, like the reference hero's assistant card. */
+/* Left column pages through Satyr's views; the BakeryOS plan stays fixed in
+   the right column, like the reference hero's assistant card. */
 const heroScenes: HeroScene[] = [
   {
-    id: 'dashboard',
+    id: 'portal',
     icon: Store,
     field: 'azure-coral',
-    title: 'Ecommerce Agents',
-    sub: 'Agents run your store: limits, approvals, and audit built in',
+    title: 'Satyr',
+    sub: 'Agents run the shop, the orders and the inbox',
     left: <DashboardWindow />,
-    wallet: createWalletPreview,
   },
   {
-    id: 'integrations',
+    id: 'slack',
     icon: Slack,
     field: 'mauve-ember',
-    title: 'Integrations',
+    title: 'Satyr in Slack',
     sub: 'Approvals land where your team already works',
     left: <IntegrationsWindow />,
-    wallet: transactionWalletPreview,
   },
 ];
 
 function HomeHeroCurrent(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
-  const startProps = linkProps('/docs/concepts/');
   const contactProps = linkProps(CONTACT_LINK_TARGET);
-  const agentsProps = linkProps('/ecommerce');
-  const walletProps = linkProps('/wallet');
+  const satyrProps = linkProps('/ecommerce');
+  const bakeryProps = linkProps('/ecommerce#bakeryos');
   const [page, setPage] = React.useState(0);
   const scene = heroScenes[page];
 
@@ -128,26 +85,26 @@ function HomeHeroCurrent(): React.JSX.Element {
           <div className="h2-hero-simple__copy">
             <h1 id="h2-home-title" className="h2-display h2-hero-simple__title">
               <span>Ecommerce on autopilot.</span>{' '}
-              <span className="h2-hero-simple__title-muted">Embedded wallets made simple.</span>
+              <span className="h2-hero-simple__title-muted">For cafés and pâtisseries.</span>
             </h1>
             <p className="h2-hero-simple__sub">
-              Auth, wallets, credentials, and delegated access in one SDK. Policy checks every
-              action before it runs.
+              Satyr agents run the online shop, the inbox and the bake plan. They work with your
+              team in Slack, and each change that matters waits for your approval.
             </p>
             <div className="h2-hero-simple__ctas">
               <a
                 className="h2-btn h2-btn--primary h2-btn--lg"
-                href={startProps.href}
-                onClick={startProps.onClick}
-              >
-                Start building
-              </a>
-              <a
-                className="h2-btn h2-btn--outline h2-btn--lg"
                 href={contactProps.href}
                 onClick={contactProps.onClick}
               >
-                Contact sales
+                Talk to us
+              </a>
+              <a
+                className="h2-btn h2-btn--outline h2-btn--lg"
+                href={satyrProps.href}
+                onClick={satyrProps.onClick}
+              >
+                Explore Satyr
               </a>
             </div>
           </div>
@@ -160,9 +117,9 @@ function HomeHeroCurrent(): React.JSX.Element {
           {/* whole panel navigates; the pager is a sibling so it stays clickable */}
           <a
             className="h2-heroscene__stage"
-            href={agentsProps.href}
-            onClick={agentsProps.onClick}
-            aria-label="Explore Ecommerce Agents"
+            href={satyrProps.href}
+            onClick={satyrProps.onClick}
+            aria-label="Explore Satyr"
           >
             <div className="h2-heroscene__intro h2-fadein" key={`intro-${scene.id}`}>
               <FieldTile field={scene.field} icon={scene.icon} />
@@ -181,29 +138,19 @@ function HomeHeroCurrent(): React.JSX.Element {
 
           <a
             className="h2-heroscene__aside"
-            href={walletProps.href}
-            onClick={walletProps.onClick}
-            aria-label="Explore Embedded Wallet"
+            href={bakeryProps.href}
+            onClick={bakeryProps.onClick}
+            aria-label="Explore BakeryOS"
           >
-            {/* confirmer scene: the merchant app fills the panel, blurred and
-                dimmed under the drawer like a live bottom sheet */}
-            {scene.wallet.kind === 'transactionConfirm' ? (
-              <div className="h2-heroscene__aside-appback h2-fadein" aria-hidden>
-                <DashboardWindow />
-              </div>
-            ) : null}
-            <div className="h2-heroscene__intro h2-fadein" key={`aside-intro-${scene.wallet.kind}`}>
-              <FieldTile field="teal-peach" icon={Wallet} />
+            <div className="h2-heroscene__intro">
+              <FieldTile field="apricot-beam" icon={Croissant} />
               <div>
-                <p className="h2-heroscene__intro-title">Embedded Wallet</p>
-                <p className="h2-heroscene__intro-sub">{scene.wallet.sub}</p>
+                <p className="h2-heroscene__intro-title">BakeryOS</p>
+                <p className="h2-heroscene__intro-sub">Orders become a bake plan for the kitchen</p>
               </div>
             </div>
-            <div
-              className="h2-heroscene__aside-body h2-fadein h2-fadein--late"
-              key={`wallet-${scene.wallet.kind}`}
-            >
-              {renderHeroWalletPreview(scene.wallet)}
+            <div className="h2-heroscene__aside-body">
+              <ProductionRunMock />
             </div>
           </a>
 
@@ -252,7 +199,7 @@ export function HomePage(): React.JSX.Element {
         <H2Duo />
         <H2Ecosystem />
         <H2Pillars />
-        <H2Security />
+        <H2WalletBand />
         <H2Cta audience="home" />
         <H2Footer faq="home" />
       </div>

@@ -47,7 +47,7 @@ export function updateDocumentMetadata(page: SitePage, origin: string): void {
   document.documentElement.lang = page.locale;
   for (const element of document.head.querySelectorAll('[data-site-meta]')) element.remove();
   if (page.kind === 'english') {
-    document.title = 'Seams Programmable Wallet';
+    document.title = 'Satyr by Seams | Ecommerce suite for cafés and pâtisseries';
     return;
   }
   document.title = pageTitle(page.page, page.locale);

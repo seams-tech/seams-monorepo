@@ -1,11 +1,10 @@
 import React from 'react';
-import { Croissant, Slack, Store } from 'lucide-react';
+import { Croissant, Inbox, Slack, Store } from 'lucide-react';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import {
-  DashboardWindow,
   H2SceneHero,
   IntegrationsWindow,
-  ProductionRunMock,
+  PortalShot,
   type HeroScene,
 } from '@/components/h2/SceneHero';
 import {
@@ -26,9 +25,44 @@ import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
    (#suite, #workflows, #bakeryos, #control) that the navbar and footer use. */
 
 const heroScenes: readonly HeroScene[] = [
-  { id: 'portal', label: 'Portal', icon: Store, view: <DashboardWindow /> },
+  {
+    id: 'portal',
+    label: 'Portal',
+    icon: Store,
+    view: (
+      <PortalShot
+        shot="agents"
+        alt="The Agents page of the Satyr Portal: the café's merchant agent has a suggested change for review"
+        className="h2-shot--card"
+        eager
+      />
+    ),
+  },
+  {
+    id: 'inbox',
+    label: 'Inbox',
+    icon: Inbox,
+    view: (
+      <PortalShot
+        shot="inbox-draft"
+        alt="A reply that an agent drafted for a customer, with Approve and send, Edit and Reject"
+        className="h2-shot--card h2-shot--tall"
+      />
+    ),
+  },
   { id: 'slack', label: 'Slack', icon: Slack, view: <IntegrationsWindow /> },
-  { id: 'kitchen', label: 'Kitchen', icon: Croissant, view: <ProductionRunMock /> },
+  {
+    id: 'kitchen',
+    label: 'Kitchen',
+    icon: Croissant,
+    view: (
+      <PortalShot
+        shot="bakery-details"
+        alt="BakeryOS: a 3D view of the bakery with the details of one batch of financiers"
+        className="h2-shot--card"
+      />
+    ),
+  },
 ];
 
 export function EcommercePage(): React.JSX.Element {

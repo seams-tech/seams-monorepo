@@ -24,7 +24,7 @@ import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { EcosystemLattice } from '@/components/h2/EcosystemLattice';
-import { ProductionRunMock } from '@/components/h2/SceneHero';
+import { PortalShot, type PortalShotName } from '@/components/h2/SceneHero';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
@@ -486,8 +486,8 @@ type Pillar = {
   mock: React.ReactNode;
 };
 
-/* The suite's areas, one tab each. The mocks are the Portal's lists for a
-   café on an ordinary day. */
+/* The suite's areas, one tab each, with the Portal's own screen for each
+   area. */
 const pillars: Pillar[] = [
   {
     id: 'shop',
@@ -501,30 +501,11 @@ const pillars: Pillar[] = [
       </>
     ),
     mock: (
-      <div className="h2-mockcard" role="img" aria-label="Menus list">
-        <p className="h2-mockcard__title">Menus</p>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Autumn menu
-            <small>14 items · storefront</small>
-          </span>
-          <span className="h2-chip h2-chip--green">Live</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Gift boxes
-            <small>6 items · online only</small>
-          </span>
-          <span className="h2-chip h2-chip--green">Live</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Winter menu
-            <small>draft · 3 new prices</small>
-          </span>
-          <span className="h2-chip h2-chip--amber">Needs approval</span>
-        </div>
-      </div>
+      <PortalShot
+        shot="checkout"
+        alt="The Checkout page of the Satyr Portal: how customers buy from the café’s storefront"
+        className="h2-shot--card"
+      />
     ),
   },
   {
@@ -539,30 +520,11 @@ const pillars: Pillar[] = [
       </>
     ),
     mock: (
-      <div className="h2-mockcard" role="img" aria-label="Orders list">
-        <p className="h2-mockcard__title">Orders</p>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            #2391 · gift boxes ×2
-            <small>pickup Sat 10:30</small>
-          </span>
-          <span className="h2-chip h2-chip--green">Paid</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            #2388 · financiers ×12
-            <small>card declined · in the morning brief</small>
-          </span>
-          <span className="h2-chip h2-chip--amber">Failed</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            #2377 · refund ¥4,200
-            <small>moves money · approve in the Portal</small>
-          </span>
-          <span className="h2-chip h2-chip--amber">Held</span>
-        </div>
-      </div>
+      <PortalShot
+        shot="orders"
+        alt="The Orders page of the Satyr Portal: customer orders and their state"
+        className="h2-shot--card"
+      />
     ),
   },
   {
@@ -577,30 +539,11 @@ const pillars: Pillar[] = [
       </>
     ),
     mock: (
-      <div className="h2-mockcard" role="img" aria-label="Inbox list">
-        <p className="h2-mockcard__title">Inbox</p>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Gift boxes for 12 guests
-            <small>customer · reply drafted, 2 sources</small>
-          </span>
-          <span className="h2-chip h2-chip--plain">Drafted</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Butter price from May
-            <small>supplier · linked to Hokkaido Dairy</small>
-          </span>
-          <span className="h2-chip h2-chip--green">Linked</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            You have won a prize
-            <small>moved out of the inbox</small>
-          </span>
-          <span className="h2-chip h2-chip--plain">Spam</span>
-        </div>
-      </div>
+      <PortalShot
+        shot="inbox"
+        alt="The Satyr Inbox: a reply that an agent drafted waits for approval"
+        className="h2-shot--card"
+      />
     ),
   },
   {
@@ -614,7 +557,13 @@ const pillars: Pillar[] = [
         workflow, a timeline of ovens and staff, and a 3D view of the bakery.
       </>
     ),
-    mock: <ProductionRunMock />,
+    mock: (
+      <PortalShot
+        shot="bakery-timeline"
+        alt="BakeryOS: a 3D view of the bakery above the timeline of three batches"
+        className="h2-shot--card h2-shot--bottom"
+      />
+    ),
   },
   {
     id: 'vault',
@@ -628,30 +577,11 @@ const pillars: Pillar[] = [
       </>
     ),
     mock: (
-      <div className="h2-mockcard" role="img" aria-label="Vault items list">
-        <p className="h2-mockcard__title">Vault</p>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Supplier portal login
-            <small>used by the stock agent</small>
-          </span>
-          <span className="h2-chip h2-chip--green">In use</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Delivery partner login
-            <small>1Password · Kanda vault</small>
-          </span>
-          <span className="h2-chip h2-chip--plain">Linked</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Old wholesale login
-            <small>no agent can use it</small>
-          </span>
-          <span className="h2-chip h2-chip--plain">Off</span>
-        </div>
-      </div>
+      <PortalShot
+        shot="vault"
+        alt="The Vault page of the Satyr Portal: logins and API keys that agents use"
+        className="h2-shot--card"
+      />
     ),
   },
 ];
@@ -843,6 +773,7 @@ type UseCase = {
   title: string;
   field: GrainFieldName;
   coverLabel: string;
+  cover: PortalShotName;
   copy: string;
 };
 
@@ -851,18 +782,21 @@ const useCases: readonly UseCase[] = [
     title: 'Run the online shop',
     field: 'sky-sand',
     coverLabel: 'Shop',
+    cover: 'cover-shop',
     copy: 'Agents draft menus and product descriptions with you, and publish each menu to the storefront when you approve it.',
   },
   {
     title: 'Answer the inbox',
     field: 'aqua-evergreen',
     coverLabel: 'Inbox',
+    cover: 'cover-inbox',
     copy: 'The inbox agent reads customer and supplier mail, drafts each reply with its sources, and moves spam out of the way.',
   },
   {
     title: 'Watch payments and orders',
     field: 'azure-coral',
     coverLabel: 'Orders',
+    cover: 'cover-orders',
     copy: 'Ask in Slack for a brief on failed payments and late orders. Each item links to its order, and an agent can look into it for you.',
   },
 ];
@@ -872,9 +806,10 @@ function UseCaseCards({ cases }: { cases: readonly UseCase[] }): React.JSX.Eleme
     <div className="h2-cases">
       {cases.map((c) => (
         <div className="h2-case" key={c.title}>
-          <div className="h2-case__cover" aria-hidden>
+          <div className="h2-case__cover">
             <GrainField field={c.field} />
-            <span>{c.coverLabel}</span>
+            <span aria-hidden>{c.coverLabel}</span>
+            <PortalShot shot={c.cover} alt="" />
           </div>
           <h3 className="h2-case__title">{c.title}</h3>
           <p className="h2-case__copy">{c.copy}</p>
@@ -972,18 +907,21 @@ const productionViews: readonly UseCase[] = [
     title: 'Workflow canvas',
     field: 'apricot-beam',
     coverLabel: 'Workflow',
+    cover: 'cover-workflow',
     copy: 'Draw each recipe as steps: mix, rest, fill, bake, cool and pack. Each step names its equipment and its time.',
   },
   {
     title: 'Resource timeline',
     field: 'slate-amber',
     coverLabel: 'Timeline',
+    cover: 'cover-timeline',
     copy: 'See which oven, mixer and person each run uses, hour by hour, and find clashes before the shift starts.',
   },
   {
     title: '3D bakery',
     field: 'copper-mist',
     coverLabel: '3D view',
+    cover: 'cover-floor',
     copy: 'Watch the run move through a 3D model of your kitchen before you bake it for real.',
   },
 ];

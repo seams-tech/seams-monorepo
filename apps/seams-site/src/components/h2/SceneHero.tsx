@@ -1,15 +1,5 @@
 import React from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Hash,
-  Home,
-  Inbox,
-  MessageSquare,
-  Receipt,
-  ShieldCheck,
-  Store,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Hash } from 'lucide-react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
@@ -18,90 +8,56 @@ import '@/styles/h2.css';
 /* Split hero shared by the umbrella and Satyr pages, set like the wallet
    site's: the headline on white at the left, and product scenes on a moving
    gradient at the right. Chips under the card and the pager on the bottom
-   rule page through the scenes. The scenes are HTML mocks with the footprint
-   of the product screens they stand for. */
+   rule page through the scenes. The Portal scenes are real screens; the Slack
+   scene is an HTML mock of the café's channel. */
 
-/* ---------- product scene mocks ---------- */
+/* ---------- product scenes ---------- */
 
-/* The Satyr Portal on a café's day: agents' work lands here, and the items
-   that wait for a person are flagged. */
-export function DashboardWindow(): React.JSX.Element {
+/* Real Satyr Portal screens, captured from the Portal's preview pages with
+   the sample café's data (public/satyr-portal). Width and height are the
+   image's own, so the page does not move while an image loads. */
+const PORTAL_SHOTS = {
+  agents: [1600, 1120],
+  inbox: [1600, 1183],
+  'inbox-draft': [1220, 1480],
+  'bakery-details': [1600, 1127],
+  'bakery-timeline': [1600, 1210],
+  checkout: [1600, 967],
+  orders: [1600, 1138],
+  vault: [1600, 1077],
+  brain: [1600, 861],
+  'cover-shop': [800, 600],
+  'cover-inbox': [800, 600],
+  'cover-orders': [800, 600],
+  'cover-workflow': [800, 600],
+  'cover-timeline': [800, 600],
+  'cover-floor': [800, 600],
+} as const satisfies Record<string, readonly [number, number]>;
+
+export type PortalShotName = keyof typeof PORTAL_SHOTS;
+
+export function PortalShot({
+  shot,
+  alt,
+  className,
+  eager = false,
+}: {
+  shot: PortalShotName;
+  alt: string;
+  className?: string;
+  eager?: boolean;
+}): React.JSX.Element {
+  const [width, height] = PORTAL_SHOTS[shot];
   return (
-    <div className="h2-window" role="img" aria-label="Satyr Portal overview for a café">
-      <div className="h2-window__side">
-        <div className="h2-window__brand">Satyr</div>
-        <div className="h2-window__navitem is-active">
-          <Home aria-hidden /> Home
-        </div>
-        <div className="h2-window__navitem">
-          <MessageSquare aria-hidden /> Chat
-        </div>
-        <div className="h2-window__navitem">
-          <Store aria-hidden /> Shop
-        </div>
-        <div className="h2-window__navitem">
-          <Receipt aria-hidden /> Orders
-        </div>
-        <div className="h2-window__navitem">
-          <Inbox aria-hidden /> Inbox
-        </div>
-        <div className="h2-window__navitem">
-          <ShieldCheck aria-hidden /> Approvals
-        </div>
-      </div>
-      <div className="h2-window__main">
-        <p className="h2-window__title">Kanda Bakery &amp; Café · today</p>
-        <div className="h2-stats">
-          <span className="h2-stat">
-            <small>Orders today</small>
-            <strong>64</strong>
-          </span>
-          <span className="h2-stat">
-            <small>Waiting for you</small>
-            <strong>2</strong>
-          </span>
-          <span className="h2-stat">
-            <small>Mail answered</small>
-            <strong>18</strong>
-          </span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Autumn menu published
-            <small>Shop agent · 14 items · storefront</small>
-          </span>
-          <span className="h2-chip h2-chip--green">Live</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Refund ¥4,200 · order #2377
-            <small>Moves money · approve in the Portal</small>
-          </span>
-          <span className="h2-chip h2-chip--amber">Held</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Gift box enquiry answered
-            <small>Inbox agent · 2 sources cited</small>
-          </span>
-          <span className="h2-chip h2-chip--plain">Sent</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Failed payment · order #2391
-            <small>Morning brief · linked to the order</small>
-          </span>
-          <span className="h2-chip h2-chip--plain">Reported</span>
-        </div>
-        <div className="h2-mockrow">
-          <span className="h2-mockrow__main">
-            Saturday bake plan
-            <small>BakeryOS · 6 runs from 212 preorders</small>
-          </span>
-          <span className="h2-chip h2-chip--green">Planned</span>
-        </div>
-      </div>
-    </div>
+    <img
+      className={className ? `h2-shot ${className}` : 'h2-shot'}
+      src={`/satyr-portal/${shot}.webp`}
+      alt={alt}
+      width={width}
+      height={height}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+    />
   );
 }
 
@@ -149,37 +105,6 @@ export function IntegrationsWindow(): React.JSX.Element {
             Morning brief: 1 failed payment and 2 late orders. Each item links to its order.
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-/* A BakeryOS production plan: the day's runs, built from orders and
-   preorders. */
-export function ProductionRunMock(): React.JSX.Element {
-  return (
-    <div className="h2-mockcard" role="img" aria-label="BakeryOS production plan for Saturday">
-      <p className="h2-mockcard__title">Saturday · 212 preorders</p>
-      <div className="h2-mockrow">
-        <span className="h2-mockrow__main">
-          Croissants · 120
-          <small>Proofing · ready 06:40</small>
-        </span>
-        <span className="h2-chip h2-chip--green">Done</span>
-      </div>
-      <div className="h2-mockrow">
-        <span className="h2-mockrow__main">
-          Financiers · 6 trays of 24
-          <small>Oven 1 · 07:10 to 07:24</small>
-        </span>
-        <span className="h2-chip h2-chip--amber">Baking</span>
-      </div>
-      <div className="h2-mockrow">
-        <span className="h2-mockrow__main">
-          Gift boxes · 40
-          <small>Pack after cooling · 10:30</small>
-        </span>
-        <span className="h2-chip h2-chip--plain">Planned</span>
       </div>
     </div>
   );

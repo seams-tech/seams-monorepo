@@ -1384,6 +1384,86 @@ body:has(.h2-page) {
   }
 }
 
+/* ---------- Satyr Portal screenshots ---------- */
+
+.h2-shot {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* a screen on a tinted panel: the window mock's hairline and shadow */
+.h2-shot--card {
+  width: 100%;
+  border: 1px solid #e3ded6;
+  border-radius: 12px;
+  background: var(--h2-bg);
+  box-shadow: 0 22px 40px -16px rgba(15, 23, 42, 0.32);
+}
+
+/* every tab shows its screen in one shape, so the band keeps its height
+   when the reader changes tabs */
+.h2-pillars__mock .h2-shot--card {
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  object-position: left top;
+}
+
+.h2-pillars__mock .h2-shot--bottom {
+  object-position: left bottom;
+}
+
+/* the scene band crops the screen at the divider and the band edge, as it
+   does the window mock */
+.h2-heroscene__frame .h2-shot {
+  width: calc(100% + 36px);
+  max-width: none;
+  border: 1px solid #e3ded6;
+  border-radius: 13px 0 0 0;
+  background: var(--h2-bg);
+}
+
+/* the screen's own width must not widen the aside's grid cell */
+.h2-heroscene__aside-body:has(.h2-shot) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.h2-heroscene__aside-body .h2-shot--card {
+  position: relative;
+  box-shadow: 0 12px 32px -20px rgba(15, 23, 42, 0.28);
+}
+
+.h2-hero__scene .h2-shot--card {
+  width: min(480px, 100%);
+  border: none;
+}
+
+/* the portrait draft keeps the scene cell at its usual height */
+.h2-hero__scene .h2-shot--tall {
+  width: min(300px, 100%);
+}
+
+/* a cover holds its label at the top left and the screen below it, cut by
+   the cover's bottom and right edges */
+.h2-case__cover:has(.h2-shot) {
+  place-items: start;
+}
+
+.h2-case__cover:has(.h2-shot) span {
+  padding: 14px 18px;
+  font-size: 15px;
+}
+
+.h2-case__cover .h2-shot {
+  position: absolute;
+  top: 22%;
+  left: 10%;
+  width: 100%;
+  max-width: none;
+  border-radius: 8px 0 0 0;
+  box-shadow: 0 12px 30px -10px rgba(15, 23, 42, 0.4);
+}
+
 /* app-window mock: sidebar + main pane */
 .h2-window {
   display: grid;

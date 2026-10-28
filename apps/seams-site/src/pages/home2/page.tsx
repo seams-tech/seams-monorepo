@@ -1,8 +1,8 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Croissant, Slack, Store } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Croissant, Inbox, Slack, Store } from 'lucide-react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
-import { DashboardWindow, IntegrationsWindow, ProductionRunMock } from '@/components/h2/SceneHero';
+import { IntegrationsWindow, PortalShot } from '@/components/h2/SceneHero';
 import { ShopOpsFeed } from '@/components/h2/ShopOpsFeed';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import {
@@ -20,8 +20,8 @@ import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 /* Umbrella front page, led by Satyr: a simple headline over a café's live
    feed, then a paged two-panel scene band (Satyr's views at the left,
    BakeryOS at the right), the shop-to-oven split, the suite, and one band
-   for Seams Wallet. The scenes are mock placeholders with the same footprint
-   as the real screenshots/videos that will replace them. */
+   for Seams Wallet. The Satyr and BakeryOS scenes are real Portal screens;
+   the Slack scene is an HTML mock. */
 
 /* ---------- hero: headline + paged scenes ---------- */
 
@@ -53,7 +53,26 @@ const heroScenes: HeroScene[] = [
     field: 'azure-coral',
     title: 'Satyr',
     sub: 'Agents run the shop, the orders and the inbox',
-    left: <DashboardWindow />,
+    left: (
+      <PortalShot
+        shot="agents"
+        alt="The Agents page of the Satyr Portal: the café's merchant agent has a suggested change for review"
+        eager
+      />
+    ),
+  },
+  {
+    id: 'inbox',
+    icon: Inbox,
+    field: 'sky-sand',
+    title: 'Satyr Inbox',
+    sub: 'Replies wait for your approval before they are sent',
+    left: (
+      <PortalShot
+        shot="inbox"
+        alt="The Satyr Inbox: a reply that an agent drafted for a customer waits for approval"
+      />
+    ),
   },
   {
     id: 'slack',
@@ -150,7 +169,12 @@ function HomeHeroCurrent(): React.JSX.Element {
               </div>
             </div>
             <div className="h2-heroscene__aside-body">
-              <ProductionRunMock />
+              <PortalShot
+                shot="bakery-details"
+                alt="BakeryOS: a 3D view of the bakery with the details of one batch of financiers"
+                className="h2-shot--card"
+                eager
+              />
             </div>
           </a>
 

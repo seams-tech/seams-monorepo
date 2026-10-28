@@ -115,7 +115,7 @@ async function approve(gallery, name, theme) {
   const confirm = voiceId.getByRole('button', { name: 'Confirm with VoiceID', exact: true });
   await expect(confirm).toBeVisible();
   await checkTheme(voiceId, theme);
-  await expect(voiceId.locator('.seams-review-eyebrow')).toHaveText('Sell NEAR for USDC');
+  await expect(voiceId.locator('.seams-review-eyebrow')).toHaveText('Swap NEAR for USDC');
   await expect(
     voiceId.getByRole('heading', { name: 'Review your trade', exact: true }),
   ).toBeVisible();
@@ -131,7 +131,7 @@ async function approve(gallery, name, theme) {
   await expect(phrase).toBeVisible();
   await expect(phrase).toHaveCSS('color', theme.text);
   const phraseText = await phrase.textContent();
-  assert.equal(phraseText, 'Sell ten NEAR.');
+  assert.equal(phraseText, 'Swap ten NEAR.');
   await expect(voiceId.getByRole('status')).toHaveText('Listening');
   await checkTheme(voiceId, theme);
   await capture(gallery, `${name}-prompt`);
@@ -185,7 +185,7 @@ async function checkPlaybackPause(page, gallery) {
   await expect(voiceId.getByRole('status')).toHaveText('Listening');
   await gallery.getByRole('button', { name: 'Play playback', exact: true }).click();
   await page.mouse.move(5, 5);
-  await expect(voiceId.getByText('Sell ten NEAR.', { exact: true })).toBeVisible();
+  await expect(voiceId.getByText('Swap ten NEAR.', { exact: true })).toBeVisible();
   await expect(voiceId.getByRole('status')).toContainText('Transaction complete', {
     timeout: 15000,
   });
@@ -194,7 +194,7 @@ async function checkPlaybackPause(page, gallery) {
 async function checkReverse(page, url, theme, name) {
   url.searchParams.set('theme', theme.id);
   await page.goto(url.href);
-  await expect(page.locator('[data-voiceid-phrase]')).toHaveText('Sell ten NEAR for USDC.');
+  await expect(page.locator('[data-voiceid-phrase]')).toHaveText('Swap ten NEAR for USDC.');
   await expect(page.getByRole('status')).toHaveText('Listening');
   await expect(page.getByRole('heading', { name: 'Review your trade', exact: true })).toHaveCount(
     0,

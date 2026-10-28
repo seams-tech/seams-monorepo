@@ -40,9 +40,9 @@ The default page is `http://localhost:4001/wallet`. Set `SEAMS_WALLET_SITE_ORIGI
 to test another wallet page URL. Screenshots, `result.json`, and `trace.zip` go to
 `.artifacts/wallet-component-showcase/`.
 
-The VoiceID concept preview receives a prepared sale of 10 NEAR for USDC. It shows
+The VoiceID concept preview receives a prepared swap of 10 NEAR for USDC. It shows
 an example minimum output and slippage limit in the transaction details, then
-plays one “Sell ten NEAR” voice prompt and the SDK receipt. The review, voice
+plays one “Swap ten NEAR” voice prompt and the SDK receipt. The review, voice
 prompt, and receipt use the theme selected in the hero demo: Paper, Carbon, Pastel,
 or Pastel Dark. The preview uses no microphone, model API, inference assets, or
 signing endpoint. Speech activity follows the canvas playback clock.

@@ -188,7 +188,7 @@ export class VoiceIdDemo {
     );
     prompt.record.hidden = true;
     prompt.cancel.hidden = true;
-    const phrase = this.order === 'voice-first' ? 'Sell ten NEAR for USDC' : 'Sell ten NEAR';
+    const phrase = this.order === 'voice-first' ? 'Swap ten NEAR for USDC' : 'Swap ten NEAR';
     prompt.title.textContent = t('voiceReadAloud');
     prompt.phrase.textContent = `${phrase}.`;
     prompt.phrase.dataset.voiceidPhrase = phrase.toLowerCase();

@@ -138,9 +138,9 @@ confirmation from that same reviewed operation.
 
 Example:
 
-1. Application supplies a prepared sale of 10 NEAR for USDC.
+1. Application supplies a prepared swap of 10 NEAR for USDC.
 2. Wallet shows the amount, receiving asset, minimum received, fees, and expiry.
-3. VoiceID prepares the phrase “Sell ten NEAR.”
+3. VoiceID prepares the phrase “Swap ten NEAR.”
 4. User reads the phrase. VoiceID checks the speaker and the critical words.
 5. Approval applies only to the reviewed operation. The receipt follows signing.
 
@@ -179,11 +179,11 @@ Sources checked October 27, 2026:
 ## 1. Front-page and separate voice-first demos
 
 The front page keeps its review-first order: trade review, “Confirm with VoiceID,”
-one “Sell ten NEAR” voice prompt, then the receipt. The extra preparation screen
+one “Swap ten NEAR” voice prompt, then the receipt. The extra preparation screen
 and quote paragraph were removed at the user's request.
 
 The separate `showcase/voiceid-reverse/` page starts with one voice prompt:
-“Sell ten NEAR for USDC.” After the simulated speaker check, it shows the trade
+“Swap ten NEAR for USDC.” After the simulated speaker check, it shows the trade
 review with one “Confirm trade” button. It waits for that click before showing
 signing and the receipt. There is no second voice prompt. Done replays the flow.
 

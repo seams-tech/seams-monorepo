@@ -434,7 +434,7 @@ export const catalog = {
   tryAgain: { en: 'Try again', ja: 'もう一度試す' },
   approveVoiceId: { en: 'Approve transfer with VoiceID', ja: 'VoiceIDで送金を承認' },
   reviewTrade: { en: 'Review your trade', ja: '取引内容を確認' },
-  voiceTradeAction: { en: 'Sell {asset} for {receiveAsset}', ja: '{asset}を{receiveAsset}に交換' },
+  voiceTradeAction: { en: 'Swap {asset} for {receiveAsset}', ja: '{asset}を{receiveAsset}に交換' },
   minimumReceived: { en: 'Minimum received', ja: '最低受取額' },
   slippageLimit: { en: 'Slippage limit', ja: 'スリッページ上限' },
   receivingAccount: { en: 'Receiving account', ja: '受取アカウント' },

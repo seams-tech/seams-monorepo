@@ -2,6 +2,7 @@
 
 See the [minimal Nitro adapter](nitro/README.md) for enclave packaging and VSOCK
 forwarding using the existing runtime. Live Nitro execution remains unqualified.
+The [enclave readiness plan](enclave-readiness.md) covers the remaining hardening.
 
 Status: `.7` passes local binding, WebSocket passthrough/relay/rejection, and all 16 selected Wallet contracts. Its Linux build and Clippy pass. Timed live-claim owner loss and clean drain pass across ordinary and Confidential Google VMs. The earlier `.5` release has full Google Wallet and Console evidence. Broader distributed lifecycle, release promotion, and upgrade qualification remain open.
 

@@ -9,6 +9,9 @@ The first target is one enclave containing the existing role fleet. Independent
 A/B enclaves and multi-node peer routing are outside this adapter's scope.
 The parent and its deployment configuration remain trusted.
 
+See the [enclave readiness plan](../enclave-readiness.md) for the separate work
+on role isolation, attested secret release, state freshness, and recovery.
+
 ## Build
 
 Use the verified Linux executable produced by [the existing build](../README.md).

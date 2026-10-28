@@ -236,6 +236,14 @@ protected service admission and before each existing Satyr disclosure boundary.
 Do not cache positive eligibility between requests. An authority outage returns
 `authority_unavailable` and releases no protected content or new execution.
 
+`POST /account-platform/v1/eligibility/current` checks identity and access in one
+authoritative database snapshot. Its signed assertion requires `authorityRevision: 0`,
+which requests the current revision. The response returns the positive revision
+that the query checked. The query validates the stored provisioning command and
+receipt, the instance, the principal, the current grant, the action and the scope.
+Native session checks and access-revision fences remain required in each service.
+Revision-bound operations continue to use `/eligibility` and reject a changed revision.
+
 Already accepted work follows its existing service lifecycle. Financial settlement
 uses authenticated service authority and remains independent of the removed account member's
 session. Restore and replay must recheck authority before protected disclosure.

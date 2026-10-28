@@ -37,7 +37,7 @@ import { ensureAccountServiceAccessD1Schema } from './accessSchema';
 import {
   platformScopesEqual,
   readPlatformScopeColumns,
-  type AccountServiceInstanceV1,
+  AccountServiceInstanceV1,
   type ServiceProducerAuthorityV1,
   type ServiceProvisionDeliveryV1,
 } from './types';
@@ -48,6 +48,10 @@ type IdentityResult = PlatformResult<
   ServiceIdentityResolutionV1,
   { readonly code: 'scope_forbidden' | 'authority_unavailable' }
 >;
+
+type EligibilityRevision =
+  | { readonly kind: 'current'; readonly authorityRevision?: never }
+  | { readonly kind: 'asserted'; readonly authorityRevision: number };
 
 export interface D1AccountServiceAccessOptions {
   readonly database: D1DatabaseLike;
@@ -627,10 +631,32 @@ export class D1AccountServiceAccess {
     };
   }
 
-  async checkEligibility(
+  checkEligibility(
     authority: ServiceProducerAuthorityV1,
     assertion: VerifiedAccountUserAssertionV1,
     request: ServiceEligibilityRequestV1,
+  ): Promise<ServiceEligibilityResultV1> {
+    return this.checkEligibilitySnapshot(authority, assertion, request, {
+      kind: 'asserted',
+      authorityRevision: assertion.authorityRevision,
+    });
+  }
+
+  /** Resolve identity and current access in the same authoritative snapshot. */
+  async checkCurrentEligibility(
+    authority: ServiceProducerAuthorityV1,
+    assertion: VerifiedAccountUserAssertionV1,
+    request: ServiceEligibilityRequestV1,
+  ): Promise<ServiceEligibilityResultV1> {
+    if (assertion.authorityRevision !== 0) return eligibilityDenied('scope_forbidden');
+    return this.checkEligibilitySnapshot(authority, assertion, request, { kind: 'current' });
+  }
+
+  private async checkEligibilitySnapshot(
+    authority: ServiceProducerAuthorityV1,
+    assertion: VerifiedAccountUserAssertionV1,
+    request: ServiceEligibilityRequestV1,
+    revision: EligibilityRevision,
   ): Promise<ServiceEligibilityResultV1> {
     if (
       request.instanceId !== assertion.instanceId ||
@@ -670,13 +696,17 @@ export class D1AccountServiceAccess {
         AND (? IN ('disclose', 'replay') OR x.access_level = 'editor')))`;
     const row = await queryD1One(
       this.database,
-      `SELECT i.namespace, i.org_id, i.project_id, i.billing_account_id, o.authorization_version, a.access_revision
+      `SELECT i.*, operation.payload_json, receipt.payload_json AS receipt_json,
+         o.authorization_version, a.access_revision
        FROM platform_service_instances i
        JOIN organizations o ON o.namespace = i.namespace AND o.id = i.org_id
        JOIN projects p ON p.namespace = i.namespace AND p.org_id = i.org_id AND p.id = i.project_id
+       JOIN platform_provision_operations operation ON operation.namespace = i.namespace AND operation.id = i.operation_id
+       LEFT JOIN platform_provision_receipts receipt ON receipt.namespace = operation.namespace AND receipt.operation_id = operation.id
        ${identityJoin}
        WHERE i.namespace = ? AND i.id = ? AND i.service_id = ? AND i.deployment_id = ?
-         AND o.status = 'ACTIVE' AND p.status = 'ACTIVE' AND o.authorization_version = ?
+         AND o.status = 'ACTIVE' AND p.status = 'ACTIVE'
+         ${revision.kind === 'asserted' ? 'AND o.authorization_version = ?' : ''}
          AND i.phase = 'active' AND i.desired_state = 'enabled' AND i.observed_state = 'active' AND i.observed_revision = i.desired_revision
          ${permission}
          AND ((i.service_id = 'wallet' AND EXISTS (SELECT 1 FROM wallet_service_bindings b WHERE b.namespace = i.namespace AND b.instance_id = i.id AND b.deployment_id = i.deployment_id))
@@ -687,12 +717,13 @@ export class D1AccountServiceAccess {
         assertion.instanceId,
         authority.serviceId,
         authority.deploymentId,
-        assertion.authorityRevision,
+        ...(revision.kind === 'asserted' ? [revision.authorityRevision] : []),
         ...(principal.kind === 'user' ? [request.action] : []),
       ],
     );
     if (!row) return eligibilityDenied('membership_ineligible');
-    const scope = readPlatformScopeColumns(row);
+    const instance = AccountServiceInstanceV1.fromStorage(row);
+    const scope = instance.scope;
     if (!platformScopesEqual(scope, assertion.scope)) return eligibilityDenied('scope_forbidden');
     return {
       kind: 'accepted',

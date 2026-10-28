@@ -384,6 +384,17 @@ class AccountPlatformServiceIngress {
           await this.options.access.checkEligibility(producer.authority, assertion, parsed.value),
         );
       }
+      case '/account-platform/v1/eligibility/current': {
+        const parsed = ServiceEligibilityRequestV1.parse(body);
+        if (parsed.kind === 'rejected') return badBody(parsed);
+        return resultResponse(
+          await this.options.access.checkCurrentEligibility(
+            producer.authority,
+            assertion,
+            parsed.value,
+          ),
+        );
+      }
       case '/account-platform/v1/memberships/list': {
         const parsed = contractResult(readInstanceBody, body);
         if (parsed.kind === 'rejected') return badBody(parsed);

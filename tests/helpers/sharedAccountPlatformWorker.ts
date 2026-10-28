@@ -404,7 +404,7 @@ class AccountWorkerFixture {
         return outage();
       return response;
     }
-    if (pathname === '/account-platform/v1/eligibility') {
+    if (isEligibilityRequest(pathname)) {
       if (this.faults.has('eligibility_outage')) return outage();
       if (this.faults.has('primary_eligibility_outage')) {
         const body = object(await request.clone().json(), 'eligibility');
@@ -417,7 +417,7 @@ class AccountWorkerFixture {
       return outage();
     let corruptedEligibilityInstanceId: string | null = null;
     if (
-      pathname === '/account-platform/v1/eligibility' &&
+      isEligibilityRequest(pathname) &&
       (this.faults.has('primary_malformed_eligibility_reply') ||
         this.faults.has('primary_foreign_scope_reply'))
     ) {
@@ -428,7 +428,7 @@ class AccountWorkerFixture {
     if (!result) return json({ code: 'not_found' }, 404);
     if (
       result.ok &&
-      pathname === '/account-platform/v1/eligibility' &&
+      isEligibilityRequest(pathname) &&
       (this.faults.has('primary_malformed_eligibility_reply') ||
         this.faults.has('primary_foreign_scope_reply'))
     ) {
@@ -1182,3 +1182,10 @@ async function fetchFixture(request: Request, bindings: FixtureBindings): Promis
 }
 
 export default { fetch: fetchFixture };
+
+function isEligibilityRequest(pathname: string): boolean {
+  return (
+    pathname === '/account-platform/v1/eligibility' ||
+    pathname === '/account-platform/v1/eligibility/current'
+  );
+}

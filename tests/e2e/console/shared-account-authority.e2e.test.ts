@@ -231,6 +231,17 @@ test('service eligibility uses one snapshot and invitation races leave no partia
     );
     expect(probe.calls).toBe(1);
     const eligibilityCalls = probe.calls;
+    const currentProof = await assertion(scope, 0, principal());
+    probe.reset();
+    const currentEligibility = accepted(
+      await core.serviceAccess.checkCurrentEligibility(authority, currentProof, request),
+    );
+    const currentEligibilityCalls = probe.calls;
+    expect(currentEligibilityCalls).toBe(1);
+    expect(currentEligibility.authorityRevision).toBe(await revision(database));
+    expect((await core.serviceAccess.checkCurrentEligibility(authority, proof, request)).kind).toBe(
+      'rejected',
+    );
     expect(
       (
         await core.serviceAccess.checkEligibility(
@@ -245,6 +256,10 @@ test('service eligibility uses one snapshot and invitation races leave no partia
       'rejected',
     );
     proof = await assertion(scope, await revision(database), principal());
+    const refreshedEligibility = accepted(
+      await core.serviceAccess.checkCurrentEligibility(authority, currentProof, request),
+    );
+    expect(refreshedEligibility.authorityRevision).toBe(await revision(database));
     const before = await invitationState(database);
     probe.beforeBatch = changeAuthority.bind(null, database);
     await expect(
@@ -327,6 +342,9 @@ test('service eligibility uses one snapshot and invitation races leave no partia
       JSON.stringify(
         {
           eligibilityCalls,
+          currentEligibilityCalls,
+          currentEligibility,
+          refreshedEligibility,
           automationCalls,
           invitationId: issued.invitation.id,
           issueRaceRolledBack: true,

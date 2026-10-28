@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "scope": "local celld adapter; Unix sockets substitute for VSOCK; no AWS execution",
+  "imageId": "sha256:b07da34ba5bb128cbbb640e8b686c510cc4a5d036357bdf6748f0729c03b93c1",
+  "launcherSha256": "b679d6dfdb11fcc338a11ee8269cae040787358462e9a4ed538ffcb6e182fe18",
+  "observations": [
+    {
+      "counter": 3,
+      "echoBytes": 524288,
+      "httpsEgress": true,
+      "websocket": true
+    },
+    {
+      "counter": 6,
+      "echoBytes": 524288,
+      "httpsEgress": true,
+      "websocket": true
+    }
+  ],
+  "metadataRequests": 30
+}

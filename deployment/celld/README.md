@@ -1,5 +1,8 @@
 # Private celld runtime build
 
+See the [minimal Nitro adapter](nitro/README.md) for enclave packaging and VSOCK
+forwarding using the existing runtime. Live Nitro execution remains unqualified.
+
 Status: `.7` passes local binding, WebSocket passthrough/relay/rejection, and all 16 selected Wallet contracts. Its Linux build and Clippy pass. Timed live-claim owner loss and clean drain pass across ordinary and Confidential Google VMs. The earlier `.5` release has full Google Wallet and Console evidence. Broader distributed lifecycle, release promotion, and upgrade qualification remain open.
 
 The user selected a private runtime patch to preserve the current Wallet call structure.

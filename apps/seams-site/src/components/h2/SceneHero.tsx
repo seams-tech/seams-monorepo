@@ -25,7 +25,7 @@ const PORTAL_SHOTS = {
   checkout: [1600, 967],
   orders: [1600, 1138],
   vault: [1600, 1077],
-  brain: [1600, 818],
+  brain: [1600, 861],
   'cover-shop': [800, 600],
   'cover-inbox': [800, 600],
   'cover-orders': [800, 600],

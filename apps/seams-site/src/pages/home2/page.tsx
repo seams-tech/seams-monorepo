@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, ChevronLeft, ChevronRight, Croissant, Inbox, Slack, Store } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Croissant, Inbox, Slack, Store } from 'lucide-react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { IntegrationsWindow, PortalShot } from '@/components/h2/SceneHero';
@@ -58,19 +58,6 @@ const heroScenes: HeroScene[] = [
         shot="agents"
         alt="The Agents page of the Satyr Portal: the café's merchant agent has a suggested change for review"
         eager
-      />
-    ),
-  },
-  {
-    id: 'knowledge',
-    icon: Brain,
-    field: 'apricot-beam',
-    title: 'Satyr Knowledge',
-    sub: 'Agents learn from your corrections. You decide what they use',
-    left: (
-      <PortalShot
-        shot="brain"
-        alt="Satyr Knowledge: the memories that agents use, wait for review, or no longer use, on three rings"
       />
     ),
   },

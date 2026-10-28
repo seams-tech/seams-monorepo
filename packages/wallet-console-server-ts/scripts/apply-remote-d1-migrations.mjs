@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import {
   assertAppliedMigrationSourcesUnchanged,
@@ -125,19 +123,11 @@ function readAppliedMigrationNames(options) {
 }
 
 function applyMigration(options, migration) {
-  const temporaryDirectory = mkdtempSync(join(tmpdir(), 'seams-d1-migration-'));
-  const migrationPath = join(temporaryDirectory, migration.name);
   const historyStatement = `\nINSERT INTO d1_migrations (name) VALUES (${sqlText(migration.name)});\n`;
-  try {
-    writeFileSync(migrationPath, `${migration.source.trimEnd()}\n${historyStatement}`, {
-      encoding: 'utf8',
-      mode: 0o600,
-    });
-    process.stdout.write(`Applying ${migration.name}\n`);
-    runWrangler(options, ['--yes', '--file', migrationPath]);
-  } finally {
-    rmSync(temporaryDirectory, { recursive: true, force: true });
-  }
+  const sql = `${migration.source.trimEnd()}\n${historyStatement}`;
+  process.stdout.write(`Applying ${migration.name}\n`);
+  // The query API keeps table rebuilds and their history in one transaction.
+  runWrangler(options, [`--command=${sql}`]);
 }
 
 function verifyAppliedMigrations(options, migrations) {

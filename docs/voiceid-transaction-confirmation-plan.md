@@ -1,15 +1,38 @@
 # VoiceID transaction confirmation phrases
 
-Status: the front-page canvas preview is implemented. Exact-amount transaction
-phrases remain demo-only. The SDK adds per-request action-only phrase selection
-through `options.voiceId.confirmationCommand` in `seams-wallet` dev, pending its
-next package release. The private site continues to consume published 0.24.0.
+Status: SDK 0.26.0 is published. The Wallet site, hosted Wallet, and production
+testnet backend are deployed. The private applications consume published 0.26.0.
+Per-request action-only phrase selection is available through
+`options.voiceId.confirmationCommand`. Exact-amount transaction phrases remain
+demo-only.
 Command-to-intent interpretation remains the application's responsibility.
 
 The preview checks cover confirmation, cancellation, pause/resume, four themes,
 and 390px/320px layouts. A separate voice-first demo is available for comparison.
 Japanese controls and the English spoken phrase also passed a browser check. Evidence is written to
 `.artifacts/wallet-voiceid-showcase/result.json`, screenshots, and `trace.zip`.
+
+## Live signing validation — October 28, 2026
+
+VoiceID activation, unlock, and transaction approval passed with the owner's
+microphone in Chrome against `https://test.sign.seams.sh`. Both transfers used
+the deployed backend and real MPC signing.
+
+- [NEAR testnet self-transfer](https://testnet.nearblocks.io/txns/C4xFkNahdpPXuRYizJvswRxKeUE8dDqiR3UxrKL8wMHF):
+  one yoctoNEAR, final execution status `FINAL`, result `SuccessValue`.
+- [Arc testnet self-transfer](https://testnet.arcscan.app/tx/0x86a34b15b1531bfa9a52884b1bc40086f06cd6cb982255deaca57f452a4bb775):
+  one native USDC unit, receipt status `0x1`, with 54 confirmations at verification.
+
+Backend deployment and tenant activation passed in
+[workflow 40666336793](https://github.com/seams-tech/seams-monorepo/actions/runs/40666336793).
+The migration runner fix is committed as `52fb6b5b`. Its remote D1 E2E verified
+row preservation, transaction rollback, resume, and applied-source immutability.
+The public demo review layout fix is committed as `b9e009c01` in `seams-wallet`.
+
+Local RPC receipts and validation records are retained under
+`output/playwright/voiceid-live-0250/`. The directory name predates the 0.26.0
+deployment. The VoiceID module-load failure stopped after a host check and page
+reload; its underlying browser cause remains unconfirmed.
 
 ## Action-only SDK configuration
 

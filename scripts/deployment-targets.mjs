@@ -657,7 +657,10 @@ function parseCustomerDeployment(value, backendLanes, branding) {
     origin: applicationOrigin,
     walletSiteOrigin: branding.walletSiteOrigin,
     docsOrigin: branding.docsOrigin,
-    googleOidcClientId: null,
+    googleOidcClientId:
+      provisioning.kind === 'provisioned'
+        ? provisioning.gatewayDeploymentConfig.optional.googleOidcClientId
+        : null,
     defaultNetwork: 'testnet',
     availableNetworks: Object.freeze(['testnet']),
   });

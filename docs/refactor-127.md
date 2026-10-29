@@ -626,19 +626,20 @@ the complete Wallet runtime, obtains fresh resource verification, activates the 
 and runs its canary, then smokes Wallet and Console. A missing binding (503) fails
 Wallet smoke; propagation retries retain the existing three-minute budget.
 
-The production-testnet backend workflow is reusable only. Console's standalone
-dispatch offers the other lanes. Both production-testnet deployment CLI commands
-route through the protected coordinator. It reads the environment ID from
+The production-testnet backend and Console backend workflows are reusable only.
+Every lane's deployment coordinator reads the environment ID from
 `deployment/wallet-system/targets.json` and always activates the configured tenant:
 
 ```sh
+pnpm wallet-system:deploy --lane staging-testnet
 pnpm wallet-system:deploy --lane production-testnet
-pnpm console:deploy --lane production-testnet
+pnpm wallet-system:deploy --lane production-mainnet
 ```
 
-Both commands deploy Console and Wallet together. Staging and production-mainnet
-retain their existing dispatch routes; this change does not add operator activation
-authority for those lanes. New writer versions fail closed until activation;
+`pnpm console:deploy --lane <lane>` uses the same coordinated pipeline.
+Each pipeline deploys Wallet and Console, activates the configured tenant, and
+checks both services. Activation keeps each lane's protected GitHub environment
+and workflow identity. New writer versions fail closed until activation;
 this sequence does not establish zero-downtime rollout. Hosted validation remains
 pending. Local evidence is in `.artifacts/r152/coordinated-rollout-20261002/`.
 

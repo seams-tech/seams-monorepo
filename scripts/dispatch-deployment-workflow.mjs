@@ -18,9 +18,6 @@ const ref = readOption(args, '--ref') || (lane.release === 'staging' ? 'dev' : '
 const workflow = resolveWorkflow(authority, laneId);
 
 const command = ['workflow', 'run', workflow, '--repo', repository, '--ref', ref];
-if (authority === 'console' && laneId !== 'production-testnet') {
-  command.push('-f', `lane=${laneId}`);
-}
 const child = spawnSync(process.env.GITHUB_CLI_BIN || 'gh', command, {
   encoding: 'utf8',
   stdio: 'inherit',
@@ -29,10 +26,9 @@ if (child.status !== 0) process.exit(child.status ?? 1);
 
 function resolveWorkflow(selectedAuthority, selectedLaneId) {
   if (selectedAuthority !== 'console' && selectedAuthority !== 'wallet-system') printUsageAndExit();
-  if (selectedLaneId === 'production-testnet') return 'deploy-live-demo.yml';
-  if (selectedAuthority === 'console') return 'deploy-console-backend.yml';
   return {
     'staging-testnet': 'deploy-staging-backend.yml',
+    'production-testnet': 'deploy-live-demo.yml',
     'production-mainnet': 'deploy-production-mainnet-backend.yml',
   }[selectedLaneId];
 }
@@ -53,7 +49,7 @@ function readOption(argumentsList, name) {
 
 function printUsageAndExit() {
   process.stderr.write(
-    'Usage: dispatch-deployment-workflow.mjs <console|wallet-system> --lane <lane> [--repo <owner/repo>] [--ref <branch>]\nProduction-testnet deploys Console and Wallet together and activates the tenant from the deployment config.\n',
+    'Usage: dispatch-deployment-workflow.mjs <console|wallet-system> --lane <lane> [--repo <owner/repo>] [--ref <branch>]\nEach lane deploys Console and Wallet together and activates the tenant from the deployment config.\n',
   );
   process.exit(1);
 }

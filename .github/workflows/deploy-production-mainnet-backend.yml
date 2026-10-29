@@ -2,14 +2,6 @@ name: Deploy / production-mainnet / backend
 
 on:
   workflow_dispatch:
-    inputs:
-      activation_only:
-        description: Activate the deployed mainnet backend without rebuilding
-        type: boolean
-        default: false
-      environment_id:
-        description: Production Console environment ID (<projectId>:prod) required for activation
-        type: string
 
 permissions:
   actions: write
@@ -26,10 +18,11 @@ env:
 
 jobs:
   build:
-    if: ${{ !inputs.activation_only }}
     name: Build / production-mainnet / backend
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    outputs:
+      environment_id: ${{ steps.target.outputs.environment_id }}
     steps:
       - name: Checkout workflow revision
         uses: actions/checkout@v6
@@ -46,6 +39,17 @@ jobs:
           cache: pnpm
       - name: Install exact dependencies
         run: pnpm install --frozen-lockfile
+      - name: Resolve configured deployment environment
+        id: target
+        run: |
+          node --input-type=module >> "$GITHUB_OUTPUT" <<'JS'
+          import { readBackendLane } from './scripts/deployment-targets.mjs';
+          const lane = readBackendLane(process.env.DEPLOY_LANE);
+          if (lane.provisioning.kind !== 'provisioned') {
+            throw new Error('Deployment lane must have a provisioned config');
+          }
+          console.log(`environment_id=${lane.provisioning.gatewayDeploymentConfig.tenant.environmentId}`);
+          JS
       - name: Build backend artifact
         run: pnpm deploy:backend build --lane "$DEPLOY_LANE" --component wallet-system
       - name: Check fixed build entries
@@ -441,6 +445,17 @@ jobs:
       - name: Deploy Gateway
         run: pnpm deploy:backend deploy --lane "$DEPLOY_LANE" --component gateway
 
+  deploy_console:
+    name: Deploy / production-mainnet / Console
+    needs: deploy_gateway
+    permissions:
+      actions: write
+      contents: read
+    uses: ./.github/workflows/deploy-console-backend.yml
+    with:
+      lane: production-mainnet
+    secrets: inherit
+
   cleanup_build_cache:
     name: Cleanup / production-mainnet / backend build cache
     if: always() && needs.build.result == 'success'
@@ -464,8 +479,8 @@ jobs:
   # The Console accepts mainnet activation only from this job: environment
   # production-gateway, ref main and this workflow file.
   activate:
-    if: ${{ inputs.activation_only }}
     name: Activate / production-mainnet / tenant binding
+    needs: [build, deploy_gateway, deploy_console]
     permissions:
       contents: read
       id-token: write
@@ -474,6 +489,8 @@ jobs:
     environment: production-gateway
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
       - name: Require main branch
         run: test "$GITHUB_REF" = refs/heads/main
       - uses: pnpm/action-setup@v5
@@ -486,7 +503,9 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          ENVIRONMENT_ID: ${{ inputs.environment_id }}
+          ENVIRONMENT_ID: ${{ needs.build.outputs.environment_id }}
         run: pnpm tenant:cutover --lane production-mainnet --environment-id "$ENVIRONMENT_ID"
       - name: Verify readiness
         run: pnpm deploy:backend smoke --lane production-mainnet --component wallet-system
+      - name: Verify Console readiness
+        run: pnpm deploy:backend smoke --lane production-mainnet --component console

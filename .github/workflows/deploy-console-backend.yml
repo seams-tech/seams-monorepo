@@ -7,16 +7,6 @@ on:
         description: Console deployment lane
         required: true
         type: string
-  workflow_dispatch:
-    inputs:
-      lane:
-        description: Console deployment lane
-        required: true
-        type: choice
-        options:
-          - staging-testnet
-          - production-testnet
-          - production-mainnet
 
 permissions:
   actions: write

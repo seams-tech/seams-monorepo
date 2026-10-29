@@ -145,9 +145,9 @@
             },
             "tenant": {
               "namespace": "seams-staging",
-              "orgId": "org_staging",
-              "projectId": "project_staging",
-              "environmentId": "staging"
+              "orgId": "org_4hyqbnyqbco7",
+              "projectId": "proj_mv5fzezy_4ztf60",
+              "environmentId": "proj_mv5fzezy_4ztf60:dev"
             },
             "origins": {
               "gateway": "https://staging.api.wallet.seams.sh",

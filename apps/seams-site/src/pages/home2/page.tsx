@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Croissant, Inbox, Slack, Store } from 'lucide-react';
+import { Activity, ChevronLeft, ChevronRight, Croissant, Inbox, Slack, Store } from 'lucide-react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { IntegrationsWindow, PortalShot } from '@/components/h2/SceneHero';
@@ -58,6 +58,19 @@ const heroScenes: HeroScene[] = [
         shot="agents"
         alt="The Agents page of the Satyr Portal: the café's merchant agent has a suggested change for review"
         eager
+      />
+    ),
+  },
+  {
+    id: 'activity',
+    icon: Activity,
+    field: 'teal-peach',
+    title: 'Satyr Activity',
+    sub: 'Every Case of the day, and who holds it now',
+    left: (
+      <PortalShot
+        shot="activity"
+        alt="The Activity timeline of the Satyr Portal: three Cases wait for a person, and a card shows the steps of a refund request"
       />
     ),
   },

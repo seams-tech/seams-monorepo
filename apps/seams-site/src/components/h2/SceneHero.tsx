@@ -18,6 +18,7 @@ import '@/styles/h2.css';
    image's own, so the page does not move while an image loads. */
 const PORTAL_SHOTS = {
   agents: [1600, 1120],
+  activity: [1600, 859],
   inbox: [1600, 1183],
   'inbox-draft': [1220, 1480],
   'bakery-details': [1600, 1127],

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Croissant, Inbox, Slack, Store } from 'lucide-react';
+import { Activity, Croissant, Inbox, Slack, Store } from 'lucide-react';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import {
   H2SceneHero,
@@ -35,6 +35,18 @@ const heroScenes: readonly HeroScene[] = [
         alt="The Agents page of the Satyr Portal: the café's merchant agent has a suggested change for review"
         className="h2-shot--card"
         eager
+      />
+    ),
+  },
+  {
+    id: 'activity',
+    label: 'Activity',
+    icon: Activity,
+    view: (
+      <PortalShot
+        shot="activity"
+        alt="The Activity timeline of the Satyr Portal: three Cases wait for a person, and a card shows the steps of a refund request"
+        className="h2-shot--card"
       />
     ),
   },

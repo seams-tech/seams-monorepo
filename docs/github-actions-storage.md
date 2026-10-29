@@ -1,6 +1,86 @@
-# GitHub Actions storage and deployment recovery
+# Deployment pipelines and GitHub Actions recovery
 
-## OC allocation and possible account change (2026-10-05)
+## Full-stack deployment
+
+Run one command from the repository root with an authenticated GitHub CLI (`gh`).
+Each command starts a GitHub Actions run on the branch shown below.
+Commit and push the intended revision to that branch before dispatching the deployment.
+
+| Environment        | Deployment branch | Command                                               | Workflow                                                                         |
+| ------------------ | ----------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Staging testnet    | `dev`             | `pnpm wallet-system:deploy --lane staging-testnet`    | [Staging](../.github/workflows/deploy-staging-backend.yml)                       |
+| Production testnet | `main`            | `pnpm wallet-system:deploy --lane production-testnet` | [Production testnet](../.github/workflows/deploy-live-demo.yml)                  |
+| Production mainnet | `main`            | `pnpm wallet-system:deploy --lane production-mainnet` | [Production mainnet](../.github/workflows/deploy-production-mainnet-backend.yml) |
+
+`pnpm console:deploy --lane <lane>` dispatches the same full-stack pipeline.
+Cloudflare credentials stay in the protected GitHub environments for each deployment role.
+
+### Configuration and source revisions
+
+The environment ID comes from the selected lane's `gatewayDeploymentConfig.tenant`
+in [Wallet deployment targets](../deployment/wallet-system/targets.json).
+Keep its organization, project, and environment IDs aligned with an existing active Console environment.
+[Console targets](../deployment/console/targets.json) define the Console resource bindings.
+
+Dependencies use the exact releases in `package.json` and `pnpm-lock.yaml`.
+The frontend job reads the installed `@seams/wallet` version and resolves its npm release's `gitHead`.
+It checks out that exact public Wallet commit to build the docs.
+Environment IDs and Wallet source revisions are resolved automatically.
+
+### Pipeline order and scope
+
+1. Install exact dependencies and resolve the configured environment ID.
+2. Build the Wallet backend and apply D1 migrations.
+3. Deploy the Signing Worker, Derivers A/B, Router, tenant-root control plane, regional Wallet Runtimes, and Gateways.
+4. Deploy Console using its own protected environment.
+5. Obtain fresh resource proofs, activate the configured tenant, and run the activation canary and backend health checks.
+6. Build and deploy the company site, Platform Console frontend, Wallet Console frontend, Wallet site, showcases, docs, and hosted Wallet assets.
+7. Check frontend routes and assets, verify the hosted SDK version, then check Wallet API and Console readiness again.
+
+Each pipeline deploys the selected lane's backend and activates its configured tenant.
+Production testnet and mainnet share the public sites, docs, and Console frontends.
+Either production pipeline deploys those shared surfaces and **both** production wallet hosts:
+[test.sign.seams.sh](https://test.sign.seams.sh) and [sign.seams.sh](https://sign.seams.sh).
+Production frontend jobs run serially to prevent overlapping writes to shared Pages projects.
+Staging deploys its separate sites and wallet host.
+
+Console and frontend workflows are reusable jobs within these pipelines.
+A run succeeds only after deployment, tenant activation, frontend checks, and final API and Console health checks pass.
+
+### Follow a run or retry a failure
+
+The local command confirms dispatch. Follow the GitHub Actions run to obtain the deployment and health result:
+
+```sh
+gh run list --workflow deploy-staging-backend.yml --limit 5
+gh run watch --exit-status
+```
+
+Use the workflow filename from the table for another environment.
+After a failure, rerun the complete workflow with `gh run rerun <run-id>`.
+Build caches belong to a specific run and attempt; a fresh attempt rebuilds its payload.
+
+The deployed docs receipt is `/docs/seams-wallet-docs-artifact.json` on each Wallet site.
+Its revision must match the pinned SDK release's source commit.
+The wallet host exposes its SDK version at `/wallet-assets.manifest.json`.
+The Gateway exposes readiness at `/readyz` and the active environment at `/.well-known/seams-tenant-deployment.json`.
+
+### Verified rollout
+
+All three full-stack pipelines passed on 2026-10-29 at commit `64dc1348`, using SDK `0.27.0`:
+
+- [Staging testnet](https://github.com/seams-tech/seams-monorepo/actions/runs/40815396694).
+- [Production testnet](https://github.com/seams-tech/seams-monorepo/actions/runs/40815400286).
+- [Production mainnet](https://github.com/seams-tech/seams-monorepo/actions/runs/40815404391).
+
+These runs included frontend deployment, automatic tenant activation, and final health checks.
+
+## Historical infrastructure findings
+
+The notes below record earlier infrastructure states and recovery work.
+Use the full-stack procedure above for current deployment commands and success criteria.
+
+### OC allocation and possible account change (2026-10-05)
 
 The development catalog requires US, WEUR, APAC and OC wallet homes. Staging uses
 the current Cloudflare account `ba924da36f2ffc3839e8d323000b66b4`. Its OC signer
@@ -54,7 +134,7 @@ for that account before verifying bindings. Existing database IDs and manifests
 remain tied to the current account. Keep current deployments intact until the
 replacement deployment passes acceptance.
 
-## Findings on 2026-09-19
+### Findings on 2026-09-19
 
 The mainnet build in run `35437596819` failed during artifact upload with
 `Artifact storage quota has been hit`. The organization uses GitHub Free and has
@@ -93,7 +173,7 @@ be verified after reconciliation. If uploads remain blocked, inspect the
 organization billing usage and Actions budget before further deletion. Raising
 the spending cap requires the account owner's decision; it was left at $0.
 
-## Retention and handoff policy
+### Retention and handoff policy
 
 - Backend and Console build caches are temporary job-to-job handoffs, on
   staging and on both production lanes. Use a key scoped to the workflow run
@@ -124,7 +204,7 @@ unverified. Retry a private upload after reconciliation, then inspect billing
 usage if the same failure persists. Successful public uploads do not establish
 that private artifact uploads are available.
 
-## Findings on 2026-10-14
+### Findings on 2026-10-14
 
 The artifact quota blocked staging again. Staging backend run
 [38502043490](https://github.com/seams-tech/seams-monorepo/actions/runs/38502043490)
@@ -137,11 +217,11 @@ the same reason. The last upload that worked was at 00:20 UTC.
 The inventory at 02:45 UTC listed these unexpired artifacts in the private
 repositories of the organization. The public repositories do not count.
 
-| Repository | Unexpired artifacts | Listed size |
-| --- | ---: | ---: |
-| Archived `seams-sdk` | 179 | 127.0 MB |
-| `seams-monorepo` | 11 | 1.4 MB |
-| `satyr` | 0 | 0 MB |
+| Repository           | Unexpired artifacts | Listed size |
+| -------------------- | ------------------: | ----------: |
+| Archived `seams-sdk` |                 179 |    127.0 MB |
+| `seams-monorepo`     |                  11 |      1.4 MB |
+| `satyr`              |                   0 |        0 MB |
 
 The listed bytes are below the 500 MB of the Free plan, so the block follows
 GitHub's accrued usage, not the bytes that remain. The organization still has
@@ -154,7 +234,7 @@ job. The cleanup job keeps its condition `needs.build.result == 'success'`,
 because an activation-only run has no build. The artifact step of the
 validation workflow is unchanged and stays blocked until the quota clears.
 
-## Mainnet availability is a separate issue
+### Mainnet availability is a separate issue
 
 Run `35437876267` deployed the Wallet services from release `0.5.24`, then failed
 all five Gateway smoke checks with HTTP 500. Live Worker logs identified
@@ -193,7 +273,7 @@ Mainnet still needs a supported credit/activation path; its ledger balance is $0
 Stripe sandbox checkout has not been treated as production payment or used to
 bypass the existing billing guard.
 
-## Production signing placement
+### Production signing placement
 
 Live `0.5.24` Tempo measurements found 9.76–10.55-second empty-pool signing and
 3.34–5.63-second cached signing before the placement change. A read-only D1 probe
@@ -224,7 +304,7 @@ HTTP 200, and the run's temporary build cache was removed. The measurements
 above belong to the earlier placement comparison; they were not repeated
 against this subsequent deployment.
 
-## Production-testnet Deriver placement
+### Production-testnet Deriver placement
 
 The production-testnet Deriver databases were both provisioned with the D1
 `apac` location hint, yet Cloudflare placed Deriver A in Singapore (`SIN`) and

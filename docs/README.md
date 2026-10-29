@@ -4,6 +4,12 @@ Public SDK guides and release status live in `seams-wallet/apps/docs`.
 Wallet contracts live in its numbered specifications and intended behaviors.
 This repository owns Console procedures and deployment.
 
+## Deployment
+
+Use the [full-stack deployment guide](github-actions-storage.md#full-stack-deployment)
+for staging, production testnet, and production mainnet.
+It covers one-command deployment, configuration, frontend scope, automatic tenant activation, health checks, and retries.
+
 ## Console procedures
 
 [Console split history](feat-2-platform-console.md) records the completed separation
@@ -64,11 +70,11 @@ of Platform and Wallet entry points and the reasons for that design.
    pnpm deploy:frontend build --site staging --component wallet-site
    ```
 
-4. Publish with the existing staging frontend workflow, `surface=wallet-site`,
-   and the full `wallet_revision`. Use the production frontend workflow from
-   its permitted production branch after staging verification.
+4. Publish through the [full-stack deployment pipeline](github-actions-storage.md#full-stack-deployment).
+   It builds docs from the exact installed Wallet SDK release's source commit.
+   To publish a new docs revision, pin an SDK release containing that revision.
 5. Read `/docs/seams-wallet-docs-artifact.json` from both deployed sites. Compare
-   its revision with the intended public SHA. Check installation, releases,
+   its revision with the pinned SDK release's source SHA. Check installation, releases,
    server reference, search, deep links, and assets.
 
 Production canonical and sitemap URLs use `https://wallet.seams.sh/docs`.

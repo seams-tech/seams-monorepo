@@ -44,14 +44,16 @@ prefill the application and hosted Wallet origins. Restart `pnpm router` after
 changing `.env.local`.
 
 Use `console:deploy:env-*` for Console inputs and
-`wallet-system:deploy:env-*` for Wallet runtime inputs. Review the matching
-deployment instructions before applying secrets or deploying.
+`wallet-system:deploy:env-*` for Wallet runtime inputs.
+See the [full-stack deployment guide](docs/github-actions-storage.md#full-stack-deployment)
+for one-command deployment, automatic activation, frontend scope, and health checks.
 
 ## Documentation and release baseline
 
-The private applications pin published `@seams/wallet@0.21.0` and
-`@seams/wallet-server@0.21.0`. The recovery CLI remains `0.20.0`. The wallet
-iframe protocol is `16.0.0`. Recheck publication and deployment before updating pins.
+The applications use the exact Wallet releases recorded in `package.json` and
+`pnpm-lock.yaml`. See the public
+[release notes](https://github.com/seams-tech/seams-wallet/blob/main/apps/docs/src/releases.md)
+for SDK, CLI, and wallet iframe protocol versions.
 
 Public docs live in `seams-wallet/apps/docs`. This repository publishes their
 exact built revision at `https://wallet.seams.sh/docs/` and its staging counterpart.

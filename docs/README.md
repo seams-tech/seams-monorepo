@@ -70,12 +70,21 @@ of Platform and Wallet entry points and the reasons for that design.
    pnpm deploy:frontend build --site staging --component wallet-site
    ```
 
-4. Publish through the [full-stack deployment pipeline](github-actions-storage.md#full-stack-deployment).
-   It builds docs from the exact installed Wallet SDK release's source commit.
-   To publish a new docs revision, pin an SDK release containing that revision.
+4. Publish Wallet-site and documentation updates through the existing frontend workflows:
+
+   ```sh
+   gh workflow run deploy-staging-frontend.yml --ref dev -f lane=staging-testnet
+   gh workflow run deploy-production-frontend.yml --ref main -f lane=production-mainnet
+   ```
+
+   Manual runs publish only the Wallet site, showcases, and documentation.
+   Full-stack calls still deploy all frontend surfaces.
+   Each run checks out public `seams-wallet/main`, verifies its browser SDK version
+   matches the site's installed release, and records the exact docs source SHA.
+   Documentation corrections can therefore publish between SDK package releases.
 5. Read `/docs/seams-wallet-docs-artifact.json` from both deployed sites. Compare
-   its revision with the pinned SDK release's source SHA. Check installation, releases,
-   server reference, search, deep links, and assets.
+   its revision with the committed docs source SHA from that run. Check installation,
+   releases, server reference, Google SSO, search, deep links, and assets.
 
 Production canonical and sitemap URLs use `https://wallet.seams.sh/docs`.
 Staging documentation requests `noindex` through Pages headers. Console and

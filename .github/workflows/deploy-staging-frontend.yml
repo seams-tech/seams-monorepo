@@ -1,12 +1,26 @@
 name: Deploy / staging / frontend
 
 on:
+  workflow_dispatch:
+    inputs:
+      lane:
+        description: Backend lane to verify after publishing the Wallet site and docs
+        required: true
+        type: choice
+        default: staging-testnet
+        options:
+          - staging-testnet
   workflow_call:
     inputs:
       lane:
         description: Backend lane verified after the complete frontend deployment
         required: true
         type: string
+      component:
+        description: Frontend surfaces selected by a full-stack caller
+        required: false
+        type: string
+        default: all
 
 permissions:
   contents: read
@@ -17,7 +31,7 @@ concurrency:
 
 env:
   DEPLOY_SITE: staging
-  DEPLOY_COMPONENT: all
+  DEPLOY_COMPONENT: ${{ inputs.component || 'wallet-site' }}
   DEPLOY_BACKEND_LANE: ${{ inputs.lane }}
   DEPLOY_SHA: ${{ github.sha }}
   RUST_TOOLCHAIN: 1.96.0
@@ -70,42 +84,35 @@ jobs:
           cache: pnpm
       - name: Install exact dependencies
         run: pnpm install --frozen-lockfile
-      - name: Resolve Wallet source from the installed SDK
+      - name: Verify frontend lane
         run: |
-          node --input-type=module >> "$GITHUB_ENV" <<'JS'
-          import { readFileSync } from 'node:fs';
+          node --input-type=module <<'JS'
           import { readBackendLane } from './scripts/deployment-targets.mjs';
           const lane = readBackendLane(process.env.DEPLOY_BACKEND_LANE);
           if (lane.site.id !== process.env.DEPLOY_SITE) {
             throw new Error('Frontend site does not match the deployment lane');
           }
-          const wallet = JSON.parse(
-            readFileSync('node_modules/@seams/wallet/package.json', 'utf8'),
-          );
-          const response = await fetch(
-            `https://registry.npmjs.org/@seams%2Fwallet/${encodeURIComponent(wallet.version)}`,
-            { signal: AbortSignal.timeout(30_000) },
-          );
-          if (!response.ok) {
-            throw new Error(`Wallet release lookup failed: HTTP ${response.status}`);
-          }
-          const release = await response.json();
-          if (
-            release.version !== wallet.version ||
-            typeof release.gitHead !== 'string' ||
-            !/^[0-9a-f]{40}$/.test(release.gitHead)
-          ) {
-            throw new Error('The installed Wallet release has no exact source revision');
-          }
-          console.log(`SEAMS_WALLET_REVISION=${release.gitHead}`);
           JS
-      - name: Checkout exact public Wallet source
+      - name: Checkout public Wallet documentation
         uses: actions/checkout@v6
         with:
           repository: seams-tech/seams-wallet
-          ref: ${{ env.SEAMS_WALLET_REVISION }}
+          ref: main
           path: .wallet-source
           persist-credentials: false
+      - name: Verify docs match the installed SDK
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          const installed = JSON.parse(readFileSync('node_modules/@seams/wallet/package.json', 'utf8'));
+          const source = JSON.parse(readFileSync('.wallet-source/packages/wallet/package.json', 'utf8'));
+          if (source.version !== installed.version) {
+            throw new Error(`Docs target SDK ${source.version}; this site uses ${installed.version}`);
+          }
+          const revision = execFileSync('git', ['-C', '.wallet-source', 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+          appendFileSync(process.env.GITHUB_ENV, `SEAMS_WALLET_REVISION=${revision}\n`);
+          JS
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -114,13 +121,13 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-      - name: Build exact public Wallet docs
+      - name: Build committed public Wallet docs
         run: |
           pnpm --dir .wallet-source install --frozen-lockfile
           pnpm --dir .wallet-source run build:docs
-      - name: Stage exact public Wallet docs
+      - name: Stage committed public Wallet docs
         run: node scripts/prepare-wallet-docs-source.mjs --checkout .wallet-source --revision "$SEAMS_WALLET_REVISION" --output .artifacts/wallet-docs
-      - name: Build, deploy and smoke all frontend surfaces
+      - name: Build, deploy and smoke selected frontend surfaces
         run: |
           set -euo pipefail
           for operation in build deploy smoke; do

@@ -130,7 +130,9 @@ function assertClaims(claims: GithubOidcClaims, nowSeconds: number, deploymentLa
 
 async function readGithubKey(kid: string): Promise<JsonWebKeyWithId> {
   const response = await fetch(GITHUB_OIDC_JWKS, { headers: { accept: 'application/json' } });
-  if (!response.ok) throw new Error('GitHub OIDC keys are unavailable');
+  if (!response.ok) {
+    throw new Error(`GitHub OIDC keys are unavailable (HTTP ${response.status})`);
+  }
   const raw: unknown = await response.json();
   if (!isRecord(raw) || !Array.isArray(raw.keys)) throw new Error('GitHub OIDC keys are invalid');
   const key = raw.keys.find((candidate) => isRecord(candidate) && candidate.kid === kid);

@@ -117,7 +117,10 @@ async function verifyResource(lane, oidcToken, accountId, apiToken, providerBefo
     );
     const body = await response.json().catch(() => null);
     if (!response.ok || body?.ok !== true) {
-      throw new Error(`Runtime resource verification failed with HTTP ${response.status}`);
+      const message = typeof body?.message === 'string' ? body.message.slice(0, 300) : '';
+      throw new Error(
+        `Runtime resource verification failed with HTTP ${response.status}${message ? `: ${message}` : ''}`,
+      );
     }
     const result = body.result;
     if (

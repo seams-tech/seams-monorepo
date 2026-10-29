@@ -198,6 +198,7 @@ async function verifyExistingWalletRuntime(
   await expect.poll(projectEnvironmentCount.bind(null, environments)).toBe(3);
   const native = (await environments.listEnvironments(owner, { projectId: walletProjectId }))[0];
   if (!native) throw new Error('Wallet environment missing');
+  const externalAuthentication = await verifyExternalAuthenticationTrust(worker, token, environments, native.id);
   const event = {
     orgId: owner.orgId,
     environmentId: native.id,
@@ -249,12 +250,88 @@ async function verifyExistingWalletRuntime(
   expect(scheduled.outcome).toBe('ok');
   return {
     automaticSetupReplayed: true,
+    externalAuthentication,
     environments: 3,
     projectedWallets: 1,
     crossOriginReads,
     runtimeIdentityRequests: endpoint.requests,
     regionalMutationStatus: regional.status,
     scheduledOutcome: scheduled.outcome,
+  };
+}
+
+async function verifyExternalAuthenticationTrust(
+  worker: Awaited<ReturnType<Miniflare['getWorker']>>,
+  token: string,
+  environments: ConsoleWalletEnvironmentService,
+  environmentId: string,
+): Promise<unknown> {
+  const route = `https://account.acceptance.invalid/console/environments/${encodeURIComponent(environmentId)}/external-auth`;
+  const enabled = await worker.fetch(route, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      kind: 'google',
+      clientId: 'getsignal-client.apps.googleusercontent.com',
+      revision: 999,
+    }),
+  });
+  expect(enabled.status, await enabled.clone().text()).toBe(200);
+  const enabledEnvironment = object(object(await enabled.json()).environment);
+  expect(enabledEnvironment.externalAuth).toEqual({
+    kind: 'google',
+    revision: 1,
+    clientId: 'getsignal-client.apps.googleusercontent.com',
+  });
+  const denied = await worker.fetch(route, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kind: 'disabled' }),
+  });
+  expect(denied.status).toBe(401);
+
+  const projected = await worker.fetch(
+    WALLET_CONSOLE_SERVICE_ORIGIN_V1 + WALLET_CONSOLE_OP_PATHS_V1.projectEnvironments,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        context: {
+          orgId: owner.orgId,
+          actorUserId: owner.actorUserId,
+          roles: [],
+          projectId: walletProjectId,
+          environmentId,
+        },
+        filters: { status: 'ACTIVE' },
+      }),
+    },
+  );
+  expect(projected.status, await projected.clone().text()).toBe(200);
+  expect(await projected.json()).toMatchObject({
+    environments: [{ id: environmentId, externalAuth: enabledEnvironment.externalAuth }],
+  });
+
+  const disabled = await worker.fetch(route, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kind: 'disabled' }),
+  });
+  expect(disabled.status, await disabled.clone().text()).toBe(200);
+  expect(object(object(await disabled.json()).environment).externalAuth).toEqual({
+    kind: 'disabled',
+    revision: 2,
+  });
+  const rows = await environments.listEnvironments(owner, { projectId: walletProjectId });
+  for (const environment of rows) {
+    if (environment.id !== environmentId)
+      expect(environment.externalAuth).toEqual({ kind: 'disabled', revision: 0 });
+  }
+  return {
+    enabledRevision: 1,
+    disabledRevision: 2,
+    otherEnvironmentsUnchanged: true,
+    gatewayProjectionVerified: true,
   };
 }
 

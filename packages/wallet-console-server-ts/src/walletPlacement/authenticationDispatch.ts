@@ -82,6 +82,11 @@ export async function authenticationHome(
 
 function authenticationLocator(path: string, body: unknown): AuthenticationLocator {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Invalid body');
+  if (path.startsWith('/wallet/external-auth/')) {
+    const wallet = parseWalletId('walletId' in body ? body.walletId : null);
+    if (!wallet.ok) throw new Error('Invalid wallet');
+    return { kind: 'wallet', walletId: wallet.value };
+  }
   let wallet: unknown;
   switch (path) {
     case '/auth/google/verify':
@@ -132,6 +137,7 @@ function challengeLocator(body: object): AuthenticationLocator {
 
 function isAuthenticationRoute(path: string): boolean {
   return (
+    path.startsWith('/wallet/external-auth/') ||
     path === '/sync-account/options' ||
     path === '/sync-account/verify' ||
     path === '/auth/google/verify' ||

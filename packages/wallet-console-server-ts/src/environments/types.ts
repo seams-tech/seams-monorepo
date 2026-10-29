@@ -3,6 +3,7 @@ export type ConsoleWalletEnvironmentStatus = 'ACTIVE' | 'DISABLED' | 'ARCHIVED';
 export const DEFAULT_WALLET_SIGNING_ROOT_VERSION = 'default';
 
 export interface ConsoleWalletEnvironment {
+  readonly externalAuth: import('@seams/wallet-server/cloud-host').ExternalAuthConfiguration;
   readonly id: string;
   readonly orgId: string;
   readonly projectId: string;
@@ -26,6 +27,7 @@ export interface CreateConsoleWalletEnvironmentRequest {
   status: Exclude<ConsoleWalletEnvironmentStatus, 'ARCHIVED'>;
 }
 export interface UpdateConsoleWalletEnvironmentRequest {
+  externalAuth?: { kind: 'disabled' } | { kind: 'google'; clientId: string };
   name?: string;
   signingRootVersion?: string;
 }
@@ -49,6 +51,7 @@ export type SetConsoleWalletProjectAvailabilityResult =
   | { readonly kind: 'applied'; readonly environments: readonly ConsoleWalletEnvironment[] }
   | { readonly kind: 'stale'; readonly environments?: never };
 export interface ConsoleWalletEnvironmentWire {
+  externalAuth: ConsoleWalletEnvironment['externalAuth'];
   id: string;
   orgId: string;
   projectId: string;
@@ -63,6 +66,7 @@ export function serializeWalletEnvironment(
   environment: ConsoleWalletEnvironment,
 ): ConsoleWalletEnvironmentWire {
   return {
+    externalAuth: environment.externalAuth,
     id: environment.id,
     orgId: environment.orgId,
     projectId: environment.projectId,

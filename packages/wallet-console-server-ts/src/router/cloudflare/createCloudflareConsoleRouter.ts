@@ -2038,8 +2038,23 @@ async function handleConsoleEnvironments(ctx: CloudflareConsoleContext): Promise
   const environmentContext = toWalletEnvironmentContext(auth.claims);
   const environmentPatchMatch = ctx.pathname.match(/^\/console\/environments\/([^/]+)$/);
   const environmentArchiveMatch = ctx.pathname.match(/^\/console\/environments\/([^/]+)\/archive$/);
+  const externalAuthMatch = ctx.pathname.match(/^\/console\/environments\/([^/]+)\/external-auth$/);
 
   try {
+    if (ctx.method === 'PUT' && externalAuthMatch) {
+      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
+      if (routePolicy) return routePolicy;
+      const request = parseUpdateConsoleWalletEnvironmentRequest({
+        externalAuth: await readJson(ctx.request),
+      });
+      const environment = await walletEnvironments.updateEnvironment(
+        environmentContext,
+        decodePathPart(externalAuthMatch[1]),
+        request,
+      );
+      if (!environment) return json({ ok: false, code: 'environment_not_found' }, { status: 404 });
+      return json({ ok: true, environment: serializeWalletEnvironment(environment) });
+    }
     if (ctx.method === 'GET' && ctx.pathname === '/console/environments') {
       const request = parseListConsoleWalletEnvironmentsRequest({
         projectId: ctx.url.searchParams.get('projectId') || undefined,

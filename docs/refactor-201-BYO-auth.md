@@ -1,7 +1,52 @@
 # Refactor 201 — Bring your own authentication
 
-Status: proposed implementation plan, October 29, 2026.
-This document changes no runtime behavior.
+Status: implemented in local source on October 29, 2026. Package publication and GetSignal integration remain pending.
+
+## Implementation record
+
+Public Wallet implementation: `5da65944b` and the read-only UI cleanup `0bea56241` on `seams-wallet/dev`.
+The separate test-only commit `02d581705` updates stale VoiceID capture fixture types required by the contract type-check.
+Private Console configuration, Gateway routing, and composed acceptance changes accompany this record on `seams-monorepo/dev`.
+
+The SDK provides `authenticate`, `prepareExternalAuth`, `associateExternalAuth`, and `removeExternalAuth`.
+Direct Google credentials and backend handoffs establish settings-only sessions.
+The hosted wallet retains credentials and binds restoration to the embedding app origin.
+Server admission checks the current Console configuration revision, wallet association, and wallet authority.
+Signing credentials and custody material remain separate.
+
+Console configuration uses `PUT /console/environments/:environmentId/external-auth` with the existing administration session.
+The request body is `{ "kind": "google", "clientId": "..." }` or `{ "kind": "disabled" }`.
+The server owns the revision. Provider configuration is read from Console on each external-auth request.
+There is no second provider-configuration store in the Wallet database.
+
+Apply Console migration `0111_external_wallet_auth.sql` and Wallet migration `0085_external_wallet_auth.sql` before enabling the feature.
+Wallet associations participate in relocation snapshots, freeze checks, and source cleanup.
+External sessions and handoffs are re-established after relocation.
+
+Validation:
+
+- Wallet and server builds and type checks pass.
+- Intended-contract and wallet-state type checks pass, including invalid external/signing combinations and broad-spread checks.
+- `node tests/e2e/external-auth.e2e.mjs` passes through the real verifier, D1, HTTP handlers, packaged iframe, and React settings.
+  Evidence: `seams-wallet/.artifacts/external-auth/result.json` and `settings.png`.
+- `node tests/e2e/authorization-storage-transfer.e2e.mjs` verifies a populated association survives transfer and is frozen and cleaned correctly.
+- The Console account-worker E2E journey verifies the configuration endpoint, server-owned revisions, denied unauthenticated updates, Gateway projection, and sibling-environment isolation.
+- Private `pnpm check` passes against built candidate packages, including all 53 script checks. Temporary dependency substitutions are restored afterward.
+- The public bloat check passes.
+- The existing hosted-auth UI suite reports three passes and three environment failures. Chromium blocks its HTTPS test stub from fetching the loopback setup endpoint.
+  The new BYO auth scenario passes with the actual packaged iframe on its supported local origins.
+
+Release gates:
+
+1. Publish a reviewed Wallet package release and update the private repository's exact package pins.
+   The checked-in pins remain `0.27.0`, which lacks the new exports. A normal private check against those published dependencies remains blocked.
+   The release workflow runs only on `main`; local `dev` also contains pre-existing work outside this refactor.
+   No unrelated commits were promoted and no packages were published by this implementation task.
+2. Run acceptance with a real Google user SSO token. The configured service-account fixture has a different authorized party and cannot substitute for this check.
+3. Connect GetSignal's private login, logout, and account-switch callbacks. No GetSignal source was supplied.
+   The [integration guide](../../seams-wallet/docs/auth-provider-integrations/google-oidc.md) contains both browser and backend paths.
+
+The original implementation plan follows. Its production-release definition of done remains subject to these gates.
 
 ## Outcome
 

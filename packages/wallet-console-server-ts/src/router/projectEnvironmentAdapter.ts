@@ -11,6 +11,7 @@ export function walletProjectEnvironment(
   environment: ConsoleWalletEnvironment,
 ): RouterApiProjectEnvironment {
   return {
+    externalAuth: environment.externalAuth,
     id: environment.id,
     projectId: environment.projectId,
     key: environment.key,

@@ -1,3 +1,4 @@
+import { parseExternalAuthConfiguration } from '@seams/wallet-server/cloud-host';
 import {
   secureRandomBase36,
   d1Number as toNumber,
@@ -40,6 +41,9 @@ export const CONSOLE_WALLET_ENVIRONMENT_D1_SCHEMA_SQL = Object.freeze([
       project_id TEXT NOT NULL,
       env_key TEXT NOT NULL,
       runtime_version TEXT NOT NULL DEFAULT 'default',
+      external_auth_kind TEXT NOT NULL DEFAULT 'disabled' CHECK (external_auth_kind IN ('disabled', 'google')),
+      external_auth_client_id TEXT NOT NULL DEFAULT '',
+      external_auth_revision INTEGER NOT NULL DEFAULT 0,
       name TEXT NOT NULL,
       status TEXT NOT NULL,
       created_at_ms INTEGER NOT NULL,
@@ -141,6 +145,11 @@ function parseEnvironmentKey(value: unknown): ConsoleWalletEnvironmentKey {
 
 export function parseEnvironmentRow(row: D1Row): ConsoleWalletEnvironment {
   return {
+    externalAuth: parseExternalAuthConfiguration({
+      kind: row.external_auth_kind,
+      revision: row.external_auth_revision,
+      clientId: row.external_auth_client_id,
+    }),
     id: String(row.id || ''),
     orgId: String(row.org_id || ''),
     projectId: String(row.project_id || ''),
@@ -656,12 +665,22 @@ export async function createD1ConsoleWalletEnvironmentService(
           `UPDATE environments
               SET name = ?,
                   runtime_version = ?,
-                  updated_at_ms = ?
+                  updated_at_ms = ?,
+                  external_auth_kind = CASE WHEN ? IS NULL THEN external_auth_kind ELSE ? END,
+                  external_auth_client_id = CASE WHEN ? IS NULL THEN external_auth_client_id ELSE ? END,
+                  external_auth_revision = external_auth_revision + ?
             WHERE namespace = ?
               AND org_id = ?
               AND id = ?`,
         )
-        .bind(nextName, nextRuntimeVersion, nowMs(now()), namespace, ctx.orgId, environmentId)
+        .bind(
+          nextName, nextRuntimeVersion, nowMs(now()),
+          request.externalAuth?.kind ?? null, request.externalAuth?.kind ?? null,
+          request.externalAuth?.kind ?? null,
+          request.externalAuth?.kind === 'google' ? request.externalAuth.clientId : '',
+          request.externalAuth === undefined ? 0 : 1,
+          namespace, ctx.orgId, environmentId,
+        )
         .run();
       return await loadEnvironment({ database, namespace, orgId: ctx.orgId, environmentId });
     },

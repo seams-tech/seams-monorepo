@@ -4,10 +4,14 @@ Status: implemented and published as version 0.28.0. Staging, production testnet
 
 ## SDK 0.29 extension
 
-Public implementation: `7ecd0afe6` on `seams-wallet/dev`.
+Public implementation: `7ecd0afe6` and `6f5d568d4` on `seams-wallet/dev`.
+Release revision: `4fa8de4af9659f300bb864b72e1b7799a4b29e41`, promoted to public `main`.
 The four public package manifests use `0.29.0`.
-Publication and deployment of this version await the release-scope decision.
-Console dependency pins remain on published `0.28.0` until `0.29.0` is available.
+Wallet, Wallet Server, and VoiceID `0.29.0` are published from the verified release artifacts.
+Public validation and package checks passed. Staging/production rollout is authorized.
+All private SDK consumers now pin exact `0.29.0` releases, including the intended test app.
+The native CLI `0.29.0` release is signed and public on GitHub. Its npm publication requires a security-key approval.
+Console keeps its installer command on published CLI `0.28.0` until that approval completes.
 
 The extension adds trusted Ed25519 application-session handoffs, fresh owner approval for association changes,
 NEAR-only registration without session issuance, and per-operation NEAR signing after reload.
@@ -31,7 +35,14 @@ Validation:
 - Private `pnpm check` passes, including all 53 script checks.
   Three Console composition scenarios pass. One completes owner-only registration, verifies exact retry,
   rejects a conflicting regional writer, and confirms zero session locators.
-- Private checks use built local `0.29.0` candidate packages. The test helper restores all three dependency links afterward.
+- Private checks pass with the installed npm `0.29.0` releases. All 53 script checks pass.
+- The full private application build also passes against the production package artifacts.
+- The registry tarballs match the CI package artifacts byte for byte. Public CI passes all 29 representative browser checks,
+  all 149 existing unit checks, and all 17 representative lifecycle contracts.
+
+Release preflight found zero unfinished relocations across all 16 signer databases.
+The deployed staging and mainnet recovery snapshots verify against the CLI pin.
+Issuer settings for all 12 environments are saved for comparison after Console migration.
 
 Apply signer migrations `0086` and `0087` and Console migration `0112` with the matching packages.
 Complete or cancel unfinished wallet relocations before the signer migrations.

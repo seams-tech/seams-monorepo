@@ -50,17 +50,17 @@ for one-command deployment, automatic activation, frontend scope, and health che
 
 ## Documentation and release baseline
 
-The current release is **0.28.0** for Wallet, Wallet Server, VoiceID, and the recovery CLI.
-The wallet iframe protocol is **18.0.0**. Exact SDK pins live in `package.json` and
+The current release is **0.29.0** for Wallet, Wallet Server, VoiceID, and the recovery CLI.
+The wallet iframe protocol is **19.0.0**. Exact SDK pins live in `package.json` and
 `pnpm-lock.yaml`. See the public
 [release notes](https://github.com/seams-tech/seams-wallet/blob/main/apps/docs/src/releases.md)
 for SDK, CLI, and wallet iframe protocol versions.
 
-Version 0.28.0 adds Google BYO authentication for associated wallet settings,
-responsive settings drawers, and configurable VoiceID models. See the
-[Google SSO guide](https://wallet.seams.sh/docs/guides/google-sso) for provider
-configuration, one-time owner-approved association, token exchange, and logout.
-Signing and security changes retain their owner authentication requirements.
+Version 0.29.0 adds trusted application-session handoff and fresh NEAR owner approval.
+Owner-only onboarding, identity association, and unlinking create no reusable signing session.
+Operation handles support cancellation, expiry, and recovery without another broadcast.
+See the [application-session guide](https://wallet.seams.sh/docs/guides/application-auth)
+for issuer configuration, backend handoff, wallet passkey approval, and the maintained example.
 
 Public docs live in `seams-wallet/apps/docs`. This repository publishes their
 exact built revision at `https://wallet.seams.sh/docs/` and its staging counterpart.

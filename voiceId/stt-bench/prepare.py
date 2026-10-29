@@ -21,6 +21,7 @@ import numpy as np
 import soundfile as sf
 
 import corpus
+from record import merge_human_cases
 
 SAMPLE_RATE = 16000
 SPEECH_LEVEL_DBFS = -26.0
@@ -229,6 +230,8 @@ def main() -> None:
     with (cache / "cases.jsonl").open("w", encoding="utf-8") as handle:
         for case in cases:
             handle.write(json.dumps(case, ensure_ascii=False) + "\n")
+    # Keep the cases that record.py added; their audio is not regenerated.
+    recorded = merge_human_cases(cache)
     manifest = {
         "schemaVersion": "stt_bench_inputs_v1",
         "host": {"macos": platform.mac_ver()[0], "machine": platform.machine()},
@@ -242,6 +245,7 @@ def main() -> None:
         "syntheticSpeech": {"engine": "macOS say", "voicesDictationEn": corpus.VOICES_DICTATION_EN,
                             "voicesApprovalEn": corpus.VOICES_APPROVAL_EN, "voicesJa": corpus.VOICES_JA},
         "caseCount": len(cases),
+        "recordedCaseCount": recorded,
         "casesSha256": sha256_file(cache / "cases.jsonl"),
     }
     (cache / "inputs-manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")

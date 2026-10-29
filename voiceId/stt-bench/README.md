@@ -118,6 +118,44 @@ Limits:
   a native engine integration through another runtime can change speed.
 - Speaker verification and spoof detection are outside this bench.
 
+## Record at the bench
+
+`record.py` records one person in a real room condition, hands-free. Each run
+records one condition: 50 prompts in about six minutes. It shows a phrase,
+beeps after 1.5 s, and records a fixed window: 4 s for an approval phrase and
+8 s for a dictation sentence. The prompts are the 12 phrases of the second
+bank, two near misses for each phrase, four unrelated sentences, and the first
+ten dictation sentences, in a fixed random order for each condition.
+
+```sh
+cd /absolute/path/to/seams-monorepo/voiceId/stt-bench
+.cache/.venv/bin/python record.py --condition quiet
+.cache/.venv/bin/python record.py --condition mixer
+```
+
+Before the first prompt, the script records three seconds of room sound to
+estimate the signal-to-noise ratio of each take. Press Enter at any time to
+pause after the current phrase; the pause menu records the last phrase again
+or stops. The same command later resumes the condition. `--list-devices` and
+`--device` select another microphone. `--dry-run` uses a macOS voice instead of
+the microphone.
+
+The recordings stay in the ignored `.cache/human/` folder. Never commit them.
+Each run adds the recorded cases to `.cache/cases.jsonl` as the sets
+`human_approval_en_v2` and `human_dictation_en`, with the condition label as
+the condition. `prepare.py` keeps them. Score them like the other sets:
+
+```sh
+.cache/.venv/bin/python run_model.py --model whisper-large-v3-turbo --language en --set human_approval_en_v2
+.cache/.venv/bin/python run_model.py --model whisper-large-v3-turbo --language en --set human_dictation_en
+.cache/.venv/bin/python run_model.py --model moonshine-medium-streaming --language en --set human_approval_en_v2
+"$engine/target/release/examples/whisper_bench_cases" .cache q8_0 human_approval_en_v2
+.cache/.venv/bin/python score.py --report reports/stt-bench-YYYY-MM-DD
+.cache/.venv/bin/python summarize.py reports/stt-bench-YYYY-MM-DD.json
+```
+
+The report then has tables for the recorded sets, one column for each condition.
+
 ## Run
 
 ```sh

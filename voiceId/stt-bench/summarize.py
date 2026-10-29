@@ -66,6 +66,37 @@ def main() -> None:
             sections.append(f"## Approval phrases ({bank_title}), `{policy}` policy: accept rates\n\n"
                             + table(header, rows))
 
+    # Recorded at the bench by record.py: one person, real room conditions.
+    recorded = sorted({r["condition"] for r in report["results"] if r["set"].startswith("human_")} - {"all"})
+    if recorded:
+        rows = []
+        for run in runs:
+            if (run, "human_approval_en_v2", "all") not in results:
+                continue
+            row = [run]
+            for condition in recorded:
+                stats = results[(run, "human_approval_en_v2", condition)]["strict"]
+                row.append(f"{percent(stats['trueAccept']['rate'])} / {percent(stats['nearMissAccept']['rate'])}"
+                           f" ({stats['trueAccept']['of']} / {stats['nearMissAccept']['of']})")
+            overall = results[(run, "human_approval_en_v2", "all")]["strict"]
+            row += [percent(overall["unrelatedAccept"]["rate"]), percent(overall["crossPhraseAccept"]["rate"])]
+            rows.append(row)
+        if rows:
+            sections.append("## Approval phrases recorded at the bench, `strict` policy: accept rates\n\n" + table(
+                ["Run", *(f"{c}: correct / near miss (cases)" for c in recorded), "unrelated", "other phrase"],
+                rows))
+        rows = [[run] + [percent(metric(run, "human_dictation_en", c, "errorRate")) + " / "
+                         + percent(metric(run, "human_dictation_en", c, "keyTermRecall")) for c in recorded]
+                for run in runs if (run, "human_dictation_en", "all") in results]
+        if rows:
+            sections.append("## Dictation recorded at the bench: word error rate / key-term recall\n\n"
+                            + table(["Run", *recorded], rows))
+        sessions = report["inputs"].get("benchRecordings", [])
+        if sessions:
+            sections.append("Recording sessions: " + "; ".join(
+                f"{s['condition']} on {s['device']} at {s['deviceRateHz']} Hz, room {s['roomDbfs']} dBFS"
+                for s in sessions) + ".")
+
     rows = []
     for run in runs:
         summary = report["runs"][run]

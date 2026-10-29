@@ -232,6 +232,12 @@ APPROVAL_BANKS: dict[str, tuple[ApprovalPhrase, ...]] = {
     "approval_en_v2": APPROVAL_EN_V2,
 }
 
+# Banks that the scorer knows, including phrases recorded at the bench by `record.py`.
+SCORED_BANKS: dict[str, tuple[ApprovalPhrase, ...]] = {
+    **APPROVAL_BANKS,
+    "human_approval_en_v2": APPROVAL_EN_V2,
+}
+
 # Talk at the bench that is not addressed to the laptop.
 UNRELATED_EN: tuple[tuple[str, str], ...] = (
     ("un01", "can you pass me the piping bag"),

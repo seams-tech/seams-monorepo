@@ -76,7 +76,9 @@ def word_distance(a: list[str], b: list[str]) -> int:
 
 
 def noise_band(condition: str) -> str:
-    return "clean" if condition == "clean" else f"{re.sub(r'[a-z]+', '', condition)} dB"
+    """Mixed noise groups by SNR. A recorded condition such as `mixer` is its own band."""
+    snr = re.sub(r"[a-z]+", "", condition)
+    return f"{snr} dB" if snr else condition
 
 
 def rate(numerator: int, denominator: int) -> float | None:
@@ -157,15 +159,19 @@ def main() -> None:
     groups = defaultdict(list)
     for row in joined:
         groups[(row["runId"], row["set"], row["condition"])].append(row)
-        groups[(row["runId"], row["set"], noise_band(row["condition"]))].append(row)
+        if noise_band(row["condition"]) != row["condition"]:
+            groups[(row["runId"], row["set"], noise_band(row["condition"]))].append(row)
         groups[(row["runId"], row["set"], "all")].append(row)
     results = []
     for (run_id, set_name, condition), rows in sorted(groups.items()):
-        bank = corpus.APPROVAL_BANKS.get(set_name)
+        bank = corpus.SCORED_BANKS.get(set_name)
         metrics = score_approval(rows, bank) if bank else score_dictation(rows)
         results.append({"runId": run_id, "set": set_name, "condition": condition, **metrics})
 
     inputs = json.loads((cache / "inputs-manifest.json").read_text())
+    sessions = cache / "human" / "sessions.json"
+    if sessions.exists():
+        inputs["benchRecordings"] = json.loads(sessions.read_text())
     args.report.parent.mkdir(parents=True, exist_ok=True)
     report = {"schemaVersion": "stt_bench_report_v1", "inputs": inputs, "runs": runs, "results": results}
     args.report.with_suffix(".json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")

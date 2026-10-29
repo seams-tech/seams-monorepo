@@ -49,7 +49,7 @@ function readOption(argumentsList, name) {
 
 function printUsageAndExit() {
   process.stderr.write(
-    'Usage: dispatch-deployment-workflow.mjs <console|wallet-system> --lane <lane> [--repo <owner/repo>] [--ref <branch>]\nEach lane deploys Console and Wallet together and activates the tenant from the deployment config.\n',
+    'Usage: dispatch-deployment-workflow.mjs <console|wallet-system> --lane <lane> [--repo <owner/repo>] [--ref <branch>]\nEach lane deploys the full stack, activates the configured tenant, and verifies health.\n',
   );
   process.exit(1);
 }

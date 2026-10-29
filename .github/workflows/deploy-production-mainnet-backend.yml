@@ -1,4 +1,4 @@
-name: Deploy / production-mainnet / backend
+name: Deploy / production-mainnet / full stack
 
 on:
   workflow_dispatch:
@@ -509,3 +509,11 @@ jobs:
         run: pnpm deploy:backend smoke --lane production-mainnet --component wallet-system
       - name: Verify Console readiness
         run: pnpm deploy:backend smoke --lane production-mainnet --component console
+
+  deploy_frontend:
+    name: Deploy / production-mainnet / frontend
+    needs: activate
+    uses: ./.github/workflows/deploy-production-frontend.yml
+    with:
+      lane: production-mainnet
+    secrets: inherit

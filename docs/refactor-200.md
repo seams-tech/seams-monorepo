@@ -356,7 +356,8 @@ See [Pages custom domains](https://developers.cloudflare.com/pages/configuration
 Preserve the existing protected activation paths:
 
 - Staging and mainnet use their backend workflows. Production testnet uses `deploy-live-demo.yml`.
-- Each workflow reads the environment ID from `deployment/wallet-system/targets.json`, deploys Wallet and Console, activates the tenant, and checks readiness.
+- Each workflow reads the environment ID from `deployment/wallet-system/targets.json`, deploys Wallet and Console, then activates the tenant.
+- The workflow then deploys the full frontend release and verifies the frontend surfaces, backend, and Console.
 - `pnpm tenant:cutover` runs inside the protected GitHub workflow because it requires GitHub OIDC authentication.
 
 Restore marketing, docs, and Console access before public wallet registration where needed for administrator provisioning.

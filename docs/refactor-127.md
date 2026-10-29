@@ -637,8 +637,11 @@ pnpm wallet-system:deploy --lane production-mainnet
 ```
 
 `pnpm console:deploy --lane <lane>` uses the same coordinated pipeline.
-Each pipeline deploys Wallet and Console, activates the configured tenant, and
-checks both services. Activation keeps each lane's protected GitHub environment
+Each pipeline deploys Wallet and Console, activates the configured tenant, then
+deploys the company site, Console frontends, Wallet site, docs, and hosted Wallet assets.
+The docs source revision comes from the exact installed Wallet SDK's published release.
+The pipeline checks every frontend surface and verifies backend and Console readiness.
+Activation keeps each lane's protected GitHub environment
 and workflow identity. New writer versions fail closed until activation;
 this sequence does not establish zero-downtime rollout. Hosted validation remains
 pending. Local evidence is in `.artifacts/r152/coordinated-rollout-20261002/`.

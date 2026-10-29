@@ -1,5 +1,5 @@
-name: Deploy / production live demo
-run-name: deploy / production live demo / ${{ github.sha }}
+name: Deploy / production-testnet / full stack
+run-name: deploy / production-testnet / full stack / ${{ github.sha }}
 
 on:
   workflow_dispatch:
@@ -108,3 +108,11 @@ jobs:
         run: pnpm deploy:backend smoke --lane production-testnet --component wallet-system
       - name: Smoke activated Console
         run: pnpm deploy:backend smoke --lane production-testnet --component console
+
+  deploy_frontend:
+    name: Deploy / production-testnet / frontend
+    needs: cutover
+    uses: ./.github/workflows/deploy-production-frontend.yml
+    with:
+      lane: production-testnet
+    secrets: inherit

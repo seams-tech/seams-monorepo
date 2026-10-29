@@ -55,8 +55,8 @@ export const messages = {
   },
   voiceId: { en: 'VoiceID', ja: 'VoiceID' },
   voiceIdCopy: {
-    en: 'Approve with your voice, hands-free. Voice templates and recognition stay on the user’s device.',
-    ja: '手を使わずに、声で承認。声のテンプレートと認識処理はユーザーのデバイスから出ません。',
+    en: 'Approve with your voice. Local speech verification uses Aurora or Citrinet to check the spoken phrase. Audio and voice templates stay on your device.',
+    ja: '声で承認。AuroraまたはCitrinetの音声モデルで、読み上げたフレーズをデバイス上で照合します。音声データと声のテンプレートはデバイスから出ません。',
   },
   readDocs: { en: 'Read the docs', ja: 'ドキュメントを読む' },
 

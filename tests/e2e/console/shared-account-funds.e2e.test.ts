@@ -38,7 +38,7 @@ import type {
 } from '../../../packages/console-server-ts/src/boundary/d1';
 import { createD1ConsoleOrgProjectService } from '../../../packages/console-server-ts/src/orgProjectEnv/d1';
 import { createD1ConsoleOrganizationAccessService } from '../../../packages/console-server-ts/src/teamRbac/d1';
-import { createD1ConsoleWalletEnvironmentService } from '../../../packages/wallet-console-server-ts/src/environments/d1';
+import { seedPreFundsWalletEnvironments } from '../../helpers/accountWalletProject.fixtures';
 
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
 const output = path.join(repository, '.artifacts/shared-account-platform/funds');
@@ -119,8 +119,7 @@ async function services(database: D1DatabaseLike) {
     organizationAccess: access,
     now,
   });
-  const environments = await createD1ConsoleWalletEnvironmentService({ database, namespace, now });
-  return { projects, access, billing, platform, environments };
+  return { projects, access, billing, platform };
 }
 async function seedOrganization(
   database: D1DatabaseLike,
@@ -137,9 +136,12 @@ async function seedOrganization(
     displayName: 'Funds owner',
   });
   await source.projects.createProject(ctx, { id: `project-${orgId}`, name: `Project ${orgId}` });
-  await source.environments.provisionProjectEnvironments(ctx, {
+  await seedPreFundsWalletEnvironments({
+    database,
+    namespace,
+    orgId,
     projectId: `project-${orgId}`,
-    liveAccess: 'disabled',
+    createdAtMs: now().getTime(),
   });
   if (credit > 0)
     await source.billing.grantManualSupportCredit(ctx, {

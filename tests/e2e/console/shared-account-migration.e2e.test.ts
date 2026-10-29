@@ -20,7 +20,7 @@ import {
 } from '../../../packages/console-server-ts/src/accountPlatform/migration';
 import type { D1DatabaseLike, D1Row } from '../../../packages/console-server-ts/src/boundary/d1';
 import { createD1ConsoleOrgProjectService } from '../../../packages/console-server-ts/src/orgProjectEnv/d1';
-import { createD1ConsoleWalletEnvironmentService } from '../../../packages/wallet-console-server-ts/src/environments/d1';
+import { seedPreFundsWalletEnvironments } from '../../helpers/accountWalletProject.fixtures';
 import {
   buildBillingUsageStatementId,
   createD1BillingLedgerEntryInsertStatement,
@@ -94,14 +94,19 @@ async function seedSource(database: D1DatabaseLike): Promise<void> {
   });
   await projects.createProject(context, { id: 'native-project-a', name: 'Wallet A' });
   await projects.createProject(context, { id: 'native-project-b', name: 'Wallet B' });
-  const environments = await createD1ConsoleWalletEnvironmentService({ database, namespace, now });
-  await environments.provisionProjectEnvironments(context, {
+  await seedPreFundsWalletEnvironments({
+    database,
+    namespace,
+    orgId: context.orgId,
     projectId: 'native-project-a',
-    liveAccess: 'disabled',
+    createdAtMs: now().getTime(),
   });
-  await environments.provisionProjectEnvironments(context, {
+  await seedPreFundsWalletEnvironments({
+    database,
+    namespace,
+    orgId: context.orgId,
     projectId: 'native-project-b',
-    liveAccess: 'disabled',
+    createdAtMs: now().getTime(),
   });
   const billing = await createD1ConsoleBillingService({
     database,

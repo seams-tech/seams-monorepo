@@ -292,7 +292,8 @@ export class D1WalletHomeDirectory {
     } & (
       | {
           readonly outcome: 'established';
-          readonly session: {
+          readonly session: { readonly kind: 'none'; readonly locator?: never; readonly expiresAtMs?: never } | {
+            readonly kind: 'credential';
             readonly locator: SessionLocator<'credential'>;
             readonly expiresAtMs: number;
           };
@@ -301,7 +302,7 @@ export class D1WalletHomeDirectory {
     ),
   ): Promise<WalletHomeAssignment> {
     const nowMs = timestamp(input.nowMs);
-    const session = input.outcome === 'established' ? input.session : null;
+    const session = input.outcome === 'established' && input.session.kind === 'credential' ? input.session : null;
     if (session && (!Number.isSafeInteger(session.expiresAtMs) || session.expiresAtMs <= 0)) {
       throw new WalletPlacementError('invalid_input', 'Session locator expiry is invalid');
     }
@@ -314,7 +315,7 @@ export class D1WalletHomeDirectory {
          AND database_id = ?9 AND (state = 'reserved' OR (?10 = 'established' AND state = 'established'))
          AND reserved_at_ms <= ?11
          AND placement_state = 'active'
-         AND (?10 != 'established' OR EXISTS (
+         AND (?10 != 'established' OR ?14 = 1 OR EXISTS (
            SELECT 1 FROM wallet_session_locators locator
            WHERE locator.namespace = ?1 AND locator.organization_id = ?2 AND locator.project_id = ?3
              AND locator.environment_id = ?4 AND locator.wallet_id = ?5
@@ -336,12 +337,13 @@ export class D1WalletHomeDirectory {
         nowMs,
         session?.locator.digest ?? null,
         session?.expiresAtMs ?? null,
+        session === null ? 1 : 0,
       );
     let row: Record<string, unknown> | null;
     if (input.outcome === 'established') {
       // Publication, home completion, and the Console display row commit together.
       // Exact retries retain the original expiry, completion time, and display updates.
-      const results = await this.database.batch<D1ResultLike<Record<string, unknown>>>([
+      const publicationStatements = session ? [
         this.database
           .prepare(
             `INSERT INTO wallet_session_locators
@@ -364,10 +366,14 @@ export class D1WalletHomeDirectory {
             input.home.region,
             input.home.accountId,
             input.home.databaseId,
-            input.session.locator.digest,
-            input.session.expiresAtMs,
+            session.locator.digest,
+            session.expiresAtMs,
             nowMs,
-          ),
+          )
+      ] : [];
+      const completionIndex = publicationStatements.length;
+      const results = await this.database.batch<D1ResultLike<Record<string, unknown>>>([
+        ...publicationStatements,
         completion,
         this.database
           .prepare(
@@ -402,7 +408,7 @@ export class D1WalletHomeDirectory {
           nowMs,
         }),
       ]);
-      row = results[1]?.results?.[0] ?? null;
+      row = results[completionIndex]?.results?.[0] ?? null;
     } else {
       row = await completion.first<Record<string, unknown>>();
     }

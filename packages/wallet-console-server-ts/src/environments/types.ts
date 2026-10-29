@@ -27,7 +27,7 @@ export interface CreateConsoleWalletEnvironmentRequest {
   status: Exclude<ConsoleWalletEnvironmentStatus, 'ARCHIVED'>;
 }
 export interface UpdateConsoleWalletEnvironmentRequest {
-  externalAuth?: { kind: 'disabled' } | { kind: 'google'; clientId: string };
+  externalAuth?: import('@seams/wallet-server/cloud-host').ExternalAuthProvider;
   name?: string;
   signingRootVersion?: string;
 }

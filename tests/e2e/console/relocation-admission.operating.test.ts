@@ -27,6 +27,7 @@ import {
   WalletHomeCatalog,
   WalletOwnershipKey,
 } from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import { handleWalletHomeServiceRequest, WALLET_HOME_SERVICE_ORIGIN, WALLET_HOME_SERVICE_BASE_PATH } from '../../../packages/wallet-console-server-ts/src/walletPlacement/service';
 import { D1WalletHomeDirectory } from '../../../packages/wallet-console-server-ts/src/walletPlacement/d1';
 import {
   WALLET_RELOCATION_ADMISSION_URL,
@@ -367,3 +368,61 @@ test('Console admission resumes an exact journal row and denies a new move witho
     await runtime.dispose();
   }
 });
+
+
+test('owner-only registration completes and replays without publishing a session locator', verifyOwnerOnlyRegistration);
+
+async function verifyOwnerOnlyRegistration({ request: _request }: { request: import('@playwright/test').APIRequestContext }, testInfo: import('@playwright/test').TestInfo): Promise<void> {
+  const runtime = new Miniflare({
+    modules: true,
+    script: 'export default { fetch() { return new Response(null, { status: 404 }); } };',
+    compatibilityDate: '2026-06-12',
+    d1Databases: { DIRECTORY: 'owner-only-directory' },
+  });
+  try {
+    const database = await databaseFor(runtime);
+    await migrate(database);
+    await activateConsoleDeploymentFixture(database, await fourRegionBinding(Date.now(), 'test', scope));
+    const directory = new D1WalletHomeDirectory(database, catalog);
+    const wallet = WalletOwnershipKey.parse({ ...scope, walletId: 'owner-operation-wallet' });
+    const allocation = RegistrationSetupAllocation.parse({
+      ceremonyId: 'wrc_owner-operation-wallet', preparationId: 'regprep_owner-operation-wallet',
+      walletAuthorityId: 'wallet-authority:owner-operation-wallet', deviceId: 'device:owner-operation-wallet',
+      walletAuthMethodId: 'wallet-auth-method:owner-operation-wallet',
+    });
+    const reservation = await directory.reserve({
+      allocation: 'provided', wallet, proposedHome: source, registrationId: 'owner-only-registration',
+      deploymentLane: 'test', requestDigest: '2'.repeat(64), proposedRegistrationAllocation: allocation,
+      nowMs: Date.now(),
+    });
+    expect(reservation.ok).toBe(true);
+    const options = {
+      database, writer, catalogJson: JSON.stringify(catalog), admittedResources: catalog.deploymentResources(),
+      scope, environmentKey: 'test', deploymentLane: 'test',
+    };
+    const body = { wallet, home: source, ceremonyId: allocation.ceremonyId, outcome: 'established', session: { kind: 'none' } };
+    const first = await handleWalletHomeServiceRequest(registrationCompletionRequest(body), options);
+    expect(first?.status, await first?.clone().text()).toBe(200);
+    const replay = await handleWalletHomeServiceRequest(registrationCompletionRequest(body), options);
+    expect(replay?.status, await replay?.clone().text()).toBe(200);
+    expect(await first?.json()).toEqual(await replay?.json());
+    const wrongWriter = await handleWalletHomeServiceRequest(registrationCompletionRequest({ ...body, home: destination }), options);
+    expect(wrongWriter?.status).toBe(403);
+    const locators = await database.prepare('SELECT COUNT(*) AS count FROM wallet_session_locators').first<{ count: number }>();
+    expect(locators?.count).toBe(0);
+    const display = await database.prepare('SELECT COUNT(*) AS count FROM wallet_index WHERE id = ?').bind(wallet.walletId).first<{ count: number }>();
+    expect(display?.count).toBe(1);
+    const assignment = await directory.find(wallet);
+    expect(assignment?.state).toBe('established');
+    const evidence = { scope: 'Console registration completion over the service boundary with D1 storage', assignment, locators: locators?.count, displayRows: display?.count, replayStatus: replay?.status, wrongWriterStatus: wrongWriter?.status };
+    const artifact = testInfo.outputPath('owner-only-registration.json');
+    await writeFile(artifact, JSON.stringify(evidence, null, 2));
+    await testInfo.attach('owner-only-registration', { path: artifact, contentType: 'application/json' });
+  } finally { await runtime.dispose(); }
+}
+
+function registrationCompletionRequest(body: unknown): Request {
+  return new Request(`${WALLET_HOME_SERVICE_ORIGIN}${WALLET_HOME_SERVICE_BASE_PATH}/complete`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  });
+}

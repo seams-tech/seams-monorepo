@@ -1,5 +1,5 @@
 import { ConsoleWalletEnvironmentError } from './errors';
-import { parseExternalAuthConfiguration } from '@seams/wallet-server/cloud-host';
+import { parseExternalAuthProvider } from '@seams/wallet-server/cloud-host';
 import {
   readOptionalQueryStringField as readOptionalQueryString,
   readOptionalStringField as readOptionalString,
@@ -130,11 +130,7 @@ export function parseUpdateConsoleWalletEnvironmentRequest(
   let externalAuth: UpdateConsoleWalletEnvironmentRequest['externalAuth'];
   if (obj.externalAuth !== undefined) {
     const config = requireBodyObject(obj.externalAuth, createParseError);
-    const parsed = parseExternalAuthUpdate(config);
-    externalAuth =
-      parsed.kind === 'google'
-        ? { kind: 'google', clientId: parsed.clientId }
-        : { kind: 'disabled' };
+    externalAuth = parseExternalAuthUpdate(config);
   }
   if (!name && !runtimeVersion && !externalAuth) {
     throw new ConsoleWalletEnvironmentError(
@@ -152,11 +148,7 @@ export function parseUpdateConsoleWalletEnvironmentRequest(
 
 function parseExternalAuthUpdate(config: Record<string, unknown>) {
   try {
-    return parseExternalAuthConfiguration({
-      kind: config.kind,
-      clientId: config.clientId,
-      revision: 0,
-    });
+    return parseExternalAuthProvider(config);
   } catch {
     throw createParseError('invalid_body', 400, 'External authentication configuration is invalid');
   }

@@ -55,7 +55,8 @@ class ConsoleBinding {
           accountId:
             request.headers.get('x-seams-writer-account') ?? '0123456789abcdef0123456789abcdef',
           databaseId:
-            request.headers.get('x-seams-writer-database') ?? 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            request.headers.get('x-seams-writer-database') ??
+            'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         },
       ),
       database: this.database,
@@ -219,5 +220,9 @@ export async function registrationSessionLocator(wallet: string) {
 
 export async function registrationCompletionSession(wallet: string) {
   const session = await registrationSessionLocator(wallet);
-  return { locator: SessionLocator.credential(session.digest), expiresAtMs: session.expiresAtMs };
+  return {
+    kind: 'credential' as const,
+    locator: SessionLocator.credential(session.digest),
+    expiresAtMs: session.expiresAtMs,
+  };
 }

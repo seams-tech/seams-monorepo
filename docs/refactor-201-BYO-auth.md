@@ -2,6 +2,40 @@
 
 Status: implemented and published as version 0.28.0. Staging, production testnet, production mainnet, and GetSignal backend deployments passed.
 
+## SDK 0.29 extension
+
+Public implementation: `7ecd0afe6` on `seams-wallet/dev`.
+The four public package manifests use `0.29.0`.
+Publication and deployment of this version await the release-scope decision.
+Console dependency pins remain on published `0.28.0` until `0.29.0` is available.
+
+The extension adds trusted Ed25519 application-session handoffs, fresh owner approval for association changes,
+NEAR-only registration without session issuance, and per-operation NEAR signing after reload.
+React distinguishes readable access from reusable signing controls.
+Operation handles report approval, submission, cancellation, expiry, failure, reversion, and an unknown outcome.
+Recovery queries the recorded transaction and never broadcasts it again.
+GetSignal passkeys authenticate GetSignal. Wallet approval uses an enrolled wallet-origin owner passkey.
+
+Validation:
+
+- Public type checks, Wallet/server/VoiceID builds, docs and maintained example builds, packed-package checks, and the bloat check pass.
+- The composed application contract verifies four real MPC signatures against registered NEAR keys.
+  It checks another fresh approval, cancellation, app-passkey login to the same association, reload,
+  replay rejection, concurrent calls, blocked operations during unresolved submission, expiry,
+  account switching, and recovery without rebroadcast. Session and quota counts remain zero.
+  Artifact: `seams-wallet/tests/.artifacts/application-auth/receipt.json` and `example.png`.
+- Google login uses a verified-session fixture. App passkey login uses browser WebAuthn with server verification.
+  NEAR chain responses use a deterministic RPC fixture. Live Google SSO and testnet broadcast remain unverified.
+- All five existing NEAR registration contracts pass.
+- External-auth and authorization-transfer E2Es pass, including owner-approved association/unlink and migration behavior.
+- Private `pnpm check` passes, including all 53 script checks.
+  Three Console composition scenarios pass. One completes owner-only registration, verifies exact retry,
+  rejects a conflicting regional writer, and confirms zero session locators.
+- Private checks use built local `0.29.0` candidate packages. The test helper restores all three dependency links afterward.
+
+Apply signer migrations `0086` and `0087` and Console migration `0112` with the matching packages.
+Complete or cancel unfinished wallet relocations before the signer migrations.
+
 ## Implementation record
 
 Public Wallet implementation: `5da65944b` and the read-only UI cleanup `0bea56241` on `seams-wallet/dev`.

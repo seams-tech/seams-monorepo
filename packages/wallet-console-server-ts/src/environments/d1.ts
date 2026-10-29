@@ -41,9 +41,8 @@ export const CONSOLE_WALLET_ENVIRONMENT_D1_SCHEMA_SQL = Object.freeze([
       project_id TEXT NOT NULL,
       env_key TEXT NOT NULL,
       runtime_version TEXT NOT NULL DEFAULT 'default',
-      external_auth_kind TEXT NOT NULL DEFAULT 'disabled' CHECK (external_auth_kind IN ('disabled', 'google')),
-      external_auth_client_id TEXT NOT NULL DEFAULT '',
-      external_auth_revision INTEGER NOT NULL DEFAULT 0,
+      external_auth_json TEXT NOT NULL DEFAULT '{"kind":"disabled","revision":0}'
+        CHECK (json_valid(external_auth_json)),
       name TEXT NOT NULL,
       status TEXT NOT NULL,
       created_at_ms INTEGER NOT NULL,
@@ -145,11 +144,7 @@ function parseEnvironmentKey(value: unknown): ConsoleWalletEnvironmentKey {
 
 export function parseEnvironmentRow(row: D1Row): ConsoleWalletEnvironment {
   return {
-    externalAuth: parseExternalAuthConfiguration({
-      kind: row.external_auth_kind,
-      revision: row.external_auth_revision,
-      clientId: row.external_auth_client_id,
-    }),
+    externalAuth: parseExternalAuthConfiguration(JSON.parse(String(row.external_auth_json))),
     id: String(row.id || ''),
     orgId: String(row.org_id || ''),
     projectId: String(row.project_id || ''),
@@ -666,19 +661,16 @@ export async function createD1ConsoleWalletEnvironmentService(
               SET name = ?,
                   runtime_version = ?,
                   updated_at_ms = ?,
-                  external_auth_kind = CASE WHEN ? IS NULL THEN external_auth_kind ELSE ? END,
-                  external_auth_client_id = CASE WHEN ? IS NULL THEN external_auth_client_id ELSE ? END,
-                  external_auth_revision = external_auth_revision + ?
+                  external_auth_json = CASE WHEN ? IS NULL THEN external_auth_json
+                    ELSE json_set(?, '$.revision', json_extract(external_auth_json, '$.revision') + 1) END
             WHERE namespace = ?
               AND org_id = ?
               AND id = ?`,
         )
         .bind(
           nextName, nextRuntimeVersion, nowMs(now()),
-          request.externalAuth?.kind ?? null, request.externalAuth?.kind ?? null,
-          request.externalAuth?.kind ?? null,
-          request.externalAuth?.kind === 'google' ? request.externalAuth.clientId : '',
-          request.externalAuth === undefined ? 0 : 1,
+          request.externalAuth === undefined ? null : JSON.stringify(request.externalAuth),
+          request.externalAuth === undefined ? null : JSON.stringify(request.externalAuth),
           namespace, ctx.orgId, environmentId,
         )
         .run();

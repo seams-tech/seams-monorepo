@@ -65,7 +65,7 @@ type CompletionInput = {
 } & (
   | {
       readonly outcome: 'established';
-      readonly session: WalletSessionLocatorPublication & { readonly kind: 'credential' };
+      readonly session: { readonly kind: 'none'; readonly walletId?: never; readonly digest?: never; readonly expiresAtMs?: never } | (WalletSessionLocatorPublication & { readonly kind: 'credential' });
     }
   | { readonly outcome: 'cancelled'; readonly session?: never }
 );

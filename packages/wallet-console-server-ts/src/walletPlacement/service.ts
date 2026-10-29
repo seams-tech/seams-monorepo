@@ -672,6 +672,10 @@ export async function handleWalletRegistrationMutation(
     const ceremonyId = requiredString(body.ceremonyId, 'ceremonyId');
     if (outcome === 'established') {
       const session = record(body.session);
+      if (session.kind === 'none') {
+        const assignment = await directory.complete({ wallet, home, ceremonyId, outcome, nowMs: Date.now(), deploymentLane: options.deploymentLane, session: { kind: 'none' } });
+        return json({ ok: true, assignment });
+      }
       if (session.kind !== 'credential' || session.walletId !== wallet.walletId) {
         throw new WalletPlacementError(
           'invalid_input',
@@ -692,6 +696,7 @@ export async function handleWalletRegistrationMutation(
         nowMs: Date.now(),
         deploymentLane: options.deploymentLane,
         session: {
+          kind: 'credential',
           locator: SessionLocator.credential(session.digest),
           expiresAtMs: session.expiresAtMs,
         },

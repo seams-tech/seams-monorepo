@@ -104,8 +104,9 @@ void city;
 type CompletionInput = Parameters<D1WalletHomeDirectory['complete']>[0];
 declare const establishedCompletion: CompletionInput & { readonly outcome: 'established' };
 declare const exchangeLocator: SessionLocator<'exchange'>;
+declare const credentialLocator: SessionLocator<'credential'>;
 
-// @ts-expect-error An established home requires its session publication.
+// @ts-expect-error An established home requires an explicit session-publication choice.
 const missingSession: CompletionInput = {
   wallet,
   home,
@@ -118,6 +119,7 @@ const cancelledWithSession: CompletionInput = { ...establishedCompletion, outcom
 const exchangeCompletion: CompletionInput = {
   ...establishedCompletion,
   session: {
+    kind: 'credential',
     // @ts-expect-error Completion publishes the issued credential, never an exchange token.
     locator: exchangeLocator,
     expiresAtMs: 1,
@@ -126,8 +128,9 @@ const exchangeCompletion: CompletionInput = {
 const uncheckedSession: CompletionInput = {
   ...establishedCompletion,
   session: {
+    kind: 'credential',
     // @ts-expect-error A spread cannot bypass session-locator validation.
-    locator: { ...establishedCompletion.session.locator },
+    locator: { ...credentialLocator },
     expiresAtMs: 1,
   },
 };
@@ -135,3 +138,17 @@ void missingSession;
 void cancelledWithSession;
 void exchangeCompletion;
 void uncheckedSession;
+
+const noSession: CompletionInput = { ...establishedCompletion, session: { kind: 'none' } };
+const invalidNoSession = {
+  ...noSession,
+  session: {
+    ...noSession.session,
+    kind: 'none' as const,
+    locator: credentialLocator,
+    expiresAtMs: 1,
+  },
+};
+// @ts-expect-error A no-session completion cannot retain a credential through a spread.
+const noSessionWithCredential: CompletionInput = invalidNoSession;
+void noSessionWithCredential;

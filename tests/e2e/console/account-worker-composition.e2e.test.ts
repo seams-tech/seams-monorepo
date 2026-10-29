@@ -1,6 +1,6 @@
 import { expect, test, type TestInfo } from '@playwright/test';
 import { spawnSync } from 'node:child_process';
-import { createHmac } from 'node:crypto';
+import { createHmac, generateKeyPairSync } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -312,6 +312,21 @@ async function verifyExternalAuthenticationTrust(
     environments: [{ id: environmentId, externalAuth: enabledEnvironment.externalAuth }],
   });
 
+  const applicationKey = generateKeyPairSync('ed25519').publicKey.export({ format: 'jwk' });
+  const application = await worker.fetch(route, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      kind: 'application', issuer: 'https://getsignal.example', publicKeyB64u: applicationKey.x,
+      revision: 999,
+    }),
+  });
+  expect(application.status, await application.clone().text()).toBe(200);
+  expect(object(object(await application.json()).environment).externalAuth).toEqual({
+    kind: 'application', issuer: 'https://getsignal.example', publicKeyB64u: applicationKey.x,
+    revision: 2,
+  });
+
   const disabled = await worker.fetch(route, {
     method: 'PUT',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -320,7 +335,7 @@ async function verifyExternalAuthenticationTrust(
   expect(disabled.status, await disabled.clone().text()).toBe(200);
   expect(object(object(await disabled.json()).environment).externalAuth).toEqual({
     kind: 'disabled',
-    revision: 2,
+    revision: 3,
   });
   const rows = await environments.listEnvironments(owner, { projectId: walletProjectId });
   for (const environment of rows) {
@@ -329,7 +344,8 @@ async function verifyExternalAuthenticationTrust(
   }
   return {
     enabledRevision: 1,
-    disabledRevision: 2,
+    applicationRevision: 2,
+    disabledRevision: 3,
     otherEnvironmentsUnchanged: true,
     gatewayProjectionVerified: true,
   };

@@ -287,7 +287,8 @@ function buildFrontend(site, component, walletLanes) {
     }
     fs.appendFileSync(
       path.join(WALLET_SITE_OUTPUT, '_headers'),
-      '\n/showcase/*\n  X-Robots-Tag: noindex\n/wallet-service/*\n  X-Robots-Tag: noindex\n',
+      '\n/docs/*\n  Cache-Control: public, max-age=0, must-revalidate, no-transform\n' +
+        '\n/showcase/*\n  X-Robots-Tag: noindex\n/wallet-service/*\n  X-Robots-Tag: noindex\n',
     );
     assertFile(path.join(WALLET_SITE_OUTPUT, 'index.html'), 'Wallet site entry');
     assertFile(path.join(WALLET_SITE_OUTPUT, 'ja', 'index.html'), 'Japanese Wallet site entry');

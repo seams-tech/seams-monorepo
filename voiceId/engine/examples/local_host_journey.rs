@@ -24,8 +24,8 @@ mod journey {
     use serde_json::json;
     use sha2::{Digest, Sha256};
     use voiceid_engine::adapters::native::local_host::{
-        CollectionPurpose, LocalClock, LocalModels, SpokenCommand, collect_utterance,
-        enroll_captures, finish_capture, spoken_command,
+        CollectionPurpose, LocalClock, LocalModels, LocalTranscriber, SpokenCommand,
+        collect_utterance, enroll_captures, finish_capture, spoken_command,
     };
     use voiceid_engine::adapters::native::{
         CaptureNormalizer, EcapaMatcher, KeychainStore, SpeakerEmbedding,
@@ -311,6 +311,10 @@ mod journey {
 
         let ready = clock.ready();
         let profile = models.profile;
+        let transcriber = match &models.transcriber {
+            LocalTranscriber::Moonshine(_) => "real_native_moonshine_and_ecapa_onnx",
+            LocalTranscriber::Whisper(_) => "real_whisper_cpp_and_ecapa_onnx",
+        };
         let mut runtime = AudioRuntime::new(
             ready,
             profile,
@@ -444,7 +448,7 @@ mod journey {
             "schemaVersion":"voiceid_local_host_journey_v1", "status":"passed",
             "capture":"accelerated_synthetic_pcm_through_production_normalizer_and_collector",
             "liveMicrophoneQualified":false, "populationAccuracyQualified":false, "walletSigning":false,
-            "models":"real_native_moonshine_and_ecapa_onnx", "store":"real_disposable_login_keychain_namespace",
+            "models":transcriber, "store":"real_disposable_login_keychain_namespace",
             "ownerVoice":"macOS Samantha", "differentVoice":"macOS Daniel", "cases":evidence,
             "threeCaptureEnrollment":true, "mixedSpeakerEnrollmentRejected":true, "duplicateCreateRejected":true,
             "durableReload":true, "concurrentHostRejected":true, "advancingReplacement":true, "staleReplacementRejected":true,

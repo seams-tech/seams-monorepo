@@ -11,6 +11,7 @@ pub mod attribution;
 mod consumers;
 pub mod domain;
 pub mod enrollment;
+pub mod phrase;
 pub mod presence;
 pub mod runtime;
 pub mod utterance;

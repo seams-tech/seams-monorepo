@@ -14,31 +14,43 @@ fn main() -> Result<(), String> {
 #[cfg(target_os = "macos")]
 mod host {
     use std::io::{self, BufRead, Read};
-    use std::path::PathBuf;
+    use std::num::NonZeroUsize;
+    use std::path::{Path, PathBuf};
     use std::time::Duration;
 
     use voiceid_engine::adapters::native::local_host::{
-        CollectionPurpose, LocalClock, LocalModels, SpokenCommand, collect_utterance,
-        enroll_captures, finish_capture, spoken_command,
+        CollectionPurpose, HOST_MAXIMUM_SAMPLES, LocalClock, LocalModels, SpokenCommand,
+        collect_utterance, enroll_captures, finish_capture, spoken_command,
     };
-    use voiceid_engine::adapters::native::{KeychainStore, Microphone, SpeakerEmbedding};
+    use voiceid_engine::adapters::native::{
+        DEFAULT_WHISPER_MODEL, InstallState, KeychainStore, Microphone, SpeakerEmbedding,
+        WhisperLanguage, WhisperLimits, WhisperTranscriber,
+    };
     use voiceid_engine::adapters::{AdapterError, AudioCapture, StoreError, TemplateStore};
     use voiceid_engine::attribution::AttributionOutcome;
-    use voiceid_engine::domain::EnrollmentRef;
+    use voiceid_engine::domain::{EnrollmentRef, UnavailableReason};
     use voiceid_engine::enrollment::{EnrollmentRecord, EnrollmentState};
+    use voiceid_engine::phrase::ActionPhrase;
     use voiceid_engine::runtime::AudioRuntime;
     use voiceid_engine::utterance::TranscriptOutcome;
 
     const SERVICE: &str = "com.seams.voiceid.prototype";
-    const USAGE: &str = "voiceid-host devices | status | delete | enroll <native-inputs.json> | check <native-inputs.json> | bridge <native-inputs.json> <namespace> <wallet-origin>";
+    const USAGE: &str = "voiceid-host devices | status | delete | voice status|on|off <voice-model-directory> | enroll <native-inputs.json> | check <native-inputs.json> [phrase] | bridge <native-inputs.json> <namespace> <wallet-origin>";
 
     enum Command {
         Devices,
         Status,
         Delete,
+        Voice(VoiceCommand, PathBuf),
         Enroll(PathBuf),
-        Check(PathBuf),
+        Check(PathBuf, Option<String>),
         Bridge(PathBuf, String, String),
+    }
+
+    enum VoiceCommand {
+        Status,
+        On,
+        Off,
     }
 
     pub fn run() -> Result<(), String> {
@@ -56,11 +68,13 @@ mod host {
             return Ok(());
         }
         let clock = LocalClock::new().map_err(adapter_error)?;
+        if let Command::Voice(action, directory) = command {
+            return voice(action, &directory, &clock);
+        }
         let mut store = KeychainStore::open(SERVICE, &clock.work_for(Duration::from_secs(10)))
             .map_err(store_error)?;
         match command {
-            Command::Devices => unreachable!(),
-            Command::Bridge(..) => unreachable!(),
+            Command::Devices | Command::Voice(..) | Command::Bridge(..) => unreachable!(),
             Command::Status => {
                 match store
                     .load(&clock.work_for(Duration::from_secs(10)))
@@ -88,7 +102,7 @@ mod host {
                 Ok(())
             }
             Command::Enroll(path) => enroll(path, &clock, &mut store),
-            Command::Check(path) => check(path, &clock, &mut store),
+            Command::Check(path, phrase) => check(path, phrase, &clock, &mut store),
         }
     }
 
@@ -102,8 +116,27 @@ mod host {
             Some("devices") => Command::Devices,
             Some("status") => Command::Status,
             Some("delete") => Command::Delete,
+            Some("voice") => {
+                let action = match arguments
+                    .next()
+                    .as_deref()
+                    .and_then(std::ffi::OsStr::to_str)
+                {
+                    Some("status") => VoiceCommand::Status,
+                    Some("on") => VoiceCommand::On,
+                    Some("off") => VoiceCommand::Off,
+                    _ => return Err(USAGE.into()),
+                };
+                Command::Voice(action, PathBuf::from(arguments.next().ok_or(USAGE)?))
+            }
             Some("enroll") => Command::Enroll(PathBuf::from(arguments.next().ok_or(USAGE)?)),
-            Some("check") => Command::Check(PathBuf::from(arguments.next().ok_or(USAGE)?)),
+            Some("check") => Command::Check(
+                PathBuf::from(arguments.next().ok_or(USAGE)?),
+                arguments
+                    .next()
+                    .map(|phrase| phrase.into_string().map_err(|_| USAGE))
+                    .transpose()?,
+            ),
             Some("bridge") => Command::Bridge(
                 PathBuf::from(arguments.next().ok_or(USAGE)?),
                 arguments
@@ -123,6 +156,78 @@ mod host {
             return Err(USAGE.into());
         }
         Ok(command)
+    }
+
+    /// Voice stays off until the person agrees to the download. Turning it off deletes the files.
+    fn voice(action: VoiceCommand, directory: &Path, clock: &LocalClock) -> Result<(), String> {
+        let model = DEFAULT_WHISPER_MODEL;
+        let megabytes = model.bytes / 1_000_000;
+        match action {
+            VoiceCommand::Status => match model.state(directory) {
+                InstallState::NotInstalled => {
+                    println!(
+                        "Voice is off. Run voice on to download the speech model ({megabytes} MB)."
+                    )
+                }
+                InstallState::Partial { bytes } => println!(
+                    "Voice is off. A download stopped at {} of {megabytes} MB. Run voice on to resume it.",
+                    bytes / 1_000_000
+                ),
+                InstallState::Installed => {
+                    println!("Voice is on. {} is installed ({megabytes} MB).", model.id)
+                }
+            },
+            VoiceCommand::On => {
+                if model.state(directory) != InstallState::Installed {
+                    println!(
+                        "Voice needs a one-time download of {} ({megabytes} MB, {} licence) into {}.",
+                        model.id,
+                        model.license,
+                        directory.display()
+                    );
+                    println!("The model stays on this Mac. Type yes to download it:");
+                    if read_line()?.trim() != "yes" {
+                        println!("Voice stays off. Nothing was downloaded.");
+                        return Ok(());
+                    }
+                }
+                let mut reported = 0;
+                model
+                    .install(
+                        directory,
+                        &mut |done, total| {
+                            let percent = done * 100 / total;
+                            if percent >= reported + 10 {
+                                eprintln!("{percent}% of {megabytes} MB");
+                                reported = percent;
+                            }
+                        },
+                        &clock.work_for(Duration::from_secs(4 * 60 * 60)),
+                    )
+                    .map_err(adapter_error)?;
+                // The first load compiles the GPU shaders. Do it now, not at the first command.
+                println!("Preparing the speech model…");
+                let mut transcriber = WhisperTranscriber::new(
+                    model,
+                    directory,
+                    WhisperLanguage::English,
+                    WhisperLimits {
+                        maximum_samples: NonZeroUsize::new(HOST_MAXIMUM_SAMPLES).ok_or(USAGE)?,
+                        maximum_text_bytes: NonZeroUsize::new(4096).ok_or(USAGE)?,
+                    },
+                )
+                .map_err(adapter_error)?;
+                transcriber
+                    .prepare(&clock.work_for(Duration::from_secs(120)))
+                    .map_err(adapter_error)?;
+                println!("Voice is on. The model loads when a voice session starts.");
+            }
+            VoiceCommand::Off => {
+                model.remove(directory).map_err(adapter_error)?;
+                println!("Voice is off. The speech model is deleted from this Mac.");
+            }
+        }
+        Ok(())
     }
 
     fn enroll(path: PathBuf, clock: &LocalClock, store: &mut KeychainStore) -> Result<(), String> {
@@ -175,7 +280,18 @@ mod host {
             .map_err(adapter_error)
     }
 
-    fn check(path: PathBuf, clock: &LocalClock, store: &mut KeychainStore) -> Result<(), String> {
+    fn check(
+        path: PathBuf,
+        phrase: Option<String>,
+        clock: &LocalClock,
+        store: &mut KeychainStore,
+    ) -> Result<(), String> {
+        let phrase = phrase
+            .map(|text| {
+                ActionPhrase::new(&text)
+                    .map_err(|error| format!("The phrase breaks the phrase rules: {error:?}"))
+            })
+            .transpose()?;
         let record = require_enrollment(
             store
                 .load(&clock.work_for(Duration::from_secs(10)))
@@ -185,7 +301,12 @@ mod host {
         let models = LocalModels::load(&path, &clock.work_for(Duration::from_secs(60)))
             .map_err(adapter_error)?;
         println!("Local voice check. No wallet operation is connected.");
-        println!("Press Enter, then say ‘I approve this operation’ or ‘I cancel this operation’.");
+        match &phrase {
+            Some(phrase) => println!("Press Enter, then say ‘{}’.", phrase.text()),
+            None => println!(
+                "Press Enter, then say ‘I approve this operation’ or ‘I cancel this operation’."
+            ),
+        }
         wait_for_enter()?;
         let work = clock.work_for(Duration::from_secs(25));
         let prepared = Microphone::prepare(clock, &work).map_err(adapter_error)?;
@@ -197,7 +318,12 @@ mod host {
             models.matcher,
         )
         .map_err(adapter_error)?;
-        let id = runtime.begin(&work).map_err(adapter_error)?;
+        let id = runtime.begin(&work).map_err(|error| match error {
+            AdapterError::Unavailable(UnavailableReason::Missing) => {
+                "Voice is off. Run voice on to download the speech model.".to_owned()
+            }
+            error => adapter_error(error),
+        })?;
         let mut microphone = prepared.start(&work).map_err(adapter_error)?;
         let ready = *microphone.ready();
         println!("Listening…");
@@ -210,6 +336,16 @@ mod host {
         let result = runtime.take_result(id, &work).map_err(adapter_error)?;
         match result.attribution() {
             AttributionOutcome::Attributed(_) => match result.transcript() {
+                TranscriptOutcome::Speech(transcript) if phrase.is_some() => {
+                    if phrase
+                        .as_ref()
+                        .is_some_and(|phrase| phrase.matches(transcript.text()))
+                    {
+                        println!("Enrolled speaker said the phrase. This check performs no action.")
+                    } else {
+                        println!("The voice matched. The words did not match the phrase.")
+                    }
+                }
                 TranscriptOutcome::Speech(transcript) => {
                     let message = match spoken_command(transcript) {
                         SpokenCommand::Approve => {
@@ -249,6 +385,11 @@ mod host {
         }
     }
     fn wait_for_enter() -> Result<(), String> {
+        read_line()
+            .map(drop)
+            .map_err(|_| "Capture was not started.".into())
+    }
+    fn read_line() -> Result<String, String> {
         let mut input = String::new();
         let read = io::stdin()
             .lock()
@@ -256,9 +397,9 @@ mod host {
             .read_line(&mut input)
             .map_err(io_error)?;
         if read == 0 || read > 1024 {
-            return Err("Capture was not started.".into());
+            return Err("No answer was read.".into());
         }
-        Ok(())
+        Ok(input)
     }
     fn adapter_error(error: AdapterError) -> String {
         format!("VoiceID: {error:?}")

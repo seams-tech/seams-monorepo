@@ -1,0 +1,44 @@
+# voiceid-host opt-in journey, 2026-10-29, Apple M4 Pro, macOS 15.7.1
+# Script: voice status, voice on (answer no), voice on (answer yes, killed after 6 s), voice on (resume), shasum, voice off.
+
+## 1. Status before opt-in
+Voice is off. Run voice on to download the speech model (874 MB).
+
+## 2. The person answers no
+Voice needs a one-time download of whisper-large-v3-turbo-q8_0 (874 MB, MIT licence) into $VOICE_DIR.
+The model stays on this Mac. Type yes to download it:
+Voice stays off. Nothing was downloaded.
+files: 0
+
+## 3. The person answers yes; the download is interrupted after 6 s
+Voice needs a one-time download of whisper-large-v3-turbo-q8_0 (874 MB, MIT licence) into $VOICE_DIR.
+The model stays on this Mac. Type yes to download it:
+10% of 874 MB
+97870 Done                    echo yes
+     97871 Terminated: 15          | "$host" voice on "$dir" 2>&1
+Voice is off. A download stopped at 97 of 874 MB. Run voice on to resume it.
+
+## 4. The person turns voice on again; the download resumes
+Voice needs a one-time download of whisper-large-v3-turbo-q8_0 (874 MB, MIT licence) into $VOICE_DIR.
+The model stays on this Mac. Type yes to download it:
+11% of 874 MB
+21% of 874 MB
+31% of 874 MB
+41% of 874 MB
+51% of 874 MB
+61% of 874 MB
+71% of 874 MB
+81% of 874 MB
+91% of 874 MB
+Preparing the speech model…
+Voice is on. The model loads when a voice session starts.
+seconds: 46
+Voice is on. whisper-large-v3-turbo-q8_0 is installed (874 MB).
+317eb69c11673c9de1e1f0d459b253999804ec71ac4c23c17ecf5fbe24e259a1  $VOICE_DIR/ggml-large-v3-turbo-q8_0.bin
+total 1736712
+-rw-r--r--@ 1 pta  wheel  874188075 Oct 29 22:37 ggml-large-v3-turbo-q8_0.bin
+
+## 5. The person turns voice off
+Voice is off. The speech model is deleted from this Mac.
+Voice is off. Run voice on to download the speech model (874 MB).
+files: 0

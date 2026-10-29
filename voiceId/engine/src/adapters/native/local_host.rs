@@ -12,18 +12,24 @@ use security_framework::random::SecRandom;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
+use super::voice_models::voice_model;
 use super::{
-    EcapaCalibration, EcapaMatcher, MoonshineLimits, MoonshineTranscriber, SpeakerEmbedding,
-    VerifiedFile, VerifiedModelDirectory,
+    EcapaCalibration, EcapaMatcher, MoonshineLimits, MoonshineStream, MoonshineTranscriber,
+    SpeakerEmbedding, VerifiedFile, VerifiedModelDirectory, WhisperLanguage, WhisperLimits,
+    WhisperStream, WhisperTranscriber,
 };
-use crate::adapters::{AdapterError, AudioCapture, CaptureEvent};
+use crate::adapters::{AdapterError, AudioCapture, CaptureEvent, Transcriber, TranscriptStream};
 use crate::domain::{
-    AudioFormat, AudioFrame, CaptureReady, CaptureSessionId, CaptureTime, ClockMapping, DeviceId,
-    EnrollmentId, EnrollmentRef, FailureReason, FrameStamp, InputError, ModelId, ProfileId,
+    AudioFormat, AudioFrame, Availability, CaptureReady, CaptureSessionId, CaptureTime,
+    ClockMapping, DeviceId, EnrollmentId, EnrollmentRef, FailureReason, FrameStamp, InputError,
+    ModelId, ProfileId, UnavailableReason,
 };
 use crate::enrollment::{EnrollmentRecord, FaceEnrollment};
+use crate::phrase::ActionPhrase;
 use crate::runtime::{AudioProfile, AudioRuntime, Cancellation, Clock, WorkContext};
-use crate::utterance::{FinalTranscript, SpeechWindow, UtteranceId};
+use crate::utterance::{
+    FinalTranscript, PartialTranscript, SpeechWindow, TranscriptOutcome, UtteranceId, UtteranceSpan,
+};
 
 /// Maximum utterance length accepted by this development host.
 pub const HOST_MAXIMUM_SAMPLES: usize = 160_000;
@@ -108,13 +114,23 @@ impl Cancellation for LocalClock {
 #[serde(rename_all = "camelCase")]
 struct ModelInputs {
     schema_version: String,
-    model_directory: PathBuf,
-    moonshine_library: FileInput,
+    model_directory: Option<PathBuf>,
+    moonshine_library: Option<FileInput>,
     onnx_runtime_library: FileInput,
     speaker_model: FileInput,
     speaker_accept_similarity: f32,
     speaker_minimum_samples: usize,
     speaker_minimum_rms: f32,
+    whisper: Option<WhisperInput>,
+}
+
+/// Opt-in Whisper in place of Moonshine. The file is present only after the person
+/// turned voice on; until then the transcriber reports `Unavailable(Missing)`.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WhisperInput {
+    model: String,
+    directory: PathBuf,
 }
 
 #[derive(Deserialize)]
@@ -123,11 +139,88 @@ struct FileInput {
     sha256: [u8; 32],
 }
 
+/// The host's transcriber: provisioned Moonshine Tiny or opt-in Whisper.
+pub enum LocalTranscriber {
+    /// Native Moonshine Tiny Streaming, loaded per utterance.
+    Moonshine(MoonshineTranscriber),
+    /// Whisper large-v3-turbo after the person opted in. It loads when a voice session
+    /// opens, or at the first utterance.
+    Whisper(WhisperTranscriber),
+}
+
+/// One utterance of the configured transcriber.
+pub enum LocalStream {
+    /// Moonshine decoder.
+    Moonshine(MoonshineStream),
+    /// Whisper decoder.
+    Whisper(WhisperStream),
+}
+
+impl LocalTranscriber {
+    /// Identity bound into the runtime profile.
+    pub fn model_id(&self) -> ModelId {
+        match self {
+            Self::Moonshine(transcriber) => transcriber.model_id(),
+            Self::Whisper(transcriber) => transcriber.model_id(),
+        }
+    }
+}
+
+impl Transcriber for LocalTranscriber {
+    type Stream = LocalStream;
+
+    fn availability(&self) -> Availability<()> {
+        match self {
+            Self::Moonshine(transcriber) => transcriber.availability(),
+            Self::Whisper(transcriber) => transcriber.availability(),
+        }
+    }
+
+    fn start(
+        &mut self,
+        utterance: UtteranceId,
+        work: &WorkContext<'_>,
+    ) -> Result<Self::Stream, AdapterError> {
+        match self {
+            Self::Moonshine(transcriber) => transcriber
+                .start(utterance, work)
+                .map(LocalStream::Moonshine),
+            Self::Whisper(transcriber) => {
+                transcriber.start(utterance, work).map(LocalStream::Whisper)
+            }
+        }
+    }
+}
+
+impl TranscriptStream for LocalStream {
+    fn push(
+        &mut self,
+        chunk: &SpeechWindow,
+        work: &WorkContext<'_>,
+    ) -> Result<PartialTranscript, AdapterError> {
+        match self {
+            Self::Moonshine(stream) => stream.push(chunk, work),
+            Self::Whisper(stream) => stream.push(chunk, work),
+        }
+    }
+
+    fn finish(
+        self,
+        source: UtteranceSpan,
+        work: &WorkContext<'_>,
+    ) -> Result<TranscriptOutcome, AdapterError> {
+        match self {
+            Self::Moonshine(stream) => stream.finish(source, work),
+            Self::Whisper(stream) => stream.finish(source, work),
+        }
+    }
+}
+
 /// Verified native adapters and the exact matching runtime profile.
 /// Model metadata comes from the existing explicit provisioning command.
 pub struct LocalModels {
-    /// Fresh-utterance native transcription adapter.
-    pub transcriber: MoonshineTranscriber,
+    /// Fresh-utterance transcription adapter.
+    pub transcriber: LocalTranscriber,
     /// Native waveform speaker adapter, also used during deliberate enrollment.
     pub matcher: EcapaMatcher,
     /// Model-bound bounded runtime profile. Its speaker gate is a development setting.
@@ -157,22 +250,41 @@ impl LocalModels {
         if input.schema_version != "voiceid_native_journey_input_v1" {
             return Err(AdapterError::Failed(FailureReason::InvalidOutput));
         }
-        input.model_directory = directory.join(input.model_directory);
-        input.moonshine_library.path = directory.join(input.moonshine_library.path);
         input.onnx_runtime_library.path = directory.join(input.onnx_runtime_library.path);
         input.speaker_model.path = directory.join(input.speaker_model.path);
         let runtime = verify_file(&input.onnx_runtime_library, work)?;
-        let transcriber = MoonshineTranscriber::load(
-            verify_file(&input.moonshine_library, work)?,
-            verify_file(&input.onnx_runtime_library, work)?,
-            VerifiedModelDirectory::moonshine_tiny(&input.model_directory, work)?,
-            MoonshineLimits {
-                maximum_samples: limit(HOST_MAXIMUM_SAMPLES)?,
-                maximum_text_bytes: limit(4096)?,
-                maximum_lines: limit(32)?,
-            },
-            work,
-        )?;
+        let transcriber = match (
+            input.whisper,
+            input.model_directory,
+            input.moonshine_library,
+        ) {
+            // No model bytes are read here. A session or the first utterance loads them.
+            (Some(whisper), _, _) => LocalTranscriber::Whisper(WhisperTranscriber::new(
+                voice_model(&whisper.model)
+                    .ok_or(AdapterError::Unavailable(UnavailableReason::Unsupported))?,
+                &directory.join(whisper.directory),
+                WhisperLanguage::English,
+                WhisperLimits {
+                    maximum_samples: limit(HOST_MAXIMUM_SAMPLES)?,
+                    maximum_text_bytes: limit(4096)?,
+                },
+            )?),
+            (None, Some(model_directory), Some(mut library)) => {
+                library.path = directory.join(library.path);
+                LocalTranscriber::Moonshine(MoonshineTranscriber::load(
+                    verify_file(&library, work)?,
+                    verify_file(&input.onnx_runtime_library, work)?,
+                    VerifiedModelDirectory::moonshine_tiny(&directory.join(model_directory), work)?,
+                    MoonshineLimits {
+                        maximum_samples: limit(HOST_MAXIMUM_SAMPLES)?,
+                        maximum_text_bytes: limit(4096)?,
+                        maximum_lines: limit(32)?,
+                    },
+                    work,
+                )?)
+            }
+            (None, _, _) => return Err(AdapterError::InvalidInput(InputError::Empty)),
+        };
         let calibration = EcapaCalibration::new(
             ModelId(input.speaker_model.sha256),
             input.speaker_accept_similarity,
@@ -320,6 +432,9 @@ enum CollectionState {
     Speaking(FrameStamp),
 }
 
+const APPROVE_PHRASE: &str = "i approve this operation";
+const CANCEL_PHRASE: &str = "i cancel this operation";
+
 /// Command text from a finalized transcript. This value grants no approval authority.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SpokenCommand {
@@ -331,19 +446,15 @@ pub enum SpokenCommand {
     Unrecognized,
 }
 
-/// Normalize final ASR text once and require a complete exact command phrase.
+/// Require a complete command phrase under the strict phrase match.
 pub fn spoken_command(transcript: &FinalTranscript) -> SpokenCommand {
-    let mut canonical = String::new();
-    for character in transcript.text().chars() {
-        if character.is_ascii_alphanumeric() {
-            canonical.push(character.to_ascii_lowercase());
-        } else if !canonical.is_empty() && !canonical.ends_with(' ') {
-            canonical.push(' ');
-        }
-    }
-    match canonical.trim() {
-        "i approve this operation" => SpokenCommand::Approve,
-        "i cancel this operation" => SpokenCommand::Cancel,
+    let heard = transcript.text();
+    match (
+        ActionPhrase::new(APPROVE_PHRASE),
+        ActionPhrase::new(CANCEL_PHRASE),
+    ) {
+        (Ok(approve), _) if approve.matches(heard) => SpokenCommand::Approve,
+        (_, Ok(cancel)) if cancel.matches(heard) => SpokenCommand::Cancel,
         _ => SpokenCommand::Unrecognized,
     }
 }
@@ -367,7 +478,7 @@ pub fn enroll_captures(
 /// Submit collected source chunks through the runtime and finalize one pending result.
 /// Begin the attempt before capture. The consumer still owns result consumption.
 pub fn finish_capture(
-    runtime: &mut AudioRuntime<MoonshineTranscriber, EcapaMatcher>,
+    runtime: &mut AudioRuntime<LocalTranscriber, EcapaMatcher>,
     id: UtteranceId,
     ready: &CaptureReady<AudioFormat>,
     captured: &SpeechWindow,

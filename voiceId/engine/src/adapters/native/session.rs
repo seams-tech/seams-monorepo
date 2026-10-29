@@ -15,11 +15,12 @@ use super::device_credential::DeviceCredential;
 use super::local_bridge::CommandCapture;
 use super::local_host::{
     CollectionPurpose, HOST_CHUNK_SAMPLES, HOST_MAXIMUM_SAMPLES, LocalClock, LocalModels,
-    SpokenCommand, collect_utterance, enroll_captures, spoken_command,
+    LocalTranscriber, SpokenCommand, collect_utterance, enroll_captures, spoken_command,
 };
-use super::{EcapaMatcher, KeychainStore, MoonshineTranscriber, SpeakerEmbedding};
+use super::{EcapaMatcher, KeychainStore, SpeakerEmbedding};
 use crate::adapters::{
     AdapterError, AudioCapture, CaptureEvent, SpeakerMatcher, StoreError, TemplateStore,
+    Transcriber,
 };
 use crate::attribution::AttributionOutcome;
 use crate::domain::{
@@ -138,7 +139,7 @@ impl SpeakerMatcher for SharedMatcher {
     }
 }
 
-type NativeRuntime = AudioRuntime<MoonshineTranscriber, SharedMatcher>;
+type NativeRuntime = AudioRuntime<LocalTranscriber, SharedMatcher>;
 struct Attempt {
     request: RequestId,
     utterance: UtteranceId,
@@ -194,7 +195,14 @@ impl NativeSession {
         };
         // Model setup can outlive a disconnected browser port. Keep it outside
         // the enrollment lease so a cancelled startup cannot block its replacement.
-        let models = LocalModels::load(models, &work).map_err(adapter_error)?;
+        let mut models = LocalModels::load(models, &work).map_err(adapter_error)?;
+        // Whisper loads when a voice session opens, never inside a command's listening
+        // deadline. A model that the person has not installed stays unavailable.
+        if let LocalTranscriber::Whisper(transcriber) = &mut models.transcriber
+            && matches!(transcriber.availability(), Availability::Available(()))
+        {
+            transcriber.prepare(&work).map_err(adapter_error)?;
+        }
         work.check().map_err(work_error)?;
         let mut store = KeychainStore::open(namespace, &work).map_err(store_error)?;
         let enrollment = store.load(&work).map_err(store_error)?;

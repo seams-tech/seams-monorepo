@@ -1,0 +1,390 @@
+{
+  "schemaVersion": "voiceid_whisper_approval_bench_v1",
+  "date": "2026-10-29",
+  "policy": "strict",
+  "set": "approval_en_v2",
+  "source": "voiceId/stt-bench on branch voiceid-stt-bench: 12 phrases of the second phrase set, four near misses each, six unrelated sentences; macOS say voices; DEMAND kitchen, cafeteria and washing-machine noise at 10, 5 and 0 dB. whisper-cpp runs use examples/whisper_bench_cases.rs through WhisperTranscriber.",
+  "inputsManifestSha256": "ec77afefdeea698592330dd7c652b96dea5128a69ff79acb993dae1c609787ea",
+  "runs": {
+    "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2": {
+      "model": "whisper-cpp-large-v3-turbo-q5_0",
+      "caseCount": 2640,
+      "loadSeconds": 7.11,
+      "computeSeconds": 1770.3,
+      "realTimeFactor": 0.2941,
+      "modelBytes": 574041195
+    },
+    "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2": {
+      "model": "whisper-cpp-large-v3-turbo-q8_0",
+      "caseCount": 2640,
+      "loadSeconds": 7.82,
+      "computeSeconds": 1355.9,
+      "realTimeFactor": 0.2253,
+      "modelBytes": 874188075
+    },
+    "whisper-large-v3-turbo-en-approval_en_v2": {
+      "model": "whisper-large-v3-turbo",
+      "caseCount": 2640,
+      "loadSeconds": 3.78,
+      "computeSeconds": 1198.2,
+      "realTimeFactor": 0.1991,
+      "modelBytes": 1613979758
+    }
+  },
+  "results": {
+    "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2": {
+      "0 dB": {
+        "correctAccepted": {
+          "rate": 0.7917,
+          "count": 114,
+          "of": 144
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        }
+      },
+      "10 dB": {
+        "correctAccepted": {
+          "rate": 0.9097,
+          "count": 131,
+          "of": 144
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        }
+      },
+      "5 dB": {
+        "correctAccepted": {
+          "rate": 0.8681,
+          "count": 125,
+          "of": 144
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        }
+      },
+      "all": {
+        "correctAccepted": {
+          "rate": 0.8646,
+          "count": 415,
+          "of": 480
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1920
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 240
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 8160
+        }
+      },
+      "clean": {
+        "correctAccepted": {
+          "rate": 0.9375,
+          "count": 90,
+          "of": 96
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 384
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1632
+        }
+      }
+    },
+    "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2": {
+      "0 dB": {
+        "correctAccepted": {
+          "rate": 0.7986,
+          "count": 115,
+          "of": 144
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        }
+      },
+      "10 dB": {
+        "correctAccepted": {
+          "rate": 0.9236,
+          "count": 133,
+          "of": 144
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        }
+      },
+      "5 dB": {
+        "correctAccepted": {
+          "rate": 0.8681,
+          "count": 125,
+          "of": 144
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        }
+      },
+      "all": {
+        "correctAccepted": {
+          "rate": 0.8708,
+          "count": 418,
+          "of": 480
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1920
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 240
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 8160
+        }
+      },
+      "clean": {
+        "correctAccepted": {
+          "rate": 0.9375,
+          "count": 90,
+          "of": 96
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 384
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1632
+        }
+      }
+    },
+    "whisper-large-v3-turbo-en-approval_en_v2": {
+      "0 dB": {
+        "correctAccepted": {
+          "rate": 0.8194,
+          "count": 118,
+          "of": 144
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        }
+      },
+      "10 dB": {
+        "correctAccepted": {
+          "rate": 0.9444,
+          "count": 136,
+          "of": 144
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        }
+      },
+      "5 dB": {
+        "correctAccepted": {
+          "rate": 0.8681,
+          "count": 125,
+          "of": 144
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        }
+      },
+      "all": {
+        "correctAccepted": {
+          "rate": 0.8875,
+          "count": 426,
+          "of": 480
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1920
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 240
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 8160
+        }
+      },
+      "clean": {
+        "correctAccepted": {
+          "rate": 0.9792,
+          "count": 94,
+          "of": 96
+        },
+        "nearMissAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 384
+        },
+        "unrelatedAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "otherPhraseAccepted": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1632
+        }
+      }
+    }
+  },
+  "host": "Apple M4 Pro, macOS 15.7.1",
+  "correctPhrasesOnly480": {
+    "note": "The same 480 correct-phrase cases in each configuration; strict policy.",
+    "mlxFp16WithTimestamps": 426,
+    "whisperCppQ8_0NoTimestamps": 418,
+    "whisperCppQ8_0WithTimestamps": 416,
+    "whisperCppF16NoTimestamps": 416
+  },
+  "finalBinaryRepeat": {
+    "cases": 600,
+    "differentTranscripts": 0,
+    "change": "128-token bound and no abort callback; the longest transcript had 9 words"
+  },
+  "phraseMatchAgreement": {
+    "decisions": 126720,
+    "disagreements": 5,
+    "reason": "the engine accepts '9:00' for 'nine'; the bench scorer refused it"
+  }
+}

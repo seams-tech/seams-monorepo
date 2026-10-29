@@ -32,7 +32,7 @@ and assurance-aware admission remain unimplemented contract work.
 | Production language | Rust, edition 2024. Keep the existing Python package as evaluation/reference tooling. |
 | First native host | The current Apple Silicon macOS development host, `aarch64-apple-darwin`. Target-robot hardware and sensor qualification remain open. |
 | First artifact | An embedded native shared library, built as `cdylib`, plus the development CLI. An `rlib` supports Rust composition and tests. The loopback service owns one persistent stdio host process. |
-| Speech backend | Moonshine 0.1.5, C ABI 30000, Tiny Streaming quantized models, and ONNX Runtime 1.23.2. The host supplies utterance boundaries. |
+| Speech backend | Moonshine 0.1.5, C ABI 30000, Tiny Streaming quantized models, and ONNX Runtime 1.23.2. Opt-in Whisper large-v3-turbo through whisper.cpp 1.8.3 (`whisper-rs` 0.16.0, Metal) after the person turns voice on. The host supplies utterance boundaries. |
 | Speaker backend | Full-waveform ECAPA ONNX export from the pinned SpeechBrain reference. CPU inference uses ONNX Runtime through `ort`. |
 | Browser direction | The prototype uses a local loopback service on macOS. The portable engine also compiles for `wasm32-unknown-unknown`; browser model execution remains separate work. |
 | Package boundary | One unpublished private crate in `seams-monorepo/voiceId/engine`. Its native host transports opaque perception bindings. Wallet operation construction, authentication, and signing remain in the public Wallet repository. |
@@ -67,10 +67,11 @@ requires separate work and does not follow from compiling the Rust modules.
 | `presence` | Short-lived participant context and continuity invalidation | Consumes observations; no camera access or authorization. |
 | `attribution` | Associate observations with the current speaker/utterance | No robot control or wallet signing. |
 | `enrollment` | Template modalities, versioned enrollment records, validated replacement requests | Device storage and model extraction stay behind adapters; collection/approval lifecycle follows later. |
+| `phrase` | Approval phrase rules and strict matching of a final transcript | No models or approval authority. The caller composes each phrase from common words. |
 | `adapters` | Capture, storage, transcription, speaker, and visual contracts | Native implementations stay under `adapters::native`, excluded on WASM targets. Clock/cancellation contracts live in `runtime`. |
 | `consumers` | Robot command interpretation, action policy, controller handoff | Safety belongs to the robot controller; wallet protocol types stay outside the crate. |
 
-The first six modules stay portable. Model-specific values are normalized at
+The first seven modules stay portable. Model-specific values are normalized at
 adapter boundaries. Consumers use engine results; perception never depends on
 consumer policy. The composition entry point supplies adapters to `AudioRuntime`.
 Domain and adapter contracts are exposed through documented Rust
@@ -332,6 +333,9 @@ The host requires a matched speaker and the exact final phrase. Extra words,
 contradictory commands, and unrecognized speech produce no recognized command.
 The displayed result performs no wallet action.
 
+`check <native-inputs.json> "pay invoice three five nine"` asks for an action
+phrase instead. The phrase must pass the [phrase rules](#approval-phrase-rules).
+
 CPAL acquires the default microphone format. The adapter accepts float PCM at
 16, 44.1, or 48 kHz with up to eight channels. It averages channels, resamples
 through Rubato, removes filter delay, and emits 160-sample mono frames at 16 kHz.
@@ -400,6 +404,122 @@ The imperative phrase “approve this operation” produced “approved this ope
 in both native replay and an unchanged Python control on full source audio.
 The first-person phrase matched in the reference control and native journey.
 This supports the selected phrase. It does not establish a population accuracy rate.
+
+## Opt-in Whisper speech model — 2026-10-29
+
+Voice is off until the person turns it on. No package bundles a Whisper model,
+and inference never downloads one.
+
+```sh
+voice_models="$HOME/Library/Application Support/Seams/VoiceID/models"
+"$voiceid_host" voice status "$voice_models"
+"$voiceid_host" voice on "$voice_models"
+"$voiceid_host" voice off "$voice_models"
+```
+
+`voice on` names the model, its size and its licence, and waits for `yes`. It
+downloads `ggml-large-v3-turbo-q8_0.bin` (874 MB, MIT) from a pinned revision of
+the whisper.cpp model repository. An interrupted download resumes with an HTTP
+range request. The file gets its final name only after its size and SHA-256
+match the catalog in `src/adapters/native/voice_models.rs`. `voice on` then
+loads the model once, because the first load compiles the Metal shaders (about
+6.5 s). `voice off` deletes the model and any partial download.
+
+To use Whisper, add a `whisper` entry to the native inputs. The Moonshine fields
+are then optional:
+
+```json
+"whisper": { "model": "whisper-large-v3-turbo-q8_0", "directory": "voice-models" }
+```
+
+`WhisperTranscriber` reads no model bytes when it is constructed. A native
+session loads the model when it opens, so the load never uses a command's
+listening deadline. The CLI loads it at the first command. The load reads the
+file once, checks its SHA-256, and gives the same bytes to whisper.cpp. A later
+load takes about 1.9 s, most of it for the digest. Without the file, the
+transcriber reports `Unavailable(Missing)`.
+
+Whisper decodes the whole utterance at `finish`, so partial snapshots carry no
+text. Decoding is greedy at temperature 0, with no fallback, no previous
+context, one segment, no timestamps, and suppressed non-speech tokens. Input
+under one second gets silence padding to 1.05 s. The decode cannot be
+interrupted; 10 s of audio and 128 tokens bound it. The safe abort callback of
+`whisper-rs` 0.16 casts its closure to the wrong type, so the adapter sets none.
+These settings are part of the transcriber's model identity.
+
+### Approval phrase rules
+
+`phrase::ActionPhrase` and `phrase::PhraseBank` apply the rules from the
+2026-10-29 speech bench (`voiceId/stt-bench` on branch `voiceid-stt-bench`):
+
+- A phrase has three to eight words of ASCII letters. Numbers are spoken words.
+- Words that sound like another word are refused, for example "flour", "for",
+  "to", "new", "sell", "one", "two", "four", "eight", the teens and the tens.
+- "hundred" and "thousand" follow one digit word and end their number.
+- Two phrases in one set may not differ only by one sound-alike word (a
+  listed group, such as "stock" and "staff", or the same Soundex key) or by
+  one article.
+- The engine cannot detect names. The caller composes phrases from common words.
+
+`ActionPhrase::matches` is strict. It ignores case, punctuation, spacing,
+fillers such as "um", digits for number words ("359" for "three five nine"),
+"¥600" for "six hundred yen", and "9:00" for "nine". An added, missing, or
+changed word refuses the match. The two Wallet command phrases use the same match.
+
+### Measurements — 2026-10-29
+
+Apple M4 Pro, macOS 15.7.1. `examples/whisper_bench_cases.rs` sends every case
+of the bench's second phrase set through `WhisperTranscriber` in 1,600-sample
+chunks: 2,640 cases spoken by macOS voices, clean and with DEMAND kitchen,
+cafeteria, and washing-machine noise. The bench scorer applied the strict policy.
+
+| Run | Correct phrase accepted, clean / 10 / 5 / 0 dB | Near miss accepted | Model file | Mean decode |
+| --- | --- | --- | --- | --- |
+| whisper.cpp, 8-bit (default) | 93.8% / 92.4% / 86.8% / 79.9% | 0 of 1,920 | 874 MB | 514 ms |
+| whisper.cpp, 5-bit | 93.8% / 91.0% / 86.8% / 79.2% | 0 of 1,920 | 574 MB | 671 ms |
+| MLX, 16-bit (bench reference) | 97.9% / 94.4% / 86.8% / 81.9% | 0 of 1,920 | 1,614 MB | 502 ms |
+
+No run accepted an unrelated sentence or another phrase of the set. On the
+same 480 correct-phrase cases, whisper.cpp accepted 418 with 8-bit weights,
+416 with 16-bit weights, and 416 with timestamps; MLX accepted 426. The
+difference comes from the runtime, not from the weights, so the default is the
+8-bit file. Most extra refusals are one changed word: "badge" for "batch",
+"sent" for "send", or "agents" for "agent". Phrase sets must avoid these words.
+The 5-bit run shared the GPU with other runs, so its decode time is high.
+
+The final adapter repeated 600 cases of the 8-bit run with identical
+transcripts. The longest transcript had nine words, so the 128-token bound
+changes no result. Over 126,720 phrase decisions on these, the MLX, and the
+Moonshine transcripts, `ActionPhrase::matches` agreed with the bench scorer
+except five "9:00" readings of "nine", which the engine accepts. The bench's
+first phrase set, with names and "flour", fails `PhraseBank::new`.
+[`whisper-approval-2026-10-29.json`](../verifier-spike/reports/whisper-approval-2026-10-29.json)
+holds the rates and run identities.
+
+The [host journey](../verifier-spike/reports/local-host-whisper-2026-10-29.json)
+passed with Whisper as the only speech model, in a sandbox that denies network
+access: three-capture enrollment, approve at 48 kHz, cancel at 44.1 kHz,
+extra words refused, a different speaker refused, and the ten C ABI scenarios.
+Peak memory was 2.2 GB. The Moonshine journey still passes. The
+[opt-in journey](../verifier-spike/reports/voice-opt-in-2026-10-29.txt)
+(`examples/voice_opt_in_journey.sh`) answered no and downloaded nothing,
+stopped a download at 97 MB, resumed it there, matched the SHA-256, warmed the
+model, and deleted it with `voice off`.
+
+Limits:
+
+- All speech is synthetic, and the noise is mixed digitally. No live microphone
+  or human voice at a bench is measured.
+- The ECAPA speaker model and ONNX Runtime still come from the Python
+  provisioning. They have no hosted download yet, so voice enrollment still
+  needs that step.
+- The browser bridge and the Wallet keep the two fixed command phrases. Action
+  phrases in the bridge protocol need a Wallet change.
+- `browser/package.mjs` still bundles Moonshine, ECAPA, and ONNX Runtime, and
+  it does not yet add the whisper.cpp licence notice or a `whisper` entry.
+- A load briefly holds the verified bytes and whisper.cpp's copy, about 2.2 GB.
+  whisper.cpp encodes a 30 s window for every phrase, so a 2 s phrase still
+  takes about 0.5 s.
 
 ## Next checkpoint
 

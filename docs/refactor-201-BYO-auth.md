@@ -1,6 +1,6 @@
 # Refactor 201 — Bring your own authentication
 
-Status: implemented and published as version 0.28.0 on October 29, 2026. Staging and production rollout is in progress.
+Status: implemented and published as version 0.28.0 on October 29, 2026. Staging activation is blocked by intermittent GitHub key-fetch failures. Production rollout has not started.
 
 ## Implementation record
 
@@ -45,6 +45,24 @@ Release record:
 - [CLI signing](https://github.com/seams-tech/seams-monorepo/actions/runs/40882183844) passed. A fresh registry install reports `seams-wallet 0.28.0`.
 - Registry checksums match the verified release artifacts. Private consumers use exact `0.28.0` pins.
 - The BYO auth E2E also passed against the production assets from the release workflow.
+
+Deployment record (October 30, 2026, Japan time):
+
+- Private release revision: `454ba04a050c7ea5b7f16eb62c77767b614a09de` on `dev`.
+- `pnpm check` passed with registry packages, including all 53 existing script checks. Frozen installation passed.
+- [Staging rollout](https://github.com/seams-tech/seams-monorepo/actions/runs/40897735808) completed backend builds, migrations, service deployments, and Console deployment.
+- Activation failed in four attempts. Three attempts reached final cutover and reported `GitHub OIDC keys are unavailable`.
+  The other attempt returned HTTP 401 during regional verification and did not preserve its error body.
+- Earlier resource checks succeeded through the same key-fetch function. A permanent inability to fetch keys is therefore unproven.
+- An invalid-key diagnostic reproduced the key-fetch error on the unchanged production-testnet Console.
+  Mainnet fetched keys and correctly rejected the deliberately unknown signing key.
+  These diagnostics could not authorize any state change.
+- The upstream HTTP status remains unknown. The evidence supports an intermittent external dependency failure.
+- Staging activation and frontend deployment remain incomplete. Private `main`, production, and GetSignal deployments remain unchanged.
+- Staging and mainnet recovery trust bindings match the pre-deployment data byte for byte.
+- Retry the failed activation and dependent frontend job with `gh run rerun 40897735808 --failed` after key retrieval recovers.
+  Require staging success before promoting private `dev` to `main` and deploying production and GetSignal.
+- Local evidence: `.artifacts/release-0.28.0/status.json`, `recovery-before.json`, and `recovery-after.json`.
 
 Integration conditions:
 

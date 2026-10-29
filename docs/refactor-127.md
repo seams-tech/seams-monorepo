@@ -628,11 +628,12 @@ Wallet smoke; propagation retries retain the existing three-minute budget.
 
 The production-testnet backend workflow is reusable only. Console's standalone
 dispatch offers the other lanes. Both production-testnet deployment CLI commands
-route through the protected coordinator and require the live-demo environment ID:
+route through the protected coordinator. It reads the environment ID from
+`deployment/wallet-system/targets.json` and always activates the configured tenant:
 
 ```sh
-pnpm wallet-system:deploy --lane production-testnet --environment-id <environment-id>
-pnpm console:deploy --lane production-testnet --environment-id <environment-id>
+pnpm wallet-system:deploy --lane production-testnet
+pnpm console:deploy --lane production-testnet
 ```
 
 Both commands deploy Console and Wallet together. Staging and production-mainnet

@@ -1,14 +1,8 @@
 name: Deploy / production live demo
-run-name: deploy / production live demo / ${{ inputs.environment_id }} / ${{ github.sha }}
+run-name: deploy / production live demo / ${{ github.sha }}
 
 on:
   workflow_dispatch:
-    inputs:
-      environment_id:
-        description: Development environment ID used by wallet.seams.sh; empty deploys without activation
-        required: false
-        default: ''
-        type: string
 
 permissions:
   actions: write
@@ -23,6 +17,8 @@ jobs:
   validate:
     name: Validate production revision
     runs-on: ubuntu-latest
+    outputs:
+      environment_id: ${{ steps.target.outputs.environment_id }}
     steps:
       - name: Require main branch
         run: test "$GITHUB_REF" = refs/heads/main
@@ -39,6 +35,17 @@ jobs:
           cache: pnpm
       - name: Install exact dependencies
         run: pnpm install --frozen-lockfile
+      - name: Resolve configured testnet environment
+        id: target
+        run: |
+          node --input-type=module >> "$GITHUB_OUTPUT" <<'JS'
+          import { readBackendLane } from './scripts/deployment-targets.mjs';
+          const lane = readBackendLane('production-testnet');
+          if (lane.provisioning.kind !== 'provisioned') {
+            throw new Error('Production testnet must have a provisioned deployment config');
+          }
+          console.log(`environment_id=${lane.provisioning.gatewayDeploymentConfig.tenant.environmentId}`);
+          JS
       - name: Require packaged resource challenge migration
         run: test -s node_modules/@seams/wallet-server/migrations/d1-signer/0042_deployment_resource_challenges.sql
 
@@ -67,12 +74,9 @@ jobs:
     uses: ./.github/workflows/deploy-production-testnet-backend.yml
     secrets: inherit
 
-  # The first deployment of an empty Console has no environment yet: the
-  # owner signs up and creates the project, then reruns with its id.
   cutover:
     name: Activate live-demo tenant binding
-    if: inputs.environment_id != ''
-    needs: [deploy_console, deploy_wallet_system]
+    needs: [validate, deploy_console, deploy_wallet_system]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -95,7 +99,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          ENVIRONMENT_ID: ${{ inputs.environment_id }}
+          ENVIRONMENT_ID: ${{ needs.validate.outputs.environment_id }}
         run: >-
           pnpm tenant:cutover
           --lane production-testnet

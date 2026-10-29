@@ -6,6 +6,11 @@ import { readBackendLane } from './deployment-targets.mjs';
 
 const authority = String(process.argv[2] || '').trim();
 const args = process.argv.slice(3).filter((argument) => argument !== '--');
+for (let index = 0; index < args.length; index += 2) {
+  if (!['--lane', '--repo', '--ref'].includes(args[index])) {
+    throw new Error(`Unsupported argument: ${args[index]}`);
+  }
+}
 const laneId = requireOption(args, '--lane');
 const lane = readBackendLane(laneId);
 const repository = readOption(args, '--repo') || 'seams-tech/seams-monorepo';
@@ -13,9 +18,7 @@ const ref = readOption(args, '--ref') || (lane.release === 'staging' ? 'dev' : '
 const workflow = resolveWorkflow(authority, laneId);
 
 const command = ['workflow', 'run', workflow, '--repo', repository, '--ref', ref];
-if (laneId === 'production-testnet') {
-  command.push('-f', `environment_id=${requireOption(args, '--environment-id')}`);
-} else if (authority === 'console') {
+if (authority === 'console' && laneId !== 'production-testnet') {
   command.push('-f', `lane=${laneId}`);
 }
 const child = spawnSync(process.env.GITHUB_CLI_BIN || 'gh', command, {
@@ -50,7 +53,7 @@ function readOption(argumentsList, name) {
 
 function printUsageAndExit() {
   process.stderr.write(
-    'Usage: dispatch-deployment-workflow.mjs <console|wallet-system> --lane <lane> [--repo <owner/repo>] [--ref <branch>]\nProduction-testnet deploys Console and Wallet together and requires --environment-id <id>.\n',
+    'Usage: dispatch-deployment-workflow.mjs <console|wallet-system> --lane <lane> [--repo <owner/repo>] [--ref <branch>]\nProduction-testnet deploys Console and Wallet together and activates the tenant from the deployment config.\n',
   );
   process.exit(1);
 }

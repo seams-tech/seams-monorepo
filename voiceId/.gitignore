@@ -3,3 +3,4 @@ __pycache__/
 verifier-spike/.cache/
 verifier/.cache/
 engine/target/
+stt-bench/.cache/

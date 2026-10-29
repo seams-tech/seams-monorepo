@@ -1,0 +1,8 @@
+huggingface-hub==2.3.0
+jiwer==4.0.0
+mlx==0.32.4
+mlx-whisper==0.4.3
+moonshine-voice==0.1.5
+numpy==2.4.6
+soundfile==0.14.0
+whisper-normalizer==0.1.15

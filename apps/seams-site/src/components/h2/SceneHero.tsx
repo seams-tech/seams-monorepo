@@ -24,7 +24,7 @@ const PORTAL_SHOTS = {
   'bakery-details': [1600, 1127],
   'bakery-timeline': [1600, 1210],
   checkout: [1600, 967],
-  orders: [1600, 996],
+  orders: [1600, 1000],
   vault: [1600, 1077],
   brain: [1600, 861],
   'cover-shop': [800, 600],

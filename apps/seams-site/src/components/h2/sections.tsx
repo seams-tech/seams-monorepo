@@ -522,7 +522,7 @@ const pillars: Pillar[] = [
     mock: (
       <PortalShot
         shot="orders"
-        alt="The Orders board of the Satyr Portal: each order is checked against the shop’s rules, and customer updates wait for approval"
+        alt="The Orders page of the Satyr Portal: two orders that a shop rule holds, each with one action, above the orders that are on track"
         className="h2-shot--card"
       />
     ),

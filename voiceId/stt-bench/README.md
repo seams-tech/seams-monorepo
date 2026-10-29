@@ -22,6 +22,7 @@ Speaker verification is outside this bench.
 | `moonshine-tiny-streaming` | Moonshine Tiny Streaming, quantized; the model in the native engine | `moonshine-voice` 0.1.5 (the engine's Moonshine version) |
 | `moonshine-base` | Moonshine Base, quantized | `moonshine-voice` 0.1.5 |
 | `moonshine-medium-streaming` | Moonshine Medium Streaming, quantized; the package default, added for comparison | `moonshine-voice` 0.1.5 |
+| `whisper-cpp-large-v3-turbo-q8_0`, `-q5_0` | whisper.cpp ggml files of large-v3-turbo with 8-bit and 5-bit weights | The native engine's `WhisperTranscriber` (whisper.cpp 1.8.3, Metal), through `voiceId/engine/examples/whisper_bench_cases.rs` on branch `voiceid-whisper`; second phrase bank only |
 
 Runs with `-vocab` pass the shop vocabulary in `corpus.py`: a Whisper initial
 prompt or Moonshine key terms. Moonshine Base cannot take key terms. The
@@ -70,6 +71,7 @@ transcript: `reports/stt-bench-2026-10-29-cases.jsonl.gz`.
 | Near miss accepted, `strict` | 0 of 1,920 | 0 of 1,920 | 0 of 1,920 | 0 of 1,920 |
 | Correct phrase accepted, second bank, clean / 10 / 5 / 0 dB | 97.9% / 94.4% / 86.8% / 81.9% | 66.7% / 52.8% / 63.2% / 45.1% | – | – |
 | Near miss accepted, second bank, `strict` | 0 of 1,920 | 2 of 1,920 | – | – |
+| Same two rows, native engine with whisper.cpp 8-bit (874 MB) | 93.8% / 92.4% / 86.8% / 79.9%; 0 of 1,920 | – | – | – |
 | Near miss accepted, `one_edit`, clean | 49.0% | 28.6% | 34.4% | 19.8% |
 | Japanese bakery dictation CER, clean / 0 dB | 4.8% / 9.2% (2.8% / 6.4% with vocabulary) | – | 23.5% / 24.4% | 6.2% / 22.0% |
 | FLEURS Japanese CER, clean / 0 dB | 4.2% / 6.5% | – | 25.4% / 32.3% | 12.0% / 23.2% |
@@ -97,6 +99,10 @@ Findings:
   action must not sound alike inside one bank (stock and staff, batch and
   badge, price and prize, cake and case). Whisper's remaining misses are of
   the same kind, plus "sent" for "send" and "a" for "the".
+- The native engine's whisper.cpp runs accept the correct phrase about two
+  points less often than MLX, with no near miss accepted. On the 480
+  correct-phrase cases, 16-bit weights and timestamps did not close the gap,
+  so it comes from the runtime. The engine README has the details.
 - Moonshine Base Japanese cuts the end of many sentences; this run did not
   check whether a library length setting causes it. Moonshine's Japanese
   models use the non-commercial Moonshine Community License.

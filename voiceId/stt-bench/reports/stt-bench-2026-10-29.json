@@ -719,6 +719,50 @@
       "peakGpuBytes": 0,
       "modelBytes": 32319961
     },
+    "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2": {
+      "audioSeconds": 6018.9,
+      "caseCount": 2640,
+      "computeSeconds": 1770.3,
+      "identity": {
+        "file": "ggml-large-v3-turbo-q5_0.bin",
+        "modelId": "6741ea1b3082746b2cb741f797b2a1b7d0f4feddf556acb403de66af9760047a",
+        "runtime": "voiceid-engine WhisperTranscriber, whisper-rs 0.16.0, whisper.cpp 1.8.3, Metal",
+        "sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-turbo-q5_0.bin"
+      },
+      "language": "en",
+      "loadSeconds": 7.11,
+      "model": "whisper-cpp-large-v3-turbo-q5_0",
+      "modelBytes": 574041195,
+      "peakGpuBytes": 0,
+      "peakResidentBytes": 0,
+      "realTimeFactor": 0.2941,
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "vocabulary": false
+    },
+    "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2": {
+      "audioSeconds": 6018.9,
+      "caseCount": 2640,
+      "computeSeconds": 1355.9,
+      "identity": {
+        "file": "ggml-large-v3-turbo-q8_0.bin",
+        "modelId": "af72ae7f27c2e61a2c64fd36c8a34871e6704c65c6232e94460550b99601829f",
+        "runtime": "voiceid-engine WhisperTranscriber, whisper-rs 0.16.0, whisper.cpp 1.8.3, Metal",
+        "sha256": "317eb69c11673c9de1e1f0d459b253999804ec71ac4c23c17ecf5fbe24e259a1",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-turbo-q8_0.bin"
+      },
+      "language": "en",
+      "loadSeconds": 7.82,
+      "model": "whisper-cpp-large-v3-turbo-q8_0",
+      "modelBytes": 874188075,
+      "peakGpuBytes": 0,
+      "peakResidentBytes": 0,
+      "realTimeFactor": 0.2253,
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "vocabulary": false
+    },
     "whisper-large-v3-turbo-en-approval_en_v2": {
       "runId": "whisper-large-v3-turbo-en-approval_en_v2",
       "model": "whisper-large-v3-turbo",
@@ -7610,6 +7654,2498 @@
       "errorUnit": "character",
       "keyTermRecall": null,
       "exactSentences": 0.1667
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "0 dB",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.5486,
+          "count": 316,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.7847,
+          "count": 113,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.6319,
+          "count": 91,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.7778,
+          "count": 112,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.9097,
+          "count": 131,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.7917,
+          "count": 114,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "10 dB",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.6684,
+          "count": 385,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9792,
+          "count": 141,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7431,
+          "count": 107,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9514,
+          "count": 137,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.9792,
+          "count": 141,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.9097,
+          "count": 131,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "5 dB",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.6458,
+          "count": 372,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9514,
+          "count": 137,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7222,
+          "count": 104,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9097,
+          "count": 131,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.9583,
+          "count": 138,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.8681,
+          "count": 125,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "all",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 8160
+        },
+        "nearMissAccept": {
+          "rate": 0.6266,
+          "count": 1203,
+          "of": 1920
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9146,
+          "count": 439,
+          "of": 480
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7021,
+          "count": 337,
+          "of": 480
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.8896,
+          "count": 427,
+          "of": 480
+        },
+        "trueAccept": {
+          "rate": 0.9521,
+          "count": 457,
+          "of": 480
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 240
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 8160
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1920
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "trueAccept": {
+          "rate": 0.8646,
+          "count": 415,
+          "of": 480
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 240
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "cafe0",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.375,
+          "count": 72,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.5208,
+          "count": 25,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.4167,
+          "count": 20,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.5625,
+          "count": 27,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.7708,
+          "count": 37,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.5417,
+          "count": 26,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "cafe10",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6667,
+          "count": 128,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9375,
+          "count": 45,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9375,
+          "count": 45,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.8542,
+          "count": 41,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "cafe5",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6042,
+          "count": 116,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.8958,
+          "count": 43,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.6875,
+          "count": 33,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.8333,
+          "count": 40,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "clean",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1632
+        },
+        "nearMissAccept": {
+          "rate": 0.6771,
+          "count": 260,
+          "of": 384
+        },
+        "nearMissAccept.detail": {
+          "rate": 1.0,
+          "count": 96,
+          "of": 96
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7292,
+          "count": 70,
+          "of": 96
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9792,
+          "count": 94,
+          "of": 96
+        },
+        "trueAccept": {
+          "rate": 0.9792,
+          "count": 94,
+          "of": 96
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1632
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 384
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "trueAccept": {
+          "rate": 0.9375,
+          "count": 90,
+          "of": 96
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "kitchen0",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.5938,
+          "count": 114,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.8333,
+          "count": 40,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7292,
+          "count": 35,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.8125,
+          "count": 39,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "kitchen10",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6562,
+          "count": 126,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7292,
+          "count": 35,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9375,
+          "count": 45,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "kitchen5",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.651,
+          "count": 125,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7292,
+          "count": 35,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9375,
+          "count": 45,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "motor0",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6771,
+          "count": 130,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "motor10",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6823,
+          "count": 131,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q5_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "motor5",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6823,
+          "count": 131,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "0 dB",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.5503,
+          "count": 317,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.8125,
+          "count": 117,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.6042,
+          "count": 87,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.7847,
+          "count": 113,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.8958,
+          "count": 129,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.7986,
+          "count": 115,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "10 dB",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.6649,
+          "count": 383,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9722,
+          "count": 140,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7361,
+          "count": 106,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9514,
+          "count": 137,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.9861,
+          "count": 142,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.9236,
+          "count": 133,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "5 dB",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.6458,
+          "count": 372,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9653,
+          "count": 139,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7153,
+          "count": 103,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9028,
+          "count": 130,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.9653,
+          "count": 139,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.8681,
+          "count": 125,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "all",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 8160
+        },
+        "nearMissAccept": {
+          "rate": 0.6266,
+          "count": 1203,
+          "of": 1920
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.925,
+          "count": 444,
+          "of": 480
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.6917,
+          "count": 332,
+          "of": 480
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.8896,
+          "count": 427,
+          "of": 480
+        },
+        "trueAccept": {
+          "rate": 0.9542,
+          "count": 458,
+          "of": 480
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 240
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 8160
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1920
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "trueAccept": {
+          "rate": 0.8708,
+          "count": 418,
+          "of": 480
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 240
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "cafe0",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.375,
+          "count": 72,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.5625,
+          "count": 27,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.3542,
+          "count": 17,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.5833,
+          "count": 28,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.7292,
+          "count": 35,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.5417,
+          "count": 26,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "cafe10",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6615,
+          "count": 127,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.8542,
+          "count": 41,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "cafe5",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.5938,
+          "count": 114,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.6458,
+          "count": 31,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.8125,
+          "count": 39,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9375,
+          "count": 45,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "clean",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1632
+        },
+        "nearMissAccept": {
+          "rate": 0.6823,
+          "count": 262,
+          "of": 384
+        },
+        "nearMissAccept.detail": {
+          "rate": 1.0,
+          "count": 96,
+          "of": 96
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 72,
+          "of": 96
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9792,
+          "count": 94,
+          "of": 96
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 96,
+          "of": 96
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1632
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 384
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "trueAccept": {
+          "rate": 0.9375,
+          "count": 90,
+          "of": 96
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "kitchen0",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.5938,
+          "count": 114,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.875,
+          "count": 42,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.6875,
+          "count": 33,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.8125,
+          "count": 39,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "kitchen10",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.651,
+          "count": 125,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9375,
+          "count": 45,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7083,
+          "count": 34,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "kitchen5",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6615,
+          "count": 127,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "motor0",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6823,
+          "count": 131,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7708,
+          "count": 37,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9375,
+          "count": 45,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "motor10",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6823,
+          "count": 131,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9375,
+          "count": 45,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-cpp-large-v3-turbo-q8_0-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "motor5",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6823,
+          "count": 131,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9375,
+          "count": 45,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
     },
     {
       "runId": "whisper-large-v3-turbo-en",

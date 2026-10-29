@@ -3,7 +3,12 @@ import { DeploymentFencedDatabase } from '../../packages/wallet-console-server-t
 import { RegionalDeploymentTestInstaller } from '../helpers/regionalDeploymentInstaller';
 import { expect, test } from '@playwright/test';
 import { unstable_splitSqlQuery } from 'wrangler';
-import { isD1DatabaseLike, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import {
+  isD1DatabaseLike,
+  isPlainObject,
+  parseWalletRegistrationSetupRequest,
+  type D1DatabaseLike,
+} from '@seams/wallet-server/cloud-host';
 import { createHash } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { once } from 'node:events';
@@ -49,6 +54,7 @@ class CanaryEndpoint {
   apiKeys: ConsoleApiKeyService | null = null;
   environmentId = '';
   accepted = 0;
+  readonly contracts: { protocol: '5'; completion: 'wallet_session' | 'owner_operations' }[] = [];
 
   async handle(request: IncomingMessage, response: ServerResponse) {
     const authenticate = this.apiKeys?.authenticatePublishableKey;
@@ -63,6 +69,20 @@ class CanaryEndpoint {
       response.end();
       return;
     }
+    const protocol = request.headers['x-seams-wallet-protocol'];
+    if (protocol !== '5') {
+      response.writeHead(409);
+      response.end(JSON.stringify({ ok: false, code: 'wallet_protocol_mismatch' }));
+      return;
+    }
+    const body = await canaryRequestBody(request);
+    const parsed = parseWalletRegistrationSetupRequest(body);
+    if (!parsed.ok) {
+      response.writeHead(400);
+      response.end(JSON.stringify(parsed));
+      return;
+    }
+    this.contracts.push({ protocol, completion: parsed.value.completion });
     this.accepted += 1;
     response.end(JSON.stringify({ ok: true, fixture: 'authenticated-registration-canary' }));
   }
@@ -653,13 +673,14 @@ test('regional deployment renewal preserves the browser key and retires previous
       unavailableApacBlockedRenewal: true,
       failedRootAndCredentialAttemptsReleased: failed,
       authenticatedCanaries: endpoint.accepted,
+      canaryRequestContracts: endpoint.contracts,
       interruptedRootCreationResumed: router.creationRequests.length === 2,
       concurrentAuthorizationRenewalsUsedOnePersistedGrant:
         firstRenewal.grantDigestB64u === concurrentRenewal.grantDigestB64u,
       concurrentAuthorizationProposalsDiffer: new Set(proposals.digests).size === 2,
       limits: [
         'Local D1 and production Console services; provider proofs and Router status are controlled fixtures.',
-        'Canary endpoint authenticates the real persisted browser key; no wallet ceremony or regional latency is measured.',
+        'Canary endpoint authenticates the real persisted browser key and parses setup with the released SDK; no wallet ceremony or regional latency is measured.',
       ],
     };
     const serialized = `${JSON.stringify(evidence, null, 2)}\n`;
@@ -677,3 +698,13 @@ test('regional deployment renewal preserves the browser key and retires previous
     await runtime.dispose();
   }
 });
+
+async function canaryRequestBody(request: IncomingMessage): Promise<Record<string, unknown>> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  const body: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  if (!isPlainObject(body)) throw new Error('The canary setup body must be an object.');
+  return body;
+}

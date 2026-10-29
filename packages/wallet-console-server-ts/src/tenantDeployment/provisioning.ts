@@ -620,9 +620,10 @@ export function createGatewayTenantDeploymentRegistrationCanaryV1(options?: {
           'content-type': 'application/json',
           origin: input.surfaces.hostedWalletOrigin,
           'x-seams-environment-id': input.environmentId,
-          'x-seams-wallet-protocol': '4',
+          'x-seams-wallet-protocol': '5',
         },
         body: JSON.stringify({
+          completion: 'wallet_session',
           registrationOperationId: `wreg_${base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)))}`,
           // The request of a real client. A provided wallet id that is not in
           // the server-allocated format cannot hold an implicit NEAR account,

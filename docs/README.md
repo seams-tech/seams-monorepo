@@ -91,6 +91,17 @@ Staging documentation requests `noindex` through Pages headers. Console and
 marketing links use the configured docs origin. A 403 leaves live verification
 incomplete. A successful build does not establish what a deployed site serves.
 
+The October 30, 2026 documentation refresh targets SDK **0.28.0** and iframe protocol **18.0.0**.
+Public docs source `5193e12ab7359cc8f6607e8447dc5444e763c18a` passed its build and link checks.
+The [staging publication](https://github.com/seams-tech/seams-monorepo/actions/runs/40915268527)
+and [production publication](https://github.com/seams-tech/seams-monorepo/actions/runs/40915719280) passed.
+Live checks verified six English/Japanese pages and the source receipt on each site.
+Results and the previous release artifact are in `.artifacts/docs-0.28-refresh/`.
+
+Documentation responses use `Cache-Control: no-transform` to preserve inline package versions.
+Without it, Cloudflare email obfuscation rewrites strings such as `wallet-server@0.28.0`.
+See [Cloudflare's transformation controls](https://developers.cloudflare.com/waf/tools/scrape-shield/email-address-obfuscation/).
+
 Retain the previous exact docs artifact and source revision before publication.
 Documentation rollback restores that artifact. It does not roll back Wallet
 packages, database schemas, or custody Workers.

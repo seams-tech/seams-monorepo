@@ -7,7 +7,6 @@ packages:
   - packages/console-server-ts
   - packages/grain-field-ts
   - packages/site-navbar-ts
-  - voiceId
   - apps/seams-site
   - apps/wallet-console
 nodeLinker: hoisted

@@ -20,7 +20,7 @@ const PORTAL_SHOTS = {
   agents: [1600, 1120],
   activity: [1600, 859],
   inbox: [1600, 1183],
-  'inbox-draft': [1220, 1480],
+  'inbox-draft': [1196, 1536],
   'bakery-details': [1600, 1127],
   'bakery-timeline': [1600, 1210],
   checkout: [1600, 967],

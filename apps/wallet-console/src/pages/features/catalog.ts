@@ -55,8 +55,8 @@ export const messages = {
   },
   voiceId: { en: 'VoiceID', ja: 'VoiceID' },
   voiceIdCopy: {
-    en: 'Approve with your voice. Local speech verification uses Aurora or Citrinet to check the spoken phrase. Audio and voice templates stay on your device.',
-    ja: '声で承認。AuroraまたはCitrinetの音声モデルで、読み上げたフレーズをデバイス上で照合します。音声データと声のテンプレートはデバイスから出ません。',
+    en: 'Approve with your voice. Local speech verification uses AuroraASR-1M or NVIDIA Citrinet-256 LS to check the spoken phrase. Audio and voice templates stay on your device.',
+    ja: '声で承認。AuroraASR-1MまたはNVIDIA Citrinet-256 LSの音声モデルで、読み上げたフレーズをデバイス上で照合します。音声データと声のテンプレートはデバイスから出ません。',
   },
   readDocs: { en: 'Read the docs', ja: 'ドキュメントを読む' },
 

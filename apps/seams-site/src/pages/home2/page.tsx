@@ -183,8 +183,8 @@ function HomeHeroCurrent(): React.JSX.Element {
             </div>
             <div className="h2-heroscene__aside-body">
               <PortalShot
-                shot="bakery-details"
-                alt="Satyr Kitchen: a 3D view of the bakery with the details of one batch of financiers"
+                shot="kitchen-floor"
+                alt="Satyr Kitchen: the floor plan and a 3D view of the bakery during a financier shift, with the Portal chat beside them"
                 className="h2-shot--card"
                 eager
               />

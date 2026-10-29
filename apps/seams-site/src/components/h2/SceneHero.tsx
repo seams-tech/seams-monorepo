@@ -22,6 +22,7 @@ const PORTAL_SHOTS = {
   inbox: [1600, 1183],
   'inbox-draft': [1196, 1536],
   'bakery-details': [1600, 1127],
+  'kitchen-floor': [1600, 855],
   'bakery-timeline': [1600, 1210],
   checkout: [1600, 967],
   orders: [1600, 1000],

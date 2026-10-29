@@ -1,5 +1,5 @@
 /** The launcher release every printed command names. It must exist on npm with a signed GitHub release. */
-export const WALLET_CLI_PACKAGE = '@seams/wallet-cli@0.25.0';
+export const WALLET_CLI_PACKAGE = '@seams/wallet-cli@0.28.0';
 
 export function shellQuote(value: string): string {
   return "'" + value.replaceAll("'", "'\\''") + "'";

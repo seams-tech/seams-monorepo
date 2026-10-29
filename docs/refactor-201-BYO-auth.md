@@ -1,6 +1,6 @@
 # Refactor 201 — Bring your own authentication
 
-Status: implemented in local source on October 29, 2026. Package publication and GetSignal integration remain pending.
+Status: implemented and published as version 0.28.0 on October 29, 2026. Staging and production rollout is in progress.
 
 ## Implementation record
 
@@ -36,17 +36,24 @@ Validation:
 - The existing hosted-auth UI suite reports three passes and three environment failures. Chromium blocks its HTTPS test stub from fetching the loopback setup endpoint.
   The new BYO auth scenario passes with the actual packaged iframe on its supported local origins.
 
-Release gates:
+Release record:
 
-1. Publish a reviewed Wallet package release and update the private repository's exact package pins.
-   The checked-in pins remain `0.27.0`, which lacks the new exports. A normal private check against those published dependencies remains blocked.
-   The release workflow runs only on `main`; local `dev` also contains pre-existing work outside this refactor.
-   No unrelated commits were promoted and no packages were published by this implementation task.
-2. Run acceptance with a real Google user SSO token. The configured service-account fixture has a different authorized party and cannot substitute for this check.
-3. Connect GetSignal's private login, logout, and account-switch callbacks. No GetSignal source was supplied.
-   The [integration guide](../../seams-wallet/docs/auth-provider-integrations/google-oidc.md) contains both browser and backend paths.
+- The user approved promotion of the full public and private `dev` scope.
+- All four public packages are published at `0.28.0`: Wallet, Wallet Server, VoiceID, and Wallet CLI.
+- Public source revision: `1de29b2aba77011193384b30f1f57542d11972d6`. The iframe protocol is `18.0.0`.
+- [Public validation](https://github.com/seams-tech/seams-wallet/actions/runs/40881143738) and [package publication](https://github.com/seams-tech/seams-wallet/actions/runs/40881193152) passed.
+- [CLI signing](https://github.com/seams-tech/seams-monorepo/actions/runs/40882183844) passed. A fresh registry install reports `seams-wallet 0.28.0`.
+- Registry checksums match the verified release artifacts. Private consumers use exact `0.28.0` pins.
+- The BYO auth E2E also passed against the production assets from the release workflow.
 
-The original implementation plan follows. Its production-release definition of done remains subject to these gates.
+Integration conditions:
+
+1. An actual Google user SSO acceptance run remains unverified. The service-account fixture has a different authorized party.
+2. GetSignal uses the existing Google SSO credential. Its private source is not required for the SDK release or deployment.
+3. The application must invoke the published SDK exchange and logout methods. Existing wallets require an owner-approved association.
+   The [integration guide](../../seams-wallet/docs/auth-provider-integrations/google-oidc.md) describes the browser and backend paths.
+
+The original implementation plan follows. The integration conditions above remain explicit.
 
 ## Outcome
 

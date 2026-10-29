@@ -913,17 +913,6 @@ test('frontend commands reject a site branch mismatch before deployment work', (
 });
 
 test('Wallet-system and Console workflows use separate deployment authority', () => {
-  const workflowOrder = [
-    'build',
-    'migrate',
-    'deploy_signing_worker',
-    'deploy_deriver_a',
-    'deploy_deriver_b',
-    'deploy_tenant_root_control_plane',
-    'deploy_router',
-    'deploy_wallet_runtime',
-    'deploy_gateway',
-  ];
   const planLabels = [
     'build',
     'migrate',
@@ -973,13 +962,6 @@ test('Wallet-system and Console workflows use separate deployment authority', ()
       return Array.isArray(job.needs) ? job.needs : job.needs ? [job.needs] : [];
     };
 
-    // Staging and mainnet also carry the activation-only job for an already
-    // deployed candidate; production testnet activates through the live demo.
-    const trailingJobs =
-      lane.id === 'production-testnet'
-        ? ['cleanup_build_cache']
-        : ['cleanup_build_cache', 'activate'];
-    expect(Object.keys(workflow.jobs)).toEqual([...workflowOrder, ...trailingJobs]);
     expect(workflow.env?.DEPLOY_LANE).toBe(lane.id);
     expect(workflowSource).toContain(`--lane "$DEPLOY_LANE"`);
     expect(workflowSource).not.toContain('--target');

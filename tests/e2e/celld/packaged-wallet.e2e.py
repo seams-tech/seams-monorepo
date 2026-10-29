@@ -35,6 +35,8 @@ BROWSER_FILES = (
     "passkey.unlock.contract.test.ts",
     "passkey.recovery.contract.test.ts",
     "passkey.device-linking.contract.test.ts",
+    "email-otp.registration.resume.contract.test.ts",
+    "google-email-otp.recovery.contract.test.ts",
 )
 BROWSER_CONTRACTS = (
     "EVM registration and signatures complete while NEAR execution is held",
@@ -52,7 +54,9 @@ BROWSER_CONTRACTS = (
     "a superseded recovery attempt that reaches the SigningWorker late is refused, and the current attempt signs",
     "a linked device links a third device on an ECDSA-only wallet, which signs Tempo",
     "a linked device links a third device, which signs NEAR and Tempo and exports both keys",
-    "a linked device revoked with an email code across a refused commit is answered from what committed",
+    "a linked device inventory omits Email OTP addresses and revocation retries a refused commit",
+    "Email OTP unlock resumes a lost NEAR finalization response after reload",
+    "a fresh browser recovers a Email-only wallet with Google and Email OTP, signs, and refuses reuse",
 )
 CONFIG_KEYS = (
     "name",
@@ -266,6 +270,163 @@ def prepare(package, directory, prepared):
         write_json(directory / f"{role}.json", config)
         (directory / f"{role}.json").chmod(0o600)
     return manifest, configs, mapping
+
+
+def prepare_gateway(
+    package,
+    directory,
+    address,
+    app_origin,
+    wallet_origin,
+    environment,
+    result,
+):
+    gateway_setup = Path(__file__).with_name("prepare-gateway.mjs")
+    result["gatewayPreparationSha256"] = sha256(gateway_setup)
+    run(
+        [
+            "node",
+            gateway_setup,
+            package,
+            directory,
+            address,
+            app_origin,
+            wallet_origin,
+        ],
+        directory,
+        environment,
+        "gateway-prepare.log",
+    )
+    gateway_prepared = json.loads((directory / "gateway-prepared.json").read_text())
+    gateway_source = tomllib.loads(Path(gateway_prepared["configPath"]).read_text())
+    gateway_config = {}
+    for key in CONFIG_KEYS + ("compatibility_flags", "triggers"):
+        if key in gateway_source:
+            gateway_config[key] = gateway_source[key]
+    shutil.copytree(package / "dist", directory / "wallet-package/dist")
+    shutil.copyfile(package / "package.json", directory / "wallet-package/package.json")
+    gateway_config["main"] = (
+        "wallet-package/dist/esm/local-hosted-wallet-gateway-worker.js"
+    )
+    gateway_config["vars"].update(gateway_prepared["secrets"])
+    for database in gateway_config["d1_databases"]:
+        database.pop("preview_database_id", None)
+        database["migrations_dir"] = "migrations/gateway"
+    shutil.copytree(package / "migrations/d1-signer", directory / "migrations/gateway")
+    write_json(directory / "gateway.json", gateway_config)
+    (directory / "gateway.json").chmod(0o600)
+    result["gatewayEntrySha256"] = sha256(
+        package / "dist/esm/local-hosted-wallet-gateway-worker.js"
+    )
+    return gateway_config
+
+
+def run_browser_contracts(
+    directory,
+    wallet_checkout,
+    sdk_package,
+    address,
+    app_origin,
+    wallet_origin,
+    environment,
+    result,
+    processes,
+):
+    result["stage"] = "browser-wallet-contract"
+    result["walletCheckout"] = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=wallet_checkout, text=True
+    ).strip()
+    browser_environment = dict(environment)
+    browser_environment.update(
+        {
+            "SEAMS_INTENDED_APP_URL": app_origin,
+            "SEAMS_INTENDED_WALLET_HOST": "celld",
+            "SEAMS_INTENDED_ROUTER_URL": address,
+            "SEAMS_INTENDED_WALLET_ORIGIN": wallet_origin,
+            "SEAMS_INTENDED_ROUTER_AB_ROOT": str(directory),
+            "SEAMS_INTENDED_PROJECT_ENVIRONMENT_ID": "local-smoke-project:dev",
+            "SEAMS_INTENDED_PUBLISHABLE_KEY": "pk_local",
+            "VITE_RELAYER_URL": address,
+            "VITE_ROUTER_AB_NORMAL_SIGNING_WORKER_ID": "local-signing-worker",
+            "VITE_SEAMS_PROJECT_ENVIRONMENT_ID": "local-smoke-project:dev",
+            "VITE_SEAMS_PUBLISHABLE_KEY": "pk_local",
+            "VITE_SEAMS_WALLET_DIST_ROOT": str(sdk_package / "dist"),
+            "VITE_SIGNING_SESSION_PERSISTENCE_MODE": "sealed_refresh_v1",
+            "VITE_WALLET_ORIGIN": wallet_origin,
+        }
+    )
+    for name, origin, asset_host in (
+        ("app", app_origin, "0"),
+        ("wallet", wallet_origin, "1"),
+    ):
+        app_environment = dict(browser_environment)
+        app_environment["VITE_SEAMS_WALLET_ASSET_HOST"] = asset_host
+        app_environment["VITE_CACHE_DIR"] = str(directory / f"vite-{name}")
+        server = start(
+            [
+                "pnpm",
+                "-C",
+                str(wallet_checkout / "tests/intended-app"),
+                "exec",
+                "vite",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                origin.rsplit(":", 1)[1],
+                "--strictPort",
+            ],
+            directory,
+            app_environment,
+            f"vite-{name}.log",
+            processes,
+        )
+        wait_for_http(
+            origin + ("/__intended-e2e" if name == "app" else "/wallet-service"),
+            server,
+        )
+    browser_output = directory / "browser-results"
+    browser_report = directory / "browser-report.json"
+    browser_environment["PLAYWRIGHT_JSON_OUTPUT_FILE"] = str(browser_report)
+    result["sdkDistSha256"] = directory_sha256(sdk_package / "dist")
+    result["sdkPackageSha256"] = sha256(sdk_package / "package.json")
+    selection = "(" + "|".join(re.escape(name) for name in BROWSER_CONTRACTS) + ")$"
+    test_paths = [f"e2e/intended-behaviours/{name}" for name in BROWSER_FILES]
+    result["browserContracts"] = list(BROWSER_CONTRACTS)
+    result["browserSourceHashes"] = {
+        name: sha256(wallet_checkout / "tests/e2e/intended-behaviours" / name)
+        for name in BROWSER_FILES
+    }
+    run(
+        [
+            "pnpm",
+            "-C",
+            str(wallet_checkout / "tests"),
+            "exec",
+            "playwright",
+            "test",
+            "-c",
+            "playwright.wallet-intended.config.ts",
+            *test_paths,
+            "--grep",
+            selection,
+            "--output",
+            str(browser_output),
+            "--reporter",
+            "line,json",
+            "--max-failures",
+            "1",
+        ],
+        directory,
+        browser_environment,
+        "browser.log",
+        timeout=1800,
+    )
+    result["browserOutcomes"] = verify_browser_report(browser_report)
+    current_hashes = {
+        name: sha256(wallet_checkout / "tests/e2e/intended-behaviours" / name)
+        for name in BROWSER_FILES
+    }
+    assert current_hashes == result["browserSourceHashes"]
 
 
 def main():
@@ -586,46 +747,14 @@ def main():
         result["tenantRoot"] = first
         result["exactGrantReplay"] = "same-result-after-process-kill-and-fresh-node"
         result["stage"] = "gateway-load-and-migrations"
-        gateway_setup = Path(__file__).with_name("prepare-gateway.mjs")
-        result["gatewayPreparationSha256"] = sha256(gateway_setup)
-        run(
-            [
-                "node",
-                gateway_setup,
-                package,
-                directory,
-                address,
-                app_origin,
-                wallet_origin,
-            ],
+        gateway_config = prepare_gateway(
+            package,
             directory,
+            address,
+            app_origin,
+            wallet_origin,
             environment,
-            "gateway-prepare.log",
-        )
-        gateway_prepared = json.loads((directory / "gateway-prepared.json").read_text())
-        gateway_source = tomllib.loads(Path(gateway_prepared["configPath"]).read_text())
-        gateway_config = {}
-        for key in CONFIG_KEYS + ("compatibility_flags", "triggers"):
-            if key in gateway_source:
-                gateway_config[key] = gateway_source[key]
-        shutil.copytree(package / "dist", directory / "wallet-package/dist")
-        shutil.copyfile(
-            package / "package.json", directory / "wallet-package/package.json"
-        )
-        gateway_config["main"] = (
-            "wallet-package/dist/esm/local-hosted-wallet-gateway-worker.js"
-        )
-        gateway_config["vars"].update(gateway_prepared["secrets"])
-        for database in gateway_config["d1_databases"]:
-            database.pop("preview_database_id", None)
-            database["migrations_dir"] = "migrations/gateway"
-        shutil.copytree(
-            package / "migrations/d1-signer", directory / "migrations/gateway"
-        )
-        write_json(directory / "gateway.json", gateway_config)
-        (directory / "gateway.json").chmod(0o600)
-        result["gatewayEntrySha256"] = sha256(
-            package / "dist/esm/local-hosted-wallet-gateway-worker.js"
+            result,
         )
         run(
             [binary, "deploy", "gateway.json", "--bucket", "fleet-test"],
@@ -651,96 +780,17 @@ def main():
         )
         result["gatewayReady"] = response(address + "/readyz")
         assert result["gatewayReady"]["status"] == 200
-        result["stage"] = "browser-wallet-contract"
-        result["walletCheckout"] = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=wallet_checkout, text=True
-        ).strip()
-        browser_environment = dict(environment)
-        browser_environment.update(
-            {
-                "SEAMS_INTENDED_APP_URL": app_origin,
-                "SEAMS_INTENDED_WALLET_HOST": "celld",
-                "SEAMS_INTENDED_ROUTER_URL": address,
-                "SEAMS_INTENDED_WALLET_ORIGIN": wallet_origin,
-                "SEAMS_INTENDED_ROUTER_AB_ROOT": str(directory),
-                "SEAMS_INTENDED_PROJECT_ENVIRONMENT_ID": "local-smoke-project:dev",
-                "SEAMS_INTENDED_PUBLISHABLE_KEY": "pk_local",
-                "VITE_RELAYER_URL": address,
-                "VITE_ROUTER_AB_NORMAL_SIGNING_WORKER_ID": "local-signing-worker",
-                "VITE_SEAMS_PROJECT_ENVIRONMENT_ID": "local-smoke-project:dev",
-                "VITE_SEAMS_PUBLISHABLE_KEY": "pk_local",
-                "VITE_SEAMS_WALLET_DIST_ROOT": str(sdk_package / "dist"),
-                "VITE_SIGNING_SESSION_PERSISTENCE_MODE": "sealed_refresh_v1",
-                "VITE_WALLET_ORIGIN": wallet_origin,
-            }
-        )
-        for name, origin, asset_host in (
-            ("app", app_origin, "0"),
-            ("wallet", wallet_origin, "1"),
-        ):
-            app_environment = dict(browser_environment)
-            app_environment["VITE_SEAMS_WALLET_ASSET_HOST"] = asset_host
-            app_environment["VITE_CACHE_DIR"] = str(directory / f"vite-{name}")
-            server = start(
-                [
-                    "pnpm",
-                    "-C",
-                    str(wallet_checkout / "tests/intended-app"),
-                    "exec",
-                    "vite",
-                    "--host",
-                    "127.0.0.1",
-                    "--port",
-                    origin.rsplit(":", 1)[1],
-                    "--strictPort",
-                ],
-                directory,
-                app_environment,
-                f"vite-{name}.log",
-                processes,
-            )
-            wait_for_http(
-                origin + ("/__intended-e2e" if name == "app" else "/wallet-service"),
-                server,
-            )
-        browser_output = directory / "browser-results"
-        browser_report = directory / "browser-report.json"
-        browser_environment["PLAYWRIGHT_JSON_OUTPUT_FILE"] = str(browser_report)
-        result["sdkDistSha256"] = directory_sha256(sdk_package / "dist")
-        result["sdkPackageSha256"] = sha256(sdk_package / "package.json")
-        selection = "(" + "|".join(re.escape(name) for name in BROWSER_CONTRACTS) + ")$"
-        test_paths = [f"e2e/intended-behaviours/{name}" for name in BROWSER_FILES]
-        result["browserContracts"] = list(BROWSER_CONTRACTS)
-        result["browserSourceHashes"] = {
-            name: sha256(wallet_checkout / "tests/e2e/intended-behaviours" / name)
-            for name in BROWSER_FILES
-        }
-        run(
-            [
-                "pnpm",
-                "-C",
-                str(wallet_checkout / "tests"),
-                "exec",
-                "playwright",
-                "test",
-                "-c",
-                "playwright.wallet-intended.config.ts",
-                *test_paths,
-                "--grep",
-                selection,
-                "--output",
-                str(browser_output),
-                "--reporter",
-                "line,json",
-                "--max-failures",
-                "1",
-            ],
+        run_browser_contracts(
             directory,
-            browser_environment,
-            "browser.log",
-            timeout=1800,
+            wallet_checkout,
+            sdk_package,
+            address,
+            app_origin,
+            wallet_origin,
+            environment,
+            result,
+            processes,
         )
-        result["browserOutcomes"] = verify_browser_report(browser_report)
         result["stage"] = "peer-durable-websockets-downgrade-refusal"
         stop(node)
         # The preceding release must refuse the required peer transport before serving.

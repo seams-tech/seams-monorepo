@@ -161,6 +161,13 @@ async function prepare(): Promise<void> {
     'packages/wallet-console-server-ts/migrations/d1-console',
   );
   const migrations = [];
+  const services = [{ binding: 'WALLET_RUNTIME', service: 'guard' }];
+  for (const region of ['US', 'WEUR', 'APAC', 'OC']) {
+    services.push(
+      { binding: `WALLET_RUNTIME_${region}`, service: 'guard' },
+      { binding: `WALLET_GATEWAY_${region}`, service: 'guard' },
+    );
+  }
   await mkdir(path.join(directory, 'migrations'));
   for (const name of (await readdir(migrationsDirectory)).sort()) {
     if (name.endsWith('.sql')) {
@@ -191,7 +198,7 @@ async function prepare(): Promise<void> {
           migrations_dir: './migrations',
         },
       ],
-      services: [{ binding: 'WALLET_RUNTIME', service: 'guard' }],
+      services,
     }),
     { mode: 0o600 },
   );

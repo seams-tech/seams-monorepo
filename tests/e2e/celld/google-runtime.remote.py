@@ -13,7 +13,7 @@ import urllib.parse
 import urllib.request
 
 root = Path(sys.argv[1])
-assert str(root).startswith('/tmp/r190-google-yao-')
+assert str(root).startswith('/tmp/seams-celld-google-')
 inputs = json.loads((root / 'provider.json').read_text())
 binary = Path('/opt/seams/celld')
 assert hashlib.sha256(binary.read_bytes()).hexdigest() == inputs['runtimeSha256']
@@ -41,6 +41,15 @@ def cli(arguments, label):
 
 def start(executable, expected_hash):
     assert hashlib.sha256(executable.read_bytes()).hexdigest() == expected_hash
+    failed = subprocess.run(
+        ['systemctl', 'is-failed', unit], capture_output=True, text=True,
+    )
+    if failed.returncode == 0:
+        assert state()['MainPID'] == '0'
+        subprocess.run(
+            ['sudo', 'systemctl', 'reset-failed', unit],
+            check=True, capture_output=True, text=True,
+        )
     (root / 'state').mkdir(exist_ok=True)
     log = root / 'runtime.log'
     log.touch()
@@ -56,8 +65,10 @@ def start(executable, expected_hash):
         str(executable), '--no-control-plane', '--listen', '127.0.0.1:19080',
         '--internal-listen', inputs['privateIp'] + ':19081',
         '--advertise', inputs['privateIp'] + ':19081',
+        '--trust-forwarded-headers',
     ])
-    subprocess.run(command, check=True, capture_output=True, text=True)
+    with (root / 'start-unit.log').open('a') as output:
+        subprocess.run(command, check=True, stdout=output, stderr=subprocess.STDOUT, text=True)
     deadline = time.monotonic() + 60
     while time.monotonic() < deadline:
         current = state()
@@ -217,6 +228,17 @@ elif action == 'runtime-state':
     with urllib.request.urlopen('http://' + inputs['privateIp'] + ':19081/state', timeout=10) as reply:
         snapshot = json.loads(reply.read())
     result = {key: snapshot[key] for key in ('residents', 'node_load')}
+elif action == 'console-count':
+    sql = sys.argv[3]
+    assert sql.startswith('SELECT COUNT(*) AS count FROM ')
+    output = subprocess.check_output([
+        str(binary), 'd1', 'execute', 'console-celld-acceptance',
+        'rendered/console/wrangler.json', '--command', sql, '--json',
+    ], cwd=root, env=environment, text=True)
+    rows = [json.loads(line) for line in output.splitlines() if line.startswith('{')]
+    assert len(rows) == 1 and set(rows[0]) == {'count'}, output
+    assert type(rows[0]['count']) is int and rows[0]['count'] >= 0
+    result = rows[0]
 elif action == 'collect':
     archive = root / 'diagnostics.tar.gz'
     logs = sorted(root.glob('*.log'))

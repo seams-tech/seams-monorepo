@@ -1,0 +1,596 @@
+{
+  "status": "failed",
+  "stage": "console-onboarding",
+  "project": "seams-501403",
+  "scope": "two Google nodes with fresh GCS state, tenant-root crash replay, released Wallet browser contracts, and Console onboarding",
+  "artifactDirectory": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/google-vm-028-20261030/google-wallet-4vjwv95f",
+  "fleet": "gs://seams-501403-gcp028-20261030-fleet/google-wallet-4vjwv95f",
+  "runtime": {
+    "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+    "patchSha256": "df1dab7009abf9dc8bcbbb07f694ff96a5106235927bfef9a63d770d14736bc7",
+    "sourceArchiveSha256": "52fadca649043d81c91f00a8f7826275bcf8480646f6ecebbcfeb83b11a31fa8",
+    "executableSha256": "656e1f8dcc00f881060f6d9badb9cb8d7ceedd50f86fa78421728683c5539864",
+    "version": "celld 0.6.2-seams.7",
+    "profile": "release",
+    "platform": "linux",
+    "architecture": "x64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "buildCommand": [
+      "cargo",
+      "build",
+      "--locked",
+      "-p",
+      "celld",
+      "--bin",
+      "celld",
+      "--release"
+    ]
+  },
+  "packageSnapshotHashes": {
+    "wallet-server": "d76b57cbcc1f060c8298e21d7556e55e1f10821e22f5af8b632f2c68c0e1ba99",
+    "wallet": "beee9a9731cdbb7854c20d1ca9fae92323a6ae45295688b302deb5f5463a0ea3"
+  },
+  "sourceRevision": "c363454dd58ac450da98d24fa56c0923a70e2c24",
+  "walletRevision": "1de29b2aba77011193384b30f1f57542d11972d6",
+  "sourceHashes": {
+    "google-wallet.e2e.py": "8151138376f7b37b010db09077159a433f7dbd540a478b200e6dddd2eabade63",
+    "google-yao.remote.py": "a46584a4b64f2fea8830a7453c7a53a3154ee0aeda54d0cfd7b242715d127708",
+    "packaged-wallet.e2e.py": "c3292f67e014beeb472385b3220a7806758b02258c5e712859fa39520b424937",
+    "prepare-wallet.mjs": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+    "prepare-gateway.mjs": "b021ccc8b54beb9e78adf80a2abb4e2adef439dccf5f2308c045463a70300686",
+    "console.e2e.ts": "69120d4d0085cc88fe248136af83791d560438c9597328830090340cc5be8833",
+    "google-console-count.py": "102711b7616dfcee445574ae3921fa761f23e37f408620713e7994a344835ec4",
+    "render.mjs": "8c0480068e7b96407ec9162542bc50cacce9a83b34695ecbe8028d2c98d2d8e9"
+  },
+  "package": {
+    "name": "@seams/wallet-server",
+    "version": "0.28.0"
+  },
+  "manifestSha256": "84846fc47d94c6b7f827a3193738977634e6b2f2d01cae2c5396de34d9e8cc96",
+  "backupBuckets": {
+    "router-ab-deriver-a-tenant-root-managed-backup": "gs://seams-501403-gcp028-20261030-backup-a",
+    "router-ab-deriver-b-tenant-root-managed-backup": "gs://seams-501403-gcp028-20261030-backup-b"
+  },
+  "deployedRoles": {
+    "deployed": [
+      "router",
+      "deriver-a",
+      "deriver-b",
+      "signing-worker",
+      "tenant-root-control-plane",
+      "operator-router"
+    ]
+  },
+  "nodes": [
+    {
+      "kind": "ordinary",
+      "name": "r190q-20261013-e7f9b0-ordinary-final",
+      "zone": "us-central1-c",
+      "privateIp": "10.128.0.4",
+      "machine": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c/machineTypes/e2-standard-4",
+      "start": {
+        "state": {
+          "MainPID": "1404",
+          "Result": "success",
+          "NRestarts": "0",
+          "ExecMainStartTimestamp": "Thu 2026-10-29 15:44:58 UTC",
+          "ExecMainPID": "1404",
+          "ExecMainCode": "0",
+          "ExecMainStatus": "0",
+          "Id": "r190-yao-google-wallet-4vjwv95f-ordinary.service",
+          "ActiveState": "active",
+          "SubState": "running"
+        },
+        "runtimeSha256": "656e1f8dcc00f881060f6d9badb9cb8d7ceedd50f86fa78421728683c5539864",
+        "watch": "/tmp/r190-google-yao-google-wallet-4vjwv95f/state"
+      },
+      "address": "http://127.0.0.1:62934"
+    },
+    {
+      "kind": "confidential",
+      "name": "r190q-20261013-e7f9b0-snp",
+      "zone": "us-central1-c",
+      "privateIp": "10.128.0.3",
+      "machine": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c/machineTypes/n2d-standard-2",
+      "start": {
+        "state": {
+          "MainPID": "1284",
+          "Result": "success",
+          "NRestarts": "0",
+          "ExecMainStartTimestamp": "Thu 2026-10-29 15:45:38 UTC",
+          "ExecMainPID": "1284",
+          "ExecMainCode": "0",
+          "ExecMainStatus": "0",
+          "Id": "r190-yao-google-wallet-4vjwv95f-confidential.service",
+          "ActiveState": "active",
+          "SubState": "running"
+        },
+        "runtimeSha256": "656e1f8dcc00f881060f6d9badb9cb8d7ceedd50f86fa78421728683c5539864",
+        "watch": "/tmp/r190-google-yao-google-wallet-4vjwv95f/state"
+      },
+      "address": "http://127.0.0.1:63658"
+    }
+  ],
+  "migrations": {
+    "migrated": true
+  },
+  "ownerKill": {
+    "before": {
+      "MainPID": "1404",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Thu 2026-10-29 15:44:58 UTC",
+      "ExecMainPID": "1404",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "Id": "r190-yao-google-wallet-4vjwv95f-ordinary.service",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "afterSignal": {
+      "MainPID": "0",
+      "Result": "signal",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Thu 2026-10-29 15:44:58 UTC",
+      "ExecMainPID": "1404",
+      "ExecMainCode": "2",
+      "ExecMainStatus": "9",
+      "Id": "r190-yao-google-wallet-4vjwv95f-ordinary.service",
+      "ActiveState": "failed",
+      "SubState": "failed"
+    },
+    "after": {
+      "MainPID": "0",
+      "Result": "signal",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Thu 2026-10-29 15:44:58 UTC",
+      "ExecMainPID": "1404",
+      "ExecMainCode": "2",
+      "ExecMainStatus": "9",
+      "Id": "r190-yao-google-wallet-4vjwv95f-ordinary.service",
+      "ActiveState": "failed",
+      "SubState": "failed"
+    }
+  },
+  "tenantRootCrashReplay": {
+    "identityDigestB64u": "q5Yryx9JSxuaZuJhJ7dv7Q72J7zJ8m4UwQvxjQKfwhY",
+    "custodyLineageB64u": "VLp0x-4Bg0Typxd6uBUUvQ",
+    "replayed": true
+  },
+  "replacement": {
+    "state": {
+      "MainPID": "1701",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Thu 2026-10-29 15:46:14 UTC",
+      "ExecMainPID": "1701",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "Id": "r190-yao-google-wallet-4vjwv95f-ordinary.service",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "runtimeSha256": "656e1f8dcc00f881060f6d9badb9cb8d7ceedd50f86fa78421728683c5539864",
+    "watch": "/tmp/r190-google-yao-google-wallet-4vjwv95f/state"
+  },
+  "gatewayPreparationSha256": "b021ccc8b54beb9e78adf80a2abb4e2adef439dccf5f2308c045463a70300686",
+  "gatewayEntrySha256": "00ba617ef05034e8b4ee56485814222df0bbf73673915fbbd76dbf7c386a0893",
+  "gatewayDeployment": {
+    "deployed": [
+      "gateway"
+    ]
+  },
+  "gatewayMigrations": {
+    "migrated": true
+  },
+  "gatewayReady": {
+    "status": 200,
+    "body": "{\"ok\":true,\"thresholdEd25519\":{\"configured\":true},\"cors\":{\"allowedOrigins\":[\"http://localhost:62932\",\"http://localhost:62933\"]}}"
+  },
+  "walletCheckout": "1de29b2aba77011193384b30f1f57542d11972d6",
+  "sdkDistSha256": "a68ee2f999f63e35e8733cfaab2d8e2a21829914c3355ad8a05fe809206548de",
+  "sdkPackageSha256": "b9ba4a7d167272f875642bcc215dbfa0f29fb15a4e4c282924699dc213dad34e",
+  "browserContracts": [
+    "EVM registration and signatures complete while NEAR execution is held",
+    "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+    "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+    "exact finalize retry at the Router returns the SigningWorker stored signature",
+    "passkey unlock restores immediate export and shared-budget signing",
+    "a committed Passkey recovery survives a lost finalization response and runtime reset",
+    "lock retains durable presignatures across a fresh unlock",
+    "a cross-tab lock prevents delayed restoration from recreating its credential",
+    "a fresh unlock survives a delayed restoration response from another tab",
+    "sustained Tempo and Arc signing uses fresh presignatures beyond pool capacity",
+    "a fresh browser recovers a Passkey-founded wallet with one code, signs, and refuses reuse",
+    "a recovery retires the replaced activation: a delayed finalize is refused, a made signature answers, and the recovered wallet signs",
+    "a superseded recovery attempt that reaches the SigningWorker late is refused, and the current attempt signs",
+    "a linked device links a third device on an ECDSA-only wallet, which signs Tempo",
+    "a linked device links a third device, which signs NEAR and Tempo and exports both keys",
+    "a linked device inventory omits Email OTP addresses and revocation retries a refused commit",
+    "Email OTP unlock resumes a lost NEAR finalization response after reload",
+    "a fresh browser recovers a Email-only wallet with Google and Email OTP, signs, and refuses reuse"
+  ],
+  "browserSourceHashes": {
+    "passkey.registration.contract.test.ts": "3f38d6d64394f6d4ba4534510c4a4af6b9516ba5537da8e45d05230b174e9873",
+    "passkey.presign-pool.contract.test.ts": "1671dee77e218b58ade26a8d02881ac2e287f44781e0cd7a68b07ad39b3c2b49",
+    "passkey.unlock.contract.test.ts": "557afbcf281995e6b8bf18243f984feac575fe62f081cdf9107f68909db7b39e",
+    "passkey.recovery.contract.test.ts": "9431b0d3b83cf06c7104fb7987521f3277e9359bea568ebd5059cf974c2ed8b5",
+    "passkey.device-linking.contract.test.ts": "75015394499a2dd0db596e6f51ebdc8d07dbd6925bb05cd17d340c588d2d2110",
+    "email-otp.registration.resume.contract.test.ts": "7cb726e3170884dbb0bce4b226be2e887f18651da005d85f9528ae6b52021caa",
+    "google-email-otp.recovery.contract.test.ts": "6f8c53960a4e30e2d532516c7a6e89b65e0162a233d2d7d49669d54153436e0b"
+  },
+  "browserOutcomes": [
+    {
+      "title": "Email OTP unlock resumes a lost NEAR finalization response after reload",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a fresh browser recovers a Email-only wallet with Google and Email OTP, signs, and refuses reuse",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a linked device links a third device on an ECDSA-only wallet, which signs Tempo",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a linked device links a third device, which signs NEAR and Tempo and exports both keys",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a linked device inventory omits Email OTP addresses and revocation retries a refused commit",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "exact finalize retry at the Router returns the SigningWorker stored signature",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a fresh browser recovers a Passkey-founded wallet with one code, signs, and refuses reuse",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a recovery retires the replaced activation: a delayed finalize is refused, a made signature answers, and the recovered wallet signs",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a superseded recovery attempt that reaches the SigningWorker late is refused, and the current attempt signs",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a committed Passkey recovery survives a lost finalization response and runtime reset",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "sustained Tempo and Arc signing uses fresh presignatures beyond pool capacity",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "EVM registration and signatures complete while NEAR execution is held",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "lock retains durable presignatures across a fresh unlock",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a cross-tab lock prevents delayed restoration from recreating its credential",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a fresh unlock survives a delayed restoration response from another tab",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "passkey unlock restores immediate export and shared-budget signing",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    }
+  ],
+  "residency": {
+    "ordinary": {
+      "residents": [
+        "RouterAbDeriverAWalletDurableObject:088ad3db3f4da26b7c526dbf465cea4ae14545dde2285550c6e54a8316427cb2",
+        "RouterAbDeriverAWalletDurableObject:33425206925cb26131bdadeee78d95ad9cb61bc66eea9dcc467483526aa6c79a",
+        "RouterAbDeriverAWalletDurableObject:404e610f7cec2569723f497cd6b0a1e426f2bdadf68bf415eb2cbea8799b1efc",
+        "RouterAbDeriverAWalletDurableObject:64f74a2010d408233087d05d9c253e99ef3e6e83c471455953dece7a5d9dfce7",
+        "RouterAbDeriverAWalletDurableObject:6c07117413a377d119ced9964a69e94a466ea2807adbd1fd06a57e8877c66f8b",
+        "RouterAbDeriverAWalletDurableObject:9070231a058502a4387b5a3ddeef7bee92b931f1cc55856382f2ff11e7f0a16d",
+        "RouterAbDeriverAWalletDurableObject:9af75cfff8f5569426735317b2a9c469888e5fbb41faa046368d59bcc4619d9b",
+        "RouterAbDeriverAWalletDurableObject:a1f98c90544dbf10ab5fe78278534f1ac808648007508b46548bbcb706e79e58",
+        "RouterAbDeriverAWalletDurableObject:a67615e49632d53b2e567c8b7cb2391c04d6e87eb96d7856ef3977183515e6c5",
+        "RouterAbDeriverAWalletDurableObject:b674708c4b4f6d1093ea5dd5eeb9eab9c3fc205812e90323673b0173840dba0e",
+        "RouterAbDeriverAWalletDurableObject:b99b163c4b88142a426ebc1dd9719dca7d03b3211820c38ade95d568078cf7ac",
+        "RouterAbDeriverAWalletDurableObject:bc79f2e61157619b959436592d2174aab1899dc6b9f80347710d9b178c67f94d",
+        "RouterAbDeriverAWalletDurableObject:d5390c661e3f645bac3cacfc243e64329cc1c9e929542d64222c535a1901cfac",
+        "RouterAbDeriverAWalletDurableObject:d79ef2f8a47e4b5da2b21c5576520ed66033480566d57d58b7c4bb87f6cd2382",
+        "RouterAbDeriverAWalletDurableObject:e3321d5501fcec5b37c62373f34a8506d1db2f3e466b11381142a51779d7520a",
+        "RouterAbDeriverAWalletDurableObject:e4d8ab9504ea75c244d728061144aaa56e39ae6c1361b62b33af9ea93160b49e",
+        "RouterAbDeriverAWalletDurableObject:e8baf3f6321872adf368c81eb766eed9f76ddbe0611d4dc1ec427e540102c3a1",
+        "RouterAbDeriverAWalletDurableObject:f43bc1f26789c15c1b6a91ea5e0b8e87a1b21fe7cfd2a929ece3a766798cef43",
+        "RouterAbDeriverBWalletDurableObject:1ffc889540edc904ba15a6a1c0b98fc3180a63f5f5a7620264e7e56561fd81d2",
+        "RouterAbDeriverBWalletDurableObject:2944684705fc0120367c7fe000f739aecfc4b120ebb9eb17af02d8eb6734850f",
+        "RouterAbDeriverBWalletDurableObject:2d43b86a558e03e9baa5c33716a148c1fae11a7c3efd7500f30ef248daf3236e",
+        "RouterAbDeriverBWalletDurableObject:3d3cf9e2ef73df66b86bfd30d7a57de354910db68f81766470a8082e5e2972ff",
+        "RouterAbDeriverBWalletDurableObject:5c9c7d54397521df2bf35c12e0d6c52c79c456f270c66e62beccfdbb47777a55",
+        "RouterAbDeriverBWalletDurableObject:6369fea2a7bb8d18fb769959b9f66501bf335422bd55d0d1b196081c5cb6961f",
+        "RouterAbDeriverBWalletDurableObject:746e6076dcea1137f9005a877e5cb7b01b51a02aa2e39b52245ef91d128d5d10",
+        "RouterAbDeriverBWalletDurableObject:77d1a144c29b8742fef4cca84550406935fbffcc483028a3e9ff856c80a3809a",
+        "RouterAbDeriverBWalletDurableObject:837dc9386de55d6e72530990ae56b8f157e7f90118c06572d48bcd1e0b14148d",
+        "RouterAbDeriverBWalletDurableObject:84ca30c1d9708c90327572496f505619f429af87eb9bf9249234d1938cdb41bd",
+        "RouterAbDeriverBWalletDurableObject:a5aed53e57fb66d5b163d906706c0c1bc6683d08c86048802328458e0d43b837",
+        "RouterAbDeriverBWalletDurableObject:adf36c6e7ef4aed5bec826f17e12ff601d44de68b6942dc4657ad51ece9dc2e0",
+        "RouterAbDeriverBWalletDurableObject:ba193f080f8248943e65671488ffb47d1307cb0c2602c0968566a8bdf37872f3",
+        "RouterAbDeriverBWalletDurableObject:bbdc5cd8e44ee2393d7327246c40912eddb049aa05104fb50e0b45a87c39462c",
+        "RouterAbDeriverBWalletDurableObject:c3d9acb4d30d6943761d0b7e6907f1b8e0c7e6595757fe6caa1175ba73f215a4",
+        "RouterAbDeriverBWalletDurableObject:ce0bdbabbfa9604ff1afcda56ba51bd2a338f7887611e861bb92e4d12151d40f",
+        "RouterAbDeriverBWalletDurableObject:e2e83161216e2b74ea076d5e091cbdbb6306200ed01c631f2829b764f8d4c442",
+        "RouterAbDeriverBWalletDurableObject:ef1bd7f8a8539b3f4c7a10e6def032df6d74189ff5534e4c0ac45cca349c3cfe",
+        "RouterAbRouterWalletDurableObject:06327eb3ea888122bfe0c4a47605e6afcb361899038329a393f54decc49c9ad5",
+        "RouterAbRouterWalletDurableObject:0d77666fb33b2ed5f6a311c9a00749b004adc8e2bf68387180377b5c4bb03d81",
+        "RouterAbRouterWalletDurableObject:10b938f69b969c140d79bd0b900046fcfd0e67d396781caab6b738dca4ef7b37",
+        "RouterAbRouterWalletDurableObject:11362dbfa53e91a031a779a47ea5bd7b52a1963c9b9926a1c3ea8f79f16fd245",
+        "RouterAbRouterWalletDurableObject:1510ea1ed4be4fc3905cdd4a766c4ebeae61c19ebc80003d770581b546b30a4d",
+        "RouterAbRouterWalletDurableObject:2373f96098059ee87649ca837e251a2713ab74f57f3c9c4c8084123c5ce9bed3",
+        "RouterAbRouterWalletDurableObject:3ee5708969ff2f012beba5209708d439d8831ebc1f6c95f4b3f781c2d2133a93",
+        "RouterAbRouterWalletDurableObject:5bb17e0f643aff499a46e91e474f2dec710677e63116b70b6545f8f5b9eb357f",
+        "RouterAbRouterWalletDurableObject:636d7050ecbca5f7934f8ef30967fe046b1353c4ccfeca13aafabb48902b6595",
+        "RouterAbRouterWalletDurableObject:7c50138a4805bf3b8af9c3f881149672ecca97ebf2594e6052bfd6533f4795db",
+        "RouterAbRouterWalletDurableObject:8cba3965f97ef305ebaed36b2f26f3864068c70047e8ccc821af89d6daf1aaaa",
+        "RouterAbRouterWalletDurableObject:939b3cc31bb34fe8d330da3aa51ab7ce812c29a247babb90afd9c9e0d52037ca",
+        "RouterAbRouterWalletDurableObject:c9e45695f6edda69a8bb1a9694e235778a02a4cd2e19de0dc3bfbb4ae301f116",
+        "RouterAbRouterWalletDurableObject:cbfba02112c6012231322367055c05c20a03a16aac56ed52bd1b3de21ac08ce0",
+        "RouterAbRouterWalletDurableObject:d309b06dedc67c5d9241404d7f376d56b0d756d548ac48660bb56cdb16843497",
+        "RouterAbRouterWalletDurableObject:dc53ccafffc7e30c12c8b0c97021a10118f6e343d8f34928be97a0383a9847f8",
+        "RouterAbRouterWalletDurableObject:f284d5ceb3b8ffecfa7f2f298040e8adf1da5df4b28cde052ce66d9ce6937fda",
+        "RouterAbRouterWalletDurableObject:fce0cf3ffb78361f390a83d913e952741ec4ff26d93ba0c9b6eb7ed503949d1f",
+        "RouterAbSigningWorkerPresignSessionDurableObject:0523d8eda153b386b899c67c8310a6f3d279fd2cc7c7f3015f7ebe4809b7ac96",
+        "RouterAbSigningWorkerPresignSessionDurableObject:1310f086a3ee5cce392bf67f42a20ce0eee72b98ac063213d3d0ac6e6dc562eb",
+        "RouterAbSigningWorkerPresignSessionDurableObject:2cea2b1f18d81729f9cceac9f0257f84fa0f72b5ac6251a27502dde70ac8aeca",
+        "RouterAbSigningWorkerPresignSessionDurableObject:3a47b5da0ce7621b613e91d9e95c9e08257e1546f08d6dbe07f15c1693a8a636",
+        "RouterAbSigningWorkerPresignSessionDurableObject:4af4092fa12378c9c82b175ec14e6573be9f009f3bc0cbf984f3e1a58679ef9b",
+        "RouterAbSigningWorkerPresignSessionDurableObject:4cfb13b2f62643b5ec0647ba50ab6602401b5bc0234fed63c3a6362b28b4a50b",
+        "RouterAbSigningWorkerPresignSessionDurableObject:4fcc6145da58ab28eae74a997114b950b63670a24de453a219e3ec764d67cef3",
+        "RouterAbSigningWorkerPresignSessionDurableObject:640409bdb7377d6bbd7ae4ffb939c72df66ddeafa313e6c2b636a1b5a68b167b",
+        "RouterAbSigningWorkerPresignSessionDurableObject:6ad71a179124b913b34024e2a100ac723105f66b11454ba393acd79e1ca4e8ff",
+        "RouterAbSigningWorkerPresignSessionDurableObject:6e3c2599f059a6ad9f7c471b97bc67f307d233cad3cf3ab8feaf3b430f8a8dc0",
+        "RouterAbSigningWorkerPresignSessionDurableObject:81a66586e4b3cbe46f509f551f868ed6f20bc2aeae2a3522ee2f62b5df86ba26",
+        "RouterAbSigningWorkerPresignSessionDurableObject:aa09548c7cb07deb7b9661a9e55eec9f52d289926dfb7dbea8c21e34dfa4627d",
+        "RouterAbSigningWorkerPresignSessionDurableObject:b0e86a953773615e60c180f92e44675afc0787a70631d9a2330b7d6b9d271e7d",
+        "RouterAbSigningWorkerPresignSessionDurableObject:c054dcac71f1c3be72e2a7b9711bc651e5747053270b73a9143db08cedad0f96",
+        "RouterAbSigningWorkerPresignSessionDurableObject:ddfa97d8b83ffdeef32847aecd91808ed1650fccf357f7c01e3fd4d59c6a4de5",
+        "RouterAbSigningWorkerPresignSessionDurableObject:e398d660a696dce151f61ccf956174354bac9b233e09954fa666d6740e72874b",
+        "RouterAbSigningWorkerPresignSessionDurableObject:e6bce1e1d0adffbbe8ba083305a1e4ef32e279639307d20a3b3f90c52371db1d",
+        "RouterAbSigningWorkerPresignSessionDurableObject:e7920a468b31f45928bc54a166f548d342e2485a70d2dd9183cc05b1c03b38d6",
+        "RouterAbSigningWorkerPresignSessionDurableObject:e96f3cfe9972c4b00e0c528c8a22fc217db0f4cd0ace92fdb5f80449cd95469d",
+        "RouterAbSigningWorkerPresignSessionDurableObject:e98615695c8d3de2889b05901104b46505dc9d25df215474849e597fd9885008",
+        "RouterAbSigningWorkerPresignSessionDurableObject:ed7640638b8f0a516ab51aa9c425b63e66abd5a76c1c6df82e56e3a989f079a7",
+        "RouterAbSigningWorkerPresignSessionDurableObject:f17766d97e944ddb213afbc19d4c63500687ec3eb6b6fefacbb2734ed0c0ae5e",
+        "RouterAbSigningWorkerPresignSessionDurableObject:ffdc4dc990634eb9b9b7a1af32a07d8706cd2af2f58e09fe76d6b9fce2344086",
+        "RouterAbSigningWorkerWalletDurableObject:069ee173956a0cd71bea87b3cf71c2a8d4a96872764a8e379d7d57fa885f7fc3",
+        "RouterAbSigningWorkerWalletDurableObject:14cf085c5722010b1c8252e990eca84cda4d274ff79a72f118c22d9f43b824fc",
+        "RouterAbSigningWorkerWalletDurableObject:3b43f3526e1951f7b25830a0e64b2d7db98f967b76515bdee23c3664a497d85c",
+        "RouterAbSigningWorkerWalletDurableObject:57e26a92870ce0141ab6ba6396c5da5ac33fe478df42736d6fa8350d0ccd7a1e",
+        "RouterAbSigningWorkerWalletDurableObject:700f3f2f37622259b6acd6d558748015038e488908efc631bebefc611a38b626",
+        "RouterAbSigningWorkerWalletDurableObject:72eaa37b4bc7fceb121fdfe5a2e8746dc86f4d13906fbe6111428d2d6d0edad2",
+        "RouterAbSigningWorkerWalletDurableObject:731f48fb3ad4dcf7d7a2e03e1d7d906a1320b56971ed6684dadd236a26271561",
+        "RouterAbSigningWorkerWalletDurableObject:73ee6c38b56c0425dc1b48e3de8d55a8c5500c35cfb6298153605a9fab1b7a7d",
+        "RouterAbSigningWorkerWalletDurableObject:76e7f9976acc5a9014a0a45b8cb1611414ca2551a9477e79b1bd4c0a853400df",
+        "RouterAbSigningWorkerWalletDurableObject:788b25974bd2b547c327b7ee99b7dbe0b58a2cd37a0ce1fddf355c3adcfe4687",
+        "RouterAbSigningWorkerWalletDurableObject:96453acd60be574d6bb010380345a42357f9a1f9ac6684d4954ff7186cf4da86",
+        "RouterAbSigningWorkerWalletDurableObject:9ee0adcc42168328984ca2b482dc7c0ce168f083b6a70ceda5cceeaa87b38bc4",
+        "RouterAbSigningWorkerWalletDurableObject:aa5a351518869d91797b4bdb781a30812312414ff545f65af1624f4bb65fef98",
+        "RouterAbSigningWorkerWalletDurableObject:bae664908eace46ccaa305053688c02bc4d8b4cce9125343d62deb0d3aa64d8b",
+        "RouterAbSigningWorkerWalletDurableObject:f1eb1936db7fa0050b10ee5516365007b773ac418fe1e6b5c445f4f29f8da43c",
+        "RouterAbSigningWorkerWalletDurableObject:f409aaf47016b835b790ddc385bc3006848f479539a4994ae9820392af978c12",
+        "RouterAbSigningWorkerWalletDurableObject:f8f320b85e95fa1af8ff336a75bff78e436eda661d921a96f1fce3985c7aecff",
+        "RouterAbSigningWorkerWalletDurableObject:ff0aa8a02849bcdc23e5d653fe908d834cfa7ebbd2367a733dfda4e28301cbba"
+      ],
+      "node_load": {
+        "bucket_format": 2,
+        "cgroup_current_bytes": null,
+        "cgroup_working_set_bytes": null,
+        "cpu_percent_x100": 399,
+        "draining": false,
+        "fd_limit": 524288,
+        "host_websockets": 0,
+        "in_use_bytes": 539168640,
+        "memory_headroom": true,
+        "open_fds": 897,
+        "owned_cells": 95,
+        "placement_weight": 4,
+        "pressured": false,
+        "rebalance_paused": false,
+        "resident_cells": 95,
+        "restoring": 0,
+        "rss_bytes": 563572736,
+        "sampled_ms": 1793289248126,
+        "shed_cells": 0
+      }
+    },
+    "confidential": {
+      "residents": [
+        ".cron:seams-wallet-local-gateway",
+        "RouterAbTenantRootCreationDurableObject:3a31d80b8c8de40f312f953f149672a518b97657e57f623f19a72b73ab00ca6a",
+        "__D1Database:3ff09765cf07af65909a806f2b138f788a309ab6d523a41115941607a75d1dc9",
+        "__D1Database:9d8124854f32c3f6191967181b91ff82c0aa1014ba342ac79b1fe83ae66b0142",
+        "__D1Database:fb4c3d22623493ed29835bae616d773a3421e661049d78f0806bdaba571abe6a"
+      ],
+      "node_load": {
+        "bucket_format": 2,
+        "cgroup_current_bytes": null,
+        "cgroup_working_set_bytes": null,
+        "cpu_percent_x100": 199,
+        "draining": false,
+        "fd_limit": 524288,
+        "host_websockets": 0,
+        "in_use_bytes": 228019864,
+        "memory_headroom": true,
+        "open_fds": 84,
+        "owned_cells": 5,
+        "placement_weight": 2,
+        "pressured": false,
+        "rebalance_paused": false,
+        "resident_cells": 5,
+        "restoring": 0,
+        "rss_bytes": 243253248,
+        "sampled_ms": 1793289252679,
+        "shed_cells": 0
+      }
+    }
+  },
+  "consoleDeployment": {
+    "deployed": [
+      "guard",
+      "console",
+      "consumer"
+    ]
+  },
+  "consoleMigrations": {
+    "migrated": true
+  },
+  "error": "CalledProcessError(1, ['node', PosixPath('/Users/pta/Dev/rust/seams-monorepo/.artifacts/google-vm-028-20261030/google-wallet-4vjwv95f/console/console-driver.cjs'), 'verify', PosixPath('/Users/pta/Dev/rust/seams-monorepo/.artifacts/google-vm-028-20261030/google-wallet-4vjwv95f/console'), PosixPath('/Users/pta/Dev/rust/seams-monorepo/.artifacts/google-vm-028-20261030/google-wallet-4vjwv95f/console/google-console-count.py'), 'http://127.0.0.1:62934', PosixPath('/Users/pta/Dev/rust/seams-monorepo')])",
+  "stop-ordinary": {
+    "before": {
+      "MainPID": "1701",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Thu 2026-10-29 15:46:14 UTC",
+      "ExecMainPID": "1701",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "Id": "r190-yao-google-wallet-4vjwv95f-ordinary.service",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "afterSignal": {
+      "MainPID": "1701",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Thu 2026-10-29 15:46:14 UTC",
+      "ExecMainPID": "1701",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "Id": "r190-yao-google-wallet-4vjwv95f-ordinary.service",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "after": {
+      "MainPID": "0",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "",
+      "ExecMainPID": "0",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "Id": "r190-yao-google-wallet-4vjwv95f-ordinary.service",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    }
+  },
+  "stop-confidential": {
+    "before": {
+      "MainPID": "1284",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Thu 2026-10-29 15:45:38 UTC",
+      "ExecMainPID": "1284",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "Id": "r190-yao-google-wallet-4vjwv95f-confidential.service",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "afterSignal": {
+      "MainPID": "1284",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Thu 2026-10-29 15:45:38 UTC",
+      "ExecMainPID": "1284",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "Id": "r190-yao-google-wallet-4vjwv95f-confidential.service",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "after": {
+      "MainPID": "0",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "",
+      "ExecMainPID": "0",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "Id": "r190-yao-google-wallet-4vjwv95f-confidential.service",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    }
+  },
+  "cleanupErrors": [],
+  "limits": [
+    "The browser runs locally through SSH forwarding. Public DNS, certificates and external ingress require separate acceptance.",
+    "The crash check covers exact tenant-root creation replay. It does not establish full-wallet recovery after losing all replicas.",
+    "Shared GCS remains available. Storage partitions, Google-hosted relocation and Cloudflare cutover require separate acceptance."
+  ]
+}

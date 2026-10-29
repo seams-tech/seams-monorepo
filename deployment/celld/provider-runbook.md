@@ -1,6 +1,21 @@
 # Celld provider qualification runbook
 
-Status: Google runtime primitives and all 16 selected Wallet contracts pass in project `seams-501403`, region `us-central1`.
+Status: Wallet 0.28.0 passes 18 selected browser contracts on a two-node Google
+fleet with celld `.7`, ordinary and SEV-SNP VMs, and real GCS in `us-central1`.
+Tenant-root creation replay also passes after a node kill and takeover.
+See [the retained result](evidence/google-wallet-028-console-incomplete.json).
+
+The combined run stopped at a Console fixture failure after all Wallet cases
+passed. The fixture omitted eight required regional service bindings. A local
+workerd control reproduces the 500 and returns the required 401 with those
+bindings. The fixture is corrected. Its Google retest remains incomplete because
+the user stopped qualification on October 30, 2026. The retained overall result
+therefore remains failed at `console-onboarding`.
+
+This establishes the recorded Wallet execution scope. Public ingress, complete
+upgrade qualification, and Cloudflare outage recovery remain separate work.
+
+Earlier Google runtime primitives and 16 selected Wallet contracts also pass.
 The native `.5` x86-64 release passes on an ordinary `n2d-standard-4` VM in `us-central1-a`
 and a SEV-SNP `n2d-standard-2` VM in `us-central1-c`, using the pinned Ubuntu 24.04 image.
 The kernel confirms active SEV-SNP operation. The source build and Clippy pass with locked dependencies.
@@ -261,6 +276,45 @@ Qualify backup and restore through the application's authorized flow. Do not rol
 The operator confirmed on October 14 that only Workers are deployed. No wallet requires migration from a retired classic host.
 Keep existing Workers state intact during release promotion. A future Cloudflare-to-celld transfer requires the authorized relocation or recovery flow.
 After adapter deletion, repeat acceptance with the final packaged release on both supported hosting models.
+
+## Repeat current Google Wallet qualification
+
+Use two owned qualification VMs and fresh fleet state. The resource ledger names
+both VMs, their zones, and three separate GCS buckets. It also contains the SSH
+key and the runtime build record. Install that exact executable on both VMs.
+
+Supply `GOOGLE_OIDC_CLIENT_ID` and `SEAMS_INTENDED_GOOGLE_ID_TOKEN` through the
+protected test environment. Refresh the token with the public repository's
+existing `ensure:intended-google-token` command before a long run.
+
+```sh
+python3 tests/e2e/celld/google-wallet.e2e.py \
+  RESOURCE_DIRECTORY WALLET_SERVER_PACKAGE WALLET_CHECKOUT WALLET_SDK_PACKAGE
+```
+
+The runner freezes both packages and verifies the packaged Worker manifest.
+It uses the existing deployment renderer and GCS mappings. It creates a tenant
+root, kills its initial node, verifies exact creation replay on the survivor,
+and restarts the killed node. It then runs the selected public Wallet browser
+contracts against the Google Gateway with both runtime nodes available. The
+selection includes Email OTP execution recovery and Google recovery of an
+Email-founded wallet.
+
+The same run bundles the current Console Worker, applies its unchanged
+migrations, and executes the shared onboarding scenario through a service
+binding in a separate fleet namespace after stopping the Wallet processes.
+Read-only count proofs use the native D1 CLI over the owned SSH
+connection. The scenario checks exact onboarding replay and unauthorized
+activation refusal. It does not activate a tenant deployment.
+
+Each run retains source snapshots, artifact hashes, migration logs, browser
+results, runtime logs, and `result.json`. A failed cleanup fails the run. The
+runner stops both VMs and removes its temporary peer rules and network tags.
+Synthetic accounts and credentials remain inside the protected artifact folder.
+
+The browser connects through SSH forwarding. Public DNS, certificates, external
+ingress, storage-provider failures, and recovery after losing all replicas need
+separate evidence. This scenario does not establish Cloudflare-to-Google cutover.
 
 ## Repeat the single-VM operational check
 

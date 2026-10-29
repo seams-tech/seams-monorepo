@@ -38,7 +38,7 @@ harness = yao.harness
 root = Path(tempfile.mkdtemp(prefix='google-yao-', dir=ledger_directory))
 root.chmod(0o700)
 identifier = root.name.removeprefix('google-yao-').replace('_', '-')
-remote_directory = '/tmp/r190-google-yao-' + identifier
+remote_directory = '/tmp/seams-celld-google-' + identifier
 fleet = 'gs://' + ledger['buckets']['fleet'] + '/yao-' + identifier
 nodes = [
     {'kind': 'ordinary', 'name': ledger['ordinaryVm'], 'zone': ledger['zone']},
@@ -67,7 +67,7 @@ result = {
     'publicRevision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=checkout, text=True).strip(),
 }
 source_files = (
-    source, source.with_name('google-yao.remote.py'),
+    source, source.with_name('google-runtime.remote.py'),
     source.with_name('yao-peer-disconnect.e2e.py'), source.with_name('prepare-yao.mjs'),
     source.with_name('packaged-wallet.e2e.py'), source.with_name('prepare-wallet.mjs'),
     repository / 'deployment/celld/render.mjs',
@@ -250,7 +250,7 @@ try:
     archive = root / 'deployment.tar.gz'
     with tarfile.open(archive, 'w:gz') as output:
         output.add(root / 'rendered', arcname=Path(remote_directory).name + '/rendered')
-        output.add(source.with_name('google-yao.remote.py'), arcname=Path(remote_directory).name + '/remote.py')
+        output.add(source.with_name('google-runtime.remote.py'), arcname=Path(remote_directory).name + '/remote.py')
     archive.chmod(0o600)
     result['deploymentArchiveSha256'] = harness.sha256(archive)
     for node in nodes:

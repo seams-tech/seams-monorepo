@@ -1,6 +1,6 @@
 # Refactor 201 — Bring your own authentication
 
-Status: implemented and published as version 0.28.0 on October 29, 2026. Staging activation is blocked by intermittent GitHub key-fetch failures. Production rollout has not started.
+Status: implemented and published as version 0.28.0. Staging, production testnet, production mainnet, and GetSignal backend deployments passed.
 
 ## Implementation record
 
@@ -78,6 +78,43 @@ Retry record (October 30, 2026, Japan time):
 - Recovery trust bindings again matched the pre-deployment data byte for byte.
 - A targeted retry of that failed job also timed out during resource verification. It did not return an upstream status.
 - Retry the failed job with `gh run rerun 40902052216 --failed` when upstream connectivity recovers.
+
+Diagnosis and recovery (October 30, 2026, Japan time):
+
+- Staging run `40902052216`, attempt 3, passed protected activation, all backend health checks, and all frontend deployment checks.
+- The same source revision, `f69b4d21f0efb1392fce1e0c79fffda35ed5182e`, is promoted to private `main` for production.
+- The activation code retrieves GitHub's public signing keys before checking token signatures and protected workflow claims.
+  A non-success response returns an authentication failure. A slow request also exceeds the CLI's 45-second resource-verification deadline.
+- Direct key retrieval from this machine returned HTTP 200. GitHub's status page reported no active incident.
+- A minimal Cloudflare preview in NRT retrieved the same keys successfully with and without a User-Agent header.
+- A temporary Worker with the same Singapore placement also retrieved the keys successfully with both header variants.
+  Six further requests produced four HTTP 200 responses and two client timeouts at 65 seconds.
+  The timed-out probe requests did not expose an upstream status, so exact HTTP-522 reproduction is unproven.
+- Concurrent requests with a deliberately invalid key identifier confirmed successful key retrieval on staging and mainnet.
+  Unchanged production-testnet returned the existing key-unavailable error after 43.89 seconds.
+  These requests could not authorize a state change.
+- The evidence supports intermittent upstream connectivity. It contradicts a permanent regional outage, a global GitHub outage, and a required User-Agent header.
+  The specific network fault remains unknown. No authentication bypass or alternative key source was introduced.
+- The temporary diagnostic Worker and local preview are removed. Redacted results remain in `.artifacts/release-0.28.0/jwks-diagnosis/`.
+- Production runs: testnet `40907962515`, mainnet `40907968058`, GetSignal `40907974932`.
+
+Completed deployment record:
+
+- [Staging](https://github.com/seams-tech/seams-monorepo/actions/runs/40902052216), [production testnet](https://github.com/seams-tech/seams-monorepo/actions/runs/40907962515), [production mainnet](https://github.com/seams-tech/seams-monorepo/actions/runs/40907968058), and [GetSignal](https://github.com/seams-tech/seams-monorepo/actions/runs/40907974932) passed.
+- All deployments used private revision `f69b4d21f0efb1392fce1e0c79fffda35ed5182e` and exact public packages `0.28.0`.
+  Later unrelated development commits were excluded from this production promotion.
+- Each lane passed protected tenant activation and backend health checks. Both full frontend rollouts passed their deployment checks.
+- Independent post-deployment reads returned HTTP 200 from all four Gateway readiness endpoints.
+- All 16 Wallet databases contain the three external-auth tables. All three Console databases contain the three provider-configuration columns.
+  Evidence: `.artifacts/release-0.28.0/schema-verification.json`.
+- Staging and mainnet signed recovery trust bindings remain byte-identical to the verified pre-release bindings.
+- The main-revision validation run found two historical fixture failures after 16 acceptance scenarios passed.
+  These tests seed pre-0094 databases through the current environment service, which requires columns added by migration 0111.
+  Classification: `obsolete_test_or_fixture`. The historical migration invariants remain valid.
+- Test-only commit `a75884dc394ada8bb27d5b57a9de61b38fabe242` seeds historical environment rows through a shared fixture.
+  Both affected E2E tests passed. Their money, hold, migration-inventory, and restart assertions remain intact.
+  Production parsing remains strict. The fixture update is committed on `dev` and does not require a runtime redeployment.
+- [Updated private validation](https://github.com/seams-tech/seams-monorepo/actions/runs/40909495746) passed, including lint, types, application builds, all 18 account acceptance scenarios, and the native acceptance artifact build.
 
 Integration conditions:
 

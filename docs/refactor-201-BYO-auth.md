@@ -64,6 +64,20 @@ Deployment record (October 30, 2026, Japan time):
   Require staging success before promoting private `dev` to `main` and deploying production and GetSignal.
 - Local evidence: `.artifacts/release-0.28.0/status.json`, `recovery-before.json`, and `recovery-after.json`.
 
+Retry record (October 30, 2026, Japan time):
+
+- A fifth attempt of the original staging run failed during regional authentication.
+- Diagnostic revision `f69b4d21f0efb1392fce1e0c79fffda35ed5182e` adds the upstream HTTP status to key-fetch errors and preserves the bounded server message.
+  Router-server type checks and all 53 existing script checks passed.
+- [Staging diagnostic rollout](https://github.com/seams-tech/seams-monorepo/actions/runs/40902052216) completed backend and Console deployment again.
+- Activation failed with `Runtime resource verification failed with HTTP 401: GitHub OIDC keys are unavailable (HTTP 522)`.
+  HTTP 522 identifies an upstream connection timeout. The timeout's provider-side cause remains unknown.
+- No suitable shared GitHub key cache exists. A new cache would still require an initial successful upstream request.
+  Authentication behavior remains unchanged.
+- Staging activation and frontend deployment remain incomplete. Production and GetSignal rollout have not started.
+- Recovery trust bindings again matched the pre-deployment data byte for byte.
+- Retry the failed job with `gh run rerun 40902052216 --failed` when upstream connectivity recovers.
+
 Integration conditions:
 
 1. An actual Google user SSO acceptance run remains unverified. The service-account fixture has a different authorized party.

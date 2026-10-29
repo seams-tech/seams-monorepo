@@ -168,18 +168,19 @@ def base_utterances(cache: Path) -> tuple[list[dict], dict]:
             bases.append({"set": "dictation_en", "language": "en", "itemId": item.id, "voice": voice,
                           "reference": item.text, "keyTerms": list(item.key_terms),
                           "samples": render_say(cache, voice, item.text)})
-    for phrase in corpus.APPROVAL_EN:
-        variants = (("correct", phrase.text),) + phrase.near_misses
-        for voice in corpus.VOICES_APPROVAL_EN:
-            for variant, text in variants:
-                bases.append({"set": "approval_en", "language": "en", "itemId": f"{phrase.id}-{variant}",
-                              "voice": voice, "reference": text, "phraseId": phrase.id, "variant": variant,
+    for set_name, bank in corpus.APPROVAL_BANKS.items():
+        for phrase in bank:
+            variants = (("correct", phrase.text),) + phrase.near_misses
+            for voice in corpus.VOICES_APPROVAL_EN:
+                for variant, text in variants:
+                    bases.append({"set": set_name, "language": "en", "itemId": f"{phrase.id}-{variant}",
+                                  "voice": voice, "reference": text, "phraseId": phrase.id, "variant": variant,
+                                  "samples": render_say(cache, voice, text)})
+        for item_id, text in corpus.UNRELATED_EN:
+            for voice in corpus.VOICES_APPROVAL_EN:
+                bases.append({"set": set_name, "language": "en", "itemId": item_id, "voice": voice,
+                              "reference": text, "phraseId": None, "variant": "unrelated",
                               "samples": render_say(cache, voice, text)})
-    for item_id, text in corpus.UNRELATED_EN:
-        for voice in corpus.VOICES_APPROVAL_EN:
-            bases.append({"set": "approval_en", "language": "en", "itemId": item_id, "voice": voice,
-                          "reference": text, "phraseId": None, "variant": "unrelated",
-                          "samples": render_say(cache, voice, text)})
     for item in corpus.DICTATION_JA:
         for voice in corpus.VOICES_JA:
             bases.append({"set": "dictation_ja", "language": "ja", "itemId": item.id, "voice": voice,

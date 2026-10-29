@@ -38,9 +38,11 @@ engine streams in 0.5 s updates; the final text can differ.
 `inputs-manifest.json` with the source hashes.
 
 - Bakery speech from `corpus.py`, spoken by macOS `say` voices: 30 English
-  dictation sentences by six voices, 12 approval phrases with four near misses
-  each and six unrelated sentences by four voices, and 15 Japanese dictation
-  sentences by one voice.
+  dictation sentences by six voices, two banks of 12 approval phrases with
+  four near misses each and six unrelated sentences by four voices, and 15
+  Japanese dictation sentences by one voice. The first bank (`approval_en`)
+  uses supplier and pastry names. The second bank (`approval_en_v2`) uses
+  common words and numbers only, with no names or homophones.
 - Human read speech: 60 sentences each from the FLEURS `en_us` and `ja_jp`
   dev splits (CC-BY-4.0), pinned to a dataset revision.
 - Noise: channel 1 of the DEMAND `DKITCHEN` (food preparation), `PCAFETER`
@@ -66,6 +68,8 @@ transcript: `reports/stt-bench-2026-10-29-cases.jsonl.gz`.
 | Correct approval phrase accepted, clean / 0 dB | 70.8% / 53.5% | 47.9% / 23.6% | 41.7% / 31.2% | 29.2% / 16.7% |
 | Same, phrases without names, clean / 0 dB | 81% / 58% | 59% / 31% | 53% / 40% | 41% / 23% |
 | Near miss accepted, `strict` | 0 of 1,920 | 0 of 1,920 | 0 of 1,920 | 0 of 1,920 |
+| Correct phrase accepted, second bank, clean / 10 / 5 / 0 dB | 97.9% / 94.4% / 86.8% / 81.9% | 66.7% / 52.8% / 63.2% / 45.1% | – | – |
+| Near miss accepted, second bank, `strict` | 0 of 1,920 | 2 of 1,920 | – | – |
 | Near miss accepted, `one_edit`, clean | 49.0% | 28.6% | 34.4% | 19.8% |
 | Japanese bakery dictation CER, clean / 0 dB | 4.8% / 9.2% (2.8% / 6.4% with vocabulary) | – | 23.5% / 24.4% | 6.2% / 22.0% |
 | FLEURS Japanese CER, clean / 0 dB | 4.2% / 6.5% | – | 25.4% / 32.3% | 12.0% / 23.2% |
@@ -82,10 +86,17 @@ Findings:
 - The `strict` approval policy accepted no near miss for any model. `one_edit`
   accepted 20–49% of near misses, including "reject" for "approve". Keep
   `strict`.
-- Whisper's remaining approval refusals come from names ("Kanto Mills",
+- In the first bank, Whisper's refusals come from names ("Kanto Mills",
   "Valrhona"), a homophone ("flower" for "flour") and small word changes
-  ("approved", "is passed"). Phrases without names pass more often. Phrases
-  must avoid names and homophones; the screen shows those details.
+  ("approved", "is passed").
+- The second bank, with common words and numbers, raised Whisper's correct
+  accepts from 70.8% to 97.9% clean and from 53.5% to 81.9% at 0 dB, with no
+  near miss accepted. Moonshine Medium rose from 47.9% to 66.7% clean.
+- Moonshine Medium accepted two second-bank near misses: "share the staff
+  report" was heard as "stock" in cafeteria noise. Words that change the
+  action must not sound alike inside one bank (stock and staff, batch and
+  badge, price and prize, cake and case). Whisper's remaining misses are of
+  the same kind, plus "sent" for "send" and "a" for "the".
 - Moonshine Base Japanese cuts the end of many sentences; this run did not
   check whether a library length setting causes it. Moonshine's Japanese
   models use the non-commercial Moonshine Community License.
@@ -110,6 +121,10 @@ uv pip install --python "$bench/.cache/.venv/bin/python" -r "$bench/requirements
 "$bench/.cache/.venv/bin/python" "$bench/prepare.py"
 "$bench/run_all.sh" stt-bench-YYYY-MM-DD
 ```
+
+`run_model.py --set <set>` runs one case set, for example the second phrase
+bank `approval_en_v2`; the 2026-10-29 second-bank results came from such
+runs. A full English run includes every set.
 
 `run_all.sh` runs each model in its own process, then writes
 `reports/<name>.json` (all metrics, model and input hashes),

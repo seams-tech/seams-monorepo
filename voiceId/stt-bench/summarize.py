@@ -43,26 +43,35 @@ def main() -> None:
                 for run in runs if (run, set_name, "all") in results]
         sections.append(f"## {title}\n\n" + table(["Run", *BANDS], rows))
 
-    for policy in ("strict", "one_edit"):
-        rows = []
-        for run in runs:
-            if (run, "approval_en", "all") not in results:
+    banks = (("approval_en", "first phrase bank"), ("approval_en_v2", "second phrase bank, common words and numbers"))
+    for set_name, bank_title in banks:
+        for policy in ("strict", "one_edit"):
+            rows = []
+            for run in runs:
+                if (run, set_name, "all") not in results:
+                    continue
+                row = [run]
+                for band in BANDS:
+                    stats = results[(run, set_name, band)][policy]
+                    row.append(f"{percent(stats['trueAccept']['rate'])} / {percent(stats['nearMissAccept']['rate'])}")
+                overall = results[(run, set_name, "all")][policy]
+                row += [percent(overall[f"nearMissAccept.{kind}"]["rate"])
+                        for kind in ("negation", "verb", "detail", "missing")]
+                row += [percent(overall["unrelatedAccept"]["rate"]), percent(overall["crossPhraseAccept"]["rate"])]
+                rows.append(row)
+            if not rows:
                 continue
-            row = [run]
-            for band in BANDS:
-                stats = results[(run, "approval_en", band)][policy]
-                row.append(f"{percent(stats['trueAccept']['rate'])} / {percent(stats['nearMissAccept']['rate'])}")
-            overall = results[(run, "approval_en", "all")][policy]
-            row += [percent(overall[f"nearMissAccept.{kind}"]["rate"]) for kind in ("negation", "verb", "detail", "missing")]
-            row += [percent(overall["unrelatedAccept"]["rate"]), percent(overall["crossPhraseAccept"]["rate"])]
-            rows.append(row)
-        header = ["Run", *(f"{band}: correct / near miss" for band in BANDS),
-                  "negation", "verb", "detail", "missing", "unrelated", "other phrase"]
-        sections.append(f"## Approval phrases, `{policy}` policy: accept rates\n\n" + table(header, rows))
+            header = ["Run", *(f"{band}: correct / near miss" for band in BANDS),
+                      "negation", "verb", "detail", "missing", "unrelated", "other phrase"]
+            sections.append(f"## Approval phrases ({bank_title}), `{policy}` policy: accept rates\n\n"
+                            + table(header, rows))
 
     rows = []
     for run in runs:
         summary = report["runs"][run]
+        if summary.get("set"):
+            # Single-set reruns can share the machine with another run; their timings do not compare.
+            continue
         rows.append([run, f"{summary['modelBytes'] / 1e6:.0f} MB", f"{summary['loadSeconds']:.1f} s",
                      f"{summary['computeSeconds'] / summary['caseCount'] * 1000:.0f} ms",
                      f"{summary['realTimeFactor']:.3f}", f"{summary['peakResidentBytes'] / 1e9:.2f} GB",

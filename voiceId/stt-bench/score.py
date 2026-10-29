@@ -103,8 +103,8 @@ def score_dictation(rows: list[dict]) -> dict:
             "keyTermRecall": rate(hits, terms), "exactSentences": rate(exact, len(rows))}
 
 
-def score_approval(rows: list[dict]) -> dict:
-    phrases = {p.id: normalize_en(p.text).split() for p in corpus.APPROVAL_EN}
+def score_approval(rows: list[dict], bank: tuple[corpus.ApprovalPhrase, ...]) -> dict:
+    phrases = {p.id: normalize_en(p.text).split() for p in bank}
     counts = defaultdict(lambda: [0, 0])
     for row in rows:
         spoken = normalize_en(row["hypothesis"]).split()
@@ -161,7 +161,8 @@ def main() -> None:
         groups[(row["runId"], row["set"], "all")].append(row)
     results = []
     for (run_id, set_name, condition), rows in sorted(groups.items()):
-        metrics = score_approval(rows) if set_name == "approval_en" else score_dictation(rows)
+        bank = corpus.APPROVAL_BANKS.get(set_name)
+        metrics = score_approval(rows, bank) if bank else score_dictation(rows)
         results.append({"runId": run_id, "set": set_name, "condition": condition, **metrics})
 
     inputs = json.loads((cache / "inputs-manifest.json").read_text())

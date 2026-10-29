@@ -147,6 +147,91 @@ APPROVAL_EN: tuple[ApprovalPhrase, ...] = (
     )),
 )
 
+# Second bank, written after the 2026-10-29 run. Each phrase names one action
+# with common words and numbers only. It avoids names, foreign words and words
+# that sound like another word (flour, for, to, two, eight, one, new, sell,
+# sales, cash, add, by, buy, read, see, rights, weekly, access). The near
+# misses keep the same four kinds of change.
+APPROVAL_EN_V2: tuple[ApprovalPhrase, ...] = (
+    ApprovalPhrase("bp01", "pay invoice three five nine", (
+        ("negation", "do not pay invoice three five nine"),
+        ("verb", "hold invoice three five nine"),
+        ("detail", "pay invoice three five six"),
+        ("missing", "pay invoice three nine"),
+    )),
+    ApprovalPhrase("bp02", "send order seven three six", (
+        ("negation", "do not send order seven three six"),
+        ("verb", "hold order seven three six"),
+        ("detail", "send order seven three nine"),
+        ("missing", "send order seven six"),
+    )),
+    ApprovalPhrase("bp03", "refund six hundred yen", (
+        ("negation", "do not refund six hundred yen"),
+        ("verb", "charge six hundred yen"),
+        ("detail", "refund six thousand yen"),
+        ("missing", "refund six yen"),
+    )),
+    ApprovalPhrase("bp04", "give the agent stock control", (
+        ("negation", "do not give the agent stock control"),
+        ("verb", "deny the agent stock control"),
+        ("detail", "give the agent bank control"),
+        ("missing", "give the agent control"),
+    )),
+    ApprovalPhrase("bp05", "ship batch five today", (
+        ("negation", "do not ship batch five today"),
+        ("verb", "hold batch five today"),
+        ("detail", "ship batch nine today"),
+        ("missing", "ship batch today"),
+    )),
+    ApprovalPhrase("bp06", "cancel the monthly cake order", (
+        ("negation", "do not cancel the monthly cake order"),
+        ("verb", "renew the monthly cake order"),
+        ("detail", "cancel the yearly cake order"),
+        ("missing", "cancel the cake order"),
+    )),
+    ApprovalPhrase("bp07", "publish the spring price list", (
+        ("negation", "do not publish the spring price list"),
+        ("verb", "delete the spring price list"),
+        ("detail", "publish the winter price list"),
+        ("missing", "publish the price list"),
+    )),
+    ApprovalPhrase("bp08", "pay three thousand yen deposit", (
+        ("negation", "do not pay three thousand yen deposit"),
+        ("verb", "refund three thousand yen deposit"),
+        ("detail", "pay five thousand yen deposit"),
+        ("missing", "pay three yen deposit"),
+    )),
+    ApprovalPhrase("bp09", "send the reply about the cake", (
+        ("negation", "do not send the reply about the cake"),
+        ("verb", "delete the reply about the cake"),
+        ("detail", "send the reply about the box"),
+        ("missing", "send the reply"),
+    )),
+    ApprovalPhrase("bp10", "open the shop at nine", (
+        ("negation", "do not open the shop at nine"),
+        ("verb", "close the shop at nine"),
+        ("detail", "open the shop at seven"),
+        ("missing", "open the shop"),
+    )),
+    ApprovalPhrase("bp11", "share the stock report", (
+        ("negation", "do not share the stock report"),
+        ("verb", "delete the stock report"),
+        ("detail", "share the staff report"),
+        ("missing", "share the report"),
+    )),
+    ApprovalPhrase("bp12", "order six boxes of cream", (
+        ("negation", "do not order six boxes of cream"),
+        ("verb", "return six boxes of cream"),
+        ("detail", "order nine boxes of cream"),
+        ("missing", "order boxes of cream"),
+    )),
+)
+
+APPROVAL_BANKS: dict[str, tuple[ApprovalPhrase, ...]] = {
+    "approval_en": APPROVAL_EN,
+    "approval_en_v2": APPROVAL_EN_V2,
+}
+
 # Talk at the bench that is not addressed to the laptop.
 UNRELATED_EN: tuple[tuple[str, str], ...] = (
     ("un01", "can you pass me the piping bag"),

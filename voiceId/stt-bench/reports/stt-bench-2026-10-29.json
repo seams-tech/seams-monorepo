@@ -244,8 +244,8 @@
         "Kyoko"
       ]
     },
-    "caseCount": 5790,
-    "casesSha256": "cbc3a394f2f793f60248d4fdbb9144a62a9fef8ee9f0c21abb40111c3215cf59"
+    "caseCount": 8430,
+    "casesSha256": "18aa1a0f77007128dbaa77428eea99b991fa37a90e540e9d6cbe8addca347d68"
   },
   "runs": {
     "moonshine-base-en": {
@@ -327,6 +327,72 @@
       "peakResidentBytes": 1040089088,
       "peakGpuBytes": 0,
       "modelBytes": 141001214
+    },
+    "moonshine-medium-streaming-en-approval_en_v2": {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "model": "moonshine-medium-streaming",
+      "language": "en",
+      "vocabulary": false,
+      "set": "approval_en_v2",
+      "identity": {
+        "arch": "MEDIUM_STREAMING",
+        "language": "en",
+        "runtime": "moonshine-voice 0.1.5",
+        "files": [
+          {
+            "path": "adapter.ort",
+            "bytes": 3651296,
+            "sha256": "3f2a287def57cc094367a0eec3c4f5fc36a32ec420e86764b696920991b20281"
+          },
+          {
+            "path": "cross_kv.ort",
+            "bytes": 11643776,
+            "sha256": "642f6e21cd305be79342207c6f9e6b681d469d55bc48c72b27b84846fb71fd1e"
+          },
+          {
+            "path": "decoder_kv.ort",
+            "bytes": 146972408,
+            "sha256": "193bb366492b74fc4ad338c6778e8d8eb916aaa11b5aa264f9057f4db7759486"
+          },
+          {
+            "path": "encoder.ort",
+            "bytes": 94705376,
+            "sha256": "12915e76ebac7dd287c5ea63965d06103a53ba1ce242a4a34f318f3958c60c37"
+          },
+          {
+            "path": "frontend.model.ort",
+            "bytes": 28720,
+            "sha256": "95768855c70c8251eeecc05fedf69999da1b8ab16f605c9f457fd3354b0ad6b5"
+          },
+          {
+            "path": "frontend.weights.ort",
+            "bytes": 11889560,
+            "sha256": "5ac941f490cbe035b335b99a414cc393d62d4c6f9f2423495b286870d271d709"
+          },
+          {
+            "path": "streaming_config.json",
+            "bytes": 513,
+            "sha256": "28e83b7a28e91472692a035e0dae3116422ae43aeb2bef5ed822c44ce89b88af"
+          },
+          {
+            "path": "tokenizer.bin",
+            "bytes": 249974,
+            "sha256": "6884b35fd6377d4c4d32336a0bc152f36b64d1e45b6503683cdc238250a8472d"
+          }
+        ]
+      },
+      "host": {
+        "macos": "15.7.1",
+        "machine": "arm64"
+      },
+      "caseCount": 2640,
+      "loadSeconds": 0.78,
+      "audioSeconds": 6018.9,
+      "computeSeconds": 1065.2,
+      "realTimeFactor": 0.177,
+      "peakResidentBytes": 1211219968,
+      "peakGpuBytes": 0,
+      "modelBytes": 269141623
     },
     "moonshine-medium-streaming-en-vocab": {
       "runId": "moonshine-medium-streaming-en-vocab",
@@ -652,6 +718,52 @@
       "peakResidentBytes": 534626304,
       "peakGpuBytes": 0,
       "modelBytes": 32319961
+    },
+    "whisper-large-v3-turbo-en-approval_en_v2": {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "model": "whisper-large-v3-turbo",
+      "language": "en",
+      "vocabulary": false,
+      "set": "approval_en_v2",
+      "identity": {
+        "repo": "mlx-community/whisper-large-v3-turbo",
+        "revision": "a4aaeec0636e6fef84abdcbe3544cb2bf7e9f6fb",
+        "runtime": "mlx-whisper 0.4.3",
+        "files": [
+          {
+            "path": ".gitattributes",
+            "bytes": 1519,
+            "sha256": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361"
+          },
+          {
+            "path": "README.md",
+            "bytes": 359,
+            "sha256": "78f2d3dc65072211d957fc1b646c2d96e8e8f96dd45ceb2ac5f2643d0c5c05da"
+          },
+          {
+            "path": "config.json",
+            "bytes": 268,
+            "sha256": "b34fc29e4e11e0a25e812775dd67f4dd16fc2c8eb43d28ae25ff7d660ecb6379"
+          },
+          {
+            "path": "weights.safetensors",
+            "bytes": 1613977612,
+            "sha256": "951ed3fc1203e6a62467abb2144a96ce7eafca8fa77e3704fdb8635ff3e7f8a6"
+          }
+        ]
+      },
+      "host": {
+        "macos": "15.7.1",
+        "machine": "arm64"
+      },
+      "caseCount": 2640,
+      "loadSeconds": 3.78,
+      "audioSeconds": 6018.9,
+      "computeSeconds": 1198.2,
+      "realTimeFactor": 0.1991,
+      "peakResidentBytes": 1945059328,
+      "peakGpuBytes": 2477805458,
+      "modelBytes": 1613979758
     },
     "whisper-large-v3-turbo-en-vocab": {
       "runId": "whisper-large-v3-turbo-en-vocab",
@@ -4166,6 +4278,1252 @@
       "errorUnit": "word",
       "keyTermRecall": null,
       "exactSentences": 0.4667
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "0 dB",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.3229,
+          "count": 186,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.4028,
+          "count": 58,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.4514,
+          "count": 65,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.4375,
+          "count": 63,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.6736,
+          "count": 97,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.4514,
+          "count": 65,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "10 dB",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.3958,
+          "count": 228,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.5972,
+          "count": 86,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.4583,
+          "count": 66,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.5278,
+          "count": 76,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.8681,
+          "count": 125,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.0017,
+          "count": 1,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0069,
+          "count": 1,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.5278,
+          "count": 76,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "5 dB",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.3906,
+          "count": 225,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.5694,
+          "count": 82,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.4653,
+          "count": 67,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.5278,
+          "count": 76,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.8333,
+          "count": 120,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.0017,
+          "count": 1,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0069,
+          "count": 1,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.6319,
+          "count": 91,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "all",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 8160
+        },
+        "nearMissAccept": {
+          "rate": 0.3776,
+          "count": 725,
+          "of": 1920
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.5396,
+          "count": 259,
+          "of": 480
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.4562,
+          "count": 219,
+          "of": 480
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.5146,
+          "count": 247,
+          "of": 480
+        },
+        "trueAccept": {
+          "rate": 0.8083,
+          "count": 388,
+          "of": 480
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 240
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 8160
+        },
+        "nearMissAccept": {
+          "rate": 0.001,
+          "count": 2,
+          "of": 1920
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0042,
+          "count": 2,
+          "of": 480
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "trueAccept": {
+          "rate": 0.55,
+          "count": 264,
+          "of": 480
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 240
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "cafe0",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.1667,
+          "count": 32,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.2292,
+          "count": 11,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.2292,
+          "count": 11,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.2083,
+          "count": 10,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.3542,
+          "count": 17,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.1458,
+          "count": 7,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "cafe10",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.349,
+          "count": 67,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.5,
+          "count": 24,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.4375,
+          "count": 21,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.4583,
+          "count": 22,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.7917,
+          "count": 38,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0052,
+          "count": 1,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0208,
+          "count": 1,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.5208,
+          "count": 25,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "cafe5",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.2917,
+          "count": 56,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.5,
+          "count": 24,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.25,
+          "count": 12,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.4167,
+          "count": 20,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.6875,
+          "count": 33,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0052,
+          "count": 1,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0208,
+          "count": 1,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.4792,
+          "count": 23,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "clean",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1632
+        },
+        "nearMissAccept": {
+          "rate": 0.4479,
+          "count": 172,
+          "of": 384
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.6875,
+          "count": 66,
+          "of": 96
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.4375,
+          "count": 42,
+          "of": 96
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.6667,
+          "count": 64,
+          "of": 96
+        },
+        "trueAccept": {
+          "rate": 0.9583,
+          "count": 92,
+          "of": 96
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1632
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 384
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "trueAccept": {
+          "rate": 0.6667,
+          "count": 64,
+          "of": 96
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "kitchen0",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.3958,
+          "count": 76,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.4792,
+          "count": 23,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.5625,
+          "count": 27,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.5417,
+          "count": 26,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.7917,
+          "count": 38,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.5208,
+          "count": 25,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "kitchen10",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.4375,
+          "count": 84,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.6667,
+          "count": 32,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.5625,
+          "count": 27,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.5208,
+          "count": 25,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.8958,
+          "count": 43,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.5625,
+          "count": 27,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "kitchen5",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.4271,
+          "count": 82,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.6042,
+          "count": 29,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.5625,
+          "count": 27,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.5417,
+          "count": 26,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.8542,
+          "count": 41,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.625,
+          "count": 30,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "motor0",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.4062,
+          "count": 78,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.5,
+          "count": 24,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.5625,
+          "count": 27,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.5625,
+          "count": 27,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.875,
+          "count": 42,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.6875,
+          "count": 33,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "motor10",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.401,
+          "count": 77,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.625,
+          "count": 30,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.375,
+          "count": 18,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.6042,
+          "count": 29,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.5,
+          "count": 24,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "moonshine-medium-streaming-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "motor5",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.4531,
+          "count": 87,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.6042,
+          "count": 29,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.5833,
+          "count": 28,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.625,
+          "count": 30,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.7917,
+          "count": 38,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
     },
     {
       "runId": "moonshine-medium-streaming-en-vocab",
@@ -7778,6 +9136,1252 @@
       "errorUnit": "word",
       "keyTermRecall": null,
       "exactSentences": 0.5833
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "0 dB",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.5625,
+          "count": 324,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.8333,
+          "count": 120,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.6319,
+          "count": 91,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.7847,
+          "count": 113,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.8958,
+          "count": 129,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.8194,
+          "count": 118,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "10 dB",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.6719,
+          "count": 387,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9792,
+          "count": 141,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7569,
+          "count": 109,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9514,
+          "count": 137,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 144,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.9444,
+          "count": 136,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "5 dB",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.6476,
+          "count": 373,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9583,
+          "count": 138,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7153,
+          "count": 103,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9167,
+          "count": 132,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.9722,
+          "count": 140,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 2448
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 576
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 144
+        },
+        "trueAccept": {
+          "rate": 0.8681,
+          "count": 125,
+          "of": 144
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 72
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "all",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 8160
+        },
+        "nearMissAccept": {
+          "rate": 0.6333,
+          "count": 1216,
+          "of": 1920
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9313,
+          "count": 447,
+          "of": 480
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7063,
+          "count": 339,
+          "of": 480
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.8958,
+          "count": 430,
+          "of": 480
+        },
+        "trueAccept": {
+          "rate": 0.9604,
+          "count": 461,
+          "of": 480
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 240
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 8160
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1920
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 480
+        },
+        "trueAccept": {
+          "rate": 0.8875,
+          "count": 426,
+          "of": 480
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 240
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "cafe0",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.401,
+          "count": 77,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.5833,
+          "count": 28,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.4167,
+          "count": 20,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.6042,
+          "count": 29,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.7083,
+          "count": 34,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.5833,
+          "count": 28,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "cafe10",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6771,
+          "count": 130,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7708,
+          "count": 37,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "cafe5",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.5938,
+          "count": 114,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.8958,
+          "count": 43,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.6458,
+          "count": 31,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.8333,
+          "count": 40,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.7083,
+          "count": 34,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "clean",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1632
+        },
+        "nearMissAccept": {
+          "rate": 0.6875,
+          "count": 264,
+          "of": 384
+        },
+        "nearMissAccept.detail": {
+          "rate": 1.0,
+          "count": 96,
+          "of": 96
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 72,
+          "of": 96
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.verb": {
+          "rate": 1.0,
+          "count": 96,
+          "of": 96
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 96,
+          "of": 96
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 1632
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 384
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 96
+        },
+        "trueAccept": {
+          "rate": 0.9792,
+          "count": 94,
+          "of": 96
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "kitchen0",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.599,
+          "count": 115,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.6875,
+          "count": 33,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.7917,
+          "count": 38,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9375,
+          "count": 45,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "kitchen10",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6562,
+          "count": 126,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "kitchen5",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6615,
+          "count": 127,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9167,
+          "count": 44,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "motor0",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6875,
+          "count": 132,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.7917,
+          "count": 38,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9583,
+          "count": 46,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9375,
+          "count": 45,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "motor10",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6823,
+          "count": 131,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9375,
+          "count": 45,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
+    },
+    {
+      "runId": "whisper-large-v3-turbo-en-approval_en_v2",
+      "set": "approval_en_v2",
+      "condition": "motor5",
+      "one_edit": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.6875,
+          "count": 132,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.75,
+          "count": 36,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 1.0,
+          "count": 48,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      },
+      "strict": {
+        "crossPhraseAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 816
+        },
+        "nearMissAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 192
+        },
+        "nearMissAccept.detail": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.missing": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.negation": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "nearMissAccept.verb": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 48
+        },
+        "trueAccept": {
+          "rate": 0.9792,
+          "count": 47,
+          "of": 48
+        },
+        "unrelatedAccept": {
+          "rate": 0.0,
+          "count": 0,
+          "of": 24
+        }
+      }
     },
     {
       "runId": "whisper-large-v3-turbo-en-vocab",

@@ -88,6 +88,7 @@ def main() -> None:
     parser.add_argument("--language", choices=("en", "ja"), required=True)
     parser.add_argument("--vocabulary", action="store_true",
                         help="Pass the shop vocabulary (Whisper prompt or Moonshine key terms) for dictation sets.")
+    parser.add_argument("--set", dest="set_name", help="Run only this case set, for example approval_en_v2.")
     parser.add_argument("--whisper-revision", default=WHISPER_REVISION)
     parser.add_argument("--cache", type=Path, default=Path(__file__).parent / ".cache")
     args = parser.parse_args()
@@ -97,6 +98,10 @@ def main() -> None:
     cases = [c for c in cases if c["language"] == args.language]
     if args.vocabulary:
         cases = [c for c in cases if c["set"].startswith("dictation")]
+    if args.set_name:
+        cases = [c for c in cases if c["set"] == args.set_name]
+    if not cases:
+        raise SystemExit("no cases match")
     vocabulary = (corpus.VOCABULARY_EN if args.language == "en" else corpus.VOCABULARY_JA) if args.vocabulary else None
 
     started = time.perf_counter()
@@ -109,7 +114,8 @@ def main() -> None:
     warm = np.asarray(sf.read(cache / cases[0]["path"], dtype="float32")[0])
     model.transcribe(warm, args.language, vocabulary)
 
-    run_id = f"{args.model}-{args.language}" + ("-vocab" if args.vocabulary else "")
+    run_id = (f"{args.model}-{args.language}" + ("-vocab" if args.vocabulary else "")
+              + (f"-{args.set_name}" if args.set_name else ""))
     runs = cache / "runs"
     runs.mkdir(exist_ok=True)
     total_audio = 0.0
@@ -127,6 +133,7 @@ def main() -> None:
 
     summary = {
         "runId": run_id, "model": args.model, "language": args.language, "vocabulary": args.vocabulary,
+        "set": args.set_name,
         "identity": model.identity, "host": {"macos": platform.mac_ver()[0], "machine": platform.machine()},
         "caseCount": len(cases), "loadSeconds": round(load_seconds, 2),
         "audioSeconds": round(total_audio, 1), "computeSeconds": round(total_compute, 1),

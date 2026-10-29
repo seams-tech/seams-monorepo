@@ -76,6 +76,7 @@ Retry record (October 30, 2026, Japan time):
   Authentication behavior remains unchanged.
 - Staging activation and frontend deployment remain incomplete. Production and GetSignal rollout have not started.
 - Recovery trust bindings again matched the pre-deployment data byte for byte.
+- A targeted retry of that failed job also timed out during resource verification. It did not return an upstream status.
 - Retry the failed job with `gh run rerun 40902052216 --failed` when upstream connectivity recovers.
 
 Integration conditions:

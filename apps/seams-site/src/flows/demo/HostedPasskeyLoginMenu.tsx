@@ -159,6 +159,9 @@ function handleHostedAuthMenuOutcome(
       toast.success(`Account synced: ${outcome.walletId}`, { id: 'sync' });
       void refreshSession(String(outcome.walletId)).catch(() => {});
       return;
+    case 'wallet_connected':
+      toast.success('External wallet connected', { id: 'login' });
+      return;
     case 'cancelled':
       toast.info('Wallet authentication cancelled', { id: 'login' });
       return;

@@ -30,8 +30,8 @@
     "bs58": "6.0.0",
     "clsx": "2.1.1",
     "lucide-react": "0.542.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
     "sonner": "1.7.4",
     "@seams/wallet-server": "0.30.0"
   },

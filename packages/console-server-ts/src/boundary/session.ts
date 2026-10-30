@@ -38,6 +38,21 @@ export interface SessionAdapter {
   ): Promise<{ ok: boolean; jwt?: string; code?: string; message?: string }>;
 }
 
+export type ConsoleSessionRevocationResult =
+  | { readonly kind: 'revoked' }
+  | { readonly kind: 'no_active_session' };
+
+export interface ConsoleSessionRevocationStore {
+  revoke(input: { readonly tokenDigest: string; readonly expiresAtMs: number }): Promise<void>;
+  isRevoked(tokenDigest: string, nowMs: number): Promise<boolean>;
+}
+
+export interface RevocableConsoleSessionAdapter extends SessionAdapter {
+  revoke(
+    headers: Record<string, string | string[] | undefined>,
+  ): Promise<ConsoleSessionRevocationResult>;
+}
+
 export interface ConsoleSessionJwtHooks {
   signToken(input: {
     header: { typ: 'JWT' };
@@ -59,6 +74,7 @@ export interface ConsoleSessionCookieHooks {
 export interface ConsoleSessionServiceConfig {
   readonly jwt: ConsoleSessionJwtHooks;
   readonly cookie: ConsoleSessionCookieHooks;
+  readonly revocations: ConsoleSessionRevocationStore;
 }
 
 const RESERVED_JWT_CLAIMS = new Set(['sub', 'iat', 'exp', 'nbf', 'iss', 'aud', 'jti']);
@@ -68,7 +84,7 @@ const RESERVED_JWT_CLAIMS = new Set(['sub', 'iat', 'exp', 'nbf', 'iss', 'aud', '
  * than trusted to the verify hook so every composition gets identical time
  * semantics.
  */
-export class ConsoleSessionService implements SessionAdapter {
+export class ConsoleSessionService implements RevocableConsoleSessionAdapter {
   constructor(private readonly config: ConsoleSessionServiceConfig) {}
 
   private cookieName(): string {
@@ -137,27 +153,62 @@ export class ConsoleSessionService implements SessionAdapter {
     if (!token) return { ok: false, reason: 'missing' };
     const verified = await this.verifyJwt(token);
     if (!verified.valid) return { ok: false, reason: verified.reason };
+    if (await this.config.revocations.isRevoked(await tokenDigest(token), Date.now())) {
+      return { ok: false, reason: 'not_active' };
+    }
     return { ok: true, claims: verified.payload };
+  }
+
+  async revoke(
+    headers: Record<string, string | string[] | undefined>,
+  ): Promise<ConsoleSessionRevocationResult> {
+    const token = this.extractToken(headers);
+    if (!token) return { kind: 'no_active_session' };
+    const verified = await this.verifyJwt(token);
+    if (!verified.valid) return { kind: 'no_active_session' };
+    const expiresAtSeconds = verified.payload.exp;
+    if (typeof expiresAtSeconds !== 'number' || !Number.isSafeInteger(expiresAtSeconds)) {
+      throw new Error('Console session expiration is invalid');
+    }
+    const expiresAtMs = expiresAtSeconds * 1_000;
+    if (!Number.isSafeInteger(expiresAtMs)) {
+      throw new Error('Console session expiration is invalid');
+    }
+    await this.config.revocations.revoke({
+      tokenDigest: await tokenDigest(token),
+      expiresAtMs,
+    });
+    return { kind: 'revoked' };
   }
 
   async refresh(
     headers: Record<string, string | string[] | undefined>,
   ): Promise<{ ok: boolean; jwt?: string; code?: string; message?: string }> {
-    const token = this.extractToken(headers);
-    if (!token) return { ok: false, code: 'unauthorized', message: 'No session token' };
-    const verified = await this.verifyJwt(token);
-    if (!verified.valid) {
-      if (verified.reason === 'expired') {
+    const parsed = await this.parse(headers);
+    if (!parsed.ok) {
+      if (parsed.reason === 'missing') {
+        return { ok: false, code: 'unauthorized', message: 'No session token' };
+      }
+      if (parsed.reason === 'expired') {
         return { ok: false, code: 'session_expired', message: 'Console session expired' };
       }
       return { ok: false, code: 'unauthorized', message: 'Invalid token' };
     }
-    const sub = String(verified.payload.sub || '');
+    const sub = String(parsed.claims.sub || '');
     if (!sub) return { ok: false, code: 'invalid_claims', message: 'Missing sub claim' };
     const extra: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(verified.payload)) {
+    for (const [key, value] of Object.entries(parsed.claims)) {
       if (!RESERVED_JWT_CLAIMS.has(key)) extra[key] = value;
     }
     return { ok: true, jwt: await this.signJwt(sub, extra) };
   }
+}
+
+async function tokenDigest(token: string): Promise<string> {
+  const bytes = new Uint8Array(
+    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token)),
+  );
+  let digest = '';
+  for (const byte of bytes) digest += byte.toString(16).padStart(2, '0');
+  return digest;
 }

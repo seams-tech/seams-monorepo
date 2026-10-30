@@ -7,6 +7,7 @@ import {
   createConsoleSessionAuthAdapter,
   createHmacSessionAdapter,
 } from '../../../packages/wallet-console-server-ts/src/router/cloudflare/d1StagingSession';
+import { createInMemoryConsoleSessionRevocationStore } from '../../helpers/consoleSessionRevocationStore';
 import {
   HostedConsoleAuthHandler,
   type HostedConsoleIdentityPort,
@@ -197,6 +198,7 @@ async function verifyStepUpEnrollment(
 ): Promise<void> {
   const session = createHmacSessionAdapter({
     secret: 'isolated-step-up-enrollment-session-secret',
+    revocations: createInMemoryConsoleSessionRevocationStore(),
     cookieName: COOKIE_NAME,
   });
   const organizationAccess = createInMemoryConsoleOrganizationAccessService();

@@ -21,6 +21,7 @@ import type { ConsoleAccountIdentityContext } from '../../../packages/console-se
 import type { ServiceProducerAuthorityV1 } from '../../../packages/console-server-ts/src/accountPlatform/types';
 import type { D1DatabaseLike } from '../../../packages/console-server-ts/src/boundary/d1';
 import { ConsoleSessionService } from '../../../packages/console-server-ts/src/boundary/session';
+import { createInMemoryConsoleSessionRevocationStore } from '../../helpers/consoleSessionRevocationStore';
 import { fundsChargeId } from '../../../packages/console-server-ts/src/billingPrepaidReservations/d1';
 import { buildConsoleBillingInvoicePdf } from '../../../packages/console-server-ts/src/billing/pdf';
 import { listD1BillingUsageCharges } from '../../../packages/console-server-ts/src/billing/attribution';
@@ -141,6 +142,7 @@ async function compose(database: D1DatabaseLike, satyrTestPricing: SatyrTestPric
   });
   const session = new ConsoleSessionService({
     jwt: { signToken, verifyToken },
+    revocations: createInMemoryConsoleSessionRevocationStore(),
     cookie: { name: 'usage-session', buildSetHeader: setCookie, buildClearHeader: clearCookie },
   });
   const router = createAccountConsoleRouter({

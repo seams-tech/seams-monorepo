@@ -42,6 +42,7 @@ import { createD1ConsoleRuntimeSnapshotService } from '../../../packages/wallet-
 import { createD1ConsoleWalletService } from '../../../packages/wallet-console-server-ts/src/wallets/d1';
 import { createD1ConsoleKeyExportService } from '../../../packages/wallet-console-server-ts/src/keyExports/d1';
 import { createD1ConsolePolicyService } from '../../../packages/wallet-console-server-ts/src/policies/d1';
+import { createInMemoryConsoleSessionRevocationStore } from '../../helpers/consoleSessionRevocationStore';
 import { ConsolePolicyRulesDigest } from '../../../packages/wallet-console-server-ts/src/policies/reviewDigest';
 import { createD1ConsoleApprovalService } from '../../../packages/wallet-console-server-ts/src/approvals/d1';
 import {
@@ -146,6 +147,7 @@ function ready(): void {}
 function sessions(): ConsoleSessionService {
   return new ConsoleSessionService({
     jwt: { signToken, verifyToken },
+    revocations: createInMemoryConsoleSessionRevocationStore(),
     cookie: {
       name: 'activation-session',
       buildSetHeader: setCookie,

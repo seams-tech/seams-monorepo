@@ -1,6 +1,6 @@
 import type { CfExecutionContext, FetchHandler } from '@seams/wallet-server/cloud-host';
 import { withConsoleCors } from '@seams-internal/console-server/router/cloudflare/cors';
-import type { SessionAdapter } from '@seams-internal/console-server/boundary/session';
+import type { RevocableConsoleSessionAdapter } from '@seams-internal/console-server/boundary/session';
 import {
   parseCreateConsoleAccountOrganizationRequest,
   isConsoleAccountError,
@@ -60,7 +60,7 @@ export interface HostedConsoleAuthHandlerOptions {
     verificationReceiptId: string,
   ) => Promise<void>;
   readonly providers: HostedConsoleProviderOptions;
-  readonly session: SessionAdapter;
+  readonly session: RevocableConsoleSessionAdapter;
   readonly account: ConsoleAccountService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly corsOrigins: readonly string[];
@@ -193,11 +193,18 @@ export class HostedConsoleAuthHandler {
     if (pathname === '/console/auth/google') return await this.loginWithGoogle(request);
     if (pathname === '/console/auth/github') return await this.loginWithGithub(request);
     if (pathname === '/console/auth/revoke') {
-      return consoleAuthJson(
-        { ok: true, revoked: true },
-        200,
-        this.options.session.buildClearCookie(),
-      );
+      const headers = Object.fromEntries(request.headers.entries());
+      const clearCookie = this.options.session.buildClearCookie();
+      try {
+        const result = await this.options.session.revoke(headers);
+        return consoleAuthJson({ ok: true, revoked: result.kind === 'revoked' }, 200, clearCookie);
+      } catch {
+        return consoleAuthJson(
+          { ok: false, code: 'session_revoke_failed', message: 'Session could not be revoked' },
+          503,
+          clearCookie,
+        );
+      }
     }
     return consoleAuthJson({ ok: false, code: 'not_found', message: 'Not Found' }, 404);
   }

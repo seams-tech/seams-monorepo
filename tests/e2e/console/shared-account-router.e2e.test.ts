@@ -13,6 +13,7 @@ import { createD1ConsoleBillingService } from '../../../packages/console-server-
 import { D1BillingUsageService } from '../../../packages/console-server-ts/src/billing/usage';
 import { createD1ConsoleBillingPrepaidReservationService } from '../../../packages/console-server-ts/src/billingPrepaidReservations/d1';
 import { ConsoleSessionService } from '../../../packages/console-server-ts/src/boundary/session';
+import { createInMemoryConsoleSessionRevocationStore } from '../../helpers/consoleSessionRevocationStore';
 import type { D1DatabaseLike } from '../../../packages/console-server-ts/src/boundary/d1';
 import { createInMemoryConsoleOnboardingService } from '../../../packages/console-server-ts/src/onboarding/service';
 import { createD1ConsoleOrgProjectService } from '../../../packages/console-server-ts/src/orgProjectEnv/d1';
@@ -105,6 +106,7 @@ async function allowEmptyOrganizationDeletion(): Promise<void> {}
 function createSession(): ConsoleSessionService {
   return new ConsoleSessionService({
     jwt: { signToken, verifyToken },
+    revocations: createInMemoryConsoleSessionRevocationStore(),
     cookie: { name: 'account-session', buildSetHeader: setCookie, buildClearHeader: clearCookie },
   });
 }

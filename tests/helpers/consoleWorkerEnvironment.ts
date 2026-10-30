@@ -1,8 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import { createHmacSessionAdapter } from '../../packages/wallet-console-server-ts/src/router/cloudflare/d1StagingSession';
+import { createInMemoryConsoleSessionRevocationStore } from './consoleSessionRevocationStore';
 
 export async function consoleIdentityCookie(secret: string, userId: string): Promise<string> {
-  const session = createHmacSessionAdapter({ secret });
+  const session = createHmacSessionAdapter({
+    secret,
+    revocations: createInMemoryConsoleSessionRevocationStore(),
+  });
   const token = await session.signJwt(userId, {
     kind: 'console_identity_v1',
     email: `${userId}@example.test`,

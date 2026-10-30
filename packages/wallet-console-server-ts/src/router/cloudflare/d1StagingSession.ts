@@ -8,7 +8,10 @@ import {
   sessionJwtTimeClaims,
   toSessionArrayBufferCopy,
 } from '@seams/wallet-server/cloud-host';
-import { ConsoleSessionService } from '@seams-internal/console-server/boundary/session';
+import {
+  ConsoleSessionService,
+  type ConsoleSessionRevocationStore,
+} from '@seams-internal/console-server/boundary/session';
 import type {
   ActiveOrganizationAuthorization,
   ConsoleOrganizationAccessService,
@@ -57,6 +60,7 @@ export type CloudflareD1StagingSessionEnv = Readonly<Record<string, unknown>>;
 
 export interface HmacSessionAdapterOptions {
   readonly secret: string;
+  readonly revocations: ConsoleSessionRevocationStore;
   readonly cookieName?: string;
   readonly issuer?: string;
   readonly audience?: string;
@@ -66,6 +70,7 @@ export interface HmacSessionAdapterOptions {
 export interface HmacSessionEnvOptions {
   readonly env: CloudflareD1StagingSessionEnv;
   readonly secretName: string;
+  readonly revocations: ConsoleSessionRevocationStore;
   readonly cookieName?: string;
   readonly issuer?: string;
   readonly audience?: string;
@@ -109,6 +114,7 @@ class HmacSessionJwtAdapter {
     const payloadB64u = encodeSessionJsonSegment({
       ...input.payload,
       ...timeClaims,
+      jti: base64UrlEncode(crypto.getRandomValues(new Uint8Array(16))),
       ...(this.issuer ? { iss: this.issuer } : {}),
       ...(this.audience ? { aud: this.audience } : {}),
     });
@@ -291,7 +297,9 @@ class ConsoleSessionAuthAdapter implements ConsoleAuthAdapter {
   }
 }
 
-export function createHmacSessionAdapter(options: HmacSessionAdapterOptions): SessionAdapter {
+export function createHmacSessionAdapter(
+  options: HmacSessionAdapterOptions,
+): ConsoleSessionService {
   const jwt = new HmacSessionJwtAdapter(options);
   const cookieName = normalizeSessionString(options.cookieName) || 'seams-jwt';
   const cookie = new ConsoleSessionCookieAdapter(
@@ -308,12 +316,16 @@ export function createHmacSessionAdapter(options: HmacSessionAdapterOptions): Se
       buildSetHeader: cookie.buildSetHeader.bind(cookie),
       buildClearHeader: cookie.buildClearHeader.bind(cookie),
     },
+    revocations: options.revocations,
   });
 }
 
-export function createHmacSessionAdapterFromEnv(options: HmacSessionEnvOptions): SessionAdapter {
+export function createHmacSessionAdapterFromEnv(
+  options: HmacSessionEnvOptions,
+): ConsoleSessionService {
   return createHmacSessionAdapter({
     secret: requireEnvironmentString(options.env, options.secretName),
+    revocations: options.revocations,
     cookieName: options.cookieName,
     issuer: options.issuer,
     audience: options.audience,

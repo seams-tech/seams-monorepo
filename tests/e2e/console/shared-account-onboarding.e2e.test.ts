@@ -12,6 +12,7 @@ import type {
   ConsoleAccountIdentityContext,
 } from '../../../packages/console-server-ts/src/account/service';
 import { ConsoleSessionService } from '../../../packages/console-server-ts/src/boundary/session';
+import { createInMemoryConsoleSessionRevocationStore } from '../../helpers/consoleSessionRevocationStore';
 import type { ConsoleSessionJwtHooks } from '../../../packages/console-server-ts/src/boundary/session';
 import type { D1DatabaseLike } from '../../../packages/console-server-ts/src/boundary/d1';
 import { parseCreateConsoleOnboardingProjectRequest } from '../../../packages/console-server-ts/src/onboarding/requests';
@@ -91,6 +92,7 @@ function buildClearHeader(): string {
 function sessions(): ConsoleSessionService {
   return new ConsoleSessionService({
     jwt: { signToken: signSessionToken, verifyToken: verifySessionToken },
+    revocations: createInMemoryConsoleSessionRevocationStore(),
     cookie: { name: 'account-session', buildSetHeader, buildClearHeader },
   });
 }

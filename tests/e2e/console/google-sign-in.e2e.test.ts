@@ -10,6 +10,7 @@ import {
   ConsoleSessionService,
   type ConsoleSessionJwtHooks,
 } from '../../../packages/console-server-ts/src/boundary/session';
+import { createD1ConsoleSessionRevocationStore } from '../../../packages/console-server-ts/src/boundary/sessionRevocations';
 import { createConsoleProviderIdentity } from '../../../packages/console-server-ts/src/boundary/providerIdentity';
 import { createCloudflareD1AccountServiceBundle } from '../../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
 import { createAccountConsoleRouter } from '../../../packages/console-server-ts/src/router/cloudflare/createAccountConsoleRouter';
@@ -56,7 +57,9 @@ async function pageHasHorizontalOverflow(page: Page): Promise<boolean> {
 }
 
 function signSession(input: Parameters<ConsoleSessionJwtHooks['signToken']>[0]): string {
-  const payload = Buffer.from(JSON.stringify(input.payload)).toString('base64url');
+  const payload = Buffer.from(
+    JSON.stringify({ ...input.payload, exp: Math.floor(Date.now() / 1_000) + 3_600 }),
+  ).toString('base64url');
   return `${payload}.${createHmac('sha256', sessionSecret).update(payload).digest('base64url')}`;
 }
 
@@ -76,6 +79,17 @@ function setSessionCookie(token: string): string {
 
 function clearSessionCookie(): string {
   return `${cookieName}=; HttpOnly; Path=/; Max-Age=0`;
+}
+
+function isConsoleSessionCookie(cookie: { readonly name: string }): boolean {
+  return cookie.name === cookieName;
+}
+
+async function consoleSessionStatusWithBearer(token: string): Promise<number> {
+  const response = await fetch('/console/session', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.status;
 }
 
 function ready(): void {}
@@ -294,6 +308,7 @@ test('Google sign-in recovers from prompt failures and both providers remain vis
     });
     const session = new ConsoleSessionService({
       jwt: { signToken: signSession, verifyToken: verifySession },
+      revocations: createD1ConsoleSessionRevocationStore({ database, namespace: 'google-console' }),
       cookie: {
         name: cookieName,
         buildSetHeader: setSessionCookie,
@@ -462,9 +477,14 @@ test('Google sign-in recovers from prompt failures and both providers remain vis
       testInfo.outputPath('google-profile-and-menu-mobile.png'),
     );
     await page.setViewportSize({ width: 1280, height: 900 });
+    const sessionCookie = (await page.context().cookies(appUrl)).find(isConsoleSessionCookie);
+    if (!sessionCookie) throw new Error('Console session cookie was not issued');
+    const copiedToken = sessionCookie.value;
     await page.getByRole('button', { name: /Account menu for/ }).click();
     await page.getByRole('menuitem', { name: 'Sign out', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Signed out', exact: true })).toBeVisible();
+    const revokedTokenStatus = await page.evaluate(consoleSessionStatusWithBearer, copiedToken);
+    expect(revokedTokenStatus).toBe(401);
     await page
       .context()
       .route('https://github.com/login/oauth/authorize?*', completeGithubAuthorization);
@@ -499,6 +519,7 @@ test('Google sign-in recovers from prompt failures and both providers remain vis
             'production auth, RSA verification, cookie sessions, and real D1 account services',
           exchanges: transport.exchanges,
           githubExchanges: transport.githubExchanges,
+          revokedTokenStatus,
           checks: [
             'script retry',
             'unavailable One Tap leaves button enabled after 25 seconds',
@@ -511,6 +532,7 @@ test('Google sign-in recovers from prompt failures and both providers remain vis
             'duplicate One Tap callbacks exchange only once',
             'sign-out survives reload without One Tap',
             'explicit sign-in after sign-out succeeds',
+            'copied Console session token is refused after sign-out',
             'Google provider appears in the profile and account menu after reload',
             'GitHub OAuth replaces the signed-out Google account',
             'GitHub provider stays correct with a Gmail email address',

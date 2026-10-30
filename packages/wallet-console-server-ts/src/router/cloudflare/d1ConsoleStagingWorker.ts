@@ -10,7 +10,8 @@ import { createD1AccountConsoleComposition, isAccountConsoleRequest } from './d1
 export { SatyrAccountPlatform } from './satyrAccountPlatform';
 import { type CloudflareD1AccountServiceBundle } from '@seams-internal/console-server/router/cloudflare/d1AccountServices';
 import { resolveConsoleRouteSurface } from '@seams-internal/console-server/router/consoleRouteSurface';
-import type { SessionAdapter } from '@seams-internal/console-server/boundary/session';
+import type { RevocableConsoleSessionAdapter } from '@seams-internal/console-server/boundary/session';
+import { createD1ConsoleSessionRevocationStore } from '@seams-internal/console-server/boundary/sessionRevocations';
 import type { ConsoleAccountService } from '@seams-internal/console-server/account/service';
 import { handleWalletRegistrationMutation } from '../../walletPlacement/service';
 import {
@@ -501,6 +502,7 @@ async function createConsoleHandler(
   const session = createHmacSessionAdapterFromEnv({
     env,
     secretName: 'CONSOLE_SESSION_HMAC_SECRET',
+    revocations: createD1ConsoleSessionRevocationStore({ database: env.CONSOLE_DB, namespace }),
     cookieName: readEnvString(env, 'CONSOLE_SESSION_COOKIE_NAME'),
     issuer: readEnvString(env, 'CONSOLE_SESSION_ISSUER'),
     audience: readEnvString(env, 'CONSOLE_SESSION_AUDIENCE'),
@@ -765,7 +767,7 @@ function createHostedConsoleAuthentication(
     readonly organizationAccess: CloudflareD1AccountServiceBundle['organizationAccess'];
     readonly serviceAccess: CloudflareD1AccountServiceBundle['serviceAccess'];
   },
-  session: SessionAdapter,
+  session: RevocableConsoleSessionAdapter,
   request: Request,
 ): FetchHandler {
   const googleOidcClientId = readEnvString(env, 'GOOGLE_OIDC_CLIENT_ID');
@@ -808,6 +810,7 @@ async function createAccountHandler(
   const session = createHmacSessionAdapterFromEnv({
     env,
     secretName: 'CONSOLE_SESSION_HMAC_SECRET',
+    revocations: createD1ConsoleSessionRevocationStore({ database: env.CONSOLE_DB, namespace }),
     cookieName: readEnvString(env, 'CONSOLE_SESSION_COOKIE_NAME'),
     issuer: readEnvString(env, 'CONSOLE_SESSION_ISSUER'),
     audience: readEnvString(env, 'CONSOLE_SESSION_AUDIENCE'),

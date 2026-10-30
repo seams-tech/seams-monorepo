@@ -1,6 +1,6 @@
 import { createInMemoryConsoleAccountService } from '../../packages/console-server-ts/src/account';
 import { expect, test } from '@playwright/test';
-import type { SessionAdapter } from '../../packages/console-server-ts/src/boundary/session';
+import type { RevocableConsoleSessionAdapter } from '../../packages/console-server-ts/src/boundary/session';
 import { createInMemoryConsoleOrgProjectService } from '../../packages/console-server-ts/src/orgProjectEnv';
 import { createInMemoryConsoleOrganizationAccessService } from '../../packages/console-server-ts/src/teamRbac';
 import {
@@ -8,7 +8,7 @@ import {
   type HostedConsoleIdentityPort,
 } from '../../packages/wallet-console-server-ts/src/router/hostedConsoleAuth';
 
-class TestSessionAdapter implements SessionAdapter {
+class TestSessionAdapter implements RevocableConsoleSessionAdapter {
   async signJwt(): Promise<string> {
     return 'test-session-token';
   }
@@ -27,6 +27,10 @@ class TestSessionAdapter implements SessionAdapter {
 
   buildClearCookie(): string {
     return 'session=; Max-Age=0';
+  }
+
+  async revoke(): Promise<{ readonly kind: 'no_active_session' }> {
+    return { kind: 'no_active_session' };
   }
 
   async refresh(): Promise<{ readonly ok: false }> {

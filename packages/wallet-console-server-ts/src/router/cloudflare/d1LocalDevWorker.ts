@@ -66,6 +66,8 @@ import {
 } from '@seams/wallet-server/cloud-host';
 import { loadCloudflareSignerWasmModule } from '@seams/wallet-server/cloud-host';
 import { createConsoleSessionAuthAdapter, createHmacSessionAdapter } from './d1StagingSession';
+import { createD1ConsoleSessionRevocationStore } from '@seams-internal/console-server/boundary/sessionRevocations';
+import type { RevocableConsoleSessionAdapter } from '@seams-internal/console-server/boundary/session';
 import { createEd25519SessionAdapter } from '@seams/wallet-server/cloud-host';
 import { HostedConsoleAuthHandler } from '../hostedConsoleAuth';
 import {
@@ -92,7 +94,6 @@ import {
   createRouterAbEd25519YaoProductRegistrationPartitionedStateStoreFromD1V1,
   type RouterAbEd25519YaoProductRegistrationRuntimeV1,
 } from '@seams/wallet-server/cloud-host';
-import type { SessionAdapter } from '@seams/wallet-server/cloud-host';
 import { D1WalletStore } from '@seams/wallet-server/cloud-host';
 import {
   createRouterAbEcdsaEd25519CeremonyTokenIssuer,
@@ -886,11 +887,15 @@ function localRouterApiSessionCookieName(env: LocalD1DevEnv): string | undefined
   return normalizeLocalString(env.SESSION_COOKIE_NAME) || undefined;
 }
 
-function localConsoleSession(env: LocalD1DevEnv): SessionAdapter {
+function localConsoleSession(env: LocalD1DevEnv): RevocableConsoleSessionAdapter {
   return createHmacSessionAdapter({
     secret:
       normalizeLocalString(env.CONSOLE_SESSION_HMAC_SECRET) ||
       DEFAULT_LOCAL_CONSOLE_SESSION_HMAC_SECRET,
+    revocations: createD1ConsoleSessionRevocationStore({
+      database: env.CONSOLE_DB,
+      namespace: localTenantStorageNamespace(env),
+    }),
     cookieName:
       normalizeLocalString(env.CONSOLE_SESSION_COOKIE_NAME) ||
       DEFAULT_LOCAL_CONSOLE_SESSION_COOKIE_NAME,
@@ -1389,7 +1394,7 @@ function localHostedConsoleAuthentication(
     Awaited<ReturnType<typeof createCloudflareD1AccountServiceBundle>>,
     'serviceAccess' | 'account' | 'organizationAccess'
   >,
-  session: SessionAdapter,
+  session: RevocableConsoleSessionAdapter,
 ): FetchHandler {
   const googleOidcClientId = localGoogleOidcClientId(env);
   const githubOAuth = localGithubOAuthConfig(env);

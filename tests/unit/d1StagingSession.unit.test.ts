@@ -4,6 +4,7 @@ import {
   createConsoleSessionAuthAdapter,
   createHmacSessionAdapter,
 } from '../../packages/wallet-console-server-ts/src/router/cloudflare/d1StagingSession';
+import { createInMemoryConsoleSessionRevocationStore } from '../helpers/consoleSessionRevocationStore';
 
 const SESSION_SECRET = '0123456789abcdef0123456789abcdef';
 
@@ -20,6 +21,7 @@ async function signConsoleSession(input: {
 }): Promise<string> {
   const session = createHmacSessionAdapter({
     secret: SESSION_SECRET,
+    revocations: createInMemoryConsoleSessionRevocationStore(),
     issuer: 'seams-console-staging',
     audience: 'seams-console-dashboard',
   });
@@ -34,6 +36,7 @@ async function signConsoleSession(input: {
 async function hmacSessionRoundTrip(): Promise<void> {
   const session = createHmacSessionAdapter({
     secret: SESSION_SECRET,
+    revocations: createInMemoryConsoleSessionRevocationStore(),
     issuer: 'seams-gateway-staging',
     audience: 'seams-wallet-session',
   });
@@ -52,11 +55,13 @@ async function hmacSessionRoundTrip(): Promise<void> {
 async function hmacSessionRejectsWrongAudience(): Promise<void> {
   const signer = createHmacSessionAdapter({
     secret: SESSION_SECRET,
+    revocations: createInMemoryConsoleSessionRevocationStore(),
     issuer: 'seams-gateway-staging',
     audience: 'seams-wallet-session',
   });
   const verifier = createHmacSessionAdapter({
     secret: SESSION_SECRET,
+    revocations: createInMemoryConsoleSessionRevocationStore(),
     issuer: 'seams-gateway-staging',
     audience: 'other-audience',
   });
@@ -70,6 +75,7 @@ async function hmacSessionRejectsWrongAudience(): Promise<void> {
 function hmacSessionUsesConsolePathCookiePolicy(): void {
   const session = createHmacSessionAdapter({
     secret: SESSION_SECRET,
+    revocations: createInMemoryConsoleSessionRevocationStore(),
     cookieName: 'dashboard-session',
     ttlSeconds: 3600,
   });
@@ -97,6 +103,7 @@ async function consoleAuthUsesCurrentOrganizationAuthorization(): Promise<void> 
   const auth = createConsoleSessionAuthAdapter({
     session: createHmacSessionAdapter({
       secret: SESSION_SECRET,
+      revocations: createInMemoryConsoleSessionRevocationStore(),
       issuer: 'seams-console-staging',
       audience: 'seams-console-dashboard',
     }),
@@ -122,6 +129,7 @@ async function consoleAuthIgnoresTokenRoleEscalation(): Promise<void> {
   const auth = createConsoleSessionAuthAdapter({
     session: createHmacSessionAdapter({
       secret: SESSION_SECRET,
+      revocations: createInMemoryConsoleSessionRevocationStore(),
       issuer: 'seams-console-staging',
       audience: 'seams-console-dashboard',
     }),

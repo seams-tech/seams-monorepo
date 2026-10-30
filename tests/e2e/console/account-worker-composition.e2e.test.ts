@@ -14,6 +14,7 @@ import {
 import type { D1DatabaseLike } from '../../../packages/console-server-ts/src/boundary/d1';
 import { createCloudflareD1AccountServiceBundle } from '../../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
 import { createHmacSessionAdapter } from '../../../packages/wallet-console-server-ts/src/router/cloudflare/d1StagingSession';
+import { createInMemoryConsoleSessionRevocationStore } from '../../helpers/consoleSessionRevocationStore';
 import {
   createAesGcmConsoleWebhookSecretCipher,
   createD1ConsoleWebhookService,
@@ -198,7 +199,12 @@ async function verifyExistingWalletRuntime(
   await expect.poll(projectEnvironmentCount.bind(null, environments)).toBe(3);
   const native = (await environments.listEnvironments(owner, { projectId: walletProjectId }))[0];
   if (!native) throw new Error('Wallet environment missing');
-  const externalAuthentication = await verifyExternalAuthenticationTrust(worker, token, environments, native.id);
+  const externalAuthentication = await verifyExternalAuthenticationTrust(
+    worker,
+    token,
+    environments,
+    native.id,
+  );
   const event = {
     orgId: owner.orgId,
     environmentId: native.id,
@@ -317,13 +323,17 @@ async function verifyExternalAuthenticationTrust(
     method: 'PUT',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      kind: 'application', issuer: 'https://getsignal.example', publicKeyB64u: applicationKey.x,
+      kind: 'application',
+      issuer: 'https://getsignal.example',
+      publicKeyB64u: applicationKey.x,
       revision: 999,
     }),
   });
   expect(application.status, await application.clone().text()).toBe(200);
   expect(object(object(await application.json()).environment).externalAuth).toEqual({
-    kind: 'application', issuer: 'https://getsignal.example', publicKeyB64u: applicationKey.x,
+    kind: 'application',
+    issuer: 'https://getsignal.example',
+    publicKeyB64u: applicationKey.x,
     revision: 2,
   });
 
@@ -584,6 +594,7 @@ async function accountWorkerJourney(
     });
     const session = createHmacSessionAdapter({
       secret: sessionSecret,
+      revocations: createInMemoryConsoleSessionRevocationStore(),
       issuer: 'p2-account',
       audience: 'p2-account',
     });

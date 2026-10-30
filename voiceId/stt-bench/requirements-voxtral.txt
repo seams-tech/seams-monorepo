@@ -1,0 +1,8 @@
+huggingface-hub==2.4.0
+librosa==0.11.0
+mistral-common[audio]==1.13.0
+mlx==0.32.4
+mlx-audio[stt]==0.6.3
+numpy==2.3.5
+soundfile==0.14.0
+torch==2.15.0

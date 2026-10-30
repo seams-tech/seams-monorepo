@@ -155,6 +155,33 @@ Result: keep Whisper for dictation and the approval phrase, and keep a speaker
 model for VoiceID. EmbeddingGemma 2 suits search across voice notes, photos and
 text, which this bench does not measure.
 
+## Voxtral comparison — 2026-10-30
+
+Voxtral Mini 4B Realtime (`mistralai/Voxtral-Mini-4B-Realtime-2602`, Apache
+2.0, 13 languages) ran as the MLX 4-bit conversion
+`mlx-community/Voxtral-Mini-4B-Realtime-2602-4bit` (revision `fdebf7b2`,
+3.1 GB) through mlx-audio 0.6.3, with the model's default 480 ms
+transcription delay and the whole utterance at once. It takes no vocabulary.
+Full tables: [`reports/stt-bench-2026-10-30-voxtral.md`](reports/stt-bench-2026-10-30-voxtral.md).
+
+| Second phrase bank, 2,640 cases | Correct phrase accepted, clean / 10 / 5 / 0 dB | Near miss accepted | Median per utterance |
+| --- | --- | --- | --- |
+| Whisper turbo MLX, strict match | 97.9% / 94.4% / 86.8% / 81.9% | 0 of 1,920 | 0.42 s |
+| Voxtral 4B Realtime 4-bit, strict match | 89.6% / 80.6% / 76.4% / 64.6% | 0 of 1,920 | 1.45 s |
+
+- Voxtral accepted no near miss, no unrelated sentence and no other phrase.
+- About one third of its 118 refused correct phrases lose or change the first
+  word, which is usually the action: "Invoice 359." for "pay invoice three five
+  nine", mostly in cafeteria noise.
+- Full-precision weights (fp16, 8.9 GB) took about 7.4 s per utterance on this
+  Mac, so they were not run on the whole set. The 2,400 ms delay, Voxtral Mini
+  3B (July 2025, no Japanese), dictation and Japanese were not measured.
+- The browser ONNX builds are about 2.8 GB (Realtime) and 2.7 GB (Mini 3B) at
+  4-bit with 16-bit activations, against 563 MB for Whisper turbo.
+
+Result: keep Whisper turbo. `run_model.py` keeps the Voxtral models; run them
+with the separate venv from `requirements-voxtral.txt`.
+
 ## Record at the bench
 
 `record.py` records one person in a real room condition, hands-free. Each run
@@ -214,6 +241,15 @@ differ from the bench's pins:
 uv venv --python 3.11 "$bench/.cache/.venv-embed"
 uv pip install --python "$bench/.cache/.venv-embed/bin/python" -r "$bench/requirements-embed.txt"
 "$bench/.cache/.venv-embed/bin/python" "$bench/embedding_probe.py" --out "$bench/reports/embeddinggemma2-approval-YYYY-MM-DD.json"
+```
+
+Voxtral runs need their own environment too (mlx-audio, mistral-common,
+PyTorch). `--condition` and `--variant` select a part of a set:
+
+```sh
+uv venv --python 3.11 "$bench/.cache/.venv-voxtral"
+uv pip install --python "$bench/.cache/.venv-voxtral/bin/python" -r "$bench/requirements-voxtral.txt"
+"$bench/.cache/.venv-voxtral/bin/python" "$bench/run_model.py" --model voxtral-realtime-4b-4bit --language en --set approval_en_v2
 ```
 
 `run_all.sh` runs each model in its own process, then writes

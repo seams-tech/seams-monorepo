@@ -50,17 +50,18 @@ for one-command deployment, automatic activation, frontend scope, and health che
 
 ## Documentation and release baseline
 
-Wallet, Wallet Server, and VoiceID use **0.30.0**.
+Wallet, Wallet Server, and VoiceID use **0.33.0**.
 The signed native recovery CLI **0.29.0** is available on GitHub.
 Console uses the **0.29.0** installer.
-The wallet iframe protocol is **20.0.0**. Exact SDK pins live in `package.json` and
+The wallet iframe protocol is **21.0.0**. Exact SDK pins live in `package.json` and
 `pnpm-lock.yaml`. See the public
 [release notes](https://github.com/seams-tech/seams-wallet/blob/main/apps/docs/src/releases.md)
 for SDK, CLI, and wallet iframe protocol versions.
 
-Version 0.30.0 combines hosted authentication and configured external wallet connections.
+Version 0.33.0 combines hosted authentication and configured external wallet connections.
 Applications choose ordered primary and secondary wallet groups with `walletAlternatives`.
-Device linking and recovery remain available through a collapsed expander.
+Device linking and recovery support collapsible, expanded, or hidden presentation.
+Applications can replace the footer brand with their own logo.
 The application SDK and isolated Wallet host must use the same iframe protocol.
 
 Public docs live in `seams-wallet/apps/docs`. This repository publishes their

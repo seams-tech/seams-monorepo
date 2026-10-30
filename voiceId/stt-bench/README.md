@@ -224,6 +224,51 @@ Result: Workers AI matches MLX accuracy, but it is about three times slower
 than MLX at the median and has a long tail. Decoding settings do not change
 that; the time is spent inside Workers AI.
 
+## Deepgram comparison — 2026-10-30
+
+Plan 82 decision D1a measures Deepgram Nova-3 and Flux on Workers AI, because
+Whisper on Workers AI failed the latency gate. `deepgram_run.py` runs the same
+cases through the probe Worker. Nova-3 takes the whole utterance over HTTP with
+`smart_format`. Flux takes a live stream in 80 ms chunks at real time, then
+silence until it ends the turn. Both use `mip_opt_out`. Full tables:
+[`reports/stt-bench-2026-10-30-deepgram.md`](reports/stt-bench-2026-10-30-deepgram.md).
+
+| Same cases                                              | Whisper on Workers AI         | Nova-3                        | Flux                          |
+| ------------------------------------------------------- | ----------------------------- | ----------------------------- | ----------------------------- |
+| Correct approval phrase accepted, clean / 10 / 5 / 0 dB | 95.8% / 93.8% / 86.8% / 80.6% | 91.7% / 89.6% / 86.1% / 79.2% | 72.9% / 72.2% / 68.1% / 54.2% |
+| Near miss accepted (of 1,920)                           | 0                             | 0                             | 2                             |
+| English bakery dictation WER, clean / 0 dB              | 8.7% / 13.0%                  | 8.8% / 14.6%                  | 15.6% / 27.3%                 |
+| Same, with the shop vocabulary                          | 5.7% / 8.9%                   | 6.2% / 10.7%                  | 10.8% / 22.4%                 |
+| Japanese bakery dictation CER, clean / 0 dB             | 4.8% / 9.2%                   | 10.9% / 19.4%                 | No Japanese                   |
+| FLEURS Japanese CER, clean / 0 dB                       | 4.3% / 6.3%                   | 12.6% / 17.4%                 | No Japanese                   |
+
+Nova-3 refuses key terms for Japanese (`does not support keyterm prompting`).
+The Flux schema on Workers AI has no language setting. Flux streams ran eight at
+a time for accuracy. One stream at a time, its clean approval band is 77.1%.
+
+Latency from this Mac in Tokyo, 264 clean approval phrases, one at a time. The
+Nova-3 and Whisper rows ran one after the other, in Tokyo (colo NRT).
+
+| Model                         | From                 | p50    | p95    | Max     |
+| ----------------------------- | -------------------- | ------ | ------ | ------- |
+| Nova-3                        | End of file          | 0.26 s | 0.37 s | 0.72 s  |
+| Whisper, Plan 82 settings     | End of file          | 2.04 s | 5.71 s | 10.67 s |
+| Flux, `eager_eot_threshold`   | End of file          | 0.70 s | 1.16 s | 1.71 s  |
+| Flux, end of turn             | End of speech        | 1.12 s | 1.56 s | 2.05 s  |
+| Flux, eager end of turn       | End of speech        | 0.83 s | 1.20 s | –       |
+
+The Flux time includes its own wait for silence. The other models need a
+separate silence wait. Worker location is not under control through
+`wrangler dev --remote`: an earlier Nova-3 run went through Los Angeles (0.62 s,
+0.92 s), and some Flux streams went through Hong Kong or Los Angeles.
+
+At 24 parallel streams, most Flux streams in Tokyo fell behind by more than 2 s
+and their transcripts were cut. At 8 streams, 67 of 6,240 turns did not end.
+
+Result: Nova-3 is fast and close to Whisper in English, but much worse in
+Japanese. Flux is not accurate enough: it twice dropped "do not" from an
+approval phrase and the strict match accepted the result.
+
 ## Record at the bench
 
 `record.py` records one person in a real room condition, hands-free. Each run

@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@seams-internal/grain-field": "workspace:*",
-    "@radix-ui/react-select": "^2.0.0"
+    "@radix-ui/react-select": "2.2.6"
   },
   "peerDependencies": {
     "lucide-react": "^0.542.0",

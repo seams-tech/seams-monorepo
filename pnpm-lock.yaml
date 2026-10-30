@@ -16,31 +16,31 @@ importers:
         version: 0.29.0
     devDependencies:
       '@eslint/js':
-        specifier: ^9.0.0
+        specifier: 9.39.2
         version: 9.39.2
       '@types/node':
-        specifier: ^24.1.0
+        specifier: 24.2.0
         version: 24.2.0
       concurrently:
-        specifier: ^9.1.2
+        specifier: 9.2.0
         version: 9.2.0
       dotenv:
-        specifier: ^16.5.0
+        specifier: 16.6.1
         version: 16.6.1
       eslint:
-        specifier: ^9.0.0
+        specifier: 9.39.2
         version: 9.39.2(jiti@2.6.1)
       eslint-config-prettier:
-        specifier: ^9.0.0
+        specifier: 9.1.2
         version: 9.1.2(eslint@9.39.2(jiti@2.6.1))
       eslint-plugin-react-hooks:
-        specifier: ^5.0.0
+        specifier: 5.2.0
         version: 5.2.0(eslint@9.39.2(jiti@2.6.1))
       globals:
-        specifier: ^16.0.0
+        specifier: 16.3.0
         version: 16.3.0
       prettier:
-        specifier: ^3.0.0
+        specifier: 3.8.1
         version: 3.8.1
       tsrs:
         specifier: 0.18.0-ts7.1.0-dev.20260929
@@ -49,10 +49,10 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       typescript-eslint:
-        specifier: ^8.0.0
+        specifier: 8.54.0
         version: 8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.8.3)
       viem:
-        specifier: ^2.38.6
+        specifier: 2.46.0
         version: 2.46.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
       wrangler:
         specifier: 4.111.0
@@ -61,10 +61,10 @@ importers:
   apps/seams-site:
     dependencies:
       '@fontsource/hanken-grotesk':
-        specifier: ^5.2.8
+        specifier: 5.2.8
         version: 5.2.8
       '@radix-ui/react-select':
-        specifier: ^2.0.0
+        specifier: 2.2.6
         version: 2.2.6(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@seams-internal/console-shared':
         specifier: workspace:*
@@ -82,56 +82,56 @@ importers:
         specifier: 0.29.0
         version: 0.29.0(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
       '@tanstack/react-query':
-        specifier: ^5.76.1
+        specifier: 5.87.1
         version: 5.87.1(react@18.3.1)
       borsh:
-        specifier: ^2.0.0
+        specifier: 2.0.0
         version: 2.0.0
       bs58:
-        specifier: ^6.0.0
+        specifier: 6.0.0
         version: 6.0.0
       clsx:
-        specifier: ^2.1.1
+        specifier: 2.1.1
         version: 2.1.1
       lucide-react:
-        specifier: ^0.542.0
+        specifier: 0.542.0
         version: 0.542.0(react@18.3.1)
       react:
-        specifier: ^18.2.0
+        specifier: 18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
       sonner:
-        specifier: ^1.5.0
+        specifier: 1.7.4
         version: 1.7.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
       '@types/node':
-        specifier: ^22.15.21
+        specifier: 22.18.1
         version: 22.18.1
       '@types/react':
-        specifier: ^19.1.12
+        specifier: 19.1.12
         version: 19.1.12
       '@types/react-dom':
-        specifier: ^19.1.9
+        specifier: 19.1.9
         version: 19.1.9(@types/react@19.1.12)
       '@vitejs/plugin-react':
-        specifier: ^6.0.1
+        specifier: 6.0.1
         version: 6.0.1(vite@8.0.0(@types/node@22.18.1)(jiti@2.6.1)(tsx@4.20.5)(yaml@2.8.1))
       concurrently:
-        specifier: ^9.1.2
+        specifier: 9.2.0
         version: 9.2.0
       vite:
-        specifier: ^8.0.0
+        specifier: 8.0.0
         version: 8.0.0(@types/node@22.18.1)(jiti@2.6.1)(tsx@4.20.5)(yaml@2.8.1)
 
   apps/wallet-console:
     dependencies:
       '@fontsource/hanken-grotesk':
-        specifier: ^5.2.8
+        specifier: 5.2.8
         version: 5.2.8
       '@radix-ui/react-select':
-        specifier: ^2.0.0
+        specifier: 2.2.6
         version: 2.2.6(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@seams-internal/console-shared':
         specifier: workspace:*
@@ -155,44 +155,44 @@ importers:
         specifier: 0.29.0
         version: 0.29.0
       '@tanstack/react-query':
-        specifier: ^5.76.1
+        specifier: 5.87.1
         version: 5.87.1(react@18.3.1)
       borsh:
-        specifier: ^2.0.0
+        specifier: 2.0.0
         version: 2.0.0
       bs58:
-        specifier: ^6.0.0
+        specifier: 6.0.0
         version: 6.0.0
       clsx:
-        specifier: ^2.1.1
+        specifier: 2.1.1
         version: 2.1.1
       lucide-react:
-        specifier: ^0.542.0
+        specifier: 0.542.0
         version: 0.542.0(react@18.3.1)
       react:
-        specifier: ^18.2.0
+        specifier: 18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
       sonner:
-        specifier: ^1.5.0
+        specifier: 1.7.4
         version: 1.7.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
       '@types/node':
-        specifier: ^22.15.21
+        specifier: 22.18.1
         version: 22.18.1
       '@types/react':
-        specifier: ^19.1.12
+        specifier: 19.1.12
         version: 19.1.12
       '@types/react-dom':
-        specifier: ^19.1.9
+        specifier: 19.1.9
         version: 19.1.9(@types/react@19.1.12)
       '@vitejs/plugin-react':
-        specifier: ^6.0.1
+        specifier: 6.0.1
         version: 6.0.1(vite@8.0.0(@types/node@22.18.1)(jiti@2.6.1)(tsx@4.20.5)(yaml@2.8.1))
       vite:
-        specifier: ^8.0.0
+        specifier: 8.0.0
         version: 8.0.0(@types/node@22.18.1)(jiti@2.6.1)(tsx@4.20.5)(yaml@2.8.1)
 
   packages/console-server-ts:
@@ -201,14 +201,14 @@ importers:
         specifier: workspace:*
         version: link:../console-shared-ts
       bs58:
-        specifier: ^6.0.0
+        specifier: 6.0.0
         version: 6.0.0
       tslib:
-        specifier: ^2.8.1
+        specifier: 2.8.1
         version: 2.8.1
     devDependencies:
       rolldown:
-        specifier: ^1.0.0-beta.27
+        specifier: 1.0.0-rc.9
         version: 1.0.0-rc.9
       wrangler:
         specifier: 4.111.0
@@ -217,7 +217,7 @@ importers:
   packages/console-shared-ts:
     devDependencies:
       rolldown:
-        specifier: ^1.0.0-beta.27
+        specifier: 1.0.0-rc.9
         version: 1.0.0-rc.9
 
   packages/grain-field-ts:
@@ -229,7 +229,7 @@ importers:
   packages/site-navbar-ts:
     dependencies:
       '@radix-ui/react-select':
-        specifier: ^2.0.0
+        specifier: 2.2.6
         version: 2.2.6(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@seams-internal/grain-field':
         specifier: workspace:*
@@ -247,7 +247,7 @@ importers:
   packages/wallet-console-server-ts:
     dependencies:
       '@aws-sdk/client-sesv2':
-        specifier: ^3.1106.0
+        specifier: 3.1106.0
         version: 3.1106.0
       '@seams-internal/console-server':
         specifier: workspace:*
@@ -262,17 +262,17 @@ importers:
         specifier: 0.29.0
         version: 0.29.0
       bs58:
-        specifier: ^6.0.0
+        specifier: 6.0.0
         version: 6.0.0
       tslib:
-        specifier: ^2.8.1
+        specifier: 2.8.1
         version: 2.8.1
     devDependencies:
       '@cloudflare/workers-types':
         specifier: 5.20260710.1
         version: 5.20260710.1
       rolldown:
-        specifier: ^1.0.0-beta.27
+        specifier: 1.0.0-rc.9
         version: 1.0.0-rc.9
 
   packages/wallet-console-shared-ts:
@@ -287,13 +287,13 @@ importers:
         specifier: 5.20260710.1
         version: 5.20260710.1
       '@noble/curves':
-        specifier: ^2.0.1
+        specifier: 2.0.1
         version: 2.0.1
       '@noble/ed25519':
-        specifier: ^2.1.0
+        specifier: 2.3.0
         version: 2.3.0
       '@playwright/test':
-        specifier: ^1.40.0
+        specifier: 1.55.0
         version: 1.55.0
       '@seams-internal/console-server':
         specifier: workspace:*
@@ -314,7 +314,7 @@ importers:
         specifier: 0.29.0
         version: 0.29.0
       '@simplewebauthn/server':
-        specifier: ^13.2.2
+        specifier: 13.2.2
         version: 13.2.2
       esbuild:
         specifier: 0.28.1
@@ -323,7 +323,7 @@ importers:
         specifier: 4.20260710.0
         version: 4.20260710.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       viem:
-        specifier: ^2.38.6
+        specifier: 2.46.0
         version: 2.46.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
 
   tests/intended-app:
@@ -332,23 +332,23 @@ importers:
         specifier: 0.29.0
         version: 0.29.0(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
       react:
-        specifier: ^19.1.1
+        specifier: 19.1.1
         version: 19.1.1
       react-dom:
-        specifier: ^19.1.1
+        specifier: 19.1.1
         version: 19.1.1(react@19.1.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.1.12
+        specifier: 19.1.12
         version: 19.1.12
       '@types/react-dom':
-        specifier: ^19.1.9
+        specifier: 19.1.9
         version: 19.1.9(@types/react@19.1.12)
       '@vitejs/plugin-react':
-        specifier: ^6.0.1
+        specifier: 6.0.1
         version: 6.0.1(vite@8.0.0(@types/node@24.2.0)(jiti@2.6.1)(tsx@4.20.5)(yaml@2.8.1))
       vite:
-        specifier: ^8.0.0
+        specifier: 8.0.0
         version: 8.0.0(@types/node@24.2.0)(jiti@2.6.1)(tsx@4.20.5)(yaml@2.8.1)
 
 packages:
@@ -1834,15 +1834,6 @@ packages:
   csstype@3.1.3:
     resolution: {integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==}
 
-  debug@4.4.1:
-    resolution: {integrity: sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ==}
-    engines: {node: '>=6.0'}
-    peerDependencies:
-      supports-color: '*'
-    peerDependenciesMeta:
-      supports-color:
-        optional: true
-
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
     engines: {node: '>=6.0'}
@@ -3101,7 +3092,7 @@ snapshots:
   '@eslint/config-array@0.21.1':
     dependencies:
       '@eslint/object-schema': 2.1.7
-      debug: 4.4.1
+      debug: 4.4.3
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -3117,7 +3108,7 @@ snapshots:
   '@eslint/eslintrc@3.3.3':
     dependencies:
       ajv: 6.12.6
-      debug: 4.4.1
+      debug: 4.4.3
       espree: 10.4.0
       globals: 14.0.0
       ignore: 5.3.2
@@ -4093,10 +4084,6 @@ snapshots:
 
   csstype@3.1.3: {}
 
-  debug@4.4.1:
-    dependencies:
-      ms: 2.1.3
-
   debug@4.4.3:
     dependencies:
       ms: 2.1.3
@@ -4216,7 +4203,7 @@ snapshots:
       ajv: 6.12.6
       chalk: 4.1.2
       cross-spawn: 7.0.6
-      debug: 4.4.1
+      debug: 4.4.3
       escape-string-regexp: 4.0.0
       eslint-scope: 8.4.0
       eslint-visitor-keys: 4.2.1

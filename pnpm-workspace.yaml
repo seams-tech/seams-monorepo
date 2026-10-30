@@ -10,6 +10,7 @@ packages:
   - apps/seams-site
   - apps/wallet-console
 nodeLinker: hoisted
+saveExact: true
 verifyDepsBeforeRun: false
 allowBuilds:
   bufferutil: true

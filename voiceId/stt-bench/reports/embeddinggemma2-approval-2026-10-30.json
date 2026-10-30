@@ -1,0 +1,230 @@
+{
+  "model": "google/embeddinggemma-2",
+  "revision": "f9972ac22e696a105c482202646979e33e4b5a1e",
+  "dtype": "float32",
+  "device": "mps",
+  "loaded": "text and audio encoders",
+  "cases": 2640,
+  "machine": "arm64 macOS 15.7.1",
+  "loadSeconds": 6.6,
+  "audioEncodeMs": {
+    "mean": 49.2,
+    "p95": 57.8
+  },
+  "textPrompts": {
+    "document": {
+      "threshold": {
+        "value": 0.8857,
+        "auc": 0.7488,
+        "correctAccepted": {
+          "clean": {
+            "accepted": 15,
+            "of": 48,
+            "percent": 31.2
+          },
+          "0 dB": {
+            "accepted": 24,
+            "of": 144,
+            "percent": 16.7
+          },
+          "10 dB": {
+            "accepted": 35,
+            "of": 144,
+            "percent": 24.3
+          },
+          "5 dB": {
+            "accepted": 28,
+            "of": 144,
+            "percent": 19.4
+          }
+        },
+        "meanSimilarity": {
+          "correct": 0.8362,
+          "detail": 0.7865,
+          "missing": 0.798,
+          "negation": 0.8158,
+          "unrelated": 0.6608,
+          "verb": 0.7813
+        }
+      },
+      "decoys": {
+        "topOne": {
+          "correct": 79.2,
+          "detail": 0.6,
+          "missing": 6.9,
+          "negation": 7.5,
+          "unrelated": 21.2,
+          "verb": 15.4
+        },
+        "zeroFalseAcceptMargin": 0.0415,
+        "correctAcceptedAtThatMargin": {
+          "clean": {
+            "accepted": 16,
+            "of": 48,
+            "percent": 33.3
+          },
+          "0 dB": {
+            "accepted": 26,
+            "of": 144,
+            "percent": 18.1
+          },
+          "10 dB": {
+            "accepted": 37,
+            "of": 144,
+            "percent": 25.7
+          },
+          "5 dB": {
+            "accepted": 34,
+            "of": 144,
+            "percent": 23.6
+          }
+        }
+      }
+    },
+    "similarity": {
+      "threshold": {
+        "value": 0.8465,
+        "auc": 0.7928,
+        "correctAccepted": {
+          "clean": {
+            "accepted": 12,
+            "of": 48,
+            "percent": 25.0
+          },
+          "0 dB": {
+            "accepted": 20,
+            "of": 144,
+            "percent": 13.9
+          },
+          "10 dB": {
+            "accepted": 26,
+            "of": 144,
+            "percent": 18.1
+          },
+          "5 dB": {
+            "accepted": 20,
+            "of": 144,
+            "percent": 13.9
+          }
+        },
+        "meanSimilarity": {
+          "correct": 0.8057,
+          "detail": 0.758,
+          "missing": 0.768,
+          "negation": 0.7886,
+          "unrelated": 0.6398,
+          "verb": 0.7579
+        }
+      },
+      "decoys": {
+        "topOne": {
+          "correct": 89.0,
+          "detail": 0.6,
+          "missing": 0.0,
+          "negation": 6.7,
+          "unrelated": 20.4,
+          "verb": 15.2
+        },
+        "zeroFalseAcceptMargin": 0.0359,
+        "correctAcceptedAtThatMargin": {
+          "clean": {
+            "accepted": 17,
+            "of": 48,
+            "percent": 35.4
+          },
+          "0 dB": {
+            "accepted": 28,
+            "of": 144,
+            "percent": 19.4
+          },
+          "10 dB": {
+            "accepted": 45,
+            "of": 144,
+            "percent": 31.2
+          },
+          "5 dB": {
+            "accepted": 39,
+            "of": 144,
+            "percent": 27.1
+          }
+        }
+      }
+    },
+    "none": {
+      "threshold": {
+        "value": 0.9407,
+        "auc": 0.7101,
+        "correctAccepted": {
+          "clean": {
+            "accepted": 18,
+            "of": 48,
+            "percent": 37.5
+          },
+          "0 dB": {
+            "accepted": 30,
+            "of": 144,
+            "percent": 20.8
+          },
+          "10 dB": {
+            "accepted": 44,
+            "of": 144,
+            "percent": 30.6
+          },
+          "5 dB": {
+            "accepted": 40,
+            "of": 144,
+            "percent": 27.8
+          }
+        },
+        "meanSimilarity": {
+          "correct": 0.8813,
+          "detail": 0.8294,
+          "missing": 0.8427,
+          "negation": 0.8685,
+          "unrelated": 0.7312,
+          "verb": 0.8281
+        }
+      },
+      "decoys": {
+        "topOne": {
+          "correct": 83.3,
+          "detail": 0.8,
+          "missing": 9.6,
+          "negation": 5.8,
+          "unrelated": 69.6,
+          "verb": 13.1
+        },
+        "zeroFalseAcceptMargin": 0.0325,
+        "correctAcceptedAtThatMargin": {
+          "clean": {
+            "accepted": 19,
+            "of": 48,
+            "percent": 39.6
+          },
+          "0 dB": {
+            "accepted": 36,
+            "of": 144,
+            "percent": 25.0
+          },
+          "10 dB": {
+            "accepted": 47,
+            "of": 144,
+            "percent": 32.6
+          },
+          "5 dB": {
+            "accepted": 41,
+            "of": 144,
+            "percent": 28.5
+          }
+        }
+      }
+    }
+  },
+  "speaker": {
+    "recordings": 48,
+    "nearestIsSameVoice": 0,
+    "nearestIsSamePhrase": 48,
+    "meanSameVoiceOtherPhrase": 0.6577,
+    "meanOtherVoiceSamePhrase": 0.9564
+  }
+}

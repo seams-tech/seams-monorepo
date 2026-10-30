@@ -118,6 +118,43 @@ Limits:
   a native engine integration through another runtime can change speed.
 - Speaker verification and spoof detection are outside this bench.
 
+## Embedding model comparison — 2026-10-30
+
+EmbeddingGemma 2 (`google/embeddinggemma-2`, revision `f9972ac2`, Apache 2.0)
+maps audio and text into one 768-number vector space. It gives no transcript,
+so it cannot do dictation and the strict word match cannot apply.
+`embedding_probe.py` scores each recording of `approval_en_v2` by cosine
+similarity to the displayed phrase. It loads the text and audio encoders in
+float32 on Apple M4 Pro (MPS).
+
+| Check, on the same 2,640 cases | Correct phrase accepted, clean / 10 / 5 / 0 dB | Near miss accepted |
+| --- | --- | --- |
+| Whisper turbo MLX, strict match | 97.9% / 94.4% / 86.8% / 81.9% | 0 of 1,920 |
+| EmbeddingGemma 2, one threshold on the displayed phrase | 37.5% / 30.6% / 27.8% / 20.8% | 0 of 1,920 |
+| EmbeddingGemma 2, displayed phrase against the spoken near-miss texts | 39.6% / 32.6% / 28.5% / 25.0% | 0 of 1,920 |
+
+Each EmbeddingGemma row is the best of three text prompts (`none`, `Document`,
+`SentenceSimilarity`). Its threshold or margin is the lowest that accepts no
+near miss and no unrelated sentence of this data, so the rates are optimistic.
+The second row compares against the exact near-miss sentences that were
+spoken, which a real verifier does not know.
+
+- A negation scores almost as high as the phrase. "do not pay invoice three
+  five nine" has a mean similarity of 0.816 to the displayed phrase; the
+  phrase itself has 0.836 (`Document` prompt).
+- If the displayed phrase only has to rank first against its decoys, it ranks
+  first for 79–89% of correct recordings, but 13–15% of changed verbs and
+  6–8% of negations also rank first.
+- The vector holds the words, not the voice. For all 48 clean correct
+  recordings, the nearest other recording is the same phrase in another voice
+  (mean similarity 0.956), never the same voice with another phrase (0.658).
+  It cannot replace the speaker model.
+- One audio vector takes 49 ms on average (p95 58 ms). Loading takes 6.6 s.
+
+Result: keep Whisper for dictation and the approval phrase, and keep a speaker
+model for VoiceID. EmbeddingGemma 2 suits search across voice notes, photos and
+text, which this bench does not measure.
+
 ## Record at the bench
 
 `record.py` records one person in a real room condition, hands-free. Each run
@@ -169,6 +206,15 @@ uv pip install --python "$bench/.cache/.venv/bin/python" -r "$bench/requirements
 `run_model.py --set <set>` runs one case set, for example the second phrase
 bank `approval_en_v2`; the 2026-10-29 second-bank results came from such
 runs. A full English run includes every set.
+
+The EmbeddingGemma 2 probe needs its own environment, because its packages
+differ from the bench's pins:
+
+```sh
+uv venv --python 3.11 "$bench/.cache/.venv-embed"
+uv pip install --python "$bench/.cache/.venv-embed/bin/python" -r "$bench/requirements-embed.txt"
+"$bench/.cache/.venv-embed/bin/python" "$bench/embedding_probe.py" --out "$bench/reports/embeddinggemma2-approval-YYYY-MM-DD.json"
+```
 
 `run_all.sh` runs each model in its own process, then writes
 `reports/<name>.json` (all metrics, model and input hashes),

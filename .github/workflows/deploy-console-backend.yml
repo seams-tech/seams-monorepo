@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  CONSOLE_BUILD_CACHE_KEY: console-build-${{ inputs.lane }}-${{ github.run_id }}-${{ github.run_attempt }}
+  CONSOLE_BUILD_ARTIFACT_NAME: console-build-${{ inputs.lane }}-${{ github.run_id }}-${{ github.run_attempt }}
   DEPLOY_LANE: ${{ inputs.lane }}
   DEPLOY_SHA: ${{ github.sha }}
 
@@ -53,6 +53,8 @@ jobs:
     needs: configure
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    outputs:
+      build_artifact_id: ${{ steps.build_artifact.outputs.artifact-id }}
     steps:
       - name: Checkout workflow revision
         uses: actions/checkout@v6
@@ -71,13 +73,17 @@ jobs:
         run: pnpm deploy:backend build --lane "$DEPLOY_LANE" --component console
       - name: Check Console build entry
         run: test -s .release-artifacts/console/payload/d1ConsoleStagingWorker.js
-      - name: Save Console build
-        uses: actions/cache/save@v6
+      - name: Upload Console build
+        id: build_artifact
+        uses: actions/upload-artifact@v7
         with:
-          key: ${{ env.CONSOLE_BUILD_CACHE_KEY }}
+          name: ${{ env.CONSOLE_BUILD_ARTIFACT_NAME }}
           path: |
             .release-artifacts/console
             packages/console-server-ts/.wrangler/generated
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
 
   migrate:
     name: Migrate / Console / ${{ inputs.lane }}
@@ -103,14 +109,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
-      - name: Restore Console build
-        uses: actions/cache/restore@v6
+      - name: Download Console build
+        uses: actions/download-artifact@v8
         with:
-          key: ${{ env.CONSOLE_BUILD_CACHE_KEY }}
-          path: |
-            .release-artifacts/console
-            packages/console-server-ts/.wrangler/generated
-          fail-on-cache-miss: true
+          name: ${{ env.CONSOLE_BUILD_ARTIFACT_NAME }}
+          path: .
       - name: Apply Console D1 migrations
         run: pnpm deploy:backend migrate --lane "$DEPLOY_LANE" --component console
 
@@ -164,26 +167,24 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
-      - name: Restore Console build
-        uses: actions/cache/restore@v6
+      - name: Download Console build
+        uses: actions/download-artifact@v8
         with:
-          key: ${{ env.CONSOLE_BUILD_CACHE_KEY }}
-          path: |
-            .release-artifacts/console
-            packages/console-server-ts/.wrangler/generated
-          fail-on-cache-miss: true
+          name: ${{ env.CONSOLE_BUILD_ARTIFACT_NAME }}
+          path: .
       - name: Deploy Console
         run: pnpm deploy:backend deploy --lane "$DEPLOY_LANE" --component console
       - name: Smoke Console
         run: pnpm deploy:backend smoke --lane "$DEPLOY_LANE" --component console
 
-  cleanup_build_cache:
+  cleanup_build_artifact:
     name: Cleanup / Console / ${{ inputs.lane }}
     if: always() && needs.build.result == 'success'
     needs: [build, migrate, deploy]
     runs-on: ubuntu-latest
     steps:
-      - name: Delete ephemeral Console build cache
+      - name: Delete ephemeral Console build artifact
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh cache delete "$CONSOLE_BUILD_CACHE_KEY" --repo "$GITHUB_REPOSITORY"
+          BUILD_ARTIFACT_ID: ${{ needs.build.outputs.build_artifact_id }}
+        run: gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$BUILD_ARTIFACT_ID"

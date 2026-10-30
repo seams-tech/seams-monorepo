@@ -175,21 +175,28 @@ the spending cap requires the account owner's decision; it was left at $0.
 
 ### Retention and handoff policy
 
-- Backend and Console build caches are temporary job-to-job handoffs, on
-  staging and on both production lanes. Use a key scoped to the workflow run
-  and attempt, restore the exact key with `fail-on-cache-miss`, and delete it
-  after all consumers finish.
-- Rerun the whole deployment workflow after a failure. A new attempt rebuilds
-  its payload; a failed-jobs-only rerun cannot restore a previous attempt's key.
-- No deployment workflow uploads an artifact. The staging backend workflow was
-  the last one; it moved to the cache handoff on 2026-10-14 (see below).
-- In `seams-wallet`, intermediate local-tool artifacts expire after one day and
-  ordinary documentation builds after seven days. Versioned release docs retain
-  their existing 90-day lifetime; CLI release inputs retain their existing
-  30-day lifetime.
-- Actions caches have a separate storage allowance. Deleting dependency caches
-  does not release artifact quota. Keep using the deployment handoff while the
-  artifact quota reconciles; it does not prove the artifact quota is resolved.
+Deployment builds use short-lived Actions artifacts for transfers between jobs.
+Artifact names include the workflow run and attempt. Consumers download that exact
+name and fail when it is missing. The upload includes hidden build directories.
+The build job has no deployment secrets. Each deployment job retains its separate
+protected environment and credentials.
+
+Artifacts expire after one day. A cleanup job deletes the exact uploaded artifact
+ID after all consumers finish. Package-manager dependency caches remain optional.
+Rerun the whole deployment workflow after a failure to rebuild the payload for the
+new attempt. No spending limits change.
+
+In `seams-wallet`, intermediate local-tool artifacts expire after one day.
+Versioned release docs retain their 90-day lifetime. CLI release inputs retain
+their 30-day lifetime. Dependency caches use a separate storage allowance.
+Deleting dependency caches does not release artifact storage quota.
+
+On 2026-10-31, the SDK 0.33.0 production-testnet rollout failed twice because the
+Actions cache service returned `Egress is over the account limit`. One failure
+blocked Console migration. The retry failed before Gateway migrations. Deployment
+build transfers now use Actions artifacts instead of the cache service.
+
+### Historical artifact quota checks (2026-09-19)
 
 The retention changes are merged in [Wallet PR 5](https://github.com/seams-tech/seams-wallet/pull/5)
 and [monorepo PR 23](https://github.com/seams-tech/seams-monorepo/pull/23).

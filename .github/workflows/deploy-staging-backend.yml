@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  BACKEND_BUILD_CACHE_KEY: backend-build-staging-testnet-${{ github.run_id }}-${{ github.run_attempt }}
+  BACKEND_BUILD_ARTIFACT_NAME: backend-build-staging-testnet-${{ github.run_id }}-${{ github.run_attempt }}
   DEPLOY_LANE: staging-testnet
   DEPLOY_SHA: ${{ github.sha }}
 
@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     outputs:
+      build_artifact_id: ${{ steps.build_artifact.outputs.artifact-id }}
       environment_id: ${{ steps.target.outputs.environment_id }}
     steps:
       - name: Checkout workflow revision
@@ -59,11 +60,15 @@ jobs:
           done
           test -s .release-artifacts/gateway/payload/d1GatewayWorker.js
           test -s .release-artifacts/wallet-runtime/payload/d1WalletRuntimeWorker.js
-      - name: Save backend build
-        uses: actions/cache/save@v6
+      - name: Upload backend build
+        id: build_artifact
+        uses: actions/upload-artifact@v7
         with:
-          key: ${{ env.BACKEND_BUILD_CACHE_KEY }}
+          name: ${{ env.BACKEND_BUILD_ARTIFACT_NAME }}
           path: .release-artifacts
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
 
   migrate:
     name: Migrate / staging-testnet / gateway
@@ -91,12 +96,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
-      - name: Restore backend build
-        uses: actions/cache/restore@v6
+      - name: Download backend build
+        uses: actions/download-artifact@v8
         with:
-          key: ${{ env.BACKEND_BUILD_CACHE_KEY }}
+          name: ${{ env.BACKEND_BUILD_ARTIFACT_NAME }}
           path: .release-artifacts
-          fail-on-cache-miss: true
       - name: Check Gateway build entry
         run: test -s .release-artifacts/gateway/payload/d1GatewayWorker.js
       - name: Apply D1 migrations
@@ -137,12 +141,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile
-      - name: Restore backend build
-        uses: actions/cache/restore@v6
+      - name: Download backend build
+        uses: actions/download-artifact@v8
         with:
-          key: ${{ env.BACKEND_BUILD_CACHE_KEY }}
+          name: ${{ env.BACKEND_BUILD_ARTIFACT_NAME }}
           path: .release-artifacts
-          fail-on-cache-miss: true
       - name: Check Signing Worker build entry
         run: test -s .release-artifacts/router-ab-runtime/build/signing-worker/worker/shim.mjs
       - name: Deploy Signing Worker
@@ -192,12 +195,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile
-      - name: Restore backend build
-        uses: actions/cache/restore@v6
+      - name: Download backend build
+        uses: actions/download-artifact@v8
         with:
-          key: ${{ env.BACKEND_BUILD_CACHE_KEY }}
+          name: ${{ env.BACKEND_BUILD_ARTIFACT_NAME }}
           path: .release-artifacts
-          fail-on-cache-miss: true
       - name: Check Deriver A build entry
         run: test -s .release-artifacts/router-ab-runtime/build/deriver-a/worker/shim.mjs
       - name: Deploy Deriver A
@@ -247,12 +249,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile
-      - name: Restore backend build
-        uses: actions/cache/restore@v6
+      - name: Download backend build
+        uses: actions/download-artifact@v8
         with:
-          key: ${{ env.BACKEND_BUILD_CACHE_KEY }}
+          name: ${{ env.BACKEND_BUILD_ARTIFACT_NAME }}
           path: .release-artifacts
-          fail-on-cache-miss: true
       - name: Check Deriver B build entry
         run: test -s .release-artifacts/router-ab-runtime/build/deriver-b/worker/shim.mjs
       - name: Deploy Deriver B
@@ -295,12 +296,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile
-      - name: Restore backend build
-        uses: actions/cache/restore@v6
+      - name: Download backend build
+        uses: actions/download-artifact@v8
         with:
-          key: ${{ env.BACKEND_BUILD_CACHE_KEY }}
+          name: ${{ env.BACKEND_BUILD_ARTIFACT_NAME }}
           path: .release-artifacts
-          fail-on-cache-miss: true
       - name: Check control-plane build entry
         run: test -s .release-artifacts/router-ab-runtime/build/tenant-root-control-plane/worker/shim.mjs
       - name: Deploy tenant-root control plane
@@ -342,12 +342,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile
-      - name: Restore backend build
-        uses: actions/cache/restore@v6
+      - name: Download backend build
+        uses: actions/download-artifact@v8
         with:
-          key: ${{ env.BACKEND_BUILD_CACHE_KEY }}
+          name: ${{ env.BACKEND_BUILD_ARTIFACT_NAME }}
           path: .release-artifacts
-          fail-on-cache-miss: true
       - name: Check Router build entry
         run: test -s .release-artifacts/router-ab-runtime/build/router/worker/shim.mjs
       - name: Deploy Router
@@ -387,12 +386,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
-      - name: Restore backend build
-        uses: actions/cache/restore@v6
+      - name: Download backend build
+        uses: actions/download-artifact@v8
         with:
-          key: ${{ env.BACKEND_BUILD_CACHE_KEY }}
+          name: ${{ env.BACKEND_BUILD_ARTIFACT_NAME }}
           path: .release-artifacts
-          fail-on-cache-miss: true
       - name: Check Wallet Runtime build entry
         run: test -s .release-artifacts/wallet-runtime/payload/d1WalletRuntimeWorker.js
       - name: Deploy Wallet Runtime
@@ -432,12 +430,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
-      - name: Restore backend build
-        uses: actions/cache/restore@v6
+      - name: Download backend build
+        uses: actions/download-artifact@v8
         with:
-          key: ${{ env.BACKEND_BUILD_CACHE_KEY }}
+          name: ${{ env.BACKEND_BUILD_ARTIFACT_NAME }}
           path: .release-artifacts
-          fail-on-cache-miss: true
       - name: Check Gateway build entry
         run: test -s .release-artifacts/gateway/payload/d1GatewayWorker.js
       - name: Deploy Gateway
@@ -454,8 +451,8 @@ jobs:
       lane: staging-testnet
     secrets: inherit
 
-  cleanup_build_cache:
-    name: Cleanup / staging-testnet / backend build cache
+  cleanup_build_artifact:
+    name: Cleanup / staging-testnet / backend build artifact
     if: always() && needs.build.result == 'success'
     needs:
       - build
@@ -472,10 +469,11 @@ jobs:
       actions: write
       contents: read
     steps:
-      - name: Delete ephemeral backend build cache
+      - name: Delete ephemeral backend build artifact
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh cache delete "$BACKEND_BUILD_CACHE_KEY" --repo "$GITHUB_REPOSITORY"
+          BUILD_ARTIFACT_ID: ${{ needs.build.outputs.build_artifact_id }}
+        run: gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$BUILD_ARTIFACT_ID"
 
   activate:
     name: Activate / staging-testnet / tenant binding

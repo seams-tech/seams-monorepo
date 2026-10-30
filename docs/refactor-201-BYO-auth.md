@@ -53,7 +53,12 @@ Complete or cancel unfinished wallet relocations before the signer migrations.
 - Production testnet: [40975972876](https://github.com/seams-tech/seams-monorepo/actions/runs/40975972876), attempt 2.
 - Production mainnet: [40975976106](https://github.com/seams-tech/seams-monorepo/actions/runs/40975976106).
 - GetSignal Wallet runtime: [40978202828](https://github.com/seams-tech/seams-monorepo/actions/runs/40978202828).
-- Staging and production use private runtime revision `27f09fe2a79f1bcbbe5d70ea13fabca27c089613`.
+- Console installer update: [staging](https://github.com/seams-tech/seams-monorepo/actions/runs/40991512032)
+  and [production](https://github.com/seams-tech/seams-monorepo/actions/runs/40991997307) passed on `4404f4eb8a9dc1f8aae76c8b8effe1233fc00831`.
+  Both live Console bundles name `@seams/wallet-cli@0.29.0`.
+- All four npm archives match the verified release artifacts byte for byte.
+  A fresh registry install reports `seams-wallet 0.29.0`.
+- Staging and production backends use private runtime revision `27f09fe2a79f1bcbbe5d70ea13fabca27c089613`.
   GetSignal uses `ec78bded36dba8ebe428a8206e0b1a0e67014746`; its additional change updates only a test fixture.
 - Private validation passes on `ec78bded`: [main](https://github.com/seams-tech/seams-monorepo/actions/runs/40978202908)
   and [dev](https://github.com/seams-tech/seams-monorepo/actions/runs/40978199174).
@@ -69,6 +74,7 @@ Complete or cancel unfinished wallet relocations before the signer migrations.
   Both GetSignal validation scenarios pass. No production digest check was relaxed.
 - [Issue 57 comment](https://github.com/seams-tech/seams-wallet/issues/57#issuecomment-6503173978) now records the shipped scope and verification limits.
 - Local evidence: `.artifacts/release-0.29.0/status.json`, `live-verification-all.json`, `registry-verification.json`,
+  `registry-tarballs-verification.json`, `cli-registry-install.txt`, `cli-installer-staging.json`, `cli-installer-production.json`,
   `console-auth-before.json`, `console-auth-after.json`, `recovery-before.json`, and `recovery-after.json`.
 
 ## SDK 0.28 implementation record

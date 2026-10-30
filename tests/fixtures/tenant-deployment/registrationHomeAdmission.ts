@@ -108,6 +108,7 @@ export function gatewaySetupInput(input: {
     },
     signer: { signJwt: unexpectedSigning },
     request: {
+      completion: 'wallet_session',
       registrationOperationId: input.operationId,
       wallet: { kind: 'server_allocated' },
       authMethod: { kind: 'passkey', rpId: rpId.value },

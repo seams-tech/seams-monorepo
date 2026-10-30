@@ -182,6 +182,48 @@ Full tables: [`reports/stt-bench-2026-10-30-voxtral.md`](reports/stt-bench-2026-
 Result: keep Whisper turbo. `run_model.py` keeps the Voxtral models; run them
 with the separate venv from `requirements-voxtral.txt`.
 
+## Workers AI comparison — 2026-10-30
+
+Satyr Plan 82 runs Whisper turbo on Workers AI (`@cf/openai/whisper-large-v3-turbo`).
+`workers_ai_run.py` posts each case to the probe Worker in `workers-ai-probe/`,
+which calls the model through the Workers AI binding. The probe runs on
+Cloudflare's network through `wrangler dev --remote` and is never deployed;
+every request ran in Tokyo (colo NRT). The Plan 82 settings are the model
+defaults with `language` and `vad_filter: true`. Accuracy runs send six
+requests at a time; latency runs send one. Full tables:
+[`reports/stt-bench-2026-10-30-workers-ai.md`](reports/stt-bench-2026-10-30-workers-ai.md).
+
+| Same cases, Whisper turbo                                    | MLX on this Mac               | Workers AI                    |
+| ------------------------------------------------------------ | ----------------------------- | ----------------------------- |
+| Correct approval phrase accepted, clean / 10 / 5 / 0 dB      | 97.9% / 94.4% / 86.8% / 81.9% | 95.8% / 93.8% / 86.8% / 80.6% |
+| Near miss, unrelated sentence or other phrase accepted       | 0                             | 0                             |
+| English bakery dictation WER, clean / 0 dB                   | 8.8% / 13.2%                  | 8.7% / 13.0%                  |
+| Same, with the shop vocabulary                               | 5.8% / 9.7%                   | 5.7% / 8.9%                   |
+| Japanese bakery dictation CER, clean / 0 dB                  | 4.8% / 9.2%                   | 4.8% / 9.2%                   |
+| Same, with the shop vocabulary                               | 2.8% / 6.4%                   | 2.8% / 6.0%                   |
+| FLEURS Japanese CER, clean / 0 dB                            | 4.2% / 6.5%                   | 4.3% / 6.3%                   |
+
+The one more clean refusal is "Ship badge 5 today" for "ship batch five
+today"; MLX heard "badge" for another voice.
+
+Latency from this Mac in Tokyo, 264 clean approval phrases (mean 2.3 s of
+audio), one request at a time. The time is the round trip from the end of the
+audio file to the transcript; the time inside the Worker around the AI call is
+within 0.1 s of it.
+
+| Settings                          | p50    | p95    | Max     |
+| --------------------------------- | ------ | ------ | ------- |
+| Plan 82: `vad_filter`, beam 5     | 1.57 s | 3.93 s | 7.33 s  |
+| No `vad_filter`, beam 5           | 1.39 s | 3.73 s | 29.12 s |
+| `vad_filter`, `beam_size` 1       | 1.46 s | 3.92 s | 8.94 s  |
+| No `vad_filter`, `beam_size` 1    | 1.37 s | 3.46 s | 8.87 s  |
+
+MLX on the M4 Pro takes 0.42 s at the median for the same model.
+
+Result: Workers AI matches MLX accuracy, but it is about three times slower
+than MLX at the median and has a long tail. Decoding settings do not change
+that; the time is spent inside Workers AI.
+
 ## Record at the bench
 
 `record.py` records one person in a real room condition, hands-free. Each run
@@ -250,6 +292,15 @@ PyTorch). `--condition` and `--variant` select a part of a set:
 uv venv --python 3.11 "$bench/.cache/.venv-voxtral"
 uv pip install --python "$bench/.cache/.venv-voxtral/bin/python" -r "$bench/requirements-voxtral.txt"
 "$bench/.cache/.venv-voxtral/bin/python" "$bench/run_model.py" --model voxtral-realtime-4b-4bit --language en --set approval_en_v2
+```
+
+Workers AI runs need a Wrangler sign-in with the `ai` scope. Start the probe in
+one terminal, then run the sets from another:
+
+```sh
+npx wrangler dev --remote --config "$bench/workers-ai-probe/wrangler.jsonc" --port 8787 --ip 127.0.0.1
+"$bench/.cache/.venv/bin/python" "$bench/workers_ai_run.py" --language en --set approval_en_v2
+"$bench/.cache/.venv/bin/python" "$bench/workers_ai_run.py" --language en --set approval_en_v2 --condition clean --workers 1 --tag latency
 ```
 
 `run_all.sh` runs each model in its own process, then writes

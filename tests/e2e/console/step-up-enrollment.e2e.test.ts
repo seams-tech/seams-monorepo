@@ -235,7 +235,7 @@ async function verifyStepUpEnrollment(
   const login = await hosted.fetch(
     new Request(`${ORIGIN}/console/auth/google`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Origin: ORIGIN },
       body: JSON.stringify({ idToken: 'fixture-google-token' }),
     }),
   );

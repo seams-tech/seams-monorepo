@@ -119,7 +119,9 @@ async function migrate(database: D1DatabaseLike): Promise<readonly string[]> {
 }
 
 function signToken(input: Parameters<ConsoleSessionJwtHooks['signToken']>[0]): string {
-  const payload = Buffer.from(JSON.stringify(input.payload)).toString('base64url');
+  const payload = Buffer.from(
+    JSON.stringify({ ...input.payload, exp: Math.floor(Date.now() / 1_000) + 3_600 }),
+  ).toString('base64url');
   const signature = createHmac('sha256', tokenSecret).update(payload).digest('base64url');
   return `${payload}.${signature}`;
 }
@@ -748,7 +750,7 @@ async function issueBrowserSession(
   const response = await handler.fetch(
     new Request(`${origin}/console/auth/github`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Origin: origin },
       body: JSON.stringify({ code }),
     }),
   );
@@ -764,7 +766,11 @@ async function switchBrowserOrganization(
   const response = await handler.fetch(
     new Request(`${origin}/console/account/organizations/${orgId}/switch-context`, {
       method: 'POST',
-      headers: { Cookie: `activation-session=${token}`, 'Content-Type': 'application/json' },
+      headers: {
+        Cookie: `activation-session=${token}`,
+        'Content-Type': 'application/json',
+        Origin: origin,
+      },
       body: '{}',
     }),
   );
@@ -783,6 +789,7 @@ async function createBrowserForeignAccount(
       headers: {
         'Content-Type': 'application/json',
         Cookie: `activation-session=${identityToken}`,
+        Origin: origin,
       },
       body: JSON.stringify({ name: 'Foreign wallet account', slug: 'foreign-wallet-account' }),
     }),

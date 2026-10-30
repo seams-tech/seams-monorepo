@@ -1,5 +1,9 @@
 import type { CfExecutionContext, FetchHandler } from '@seams/wallet-server/cloud-host';
-import { withConsoleCors } from '@seams-internal/console-server/router/cloudflare/cors';
+import {
+  resolveConsoleCorsOrigins,
+  withConsoleCors,
+} from '@seams-internal/console-server/router/cloudflare/cors';
+import { normalizeCorsOrigin } from '@seams-internal/console-server/boundary/normalization';
 import type { RevocableConsoleSessionAdapter } from '@seams-internal/console-server/boundary/session';
 import {
   parseCreateConsoleAccountOrganizationRequest,
@@ -128,11 +132,41 @@ function consoleAuthJson(body: unknown, status: number, setCookie?: string): Res
   return new Response(JSON.stringify(body), { status, headers });
 }
 
+function trustedConsoleOrigin(request: Request, configuredOrigins: readonly string[]): boolean {
+  const rawOrigin = request.headers.get('Origin');
+  const origin = normalizeCorsOrigin(rawOrigin ?? undefined);
+  if (!rawOrigin || !origin || rawOrigin !== origin) return false;
+  if (origin === new URL(request.url).origin) return true;
+  const allowedOrigins = resolveConsoleCorsOrigins(configuredOrigins);
+  return allowedOrigins !== '*' && allowedOrigins.includes(origin);
+}
+
+function isConsoleMutation(method: string): boolean {
+  return method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
+}
+
+function originForbiddenResponse(): Response {
+  return consoleAuthJson(
+    { ok: false, code: 'origin_forbidden', message: 'Request requires an allowed Console origin' },
+    403,
+  );
+}
+
 export class HostedConsoleAuthHandler {
   constructor(private readonly options: HostedConsoleAuthHandlerOptions) {}
 
   async fetch(request: Request, env?: object, ctx?: CfExecutionContext): Promise<Response> {
     const pathname = new URL(request.url).pathname;
+    if (
+      pathname.startsWith('/console/') &&
+      isConsoleMutation(request.method) &&
+      request.headers.has('Cookie') &&
+      !trustedConsoleOrigin(request, this.options.corsOrigins)
+    ) {
+      const response = originForbiddenResponse();
+      withConsoleCors(response.headers, this.options.corsOrigins, request);
+      return response;
+    }
     const invitation = pathname.match(
       /^\/console\/account\/invitations\/([^/]+)\/(accept|decline)$/,
     );
@@ -190,8 +224,12 @@ export class HostedConsoleAuthHandler {
         405,
       );
     }
-    if (pathname === '/console/auth/google') return await this.loginWithGoogle(request);
-    if (pathname === '/console/auth/github') return await this.loginWithGithub(request);
+    if (pathname === '/console/auth/google' || pathname === '/console/auth/github') {
+      if (!trustedConsoleOrigin(request, this.options.corsOrigins))
+        return originForbiddenResponse();
+      if (pathname === '/console/auth/google') return await this.loginWithGoogle(request);
+      return await this.loginWithGithub(request);
+    }
     if (pathname === '/console/auth/revoke') {
       const headers = Object.fromEntries(request.headers.entries());
       const clearCookie = this.options.session.buildClearCookie();

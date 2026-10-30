@@ -86,7 +86,10 @@ async function postGoogle(handler: HostedConsoleAuthHandler, body: string): Prom
   return await handler.fetch(
     new Request('https://console.example.test/console/auth/google', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        Origin: 'https://console.example.test',
+      },
       body,
     }),
   );

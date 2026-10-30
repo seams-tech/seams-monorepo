@@ -1,6 +1,6 @@
 # Refactor 201 — Bring your own authentication
 
-Status: implemented and published as version 0.28.0. Staging, production testnet, production mainnet, and GetSignal backend deployments passed.
+Status: Wallet, Wallet Server, and VoiceID 0.29.0 are published and deployed to staging, production testnet/mainnet, and GetSignal. Native CLI 0.29.0 is signed and public on GitHub. CLI npm publication awaits the account security-key check.
 
 ## SDK 0.29 extension
 
@@ -8,7 +8,7 @@ Public implementation: `7ecd0afe6` and `6f5d568d4` on `seams-wallet/dev`.
 Release revision: `4fa8de4af9659f300bb864b72e1b7799a4b29e41`, promoted to public `main`.
 The four public package manifests use `0.29.0`.
 Wallet, Wallet Server, and VoiceID `0.29.0` are published from the verified release artifacts.
-Public validation and package checks passed. Staging/production rollout is authorized.
+Public validation and package checks passed. All four runtime rollouts completed and passed independent live checks.
 All private SDK consumers now pin exact `0.29.0` releases, including the intended test app.
 The native CLI `0.29.0` release is signed and public on GitHub. Its npm publication requires a security-key approval.
 Console keeps its installer command on published CLI `0.28.0` until that approval completes.
@@ -42,12 +42,36 @@ Validation:
 
 Release preflight found zero unfinished relocations across all 16 signer databases.
 The deployed staging and mainnet recovery snapshots verify against the CLI pin.
-Issuer settings for all 12 environments are saved for comparison after Console migration.
+Issuer settings for all 12 environments match their values before Console migration.
 
 Apply signer migrations `0086` and `0087` and Console migration `0112` with the matching packages.
 Complete or cancel unfinished wallet relocations before the signer migrations.
 
-## Implementation record
+### Verified 0.29 deployments
+
+- Staging: [40974419849](https://github.com/seams-tech/seams-monorepo/actions/runs/40974419849).
+- Production testnet: [40975972876](https://github.com/seams-tech/seams-monorepo/actions/runs/40975972876), attempt 2.
+- Production mainnet: [40975976106](https://github.com/seams-tech/seams-monorepo/actions/runs/40975976106).
+- GetSignal Wallet runtime: [40978202828](https://github.com/seams-tech/seams-monorepo/actions/runs/40978202828).
+- Staging and production use private runtime revision `27f09fe2a79f1bcbbe5d70ea13fabca27c089613`.
+  GetSignal uses `ec78bded36dba8ebe428a8206e0b1a0e67014746`; its additional change updates only a test fixture.
+- Private validation passes on `ec78bded`: [main](https://github.com/seams-tech/seams-monorepo/actions/runs/40978202908)
+  and [dev](https://github.com/seams-tech/seams-monorepo/actions/runs/40978199174).
+- Independent checks verify four ready Gateways, all three Wallet hosts on package `0.29.0` and protocol `19.0.0`,
+  and signer migrations `0086` and `0087` across all 16 databases.
+- Console migration `0112` preserves all 12 issuer settings. Recovery trust bindings remain byte-identical to the verified baseline.
+- Both live documentation receipts identify public source `4fa8de4af9659f300bb864b72e1b7799a4b29e41`.
+- Staging first exposed a canary still using protocol 4. Revision `27f09fe2` updates its header and completion mode.
+  The deployment-renewal E2E now validates its HTTP body with the released SDK parser and records the request contract.
+- Testnet D1 returned internal error `7500` after committing migration `0112` and its journal entry.
+  Rebuilding the Console artifact and rerunning its dependent jobs recovered through the existing migration journal.
+- GetSignal validation exposed a shared registration fixture without completion. The fixture update makes its digest match the normalized request.
+  Both GetSignal validation scenarios pass. No production digest check was relaxed.
+- [Issue 57 comment](https://github.com/seams-tech/seams-wallet/issues/57#issuecomment-6503173978) now records the shipped scope and verification limits.
+- Local evidence: `.artifacts/release-0.29.0/status.json`, `live-verification-all.json`, `registry-verification.json`,
+  `console-auth-before.json`, `console-auth-after.json`, `recovery-before.json`, and `recovery-after.json`.
+
+## SDK 0.28 implementation record
 
 Public Wallet implementation: `5da65944b` and the read-only UI cleanup `0bea56241` on `seams-wallet/dev`.
 The separate test-only commit `02d581705` updates stale VoiceID capture fixture types required by the contract type-check.

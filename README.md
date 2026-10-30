@@ -50,7 +50,7 @@ for one-command deployment, automatic activation, frontend scope, and health che
 
 ## Documentation and release baseline
 
-The current release is **0.29.0** for Wallet, Wallet Server, VoiceID, and the recovery CLI.
+Wallet, Wallet Server, and VoiceID are published as **0.29.0**. The signed native recovery CLI **0.29.0** is available on GitHub. CLI npm publication awaits the account security-key check; Console currently offers the published **0.28.0** installer.
 The wallet iframe protocol is **19.0.0**. Exact SDK pins live in `package.json` and
 `pnpm-lock.yaml`. See the public
 [release notes](https://github.com/seams-tech/seams-wallet/blob/main/apps/docs/src/releases.md)

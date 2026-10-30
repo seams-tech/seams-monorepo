@@ -162,8 +162,8 @@ function parseSigningSessionPersistenceMode(
   const normalized = String(value ?? '')
     .trim()
     .toLowerCase();
-  if (normalized === 'sealed_refresh_v1') return 'sealed_refresh_v1';
-  return 'none';
+  if (normalized === 'none') return 'none';
+  return 'sealed_refresh_v1';
 }
 
 function stripTrailingSlash(path: string): string {

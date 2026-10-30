@@ -31,9 +31,7 @@ const config = defineSeamsConfig({
     },
   ],
   signingSessionPersistenceMode:
-    import.meta.env.VITE_SIGNING_SESSION_PERSISTENCE_MODE === 'sealed_refresh_v1'
-      ? 'sealed_refresh_v1'
-      : 'none',
+    import.meta.env.VITE_SIGNING_SESSION_PERSISTENCE_MODE === 'none' ? 'none' : 'sealed_refresh_v1',
   routerAb: {
     normalSigning: {
       mode: 'enabled',

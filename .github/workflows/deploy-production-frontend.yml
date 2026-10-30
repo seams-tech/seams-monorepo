@@ -11,6 +11,18 @@ on:
         options:
           - production-mainnet
           - production-testnet
+      component:
+        description: Frontend surfaces to deploy
+        required: true
+        type: choice
+        default: wallet-site
+        options:
+          - wallet-site
+          - wallet-console
+          - platform-console
+          - company
+          - wallet-host
+          - all
   workflow_call:
     inputs:
       lane:

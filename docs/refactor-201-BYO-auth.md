@@ -1,17 +1,17 @@
 # Refactor 201 — Bring your own authentication
 
-Status: Wallet, Wallet Server, and VoiceID 0.29.0 are published and deployed to staging, production testnet/mainnet, and GetSignal. Native CLI 0.29.0 is signed and public on GitHub. CLI npm publication awaits the account security-key check.
+Status: All four public packages are published at 0.29.0. Wallet runtimes are deployed to staging, production testnet/mainnet, and GetSignal. Native CLI 0.29.0 is signed and public on GitHub.
 
 ## SDK 0.29 extension
 
 Public implementation: `7ecd0afe6` and `6f5d568d4` on `seams-wallet/dev`.
 Release revision: `4fa8de4af9659f300bb864b72e1b7799a4b29e41`, promoted to public `main`.
 The four public package manifests use `0.29.0`.
-Wallet, Wallet Server, and VoiceID `0.29.0` are published from the verified release artifacts.
+Wallet, Wallet Server, VoiceID, and Wallet CLI `0.29.0` are published from the verified release artifacts.
 Public validation and package checks passed. All four runtime rollouts completed and passed independent live checks.
 All private SDK consumers now pin exact `0.29.0` releases, including the intended test app.
-The native CLI `0.29.0` release is signed and public on GitHub. Its npm publication requires a security-key approval.
-Console keeps its installer command on published CLI `0.28.0` until that approval completes.
+The native CLI `0.29.0` release is signed and public on GitHub. Its npm publication passed the account security-key check.
+Console uses the published CLI `0.29.0` installer.
 
 The extension adds trusted Ed25519 application-session handoffs, fresh owner approval for association changes,
 NEAR-only registration without session issuance, and per-operation NEAR signing after reload.

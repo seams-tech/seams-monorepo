@@ -34,7 +34,7 @@ start the complete proxy, backend, Console, or documentation stack.
 ## Wallet assets and documentation
 
 Current private pins are Wallet, Wallet Server, and VoiceID **0.29.0**. The recovery
-CLI native release is **0.29.0**. Its npm publication requires security key approval. The wallet iframe protocol is **19.0.0**. Caddy serves assets from the installed package. Update exact package
+CLI package and signed native release are **0.29.0**. The wallet iframe protocol is **19.0.0**. Caddy serves assets from the installed package. Update exact package
 pins and the lockfile when consuming releases. SDK and Rust builds belong in
 `seams-wallet`.
 

@@ -97,7 +97,8 @@ export default {
           accountId:
             request.headers.get('x-seams-writer-account') ?? '0123456789abcdef0123456789abcdef',
           databaseId:
-            request.headers.get('x-seams-writer-database') ?? 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            request.headers.get('x-seams-writer-database') ??
+            'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         },
       ),
       database: env.CONSOLE_DB,
@@ -171,6 +172,7 @@ export default {
               ? {
                   outcome: 'established' as const,
                   session: {
+                    kind: 'credential' as const,
                     locator: SessionLocator.credential(body.session.digest),
                     expiresAtMs: body.session.expiresAtMs,
                   },

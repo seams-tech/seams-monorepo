@@ -151,8 +151,8 @@ BEGIN
       NEW.org_id,
       NEW.id || ':debit',
       NEW.id,
-        CASE  
-        WHEN NEW.amount_minor < 0 THEN   CASE   NEW.payment_model WHEN 'postpaid' THEN 'org_receivable' ELSE 'org_prepaid_liability'   END  
+        CASE
+        WHEN NEW.amount_minor < 0 THEN   CASE   NEW.payment_model WHEN 'postpaid' THEN 'org_receivable' ELSE 'org_prepaid_liability'   END
         WHEN NEW.entry_type IN ('CREDIT_PURCHASE', 'REFUND', 'INVOICE_PAYMENT') THEN 'stripe_cash_clearing'
         WHEN NEW.entry_type IN ('DISPUTE_OPENED', 'DISPUTE_WON') THEN 'stripe_dispute_clearing'
         WHEN NEW.entry_type IN ('USAGE_DEBIT', 'PLAN_BASE_CHARGE', 'PLAN_USAGE_CHARGE') THEN 'revenue_usage'
@@ -167,8 +167,8 @@ BEGIN
       NEW.org_id,
       NEW.id || ':credit',
       NEW.id,
-        CASE  
-        WHEN NEW.amount_minor > 0 THEN   CASE   NEW.payment_model WHEN 'postpaid' THEN 'org_receivable' ELSE 'org_prepaid_liability'   END  
+        CASE
+        WHEN NEW.amount_minor > 0 THEN   CASE   NEW.payment_model WHEN 'postpaid' THEN 'org_receivable' ELSE 'org_prepaid_liability'   END
         WHEN NEW.entry_type IN ('CREDIT_PURCHASE', 'REFUND', 'INVOICE_PAYMENT') THEN 'stripe_cash_clearing'
         WHEN NEW.entry_type IN ('DISPUTE_OPENED', 'DISPUTE_WON') THEN 'stripe_dispute_clearing'
         WHEN NEW.entry_type IN ('USAGE_DEBIT', 'PLAN_BASE_CHARGE', 'PLAN_USAGE_CHARGE') THEN 'revenue_usage'
@@ -346,7 +346,7 @@ BEGIN
   INSERT INTO billing_ledger_entries(namespace,org_id,id,entry_type,amount_minor,currency,description,month_utc,source_event_id,actor_type,reason_code,created_at_ms,payment_model,ingested_at_ms)
   VALUES(NEW.namespace,NEW.org_id,'plan-base:'||NEW.month_utc,'PLAN_BASE_CHARGE',-NEW.amount_minor,'USD',
     'Seams '||NEW.plan||' base fee ('||NEW.price_version||')',NEW.month_utc,'plan-base:'||NEW.month_utc,'SYSTEM','plan_base_charge',NEW.period_start_ms,'postpaid',NEW.created_at_ms);
- 
+
  INSERT INTO billing_plan_paid_usage(namespace,org_id,month_utc,plan,price_version,active_users,signatures,updated_at_ms)
  SELECT NEW.namespace,NEW.org_id,NEW.month_utc,NEW.plan,NEW.price_version,
  COALESCE(u.production_active_users,0),COALESCE(u.production_signatures,0),NEW.created_at_ms
@@ -458,7 +458,7 @@ CREATE VIEW billing_plan_usage_costs AS
 SELECT u.namespace,u.org_id,u.month_utc,u.price_version,
  COALESCE(u.active_users,0) AS active_users,COALESCE(u.signatures,0) AS signatures,
  (MAX(0,COALESCE(u.active_users,0)-  CASE   u.plan WHEN 'growth' THEN 5000 ELSE 100000   END  )
-    *   CASE   u.plan WHEN 'growth' THEN 4000 ELSE 3500   END  
+    *   CASE   u.plan WHEN 'growth' THEN 4000 ELSE 3500   END
   + MAX(0,COALESCE(u.signatures,0)-COALESCE(u.active_users,0)*300)
     *   CASE   u.plan WHEN 'growth' THEN 50 ELSE 40   END   + 9999) / 10000 AS amount_minor
 FROM billing_plan_paid_usage u;

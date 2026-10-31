@@ -1,6 +1,6 @@
 # Wallet SEO implementation plan
 
-Status: the six-page implementation and local browser acceptance are complete on `dev`, October 31, 2026. Hosted publication and acceptance are next.
+Status: the six-page SEO implementation is published to staging and production and passes deployed acceptance, October 31, 2026. Search Console setup and measurement remain open.
 
 ## October 31 implementation
 
@@ -12,7 +12,7 @@ Status: the six-page implementation and local browser acceptance are complete on
 - The assembled artifact preserves docs and SDK assets. Staging, Pages preview hosts, Console, showcases, and hosted Wallet surfaces receive `noindex`. Production marketing and docs remain indexable.
 - Frontend smoke checks require rendered homepage text. Both frontend deployment workflows run the browser acceptance scenario and retain evidence for one day.
 
-Local verification passes: app typecheck, route type fixtures, all 53 existing script checks, and the assembled staging browser scenario.
+Verification passes: app typecheck, route type fixtures, all 53 existing script checks, the assembled staging browser scenario, and both deployed marketing browser scenarios.
 The scenario checks original HTML, no-JavaScript navigation, metadata, robots, sitemaps, documentation receipts, SDK assets, redirects, 404s, mobile layout, calculator controls, contact controls, language switching, and failed Wallet discovery.
 
 Evidence: `output/playwright/wallet-marketing-seo/`. The JSON results record the tested origin, source revision, dirty-source status, docs revision, response headers, failures, and browser errors. Screenshots and traces accompany each run.
@@ -21,10 +21,10 @@ The local docs fixture identifies public commit `6ba675eba77d2daa005b973ae0e903a
 The October 31 production/staging baseline is accessible. Both sites serve the current metadata, robots, sitemap, docs, and HTTP 404 responses. Their baseline marketing HTML still has an empty root before this change.
 Three cold mobile lab observations per origin use a 390 × 844 viewport, 4× CPU slowdown, 150 ms latency, and 200,000 bytes/s downloads. Results are in `mobile-lab.json`. Local and hosted transport differ, so these observations establish no causal speed improvement or field percentile.
 
-## Remaining operator and evidence gates
+## Delivery record and remaining evidence gates
 
 - Search Console is not configured, confirmed by the user on October 31. Verify the property, submit the marketing and docs sitemaps, and retain the first indexing/query export. No search baseline or organic attribution is available yet.
-- Publish the checked frontend through the existing staging and production workflows. Record their exact revisions and deployed acceptance below.
+- Publication is complete at `ce2e5e2576d9c62a84d718fa4f91dda097992041`. Both marketing workflows passed deployed acceptance with public docs `fafbd28d79102cdb996f6c89f226363fbd7efc0f`. Hosted Wallet settings exclusions also passed both deployments. See the [deployment evidence](evidence/wallet-marketing-seo-20261031.md).
 - The three proposed landing pages remain conditional on distinct search demand and sufficient original content. Evaluate them after Search Console provides a baseline. The existing features page already links to passkey, recovery, and hosting documentation.
 - Compare equal 28-day search periods after publication. Real-user Core Web Vitals and search growth remain unmeasured outcomes.
 

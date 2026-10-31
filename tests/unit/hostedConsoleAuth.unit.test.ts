@@ -58,6 +58,7 @@ function createHandler(calls: string[]): HostedConsoleAuthHandler {
     }),
   };
   return new HostedConsoleAuthHandler({
+    audit: createInMemoryConsoleAuditService(),
     handler: async () => new Response('fallback'),
     identity,
     recordVerifiedGoogleIdentity,
@@ -134,3 +135,4 @@ test('hosted console auth serves Console-owned provider options', async () => {
 });
 
 async function recordVerifiedGoogleIdentity(): Promise<void> {}
+import { createInMemoryConsoleAuditService } from '../../packages/console-server-ts/src/audit/service';

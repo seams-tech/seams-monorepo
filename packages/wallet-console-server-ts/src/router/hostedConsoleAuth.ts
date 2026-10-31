@@ -16,6 +16,13 @@ import type {
   ConsoleGoogleLoginResult,
 } from '@seams-internal/console-server/boundary/providerIdentity';
 import { billingCanonicalDigest } from '@seams-internal/console-server/billing/pricing';
+import type { ConsoleAuditService } from '@seams-internal/console-server/audit/service';
+import {
+  parseConsoleFunnelIntent,
+  recordConsoleFunnelStep,
+  type ConsoleFunnelIntent,
+} from '@seams-internal/console-server/onboarding/funnel';
+import { enqueuePlanStartReminder } from '@seams-internal/console-server/onboarding/planStartReminder';
 import { issueConsoleStepUpProviderEnrollmentProofV1 } from '../tenantRootSecurity/stepUpEnrollmentProof';
 import {
   isConsoleOrganizationAccessError,
@@ -28,6 +35,16 @@ function normalizeString(input: unknown): string {
 }
 
 export type HostedConsoleIdentityPort = ConsoleProviderIdentity;
+
+export type HostedConsoleAccountSession =
+  | {
+      readonly kind: 'console_identity_v1';
+      readonly account: Extract<ConsoleAccountIdentityContext, { orgId: null }>;
+    }
+  | {
+      readonly kind: 'console_session_v1';
+      readonly account: Extract<ConsoleAccountIdentityContext, { orgId: string }>;
+    };
 
 export type HostedConsoleProviderOptions = {
   readonly google:
@@ -66,11 +83,15 @@ export interface HostedConsoleAuthHandlerOptions {
   readonly providers: HostedConsoleProviderOptions;
   readonly session: RevocableConsoleSessionAdapter;
   readonly account: ConsoleAccountService;
+  readonly audit: ConsoleAuditService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly corsOrigins: readonly string[];
 }
 
-function parseExactConsoleAuthBody(body: unknown, field: 'code' | 'idToken'): string | null {
+function parseExactConsoleAuthBody(
+  body: unknown,
+  field: 'code' | 'idToken',
+): { credential: string; intent: ConsoleFunnelIntent | null } | null {
   if (
     body === null ||
     typeof body !== 'object' ||
@@ -80,11 +101,16 @@ function parseExactConsoleAuthBody(body: unknown, field: 'code' | 'idToken'): st
     return null;
   }
   const fields = new Map<string, unknown>(Object.entries(body));
-  if (fields.size !== 1 || !fields.has(field)) return null;
+  if (!fields.has(field) || fields.size > 2 || (fields.size === 2 && !fields.has('planIntent')))
+    return null;
+  const intent = fields.has('planIntent')
+    ? parseConsoleFunnelIntent(fields.get('planIntent'))
+    : null;
+  if (fields.has('planIntent') && !intent) return null;
   const value = fields.get(field);
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
-  return normalized || null;
+  return normalized ? { credential: normalized, intent } : null;
 }
 
 async function readJsonOrNull(request: Request): Promise<unknown> {
@@ -212,6 +238,60 @@ export class HostedConsoleAuthHandler {
     if (request.method === 'POST' && pathname === '/console/auth/github/options') {
       return consoleAuthJson({ ok: true, ...this.options.providers.github }, 200);
     }
+    if (request.method === 'POST' && pathname === '/console/auth/funnel') {
+      if (!trustedConsoleOrigin(request, this.options.corsOrigins))
+        return originForbiddenResponse();
+      const raw = await readJsonOrNull(request);
+      const intent =
+        raw && typeof raw === 'object'
+          ? parseConsoleFunnelIntent(Reflect.get(raw, 'intent'))
+          : null;
+      const event = raw && typeof raw === 'object' ? Reflect.get(raw, 'event') : null;
+      if (
+        !intent ||
+        !raw ||
+        Object.keys(raw).length !== 2 ||
+        (event !== 'console_login_view' &&
+          event !== 'plan_ready' &&
+          event !== 'growth_continue_free' &&
+          event !== 'card_setup_canceled')
+      ) {
+        return consoleAuthJson({ ok: false, code: 'invalid_body' }, 400);
+      }
+      if (event === 'console_login_view') {
+        await recordConsoleFunnelStep(this.options.audit, { kind: 'visitor' }, intent, event, null);
+      } else {
+        const session = await this.readAccountSession(request);
+        if (!session || session.kind !== 'console_session_v1' || !session.account.orgId) {
+          return consoleAuthJson({ ok: false, code: 'unauthorized' }, 401);
+        }
+        await this.options.account.switchOrganizationContext(
+          session.account,
+          session.account.orgId,
+        );
+        await recordConsoleFunnelStep(
+          this.options.audit,
+          { kind: 'account', userId: session.account.userId, orgId: session.account.orgId },
+          intent,
+          event,
+          null,
+        );
+        if (event === 'plan_ready' && intent.plan !== 'free') {
+          await enqueuePlanStartReminder(
+            this.options.audit,
+            {
+              orgId: session.account.orgId,
+              userId: session.account.userId,
+              email: session.account.email,
+              name: session.account.name,
+            },
+            intent.plan,
+            request.headers.get('Origin') || new URL(request.url).origin,
+          );
+        }
+      }
+      return consoleAuthJson({ ok: true }, 200);
+    }
     if (request.method === 'GET' && pathname === '/console/auth/session') {
       const session = await this.readAccountSession(request);
       return session?.kind === 'console_identity_v1'
@@ -248,8 +328,8 @@ export class HostedConsoleAuthHandler {
   }
 
   private async loginWithGoogle(request: Request): Promise<Response> {
-    const idToken = parseExactConsoleAuthBody(await readJsonOrNull(request), 'idToken');
-    if (!idToken) {
+    const input = parseExactConsoleAuthBody(await readJsonOrNull(request), 'idToken');
+    if (!input) {
       return consoleAuthJson(
         {
           ok: false,
@@ -259,6 +339,7 @@ export class HostedConsoleAuthHandler {
         400,
       );
     }
+    const idToken = input.credential;
     const verified = await this.options.identity.verifyGoogleLogin({ idToken });
     if (!verified.ok) {
       return consoleAuthJson(
@@ -283,17 +364,20 @@ export class HostedConsoleAuthHandler {
       `google:${await billingCanonicalDigest(idToken)}`,
     );
 
-    return await this.issueConsoleSession({
-      kind: 'google',
-      userId,
-      email: normalizeConsoleLoginEmail(verified.email),
-      name: normalizeString(verified.name) || userId,
-    });
+    return await this.issueConsoleSession(
+      {
+        kind: 'google',
+        userId,
+        email: normalizeConsoleLoginEmail(verified.email),
+        name: normalizeString(verified.name) || userId,
+      },
+      input.intent,
+    );
   }
 
   private async loginWithGithub(request: Request): Promise<Response> {
-    const code = parseExactConsoleAuthBody(await readJsonOrNull(request), 'code');
-    if (!code) {
+    const input = parseExactConsoleAuthBody(await readJsonOrNull(request), 'code');
+    if (!input) {
       return consoleAuthJson(
         {
           ok: false,
@@ -303,7 +387,7 @@ export class HostedConsoleAuthHandler {
         400,
       );
     }
-    const verified = await this.options.identity.verifyGithubOAuthCode({ code });
+    const verified = await this.options.identity.verifyGithubOAuthCode({ code: input.credential });
     if (!verified.ok) {
       return consoleAuthJson(
         { ok: false, code: verified.code, message: verified.message },
@@ -318,15 +402,21 @@ export class HostedConsoleAuthHandler {
       );
     }
 
-    return await this.issueConsoleSession({
-      kind: 'github',
-      userId,
-      email: normalizeConsoleLoginEmail(verified.email),
-      name: normalizeString(verified.name) || userId,
-    });
+    return await this.issueConsoleSession(
+      {
+        kind: 'github',
+        userId,
+        email: normalizeConsoleLoginEmail(verified.email),
+        name: normalizeString(verified.name) || userId,
+      },
+      input.intent,
+    );
   }
 
-  private async issueConsoleSession(identity: HostedConsoleLoginIdentity): Promise<Response> {
+  private async issueConsoleSession(
+    identity: HostedConsoleLoginIdentity,
+    intent: ConsoleFunnelIntent | null,
+  ): Promise<Response> {
     const account: ConsoleAccountIdentityContext = {
       userId: identity.userId,
       email: identity.email,
@@ -338,6 +428,16 @@ export class HostedConsoleAuthHandler {
     };
     const organizations = await this.options.account.listOrganizations(account);
     const organization = organizations[0];
+    if (intent) {
+      const actor = { kind: 'account' as const, userId: identity.userId, orgId: null };
+      await recordConsoleFunnelStep(
+        this.options.audit,
+        actor,
+        intent,
+        organization ? 'console_signin_existing' : 'console_identity_created',
+        identity.kind,
+      );
+    }
     const enrollmentProof = await issueConsoleStepUpProviderEnrollmentProofV1(
       this.options.session,
       account.userId,
@@ -363,10 +463,7 @@ export class HostedConsoleAuthHandler {
     );
   }
 
-  private async readAccountSession(request: Request): Promise<{
-    readonly kind: 'console_identity_v1' | 'console_session_v1';
-    readonly account: ConsoleAccountIdentityContext;
-  } | null> {
+  private async readAccountSession(request: Request): Promise<HostedConsoleAccountSession | null> {
     const parsed = await this.options.session.parse(Object.fromEntries(request.headers.entries()));
     if (!parsed.ok) return null;
     const kind = parsed.claims.kind;
@@ -376,6 +473,19 @@ export class HostedConsoleAuthHandler {
     const email = normalizeConsoleLoginEmail(parsed.claims.email);
     const provider = parsed.claims.provider;
     if (!userId || !email || (provider !== 'google' && provider !== 'github')) return null;
+    if (kind === 'console_session_v1')
+      return {
+        kind,
+        account: {
+          userId,
+          email,
+          name: normalizeString(parsed.claims.name),
+          provider,
+          orgId: normalizeString(parsed.claims.orgId),
+          projectId: normalizeString(parsed.claims.projectId) || null,
+          platformSupport: false,
+        },
+      };
     return {
       kind,
       account: {
@@ -448,8 +558,38 @@ export class HostedConsoleAuthHandler {
         405,
       );
     try {
-      const input = parseCreateConsoleAccountOrganizationRequest(await readJsonOrNull(request));
-      const organization = await this.options.account.createOrganization(account, input);
+      const body = await readJsonOrNull(request);
+      const intent =
+        body && typeof body === 'object'
+          ? parseConsoleFunnelIntent(Reflect.get(body, 'planIntent'))
+          : null;
+      const input = parseCreateConsoleAccountOrganizationRequest(body);
+      const existing = await this.options.account.listOrganizations(account);
+      if (intent && existing.length > 0)
+        return this.issueOrganizationSession(account, existing[0].id);
+      const id = intent
+        ? `org_${(await billingCanonicalDigest(`${account.userId}:${intent.projectId}`)).slice(0, 12)}`
+        : input.id;
+      const organization = await this.options.account.createOrganization(account, {
+        name: input.name,
+        slug: input.slug,
+        id,
+      });
+      await this.options.audit.appendEvent(
+        { orgId: organization.id, actorUserId: account.userId },
+        {
+          id: `organization.create:${organization.id}`,
+          category: 'ORG_PROJECT_ENV',
+          action: 'organization.create',
+          outcome: 'SUCCESS',
+          summary: 'Created organization',
+          metadata: {
+            organizationId: organization.id,
+            automatic: intent !== null,
+            planIntent: intent?.plan ?? null,
+          },
+        },
+      );
       return this.issueOrganizationSession(account, organization.id);
     } catch (error: unknown) {
       if (isConsoleAccountError(error))

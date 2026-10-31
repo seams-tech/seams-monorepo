@@ -284,7 +284,6 @@ try {
         responses,
         browserErrors,
         metrics,
-        searchConsole: 'not configured; indexing, query, and field performance data unavailable',
       },
       null,
       2,

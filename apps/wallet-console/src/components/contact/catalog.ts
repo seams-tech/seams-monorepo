@@ -5,6 +5,13 @@ import { locale } from '@/marketing/i18n/browser';
 // requires both languages.
 export const messages = {
   close: { en: 'Close', ja: '閉じる' },
+  pricingContext: { en: 'Pricing context', ja: '料金のお見積もり' },
+  enterprisePlan: { en: 'Enterprise plan', ja: 'Enterpriseプラン' },
+  removeContext: { en: 'Remove pricing context', ja: '料金情報を削除' },
+  copyMessage: {
+    en: 'If your email app did not open, copy this message and send it to sales@seams.sh.',
+    ja: 'メールアプリが開かない場合は、この内容をコピーしてsales@seams.shに送信してください。',
+  },
   contactTitle: {
     en: 'Tell us what you are building',
     ja: '開発中のサービスについてお聞かせください',

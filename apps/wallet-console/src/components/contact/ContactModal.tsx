@@ -5,6 +5,11 @@ import './ContactModal.css';
 
 import { t } from './catalog';
 import { CONTACT_LINK_TARGET } from './contactLink';
+import {
+  contactPricingLines,
+  readContactPricingContext,
+  type ContactPricingContext,
+} from './pricingContext';
 
 const SALES_EMAIL_ADDRESS = 'sales@seams.sh';
 
@@ -18,7 +23,10 @@ type PreparedMessage = {
   body: string;
 };
 
-function prepareMessage(form: HTMLFormElement): PreparedMessage {
+function prepareMessage(
+  context: ContactPricingContext | null,
+  form: HTMLFormElement,
+): PreparedMessage {
   const formData = new FormData(form);
   const name = readFormValue(formData, 'name');
   const email = readFormValue(formData, 'email');
@@ -32,6 +40,8 @@ function prepareMessage(form: HTMLFormElement): PreparedMessage {
       `${t('companyName')}: ${company}`,
       '',
       details,
+      '',
+      ...(context ? contactPricingLines(context) : []),
     ].join('\n'),
   };
 }
@@ -41,12 +51,84 @@ function mailtoHref(message: PreparedMessage): string {
 }
 
 function readContactHash(): boolean {
-  return typeof window !== 'undefined' && window.location.hash === CONTACT_LINK_TARGET;
+  return (
+    typeof window !== 'undefined' && window.location.hash.split('?')[0] === CONTACT_LINK_TARGET
+  );
 }
 
-function handleContactSubmit(event: React.FormEvent<HTMLFormElement>): void {
+function handleContactSubmit(
+  context: ContactPricingContext | null,
+  setPrepared: (message: PreparedMessage) => void,
+  event: React.FormEvent<HTMLFormElement>,
+): void {
   event.preventDefault();
-  window.location.assign(mailtoHref(prepareMessage(event.currentTarget)));
+  const message = prepareMessage(context, event.currentTarget);
+  setPrepared(message);
+  window.location.assign(mailtoHref(message));
+}
+
+function cancelContact(close: () => void, event: React.SyntheticEvent<HTMLDialogElement>): void {
+  event.preventDefault();
+  close();
+}
+
+function ContactForm(): React.JSX.Element {
+  const [context, setContext] = React.useState(() =>
+    readContactPricingContext(window.location.hash),
+  );
+  const [prepared, setPrepared] = React.useState<PreparedMessage | null>(null);
+  return (
+    <form
+      className="contact-form"
+      aria-label={t('contactForm')}
+      onSubmit={handleContactSubmit.bind(null, context, setPrepared)}
+    >
+      {context ? (
+        <div className="contact-form__context" aria-label={t('pricingContext')}>
+          <strong>{t('enterprisePlan')}</strong>
+          <p style={{ whiteSpace: 'pre-line' }}>
+            {contactPricingLines(context).slice(1).join('\n')}
+          </p>
+          <button type="button" className="h2-btn" onClick={setContext.bind(null, null)}>
+            {t('removeContext')}
+          </button>
+        </div>
+      ) : null}
+      <div className="contact-form__row">
+        <label className="contact-form__field">
+          <span className="contact-form__label">{t('name')}</span>
+          <input type="text" name="name" autoComplete="name" required />
+        </label>
+        <label className="contact-form__field">
+          <span className="contact-form__label">{t('workEmail')}</span>
+          <input type="email" name="email" autoComplete="email" required />
+        </label>
+      </div>
+      <label className="contact-form__field">
+        <span className="contact-form__label">{t('companyName')}</span>
+        <input type="text" name="company" autoComplete="organization" required />
+      </label>
+      <label className="contact-form__field">
+        <span className="contact-form__label">{t('projectDetails')}</span>
+        <textarea name="details" required rows={5} placeholder={t('projectPlaceholder')} />
+      </label>
+      <div className="contact-form__actions">
+        <button type="submit" className="h2-btn h2-btn--primary">
+          {t('emailSales')}
+        </button>
+      </div>
+      {prepared ? (
+        <label className="contact-form__field" role="status">
+          <span>{t('copyMessage')}</span>
+          <textarea
+            readOnly
+            rows={9}
+            value={`To: ${SALES_EMAIL_ADDRESS}\nSubject: ${prepared.subject}\n\n${prepared.body}`}
+          />
+        </label>
+      ) : null}
+    </form>
+  );
 }
 
 /* Mounted once by the app. The form opens while the URL hash is #contact, so a
@@ -75,14 +157,6 @@ export function ContactModalHost(): React.JSX.Element {
     setOpen(false);
   }, []);
 
-  // Escape closes the dialog natively; keep the URL and the state in step
-  React.useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    dialog.addEventListener('close', close);
-    return () => dialog.removeEventListener('close', close);
-  }, [close]);
-
   React.useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -100,6 +174,7 @@ export function ContactModalHost(): React.JSX.Element {
       ref={dialogRef}
       className="h2-page contact-modal"
       aria-labelledby="contact-modal-title"
+      onCancel={cancelContact.bind(null, close)}
       onClick={(event) => {
         // a click on the backdrop lands on the dialog element itself
         if (event.target === event.currentTarget) close();
@@ -131,40 +206,7 @@ export function ContactModalHost(): React.JSX.Element {
           </p>
         </div>
 
-        {open ? (
-          <form
-            className="contact-form"
-            aria-label={t('contactForm')}
-            onSubmit={handleContactSubmit}
-          >
-            <div className="contact-form__row">
-              <label className="contact-form__field">
-                <span className="contact-form__label">{t('name')}</span>
-                <input type="text" name="name" autoComplete="name" required />
-              </label>
-              <label className="contact-form__field">
-                <span className="contact-form__label">{t('workEmail')}</span>
-                <input type="email" name="email" autoComplete="email" required />
-              </label>
-            </div>
-
-            <label className="contact-form__field">
-              <span className="contact-form__label">{t('companyName')}</span>
-              <input type="text" name="company" autoComplete="organization" required />
-            </label>
-
-            <label className="contact-form__field">
-              <span className="contact-form__label">{t('projectDetails')}</span>
-              <textarea name="details" required rows={5} placeholder={t('projectPlaceholder')} />
-            </label>
-
-            <div className="contact-form__actions">
-              <button type="submit" className="h2-btn h2-btn--primary">
-                {t('emailSales')}
-              </button>
-            </div>
-          </form>
-        ) : null}
+        {open ? <ContactForm /> : null}
       </div>
     </dialog>
   );

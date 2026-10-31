@@ -5,6 +5,13 @@ import { walletConsoleOverviewHref } from '../../consoleNavigation';
 import { canDashboardManageBilling, useDashboardConsoleSession } from '../../consoleSession';
 import { useDashboardSelectedContext } from '../../selectedContext';
 import {
+  listDashboardAccountOrganizations,
+  switchDashboardAccountOrganizationContext,
+  type DashboardAccountOrganization,
+} from '../account-settings/consoleAccountApi';
+import { replaceDashboardSelectedContext } from '../../useDashboardUiPreferences';
+import { requireConsoleBaseUrl } from '../../consoleHttp';
+import {
   dashboardPlanName,
   getDashboardBillingPlan,
   reconcileDashboardCardSetup,
@@ -18,8 +25,77 @@ import {
   isDashboardPlanChoice,
   readDashboardOverviewHref,
   readPendingDashboardPlanIntent,
+  recordDashboardFunnelStep,
+  prepareDashboardAccountForPlan,
   type DashboardPlanChoice,
 } from './planIntent';
+
+async function choosePlanOrganization(org: DashboardAccountOrganization): Promise<void> {
+  const context = await switchDashboardAccountOrganizationContext(org.id);
+  replaceDashboardSelectedContext({
+    organization: org.id,
+    project: context.projectId ?? '',
+    environment: '',
+  });
+  const intent = readPendingDashboardPlanIntent();
+  if (intent) {
+    await prepareDashboardAccountForPlan(intent, requireConsoleBaseUrl());
+    await recordDashboardFunnelStep('plan_ready', intent);
+  }
+  window.location.assign('/dashboard/billing/plan');
+}
+
+function PlanOrganizationChoice(): React.JSX.Element {
+  const [organizations, setOrganizations] = React.useState<DashboardAccountOrganization[]>([]);
+  const [error, setError] = React.useState('');
+  React.useEffect(() => {
+    void listDashboardAccountOrganizations()
+      .then(setOrganizations)
+      .catch(reportOrganizationError.bind(null, setError));
+  }, []);
+  return (
+    <section className="dashboard-plan-current" aria-label="Choose organization">
+      <h2>Choose the organization for this plan</h2>
+      <p>The plan applies to the organization you select.</p>
+      {organizations.map(renderPlanOrganization.bind(null, setError))}
+      {error ? <p role="alert">{error}</p> : null}
+    </section>
+  );
+}
+
+function reportOrganizationError(setError: (message: string) => void, error: unknown): void {
+  setError(error instanceof Error ? error.message : 'Organization selection failed. Try again.');
+}
+
+function renderPlanOrganization(
+  setError: (message: string) => void,
+  org: DashboardAccountOrganization,
+): React.JSX.Element {
+  return (
+    <button
+      key={org.id}
+      type="button"
+      className="dashboard-pagination-button"
+      onClick={selectPlanOrganization.bind(null, setError, org)}
+    >
+      {org.name}
+    </button>
+  );
+}
+
+function selectPlanOrganization(
+  setError: (message: string) => void,
+  org: DashboardAccountOrganization,
+): void {
+  void choosePlanOrganization(org).catch(reportOrganizationError.bind(null, setError));
+}
+
+function continueFromPlanPage(): void {
+  const intent = readPendingDashboardPlanIntent();
+  if (intent && intent.plan !== 'free')
+    void recordDashboardFunnelStep('growth_continue_free', intent);
+  clearPendingDashboardPlanIntent();
+}
 
 /* Every gradient on this page is the black onyx field. The Pro price is a placeholder,
    as on the pricing page. */
@@ -112,12 +188,15 @@ export function PlanStartPage(): React.JSX.Element {
   const requested = params.get('plan');
   const chosen = intent?.plan ?? (isDashboardPlanChoice(requested) ? requested : null);
   const cardSetupStatus = params.get('card_setup');
+  const choosingOrganization = params.get('choose_org') === '1';
   const checkoutSessionId = String(params.get('checkout_session_id') || '').trim();
   const canManageBilling = canDashboardManageBilling(session.claims);
   const [plan, setPlan] = React.useState<DashboardBillingPlan | null>(null);
   const [loaded, setLoaded] = React.useState(false);
   const [message, setMessage] = React.useState('');
-  const [errorMessage, setErrorMessage] = React.useState('');
+  const [errorMessage, setErrorMessage] = React.useState(
+    params.has('setup_failed') ? 'Card setup did not start. Try again, or continue on Free.' : '',
+  );
   const [starting, setStarting] = React.useState<DashboardSelfServePlan | null>(null);
   const reconciledRef = React.useRef('');
   const intentHandledRef = React.useRef(false);
@@ -154,6 +233,7 @@ export function PlanStartPage(): React.JSX.Element {
   React.useEffect(() => {
     if (cardSetupStatus === 'cancel') {
       setMessage('Card setup was canceled. No card was added, and your plan did not change.');
+      if (intent) void recordDashboardFunnelStep('card_setup_canceled', intent);
       return;
     }
     if (cardSetupStatus !== 'success' || !checkoutSessionId) return;
@@ -208,7 +288,14 @@ export function PlanStartPage(): React.JSX.Element {
   /* A paid intent with no card goes straight to Stripe. With a card on file, the owner
      confirms first. Any other intent has done its routing. */
   React.useEffect(() => {
-    if (!intent || intentHandledRef.current || cardSetupStatus) return;
+    if (
+      !intent ||
+      intentHandledRef.current ||
+      cardSetupStatus ||
+      choosingOrganization ||
+      params.has('setup_failed')
+    )
+      return;
     if (!loaded || session.loading) return;
     intentHandledRef.current = true;
     if (intent.plan === 'free' || plan?.plan !== 'free' || !canManageBilling) {
@@ -216,9 +303,32 @@ export function PlanStartPage(): React.JSX.Element {
       return;
     }
     if (plan.card.kind !== 'usable') void startPlan(intent.plan);
-  }, [canManageBilling, cardSetupStatus, intent, loaded, plan, session.loading, startPlan]);
+  }, [
+    canManageBilling,
+    cardSetupStatus,
+    choosingOrganization,
+    params,
+    intent,
+    loaded,
+    plan,
+    session.loading,
+    startPlan,
+  ]);
 
   const currentOffer = PLAN_OFFERS.find((offer) => offer.plan === plan?.plan) ?? null;
+
+  if (choosingOrganization) return <PlanOrganizationChoice />;
+  if (!session.loading && !canManageBilling)
+    return (
+      <div className="dashboard-view">
+        <p>
+          Ask an owner or a billing administrator to start {chosen === 'pro' ? 'Pro' : 'Growth'}.
+        </p>
+        <a href={overviewHref} onClick={clearPendingDashboardPlanIntent}>
+          Open the Wallet Console
+        </a>
+      </div>
+    );
 
   return (
     <div className="dashboard-view dashboard-plan-view" aria-label="Plan page">
@@ -257,7 +367,9 @@ export function PlanStartPage(): React.JSX.Element {
               <a
                 className="dashboard-pagination-button dashboard-pagination-button--primary dashboard-plan-current__cta"
                 href={overviewHref}
-                onClick={clearPendingDashboardPlanIntent}
+                onClick={
+                  plan.plan === 'free' ? continueFromPlanPage : clearPendingDashboardPlanIntent
+                }
               >
                 {plan.plan === 'free' && chosen && chosen !== 'free'
                   ? 'Continue on Free'

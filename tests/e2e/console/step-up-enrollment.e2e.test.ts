@@ -220,6 +220,7 @@ async function verifyStepUpEnrollment(
     { id: ORG_ID, name: 'Step-up fixture' },
   );
   const hosted = new HostedConsoleAuthHandler({
+    audit: createInMemoryConsoleAuditService(),
     handler: fallback,
     identity: { verifyGoogleLogin, verifyGithubOAuthCode },
     recordVerifiedGoogleIdentity,
@@ -372,3 +373,4 @@ async function verifyStepUpEnrollment(
 }
 
 test('a copied owner session cannot enroll a Console step-up passkey', verifyStepUpEnrollment);
+import { createInMemoryConsoleAuditService } from '../../../packages/console-server-ts/src/audit/service';

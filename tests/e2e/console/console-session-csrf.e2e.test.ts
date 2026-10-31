@@ -130,6 +130,7 @@ test('a sibling origin cannot replace or revoke a Console session', async ({
     revocations: createInMemoryConsoleSessionRevocationStore(),
   });
   const handler = new HostedConsoleAuthHandler({
+    audit: createInMemoryConsoleAuditService(),
     handler: fallback,
     identity,
     recordVerifiedGoogleIdentity,
@@ -208,3 +209,4 @@ test('a sibling origin cannot replace or revoke a Console session', async ({
     await context.close();
   }
 });
+import { createInMemoryConsoleAuditService } from '../../../packages/console-server-ts/src/audit/service';

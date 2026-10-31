@@ -1,33 +1,20 @@
 import React from 'react';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
-import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
+import { enterpriseContactHref } from '@/components/contact/pricingContext';
 import type { MessageKey } from './catalog';
-import { estimate, FREE_USERS, lowestSelfServePlan, type SelfServePlanId } from './estimate';
+import {
+  estimate,
+  isWithinFreePlan,
+  USER_STEPS,
+  MIN_PER_DAY,
+  MAX_PER_DAY,
+  lowestSelfServePlan,
+  type SelfServePlanId,
+} from './estimate';
 import { usePricingTranslation, type PricingTranslator } from './i18n';
 import { useMarketingPage } from '@/marketing/context';
 import { formatPrice } from './prices';
-
-// A log-like scale from the Free plan's users: each slider step is one of these counts.
-const USER_STEPS = [
-  FREE_USERS,
-  500,
-  1_000,
-  2_500,
-  5_000,
-  10_000,
-  25_000,
-  50_000,
-  100_000,
-  250_000,
-  500_000,
-  1_000_000,
-  2_500_000,
-  5_000_000,
-  10_000_000,
-] as const;
-const MIN_PER_DAY = 1;
-const MAX_PER_DAY = 50;
 
 /* The price breakdown names the plan, its included users, and its rates. */
 const SELF_SERVE_LABELS: Record<
@@ -109,12 +96,12 @@ export function EnterpriseCalculator(): React.JSX.Element {
     notation: 'compact',
   });
   const { linkProps } = useSiteRouter();
-  const contactProps = linkProps(CONTACT_LINK_TARGET);
   const [userStep, setUserStep] = React.useState(USER_STEPS.indexOf(100_000));
   const [perDay, setPerDay] = React.useState(10);
   const usersId = React.useId();
   const perDayId = React.useId();
   const users = USER_STEPS[userStep];
+  const contactProps = linkProps(enterpriseContactHref({ users, perDay }));
   const selfServe = {
     growth: estimate('growth', users, perDay),
     pro: estimate('pro', users, perDay),
@@ -123,7 +110,7 @@ export function EnterpriseCalculator(): React.JSX.Element {
   const lowestPlan = lowestSelfServePlan(users, perDay);
   const lowest = selfServe[lowestPlan];
   const labels = SELF_SERVE_LABELS[lowestPlan];
-  const free = lowest.total === 0;
+  const free = isWithinFreePlan(users, perDay);
 
   return (
     <section
@@ -173,7 +160,7 @@ export function EnterpriseCalculator(): React.JSX.Element {
             <dl className="pricing-calc__lines">
               <div>
                 <dt>{t(labels.base)}</dt>
-                <dd>{formatPrice(locale, lowest.base)}</dd>
+                <dd>{formatPrice(locale, free ? 0 : lowest.base)}</dd>
               </div>
               <div>
                 <dt>{t(labels.users)}</dt>

@@ -180,8 +180,8 @@ export function buildStripeCheckoutReturnUrls(
 
 /**
  * A card setup that starts a plan returns to the plan page, which names that plan. The
- * pricing-page sign-up returns to the dashboard instead, and its cancel goes back to the
- * pricing page: the configured base URL sends `/pricing/` to the company site.
+ * pricing-page sign-up returns to the dashboard. Cancellation returns to the plan page
+ * on the same authenticated Console origin.
  */
 export function buildCardSetupReturnUrls(
   consoleBaseUrl?: string,
@@ -205,9 +205,11 @@ export function buildCardSetupReturnUrls(
     'card_setup',
     { pathname: '/dashboard/overview', query: `plan=${startPlan}` },
   );
-  const pricing = new URL('/pricing/', parseConsoleBaseUrl(consoleBaseUrl));
-  pricing.searchParams.set('card_setup', 'cancel');
-  return { successUrl, cancelUrl: pricing.href };
+  const { cancelUrl } = buildBillingAccountReturnUrls(consoleBaseUrl, returnOrigin, 'card_setup', {
+    pathname: '/dashboard/billing/plan',
+    query: `plan=${startPlan}`,
+  });
+  return { successUrl, cancelUrl };
 }
 
 function parseConsoleBaseUrl(consoleBaseUrl: string | undefined): URL {

@@ -225,7 +225,7 @@ export async function getDashboardBillingPlan(): Promise<DashboardBillingPlan | 
 /**
  * With `startPlan`, the card that Stripe verifies also starts that plan. Stripe returns
  * to the plan page, or with `returnTo: 'dashboard'` (the pricing-page sign-up) to the
- * dashboard, and a cancel to the pricing page.
+ * dashboard. Cancellation returns to the plan page on the same Console origin.
  */
 export async function startDashboardCardSetup(
   startPlan: DashboardSelfServePlan | null = null,

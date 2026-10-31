@@ -2,6 +2,7 @@ import React from 'react';
 import { TrendingUp } from 'lucide-react';
 import { GrainField } from '@seams-internal/grain-field';
 import { useSiteRouter } from '@core/router/useSiteRouter';
+import { clearPendingDashboardPlanIntent, DEFAULT_PLAN_ORGANIZATION_NAME } from './planIntent';
 import {
   dashboardPlanName,
   getDashboardBillingPlan,
@@ -85,7 +86,11 @@ function planSummary(plan: DashboardBillingPlan): string {
       ? 'no card on file'
       : `${plan.card.brand} ending ${plan.card.last4}${plan.card.kind === 'usable' ? '' : ` (${plan.card.kind})`}`;
   const name = dashboardPlanName(plan.plan);
-  return `${name} plan, ${card}. Production this month: ${usage.productionActiveUsers.toLocaleString('en-US')} of ${usage.limits.productionActiveUsers.toLocaleString('en-US')} monthly active users, ${usage.productionSignatures.toLocaleString('en-US')} of ${usage.limits.productionSignatures.toLocaleString('en-US')} signatures.`;
+  const userLimit =
+    plan.plan === 'free' ? ` of ${usage.limits.productionActiveUsers.toLocaleString('en-US')}` : '';
+  const signatureLimit =
+    plan.plan === 'free' ? ` of ${usage.limits.productionSignatures.toLocaleString('en-US')}` : '';
+  return `${name} plan, ${card}. Production this month: ${usage.productionActiveUsers.toLocaleString('en-US')}${userLimit} monthly active users, ${usage.productionSignatures.toLocaleString('en-US')}${signatureLimit} signatures.`;
 }
 
 /**
@@ -98,6 +103,8 @@ export function FreePlanBanners(props: {
   readonly canManageBilling: boolean;
   readonly orgId?: string;
   readonly search?: string;
+  readonly showOverviewSummary?: boolean;
+  readonly organizationName?: string;
 }): React.ReactElement | null {
   const { linkProps } = useSiteRouter();
   const [plan, setPlan] = React.useState<DashboardBillingPlan | null>(null);
@@ -144,6 +151,7 @@ export function FreePlanBanners(props: {
           return;
         }
         if (props.variant === 'dashboard') removeCardSetupReturn();
+        clearPendingDashboardPlanIntent();
         const started = result.plan && result.plan.plan !== 'free' ? result.plan : null;
         // The Growth notice already names the plan and its start date.
         if (started?.banners.some((banner) => banner.kind === 'growth_move')) {
@@ -181,13 +189,60 @@ export function FreePlanBanners(props: {
     setDismissedKeys((current) => new Set(current).add(key));
   };
   const billingLink = linkProps('/dashboard/billing/account');
+  const quickstartLink = linkProps('/docs/getting-started/');
+  const accountLink = linkProps('/dashboard/account-settings');
   const banners = (plan?.banners ?? []).filter((banner) => !isDismissed(banner));
   const showAddCard =
     props.canManageBilling &&
     (banners.some(needsCard) || (props.variant === 'billing' && plan?.card.kind !== 'usable'));
-  if (props.variant === 'dashboard' && banners.length === 0 && !message) return null;
+  const showFreeSummary = props.showOverviewSummary && plan?.plan === 'free';
+  const showRename =
+    props.showOverviewSummary &&
+    props.organizationName === DEFAULT_PLAN_ORGANIZATION_NAME &&
+    props.canManageBilling;
+  if (
+    props.variant === 'dashboard' &&
+    banners.length === 0 &&
+    !message &&
+    !showFreeSummary &&
+    !showRename
+  )
+    return null;
   return (
     <section className="dashboard-view__section" aria-label="Plan notices">
+      {showFreeSummary && plan ? (
+        <section className="dashboard-plan-current" aria-label="Free plan summary">
+          <h2 className="dashboard-plan-current__name">Free plan</h2>
+          <p className="dashboard-plan-current__summary">
+            $0 a month. Includes {plan.usage.limits.productionActiveUsers.toLocaleString('en-US')}{' '}
+            production monthly active users and{' '}
+            {plan.usage.limits.productionSignatures.toLocaleString('en-US')} production signatures
+            each month.
+          </p>
+          <p className="dashboard-plan-current__summary">
+            {plan.card.kind === 'usable'
+              ? 'Your card is verified. Growth starts at $99 a month if you exceed a Free limit.'
+              : plan.cardDeadlineAt
+                ? `Add a card by ${utcDate(plan.cardDeadlineAt)} to keep production running. Your card is not charged within the Free limits.`
+                : 'Add a card to keep production running after the first 30 days.'}
+          </p>
+          <p className="dashboard-plan-current__summary">
+            {plan.usage.productionActiveUsers.toLocaleString('en-US')} active users and{' '}
+            {plan.usage.productionSignatures.toLocaleString('en-US')} signatures used in{' '}
+            {plan.usage.monthUtc} (UTC).
+          </p>
+          <p className="dashboard-plan-current__summary">
+            <a {...billingLink}>Manage plan and card</a>
+            {' · '}
+            <a {...quickstartLink}>Integration quick start</a>
+          </p>
+        </section>
+      ) : null}
+      {showRename ? (
+        <p className="dashboard-pagination-note">
+          <a {...accountLink}>Name your organization</a> in account settings.
+        </p>
+      ) : null}
       {banners.map((banner) =>
         banner.kind === 'growth_move' ? (
           <div key={banner.kind} className="dashboard-plan-banner" role="status">

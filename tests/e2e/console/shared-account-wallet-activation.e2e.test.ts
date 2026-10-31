@@ -896,6 +896,7 @@ function createBrowserAuthHandler(
 ): HostedConsoleAuthHandler {
   return new HostedConsoleAuthHandler({
     handler: router,
+    audit: product.core.audit,
     identity: new WalletConsoleBrowserIdentity(),
     recordVerifiedGoogleIdentity: recordBrowserGoogleIdentity,
     providers: {
@@ -1277,6 +1278,10 @@ async function verifyAutomaticWalletSetup(
     ).toBeVisible();
     expect(transport.enableRequests).toHaveLength(2);
     await page.screenshot({ path: path.join(evidence, 'wallet-ready.png'), fullPage: true });
+    await page.goto(new URL('/dashboard/overview', appUrl).href);
+    await expect(page.getByRole('region', { name: 'Free plan summary' })).toContainText('30,000');
+    await expect(page.getByRole('heading', { name: 'Wallet setup unavailable' })).toHaveCount(0);
+    await page.screenshot({ path: path.join(evidence, 'free-overview.png'), fullPage: true });
     const accountLink = page.getByRole('link', { name: 'Account settings', exact: true });
     const accountHref = await accountLink.getAttribute('href');
     if (!accountHref) throw new Error('Wallet omitted the Platform account link');

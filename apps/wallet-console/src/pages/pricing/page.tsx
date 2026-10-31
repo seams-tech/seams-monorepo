@@ -3,7 +3,7 @@ import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { FieldBanner, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
-import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
+import { enterpriseContactHref } from '@/components/contact/pricingContext';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { startSiteAnchorScroll, subscribeToSiteNavigation } from '@/app/router/siteRouting';
 import type { MessageKey } from './catalog';
@@ -81,7 +81,7 @@ function getPlans(t: PricingTranslator): readonly Plan[] {
       unit: t('committedVolume'),
       summary: t('enterpriseSummary'),
       features: [t('volumePricing'), t('enterpriseUsers'), t('enterpriseSignatures'), t('rollout')],
-      cta: { label: t('contactSales'), to: CONTACT_LINK_TARGET },
+      cta: { label: t('contactSales'), to: enterpriseContactHref(null) },
     },
   ];
 }

@@ -1,6 +1,7 @@
 import { AccountSettingsPage } from '@core/dashboard/routes/account-settings/page';
 import { ApiKeyManagementPage } from '@core/dashboard/routes/api-keys/page';
 import { BillingConsoleShell } from '@core/dashboard/routes/billing/BillingConsoleShell';
+import { PlanStartPage } from '@core/dashboard/routes/billing/PlanStartPage';
 import { TeamMembersPage } from '@core/dashboard/routes/team-members/page';
 import { DashboardOnboardingPage } from '@core/dashboard/routes/onboarding/page';
 import type { ApiCredentialScopeCatalog } from '@core/dashboard/routes/api-keys/apiKeyScopeCatalog';
@@ -416,6 +417,14 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         path: '/dashboard/billing/account',
         icon: CreditCardIcon,
         component: WalletBillingAccountPage,
+        context: 'account',
+      },
+      {
+        key: 'billing-plan',
+        label: 'Plan',
+        path: '/dashboard/billing/plan',
+        icon: CreditCardIcon,
+        component: PlanStartPage,
         context: 'account',
       },
       {

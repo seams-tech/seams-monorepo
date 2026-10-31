@@ -1330,6 +1330,8 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
           <FreePlanBanners
             key={consoleSession.claims?.orgId}
             variant="dashboard"
+            showOverviewSummary={activeRoute === '/dashboard/overview'}
+            organizationName={selectedContextDisplay.organization}
             canManageBilling={canDashboardManageBilling(consoleSession.claims)}
             orgId={consoleSession.claims?.orgId}
           />

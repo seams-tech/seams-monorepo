@@ -757,8 +757,8 @@ async function processClaimedConsoleEmail(
     recordFinalFailure(result, claimedRow, 'invalid_outbox_record');
     return;
   }
-  if (isExpiredInvitation(claimed, state.now())) {
-    const canceled = await cancelClaimedInvitation(
+  if (isExpiredInvitation(claimed, state.now()) || (await isObsoletePlanReminder(state, claimed))) {
+    const canceled = await cancelClaimedEmail(
       state,
       claimedRow,
       validDate(state.now(), 'now').getTime(),
@@ -1021,7 +1021,33 @@ function buildDeliveryInsert(input: PersistDeliveryInput): D1PreparedStatementLi
     );
 }
 
-async function cancelClaimedInvitation(
+async function isObsoletePlanReminder(
+  state: D1ConsoleEmailDispatcherState,
+  claimed: ClaimedConsoleEmail,
+): Promise<boolean> {
+  if (
+    claimed.template.family !== 'FREE_PLAN_NOTICE' ||
+    claimed.template.notice.kind !== 'plan_start_reminder'
+  )
+    return false;
+  const notice = claimed.template.notice;
+  const result = await state.database
+    .prepare(
+      `SELECT 1 AS eligible FROM billing_account_plans p
+     JOIN organization_memberships m ON m.namespace = p.namespace AND m.org_id = p.org_id
+     WHERE p.namespace = ? AND p.org_id = ? AND p.plan = 'free'
+       AND m.user_id = ? AND m.kind = 'ACTIVE'
+       AND (m.role = 'OWNER' OR (m.role = 'ADMIN' AND EXISTS (
+         SELECT 1 FROM organization_admin_permissions a WHERE a.namespace = m.namespace AND a.org_id = m.org_id AND a.membership_id = m.id AND a.permission = 'billing.manage')))
+       AND NOT EXISTS (SELECT 1 FROM billing_payment_methods c WHERE c.namespace = p.namespace AND c.org_id = p.org_id AND c.status = 'usable')
+       AND NOT EXISTS (SELECT 1 FROM audit_events e WHERE e.namespace = p.namespace AND e.org_id = p.org_id AND e.actor_user_id = m.user_id AND e.action = 'growth_continue_free')`,
+    )
+    .bind(state.namespace, notice.orgId, notice.userId)
+    .first();
+  return result === null;
+}
+
+async function cancelClaimedEmail(
   state: D1ConsoleEmailDispatcherState,
   claimed: ClaimedConsoleEmailRow,
   canceledAtMs: number,

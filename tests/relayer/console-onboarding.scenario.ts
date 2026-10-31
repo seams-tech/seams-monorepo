@@ -15,7 +15,11 @@ export async function verifyUnactivatedConsoleOnboarding(input: {
     'https://console.example.test/console/account/organizations',
     {
       method: 'POST',
-      headers: { cookie: identityCookie, 'content-type': 'application/json' },
+      headers: {
+        cookie: identityCookie,
+        origin: 'https://console.example.test',
+        'content-type': 'application/json',
+      },
       body: JSON.stringify({ id: organizationId, name: 'Fresh deployment organization' }),
     },
   );
@@ -31,7 +35,7 @@ export async function verifyUnactivatedConsoleOnboarding(input: {
   const projectId = 'proj_onboarding_replay';
   const request = {
     method: 'POST',
-    headers: { cookie, 'content-type': 'application/json' },
+    headers: { cookie, origin: 'https://console.example.test', 'content-type': 'application/json' },
     body: JSON.stringify({ project: { id: projectId, name: 'Fresh project' } }),
   };
   const first = await input.service.fetch(projectUrl, request);
@@ -47,7 +51,11 @@ export async function verifyUnactivatedConsoleOnboarding(input: {
   });
   const selected = await input.service.fetch(
     `https://console.example.test/console/account/organizations/${organizationId}/switch-context`,
-    { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: '{}' },
+    {
+      method: 'POST',
+      headers: { cookie, origin: 'https://console.example.test', 'content-type': 'application/json' },
+      body: '{}',
+    },
   );
   expect(selected.status, await selected.clone().text()).toBe(200);
   expect(selected.headers.get('set-cookie')).toBeTruthy();

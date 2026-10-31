@@ -102,8 +102,8 @@ release blocker for migration `0082` is therefore retired.
 The new local Wallet admission change requires migration
 `0088_signing_credit_commitments.sql` from `seams-wallet`. Publish a new Wallet server
 release and adopt its exact version before enabling postpaid production lanes.
-The prepared candidate is `1.0.0`. Its remaining gates are recorded in
-[release preparation](evidence/release-100-billing-preparation.md).
+The prepared candidate is `0.37.0`. Its remaining gates are recorded in
+[release preparation](evidence/release-0370-billing-preparation.md).
 The existing SDK preserves server error codes. No dependency pin points to local
 source or an unpublished version.
 

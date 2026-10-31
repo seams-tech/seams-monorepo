@@ -1,8 +1,8 @@
-# v1.0.0 release preparation
+# v0.37.0 release preparation
 
 Status: candidate source preparation. Publication and deployment are disabled.
 
-The user selected `1.0.0` after initially requesting `0.37.0`. This candidate
+The `0.37.0` candidate
 includes the published `0.36.0` recovery work, hosted billing admission, and
 Wallet-owned VoiceID enrollment records. A version change does not establish
 production readiness or API stability.
@@ -12,7 +12,7 @@ production readiness or API stability.
 - Wallet billing admission: `cb81c010c`, with earlier error handling in `bd393832c`.
 - VoiceID record ownership: `925c4ada7`.
 - Console billing, invoices, and billing rules: `0e5d0001` and `60eed5e9`.
-- Wallet, Wallet Server, and VoiceID candidate versions: `1.0.0`.
+- Wallet, Wallet Server, and VoiceID candidate versions: `0.37.0`.
 - Wallet iframe protocol: `22.0.0`, unchanged from `0.36.0`.
 - Wallet-management protocol: `5`. Signed recovery CLI: `0.29.0`.
 
@@ -34,7 +34,8 @@ Billing acceptance evidence is in `.artifacts/platform-billing/` in this reposit
 It includes credit races, replay, restart, monthly collection, payment recovery,
 late usage, Free downgrade, and real Stripe test-mode acceptance.
 Wallet signing admission evidence is in `.artifacts/signing-credit/` in seams-wallet.
-Candidate build and validation logs are in `.artifacts/release-100/` there.
+Earlier validation logs are in `.artifacts/release-100/` there. The final version's
+package and documentation checks are in `.artifacts/release-0370-final/`.
 Sequential package builds, full TypeScript checks, signing-credit acceptance,
 documentation builds, packed-package checks, and the bloat check passed locally.
 Worker and WASM artifacts were reused by the package build. The clean production
@@ -46,9 +47,6 @@ validation must build first and run type checks afterward.
 
 ## Remaining release gates
 
-- Review the public API surface and define the stable compatibility policy.
-  The iframe protocol changed repeatedly before this candidate. Confirm the
-  supported client/host upgrade policy before promising a stable public API.
 - Run the full release CI and representative Wallet lifecycle acceptance on the
   exact candidate revision. Local focused billing checks do not replace this gate.
 - Publish packages only after authorization. Verify package identities and adopt
@@ -61,3 +59,6 @@ validation must build first and run type checks afterward.
   production credit approvals before production billing activation.
 
 These gates remain pending. No production readiness claim is made by this record.
+
+Before a future 1.0 release, review the public API and define its stable
+compatibility policy. Version 0.37.0 does not make that stability commitment.

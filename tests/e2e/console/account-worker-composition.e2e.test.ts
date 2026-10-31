@@ -613,6 +613,7 @@ async function accountWorkerJourney(
         '/console/session',
         '/console/account/profile',
         '/console/billing/overview',
+        '/console/billing/payment-account',
       ]) {
         const response = await call(worker, token, route);
         expect(response.status, `${name} ${route}: ${await response.clone().text()}`).toBe(200);

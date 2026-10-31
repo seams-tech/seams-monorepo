@@ -4123,6 +4123,16 @@ export async function createD1ConsoleBillingService(
         state.consoleBaseUrl,
         ctx.returnOrigin,
       );
+      // An account can buy prepaid credit before it creates its first project.
+      await state.database
+        .prepare(
+          `INSERT INTO organization_billing_accounts(namespace,org_id,id,currency,created_at_ms)
+           SELECT namespace,id,?,'USD',? FROM organizations
+           WHERE namespace=? AND id=? AND status='ACTIVE'
+           ON CONFLICT(namespace,org_id) DO NOTHING`,
+        )
+        .bind(makeId('payer', currentNow), currentNow.getTime(), state.namespace, ctx.orgId)
+        .run();
       const policy = await readBillingPaymentPolicy(state.database, state.namespace, ctx.orgId);
       if (policy.kind === 'postpaid')
         throw new ConsoleBillingError(

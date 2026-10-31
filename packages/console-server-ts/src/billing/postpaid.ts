@@ -165,6 +165,13 @@ export async function approveCreditLimit(
 }
 
 export async function getPostpaidAccount(runtime: ConsoleBillingD1Runtime, orgId: string) {
+  const payer = await queryD1One(
+    runtime.database,
+    'SELECT id FROM organization_billing_accounts WHERE namespace=? AND org_id=?',
+    [runtime.namespace, orgId],
+  );
+  // Organizations can view prepaid billing before creating a project or making a purchase.
+  if (!payer) return { policy: { kind: 'prepaid' }, exposure: null, invoices: [] };
   const policy = await readBillingPaymentPolicy(runtime.database, runtime.namespace, orgId);
   if (policy.kind === 'prepaid') return { policy, exposure: null, invoices: [] };
   const exposure = await queryD1One(

@@ -640,14 +640,18 @@ class D1ConsoleAccountServiceImpl implements ConsoleAccountD1Service {
           )
           .bind(...values),
         // An organization without billing history has only its Free plan state to remove.
-        ...['billing_plan_notices', 'billing_plan_usage_months', 'billing_account_plans'].map(
-          (table) =>
-            this.database
-              .prepare(
-                `DELETE FROM ${table}
+        ...[
+          'billing_plan_notices',
+          'billing_plan_usage_months',
+          'billing_account_plans',
+          'billing_payment_policies',
+        ].map((table) =>
+          this.database
+            .prepare(
+              `DELETE FROM ${table}
               WHERE namespace = ?1 AND org_id = ?2 AND ${OWNER_DELETE_SCOPE_SQL}`,
-              )
-              .bind(...values),
+            )
+            .bind(...values),
         ),
         this.database
           .prepare(

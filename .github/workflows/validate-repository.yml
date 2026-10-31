@@ -49,6 +49,18 @@ jobs:
       - name: Shared account acceptance
         run: pnpm -C tests exec playwright test -c playwright.config.ts 'e2e/console/shared-account-.*\.e2e\.test\.ts' e2e/console/shared-wallet-settlement.e2e.test.ts e2e/console/account-worker-composition.e2e.test.ts --reporter=line
 
+      - name: Monthly billing and credit admission acceptance
+        run: pnpm -C tests exec playwright test -c playwright.config.ts e2e/console/platform-postpaid.e2e.test.ts --reporter=line
+
+      - name: Save billing acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: billing-acceptance-${{ github.sha }}
+          path: .artifacts/platform-billing/account/
+          include-hidden-files: true
+          if-no-files-found: ignore
+
       - name: Save account browser evidence
         if: always()
         continue-on-error: true

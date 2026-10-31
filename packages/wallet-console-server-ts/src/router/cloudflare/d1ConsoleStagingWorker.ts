@@ -1189,6 +1189,7 @@ function consoleScheduledHandler(env: CloudflareD1ConsoleStagingEnv): ScheduledH
     runConsoleTenantRootRefreshResumptionV1.bind(undefined, env);
   return createCloudflareCron({
     billingMonthlyFinalization: {
+      emailConsoleBaseUrl: requireEnvString(env, 'CONSOLE_BASE_URL'),
       database: env.CONSOLE_DB,
       namespace,
       providers: createStripeBillingProviderAdaptersFromEnv(env),

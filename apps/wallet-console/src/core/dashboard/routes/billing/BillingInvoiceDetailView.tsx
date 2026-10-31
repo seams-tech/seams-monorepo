@@ -1,3 +1,4 @@
+import { billingDocumentLabel } from './consoleBillingApi';
 import React from 'react';
 import {
   DashboardTable,
@@ -77,7 +78,7 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
   const detailMetrics: BillingMetric[] = [
     {
       label: 'Document type',
-      value: invoice?.documentType === 'PURCHASE_RECEIPT' ? 'Purchase receipt' : 'Usage statement',
+      value: invoice ? billingDocumentLabel(invoice.documentType) : 'Document',
       hint: invoice?.id || invoiceId,
     },
     {
@@ -261,7 +262,7 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
                 {lineItemsPagination.rows.map((lineItem) => (
                   <DashboardTableRow key={lineItem.id}>
                     <DashboardTableCell title={lineItem.id}>{lineItem.id}</DashboardTableCell>
-                    <DashboardTableCell>{lineItem.itemType || '-'}</DashboardTableCell>
+                    <DashboardTableCell>{invoiceItemLabel(lineItem.itemType)}</DashboardTableCell>
                     <DashboardTableCell title={lineItem.description}>
                       {lineItem.description || '-'}
                     </DashboardTableCell>
@@ -286,3 +287,20 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
 }
 
 export default BillingInvoiceDetailView;
+
+function invoiceItemLabel(type: string): string {
+  switch (type) {
+    case 'PLAN_BASE_FEE':
+      return 'Plan base fee';
+    case 'PLAN_SIGNING_USAGE':
+      return 'Signing usage';
+    case 'PRODUCT_EXECUTION_DEBIT':
+      return 'Execution usage';
+    case 'CREDIT_TOP_UP':
+      return 'Credit purchase';
+    case 'ACTIVE_RESOURCE_USAGE_DEBIT':
+      return 'Active resource usage';
+    default:
+      return 'Adjustment';
+  }
+}

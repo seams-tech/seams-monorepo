@@ -1,3 +1,4 @@
+import type { SignatureOutcome } from './signatureOutcome';
 import {
   parseWalletRegistrationContextResponse,
   walletRegistrationSetupRequestDigest,
@@ -65,7 +66,14 @@ type CompletionInput = {
 } & (
   | {
       readonly outcome: 'established';
-      readonly session: { readonly kind: 'none'; readonly walletId?: never; readonly digest?: never; readonly expiresAtMs?: never } | (WalletSessionLocatorPublication & { readonly kind: 'credential' });
+      readonly session:
+        | {
+            readonly kind: 'none';
+            readonly walletId?: never;
+            readonly digest?: never;
+            readonly expiresAtMs?: never;
+          }
+        | (WalletSessionLocatorPublication & { readonly kind: 'credential' });
     }
   | { readonly outcome: 'cancelled'; readonly session?: never }
 );
@@ -260,9 +268,7 @@ export class WalletHomeServiceClient
   }
 
   /** Reports completed production signatures; the Console counts each one once. */
-  async publishSignatures(
-    signatures: readonly { readonly signatureId: string; readonly completedAtMs: number }[],
-  ): Promise<void> {
+  async publishSignatures(signatures: readonly SignatureOutcome[]): Promise<void> {
     const response = await this.post('production-signatures', { signatures });
     if (response.status !== 200 || record(response.body).ok !== true) {
       throw new Error(`Production signature delivery failed: HTTP ${response.status}`);
@@ -570,6 +576,11 @@ export class WalletHomeServiceClient
       });
     }
     if (response.status !== 200 || record(response.body).ok !== true) {
+      if (response.status === 402 && record(response.body).code === 'billing_credit_exhausted')
+        throw new WalletPlacementError(
+          'billing_credit_exhausted',
+          'The application has no credit for a newly billable login',
+        );
       throw new Error(`Session routing publication failed: HTTP ${response.status}`);
     }
   }

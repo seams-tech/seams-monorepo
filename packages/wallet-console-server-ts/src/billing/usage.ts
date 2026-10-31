@@ -1,3 +1,4 @@
+import type { SignatureFunding } from '../walletPlacement/signatureOutcome';
 import {
   PlatformPlanUsageEventV1,
   PlatformUsageEventV1,
@@ -44,6 +45,19 @@ export const WALLET_MONTHLY_USAGE_D1_SCHEMA_SQL = Object.freeze([
   `CREATE TRIGGER IF NOT EXISTS wallet_monthly_usage_outbox_retained
     BEFORE DELETE ON wallet_monthly_usage_outbox
     BEGIN SELECT RAISE(ABORT, 'wallet_monthly_usage_fact_retained'); END`,
+  `CREATE TRIGGER IF NOT EXISTS wallet_monthly_activity_admission AFTER INSERT ON wallet_monthly_usage_outbox
+WHEN json_extract(NEW.payload_json,'$.kind')='plan_usage'
+ AND json_extract(NEW.payload_json,'$.measure.kind')='production_active_user'
+BEGIN
+ INSERT INTO billing_plan_usage_facts(namespace,org_id,billing_account_id,month_utc,kind,fact_key,environment_id,recorded_at_ms)
+ SELECT i.namespace,i.org_id,i.billing_account_id,substr(json_extract(NEW.payload_json,'$.occurredAt'),1,7),
+ 'active_user',json_extract(NEW.payload_json,'$.measure.environmentId')||':'||json_extract(NEW.payload_json,'$.measure.userKey'),
+ json_extract(NEW.payload_json,'$.measure.environmentId'),CAST(unixepoch(json_extract(NEW.payload_json,'$.occurredAt')) AS INTEGER)*1000
+ FROM wallet_service_bindings binding JOIN platform_service_instances i ON i.namespace=binding.namespace AND i.id=binding.instance_id
+ WHERE binding.native_namespace=NEW.namespace AND binding.native_org_id=NEW.native_org_id AND binding.instance_id=NEW.instance_id
+ AND binding.deployment_id=NEW.deployment_id AND i.service_id='wallet'
+ ON CONFLICT DO NOTHING;
+END`,
 ]);
 
 /** Append this statement to the transaction that persists the successful execution. */
@@ -169,7 +183,7 @@ export function createWalletProductionActivityStatement(input: {
  * key is the signing operation, so a repeated delivery writes nothing. A deployment
  * whose environment is not prod writes nothing.
  */
-export function createWalletProductionSignatureStatement(input: {
+export function createWalletProductionSignatureStatements(input: {
   readonly database: D1DatabaseLike;
   readonly deploymentId: string;
   readonly tenant: {
@@ -180,6 +194,7 @@ export function createWalletProductionSignatureStatement(input: {
   };
   readonly signatureId: string;
   readonly completedAtMs: number;
+  readonly funding: SignatureFunding;
 }) {
   const tenant = input.tenant;
   const eventId = JSON.stringify([
@@ -189,7 +204,50 @@ export function createWalletProductionSignatureStatement(input: {
     tenant.environmentId,
     input.signatureId,
   ]);
-  return input.database
+  const statements = [];
+  if (input.funding.kind === 'credit') {
+    statements.push(
+      input.database
+        .prepare(
+          `INSERT INTO billing_signing_credit_receipts(namespace,org_id,signature_id,grant_id,environment_id,wallet_id,outcome,completed_at_ms)
+      SELECT namespace,org_id,?,?,environment_id,?,?,? FROM billing_signing_credit_grants WHERE namespace=? AND org_id=? AND id=? AND deployment_lane=? AND environment_id=?
+      ON CONFLICT DO NOTHING`,
+        )
+        .bind(
+          input.signatureId,
+          input.funding.grantId,
+          input.funding.walletId,
+          input.funding.outcome,
+          input.completedAtMs,
+          tenant.namespace,
+          tenant.organizationId,
+          input.funding.grantId,
+          input.deploymentId,
+          tenant.environmentId,
+        ),
+    );
+  }
+  if (input.funding.kind === 'credit') {
+    statements.push(
+      input.database
+        .prepare(
+          `INSERT INTO billing_funds_transition_checks(valid)
+      SELECT EXISTS(SELECT 1 FROM billing_signing_credit_receipts WHERE namespace=? AND org_id=? AND signature_id=? AND grant_id=? AND environment_id=? AND outcome=? AND completed_at_ms=?)`,
+        )
+        .bind(
+          tenant.namespace,
+          tenant.organizationId,
+          input.signatureId,
+          input.funding.grantId,
+          tenant.environmentId,
+          input.funding.outcome,
+          input.completedAtMs,
+        ),
+    );
+    statements.push(input.database.prepare('DELETE FROM billing_funds_transition_checks'));
+  }
+  if (input.funding.outcome === 'failed') return statements;
+  const fact = input.database
     .prepare(
       `INSERT INTO wallet_monthly_usage_outbox
         (namespace, deployment_id, event_id, native_org_id, source_record_id, instance_id,
@@ -218,6 +276,8 @@ export function createWalletProductionSignatureStatement(input: {
       new Date(input.completedAtMs).toISOString(),
       input.signatureId,
     );
+  statements.push(fact);
+  return statements;
 }
 
 type WalletOutboxEvent =

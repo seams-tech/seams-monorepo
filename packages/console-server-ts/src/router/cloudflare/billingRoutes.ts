@@ -1,3 +1,12 @@
+import { reconcilePostpaidDispute } from '../../billing/invoiceDisputes';
+import { reconcileInvoiceEvent } from '../../billing/invoiceRecovery';
+import {
+  approveCreditLimit,
+  CreditLimitApproval,
+  getPostpaidAccount,
+  requestFreeDowngrade,
+} from '../../billing/postpaid';
+import { runD1ConsoleBillingMonthlyFinalization } from '../../billing/d1';
 import type { ConsoleBillingService, ConsoleBillingContext } from '../../billing/service';
 import type { BillingOverview } from '../../billing/types';
 import {
@@ -17,7 +26,7 @@ import {
 } from '../../billing/requests';
 import { verifyAndParseStripeWebhookEvent } from '../../billing/stripeWebhook';
 import { freePlanServiceForBilling } from '../../billing/freePlanD1';
-import { isConsoleBillingError } from '../../billing/errors';
+import { isConsoleBillingError, isBillingCreditConstraint } from '../../billing/errors';
 import { buildConsoleBillingCreditPurchaseSettledAuditEvent } from '../../billing/stripePostProcessing';
 import { buildConsoleBillingInvoiceGeneratedAuditEvent } from '../../billing/auditMetadata';
 import { dispatchBillingStripePostProcessingEvent } from '../stripePostProcessing';
@@ -151,6 +160,9 @@ function isSharedBillingPath(pathname: string): boolean {
     pathname === '/console/billing/stripe/webhook' ||
     pathname === '/console/billing/stripe/checkout-session' ||
     pathname === '/console/billing/stripe/checkout-session/reconcile' ||
+    pathname === '/console/billing/payment-account' ||
+    pathname === '/console/billing/payment-account/reconcile' ||
+    pathname === '/console/billing/plan/free' ||
     pathname === '/console/billing/plan' ||
     pathname === '/console/billing/plan/start' ||
     pathname === '/console/billing/card-setup' ||
@@ -167,6 +179,15 @@ async function observeBalanceChange(
 }
 
 export function sendBillingError(error: unknown): Response {
+  if (isBillingCreditConstraint(error))
+    return json(
+      {
+        ok: false,
+        code: 'billing_credit_exhausted',
+        message: 'The billing account needs available credit before this charge can start',
+      },
+      { status: 402 },
+    );
   if (isConsoleBillingError(error)) {
     return json(
       {
@@ -284,6 +305,13 @@ export async function handleConsoleBillingRoutes(
       if (parsed.kind === 'ignored') {
         return json({ ok: true, accepted: false, ignored: true }, { status: 200 });
       }
+      if (parsed.kind === 'invoice') {
+        const runtime = getConsoleBillingD1Runtime(billingOrResponse);
+        return json({
+          ok: true,
+          accepted: runtime ? await reconcileInvoiceEvent(runtime, parsed.event) : false,
+        });
+      }
       if (parsed.kind === 'card_setup') {
         const freePlan = await freePlanServiceForBilling(billingOrResponse);
         if (!freePlan) {
@@ -293,6 +321,14 @@ export async function handleConsoleBillingRoutes(
         return json({ ok: true, ...handled }, { status: 200 });
       }
       const request = parsed.request;
+      if (
+        request.eventType === 'charge.dispute.created' ||
+        request.eventType === 'charge.dispute.closed'
+      ) {
+        const runtime = getConsoleBillingD1Runtime(billingOrResponse);
+        if (runtime && (await reconcilePostpaidDispute(runtime, request)))
+          return json({ ok: true, accepted: true });
+      }
       const result = await billingOrResponse.processStripeWebhookEvent(request);
       const postProcessing = await dispatchBillingStripePostProcessingEvent(
         {
@@ -349,6 +385,71 @@ export async function handleConsoleBillingRoutes(
   let billingFailureEvent: BillingRouteFailureTarget | null = null;
 
   try {
+    if (ctx.pathname === '/console/platform/billing/credit-limit' && ctx.method === 'POST') {
+      const policy = requireConsoleRoutePolicy(ctx, auth.claims);
+      if (policy) return policy;
+      if (!auth.claims.platformSupport)
+        return json({ ok: false, code: 'forbidden' }, { status: 403 });
+      const runtime = getConsoleBillingD1Runtime(billing);
+      if (!runtime) return json({ ok: false, code: 'billing_not_configured' }, { status: 503 });
+      const approval = CreditLimitApproval.parse(await readJson(ctx.request));
+      const result = await approveCreditLimit(
+        runtime,
+        { userId: auth.claims.userId, platformSupport: true },
+        approval,
+      );
+      await emitConsoleAuditEvent(
+        ctx,
+        { ...auth.claims, orgId: approval.orgId },
+        {
+          category: 'BILLING',
+          action: 'billing.credit_limit.approved',
+          summary: 'Platform support approved a credit limit',
+          metadata: {
+            orgId: approval.orgId,
+            creditLimitMinor: approval.creditLimitMinor,
+            reason: approval.reason,
+            operationId: approval.operationId,
+          },
+        },
+      );
+      return json({ ok: true, policy: result });
+    }
+    if (
+      (ctx.pathname === '/console/billing/payment-account' && ctx.method === 'GET') ||
+      (ctx.pathname === '/console/billing/payment-account/reconcile' && ctx.method === 'POST')
+    ) {
+      const policy = requireConsoleRoutePolicy(ctx, auth.claims);
+      if (policy) return policy;
+      const runtime = getConsoleBillingD1Runtime(billing);
+      if (!runtime) return json({ ok: false, code: 'billing_not_configured' }, { status: 503 });
+      if (ctx.method === 'POST') {
+        await runD1ConsoleBillingMonthlyFinalization({
+          database: runtime.database,
+          namespace: runtime.namespace,
+          now: runtime.now,
+          providers: runtime.providers,
+          orgIds: [billingCtx.orgId],
+          emailConsoleBaseUrl: runtime.emailConsoleBaseUrl,
+          ensureSchema: false,
+        });
+      }
+      return json({ ok: true, account: await getPostpaidAccount(runtime, billingCtx.orgId) });
+    }
+    if (ctx.pathname === '/console/billing/plan/free' && ctx.method === 'POST') {
+      const policy = requireConsoleRoutePolicy(ctx, auth.claims);
+      if (policy) return policy;
+      const runtime = getConsoleBillingD1Runtime(billing);
+      if (!runtime) return json({ ok: false, code: 'billing_not_configured' }, { status: 503 });
+      await requestFreeDowngrade(runtime, billingCtx.orgId);
+      await emitConsoleAuditEvent(ctx, auth.claims, {
+        category: 'BILLING',
+        action: 'billing.plan.free_requested',
+        summary: 'Requested Free at the next UTC month',
+        metadata: { orgId: billingCtx.orgId },
+      });
+      return json({ ok: true });
+    }
     if (ctx.method === 'GET' && ctx.pathname === '/console/billing/usage/charges') {
       const runtime = getConsoleBillingD1Runtime(billing);
       if (!runtime)

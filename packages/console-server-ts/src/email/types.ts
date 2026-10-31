@@ -11,6 +11,7 @@ export type ConsoleEmailTemplateFamily =
   | 'MEMBERSHIP_ACCESS_CHANGED'
   | 'PREPAID_TOP_UP_RECEIPT'
   | 'BILLING_REFUND_RESULT'
+  | 'BILLING_PAYMENT_RECOVERY'
   | 'LOW_BALANCE_WARNING'
   | 'FREE_PLAN_NOTICE'
   | 'TEAM_SIGNUP_ALERT';
@@ -86,6 +87,15 @@ export interface BillingRefundResultEmailV1 {
   readonly consoleBaseUrl: string;
 }
 
+export interface BillingPaymentRecoveryEmailV1 {
+  readonly family: 'BILLING_PAYMENT_RECOVERY';
+  readonly version: 1;
+  readonly organizationName: string;
+  readonly invoiceId: string;
+  readonly deadlineAt: string;
+  readonly consoleBaseUrl: string;
+}
+
 export interface FreePlanNoticeEmailV1 {
   readonly family: 'FREE_PLAN_NOTICE';
   readonly version: 1;
@@ -117,6 +127,7 @@ export type ConsoleEmailTemplateV1 =
   | OwnerMembershipChangedEmailV1
   | PrepaidTopUpReceiptEmailV1
   | BillingRefundResultEmailV1
+  | BillingPaymentRecoveryEmailV1
   | FreePlanNoticeEmailV1
   | TeamSignupAlertEmailV1;
 

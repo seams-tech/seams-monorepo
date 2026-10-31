@@ -1,12 +1,46 @@
-import { createWalletProductionSignatureStatement } from '../billing/usage';
+import { parseSignatureFunding, type SignatureOutcome } from './signatureOutcome';
+import { createWalletProductionSignatureStatements } from '../billing/usage';
 import { DeploymentFencedDatabase } from '../tenantDeployment/fencedDatabase';
-import { authorizePresignSource, authorizePresignTransfer, parsePresignSourceRequest, parsePresignTransferRequest, recordPresignSnapshot } from './presignRelocationCommand';
-import { authorizeEcdsaTransfer, parseEcdsaTransferRequest, recordEcdsaActivation, recordEcdsaSnapshot } from './ecdsaRelocationReceipt';
-import { authorizeEd25519Transfer, parseEd25519TransferRequest, recordEd25519Activation, recordEd25519Snapshot } from './ed25519RelocationReceipt';
-import { recordDeriverActivation, recordDeriverSnapshot, authorizeDeriverTransfer, parseDeriverTransferRequest } from './deriverRelocationReceipt';
-import { authorizeDeriverSourceFence, parseDeriverRelocationRole } from './deriverRelocationCommand';
-import { recordRouterRelocationReceipt, authorizeRouterExport, authorizeRouterDestination, recordRouterActivation, authorizeRouterCleanup } from './routerRelocationReceipt';
-import { authorizeWalletRuntimeSourceCommand, parseWalletRuntimeSourceOperation } from './runtimeRelocationCommand';
+import {
+  authorizePresignSource,
+  authorizePresignTransfer,
+  parsePresignSourceRequest,
+  parsePresignTransferRequest,
+  recordPresignSnapshot,
+} from './presignRelocationCommand';
+import {
+  authorizeEcdsaTransfer,
+  parseEcdsaTransferRequest,
+  recordEcdsaActivation,
+  recordEcdsaSnapshot,
+} from './ecdsaRelocationReceipt';
+import {
+  authorizeEd25519Transfer,
+  parseEd25519TransferRequest,
+  recordEd25519Activation,
+  recordEd25519Snapshot,
+} from './ed25519RelocationReceipt';
+import {
+  recordDeriverActivation,
+  recordDeriverSnapshot,
+  authorizeDeriverTransfer,
+  parseDeriverTransferRequest,
+} from './deriverRelocationReceipt';
+import {
+  authorizeDeriverSourceFence,
+  parseDeriverRelocationRole,
+} from './deriverRelocationCommand';
+import {
+  recordRouterRelocationReceipt,
+  authorizeRouterExport,
+  authorizeRouterDestination,
+  recordRouterActivation,
+  authorizeRouterCleanup,
+} from './routerRelocationReceipt';
+import {
+  authorizeWalletRuntimeSourceCommand,
+  parseWalletRuntimeSourceOperation,
+} from './runtimeRelocationCommand';
 import { WalletExecutionAuthority } from './executionAuthority';
 import {
   WalletAuthorizationManifest,
@@ -82,9 +116,7 @@ function selectedRegion(raw: unknown): WalletRegion {
 }
 
 /** At most 100 completed signatures, each named by its signing operation. */
-function productionSignatures(
-  raw: unknown,
-): { readonly signatureId: string; readonly completedAtMs: number }[] {
+function productionSignatures(raw: unknown): SignatureOutcome[] {
   if (!Array.isArray(raw) || raw.length > 100) {
     throw new WalletPlacementError('invalid_input', 'Production signatures are invalid');
   }
@@ -98,7 +130,11 @@ function productionSignatures(
     ) {
       throw new WalletPlacementError('invalid_input', 'Signature completion time is invalid');
     }
-    return { signatureId: requiredString(value.signatureId, 'signatureId'), completedAtMs };
+    return {
+      signatureId: requiredString(value.signatureId, 'signatureId'),
+      completedAtMs,
+      funding: parseSignatureFunding(value.funding),
+    };
   });
 }
 
@@ -167,9 +203,9 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ecdsa-transfer` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ed25519-transfer` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-source` &&
-      url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-receipt` &&
-      url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-activation` &&
-      url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-transfer` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-receipt` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-activation` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-transfer` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/registration-home` &&
@@ -185,8 +221,8 @@ export async function handleWalletHomeServiceRequest(
       const signatures = productionSignatures(body.signatures);
       if (signatures.length > 0) {
         await options.database.batch(
-          signatures.map((signature) =>
-            createWalletProductionSignatureStatement({
+          signatures.flatMap((signature) =>
+            createWalletProductionSignatureStatements({
               database: options.database,
               deploymentId: options.deploymentLane,
               tenant: options.scope,
@@ -251,123 +287,236 @@ export async function handleWalletHomeServiceRequest(
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-cleanup`) {
         if (Object.keys(body).length !== 2)
           throw new WalletPlacementError('invalid_input', 'Router cleanup fields are invalid');
-        const result = await authorizeRouterCleanup(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt));
+        const result = await authorizeRouterCleanup(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-activation`) {
         if (Object.keys(body).length !== 3)
           throw new WalletPlacementError('invalid_input', 'Router activation fields are invalid');
-        const result = await recordRouterActivation(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), body.receipt);
+        const result = await recordRouterActivation(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          body.receipt,
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-destination`) {
         if (Object.keys(body).length !== 3)
           throw new WalletPlacementError('invalid_input', 'Router destination fields are invalid');
-        const result = await authorizeRouterDestination(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), body.operation);
+        const result = await authorizeRouterDestination(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          body.operation,
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-export`) {
         if (Object.keys(body).length !== 4)
           throw new WalletPlacementError('invalid_input', 'Router export fields are invalid');
-        const result = await authorizeRouterExport(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), body.recordIndex, body.segmentIndex);
+        const result = await authorizeRouterExport(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          body.recordIndex,
+          body.segmentIndex,
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-receipt`) {
         if (Object.keys(body).length !== 3)
           throw new WalletPlacementError('invalid_input', 'Router receipt fields are invalid');
-        const result = await recordRouterRelocationReceipt(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), body.receipt);
+        const result = await recordRouterRelocationReceipt(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          body.receipt,
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ecdsa-activation`) {
-        if (Object.keys(body).length !== 3) throw new WalletPlacementError('invalid_input', 'Ecdsa activation fields are invalid');
-        const result = await recordEcdsaActivation(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), body.receipt);
+        if (Object.keys(body).length !== 3)
+          throw new WalletPlacementError('invalid_input', 'Ecdsa activation fields are invalid');
+        const result = await recordEcdsaActivation(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          body.receipt,
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ecdsa-receipt`) {
-        if (Object.keys(body).length !== 3) throw new WalletPlacementError('invalid_input', 'Ecdsa receipt fields are invalid');
-        const result = await recordEcdsaSnapshot(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), body.receipt);
+        if (Object.keys(body).length !== 3)
+          throw new WalletPlacementError('invalid_input', 'Ecdsa receipt fields are invalid');
+        const result = await recordEcdsaSnapshot(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          body.receipt,
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ecdsa-transfer`) {
-        if (Object.keys(body).length !== 3) throw new WalletPlacementError('invalid_input', 'Ecdsa transfer fields are invalid');
-        const result = await authorizeEcdsaTransfer(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), parseEcdsaTransferRequest(body.request));
+        if (Object.keys(body).length !== 3)
+          throw new WalletPlacementError('invalid_input', 'Ecdsa transfer fields are invalid');
+        const result = await authorizeEcdsaTransfer(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          parseEcdsaTransferRequest(body.request),
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ed25519-activation`) {
-        if (Object.keys(body).length !== 3) throw new WalletPlacementError('invalid_input', 'Ed25519 activation fields are invalid');
-        const result = await recordEd25519Activation(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), body.receipt);
+        if (Object.keys(body).length !== 3)
+          throw new WalletPlacementError('invalid_input', 'Ed25519 activation fields are invalid');
+        const result = await recordEd25519Activation(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          body.receipt,
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-presign-transfer`) {
-        if (Object.keys(body).length !== 3) throw new WalletPlacementError('invalid_input', 'Presign transfer fields are invalid');
-        const result = await authorizePresignTransfer(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), parsePresignTransferRequest(body.request));
+        if (Object.keys(body).length !== 3)
+          throw new WalletPlacementError('invalid_input', 'Presign transfer fields are invalid');
+        const result = await authorizePresignTransfer(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          parsePresignTransferRequest(body.request),
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-presign-source`) {
-        if (Object.keys(body).length !== 3) throw new WalletPlacementError('invalid_input', 'Presign source fields are invalid');
-        const result = await authorizePresignSource(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), parsePresignSourceRequest(body.request));
+        if (Object.keys(body).length !== 3)
+          throw new WalletPlacementError('invalid_input', 'Presign source fields are invalid');
+        const result = await authorizePresignSource(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          parsePresignSourceRequest(body.request),
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-presign-receipt`) {
-        if (Object.keys(body).length !== 3) throw new WalletPlacementError('invalid_input', 'Presign receipt fields are invalid');
-        const result = await recordPresignSnapshot(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), body.receipt);
+        if (Object.keys(body).length !== 3)
+          throw new WalletPlacementError('invalid_input', 'Presign receipt fields are invalid');
+        const result = await recordPresignSnapshot(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          body.receipt,
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ed25519-receipt`) {
-        if (Object.keys(body).length !== 3) throw new WalletPlacementError('invalid_input', 'Ed25519 receipt fields are invalid');
-        const result = await recordEd25519Snapshot(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), body.receipt);
+        if (Object.keys(body).length !== 3)
+          throw new WalletPlacementError('invalid_input', 'Ed25519 receipt fields are invalid');
+        const result = await recordEd25519Snapshot(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          body.receipt,
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ed25519-transfer`) {
-        if (Object.keys(body).length !== 3) throw new WalletPlacementError('invalid_input', 'Ed25519 transfer fields are invalid');
-        const result = await authorizeEd25519Transfer(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), parseEd25519TransferRequest(body.request));
+        if (Object.keys(body).length !== 3)
+          throw new WalletPlacementError('invalid_input', 'Ed25519 transfer fields are invalid');
+        const result = await authorizeEd25519Transfer(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          parseEd25519TransferRequest(body.request),
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-activation`) {
-        if (Object.keys(body).length !== 4) throw new WalletPlacementError('invalid_input', 'Deriver activation fields are invalid');
-        const result = await recordDeriverActivation(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), parseDeriverRelocationRole(body.role), body.receipt);
+        if (Object.keys(body).length !== 4)
+          throw new WalletPlacementError('invalid_input', 'Deriver activation fields are invalid');
+        const result = await recordDeriverActivation(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          parseDeriverRelocationRole(body.role),
+          body.receipt,
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-receipt`) {
-        if (Object.keys(body).length !== 4) throw new WalletPlacementError('invalid_input', 'Deriver receipt fields are invalid');
-        const result = await recordDeriverSnapshot(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), parseDeriverRelocationRole(body.role), body.receipt);
+        if (Object.keys(body).length !== 4)
+          throw new WalletPlacementError('invalid_input', 'Deriver receipt fields are invalid');
+        const result = await recordDeriverSnapshot(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          parseDeriverRelocationRole(body.role),
+          body.receipt,
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-transfer`) {
-        if (Object.keys(body).length !== 4) throw new WalletPlacementError('invalid_input', 'Deriver transfer fields are invalid');
-        const result = await authorizeDeriverTransfer(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), parseDeriverRelocationRole(body.role), parseDeriverTransferRequest(body.request));
+        if (Object.keys(body).length !== 4)
+          throw new WalletPlacementError('invalid_input', 'Deriver transfer fields are invalid');
+        const result = await authorizeDeriverTransfer(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          parseDeriverRelocationRole(body.role),
+          parseDeriverTransferRequest(body.request),
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-source`) {
         if (Object.keys(body).length !== 4)
-          throw new WalletPlacementError('invalid_input', 'Deriver source command fields are invalid');
-        const result = await authorizeDeriverSourceFence(options.database, wallet, options.writer,
-          WalletRelocationAttempt.parse(body.attempt), parseDeriverRelocationRole(body.role),
-          relocationDigest(body.cipherContextDigest));
+          throw new WalletPlacementError(
+            'invalid_input',
+            'Deriver source command fields are invalid',
+          );
+        const result = await authorizeDeriverSourceFence(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          parseDeriverRelocationRole(body.role),
+          relocationDigest(body.cipherContextDigest),
+        );
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-runtime-source`) {
         if (Object.keys(body).length !== 3)
-          throw new WalletPlacementError('invalid_input', 'Runtime source command fields are invalid');
+          throw new WalletPlacementError(
+            'invalid_input',
+            'Runtime source command fields are invalid',
+          );
         const result = await authorizeWalletRuntimeSourceCommand(
-          options.database, wallet, options.writer,
+          options.database,
+          wallet,
+          options.writer,
           WalletRelocationAttempt.parse(body.attempt),
           parseWalletRuntimeSourceOperation(body.operation),
         );
@@ -673,7 +822,15 @@ export async function handleWalletRegistrationMutation(
     if (outcome === 'established') {
       const session = record(body.session);
       if (session.kind === 'none') {
-        const assignment = await directory.complete({ wallet, home, ceremonyId, outcome, nowMs: Date.now(), deploymentLane: options.deploymentLane, session: { kind: 'none' } });
+        const assignment = await directory.complete({
+          wallet,
+          home,
+          ceremonyId,
+          outcome,
+          nowMs: Date.now(),
+          deploymentLane: options.deploymentLane,
+          session: { kind: 'none' },
+        });
         return json({ ok: true, assignment });
       }
       if (session.kind !== 'credential' || session.walletId !== wallet.walletId) {
@@ -683,10 +840,7 @@ export async function handleWalletRegistrationMutation(
         );
       }
       if (typeof session.expiresAtMs !== 'number') {
-        throw new WalletPlacementError(
-          'invalid_input',
-          'Registration session expiry is required',
-        );
+        throw new WalletPlacementError('invalid_input', 'Registration session expiry is required');
       }
       const assignment = await directory.complete({
         wallet,
@@ -720,6 +874,15 @@ export async function handleWalletRegistrationMutation(
 }
 
 function walletPlacementErrorResponse(error: unknown): Response | null {
+  if (error instanceof Error && error.message.includes('billing_mau_credit_exhausted'))
+    return json(
+      {
+        ok: false,
+        code: 'billing_credit_exhausted',
+        message: 'The application has no credit for a newly billable login',
+      },
+      402,
+    );
   if (error instanceof Error && error.message.includes('console_deployment_unavailable')) {
     return json({ ok: false, code: 'tenant_deployment_unavailable' }, 503);
   }

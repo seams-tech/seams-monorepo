@@ -144,6 +144,7 @@ async function seedSource(database: D1DatabaseLike): Promise<void> {
       )
       .bind(namespace, context.orgId, now().getTime()),
     createD1BillingLedgerEntryInsertStatement(database, {
+      ingestedAtMs: Date.now(),
       namespace,
       orgId: context.orgId,
       entryId: 'historical-monthly-wallet-debit',

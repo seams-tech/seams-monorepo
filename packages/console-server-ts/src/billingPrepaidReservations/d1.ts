@@ -1,3 +1,4 @@
+import { readBillingPaymentPolicy } from '../billing/postpaid';
 import {
   PlatformScopeV1,
   type DurableSourceEvidenceV1,
@@ -310,10 +311,35 @@ export class D1ConsoleBillingPrepaidReservationService implements ConsoleBilling
       [scope.namespace, scope.organizationId, scope.billingAccountId],
     );
     if (!row) throw new Error('Funds summary is unavailable');
+    const policy = await readBillingPaymentPolicy(
+      this.runtime.database,
+      scope.namespace,
+      scope.organizationId,
+    );
+    if (policy.kind === 'postpaid') {
+      const exposure = await queryD1One(
+        this.runtime.database,
+        'SELECT * FROM billing_postpaid_exposure WHERE namespace=? AND org_id=?',
+        [scope.namespace, scope.organizationId],
+      );
+      if (!exposure) throw new Error('Postpaid exposure is missing');
+      const unpaidMinor = signedInteger(exposure.unpaid_minor, 'unpaid amount');
+      const reservedMinor = integer(exposure.reserved_minor, 'reserved amount', 0);
+      return accepted({
+        kind: 'postpaid' as const,
+        scope,
+        creditLimitMinor: policy.creditLimitMinor,
+        unpaidMinor,
+        reservedMinor,
+        availableCreditMinor: policy.creditLimitMinor - unpaidMinor - reservedMinor,
+        activeReservationCount: integer(row.hold_count, 'hold count', 0),
+      });
+    }
     const postedBalanceMinor = signedInteger(row.posted, 'posted');
     const reservedMinor = integer(row.held, 'held', 0);
     const pendingRefundMinor = integer(row.pending, 'pending', 0);
     return accepted({
+      kind: 'prepaid' as const,
       scope,
       postedBalanceMinor,
       reservedMinor,
@@ -377,8 +403,8 @@ export class D1ConsoleBillingPrepaidReservationService implements ConsoleBilling
       const inserted = await this.runtime.database
         .prepare(
           `INSERT INTO billing_funds_reservations
-        (namespace,id,org_id,project_id,billing_account_id,instance_id,service_id,deployment_id,execution_id,reserve_operation_id,requested_minor,price_version,reserve_digest,status,indeterminate_operation_id,indeterminate_digest,created_at_ms,updated_at_ms,reconciliation_due_at_ms)
-        SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,'reserved',NULL,NULL,?,?,?
+        (namespace,id,org_id,project_id,billing_account_id,instance_id,service_id,deployment_id,execution_id,reserve_operation_id,requested_minor,payment_model,price_version,reserve_digest,status,indeterminate_operation_id,indeterminate_digest,created_at_ms,updated_at_ms,reconciliation_due_at_ms)
+        SELECT ?,?,?,?,?,?,?,?,?,?,?,(SELECT payment_model FROM billing_payment_policies WHERE namespace=? AND org_id=?),?,?,'reserved',NULL,NULL,?,?,?
         WHERE ${BILLING_EXECUTION_PRICE_ELIGIBILITY_SQL}`,
         )
         .bind(
@@ -393,6 +419,8 @@ export class D1ConsoleBillingPrepaidReservationService implements ConsoleBilling
           request.executionId,
           request.operationId,
           request.requestedMinor,
+          scope.namespace,
+          scope.organizationId,
           request.priceVersion,
           payloadDigest,
           createdAtMs,
@@ -572,7 +600,7 @@ export class D1ConsoleBillingPrepaidReservationService implements ConsoleBilling
     const scope = scopeOf(row);
     const amount = outcome.kind === 'settled' ? outcome.amountMinor : 0;
     if (
-      authority.serviceId === 'satyr' &&
+      (authority.serviceId === 'satyr' || row.payment_model === 'postpaid') &&
       amount > integer(row.requested_minor, 'requested_minor', 0)
     )
       return rejected('operation_conflict');

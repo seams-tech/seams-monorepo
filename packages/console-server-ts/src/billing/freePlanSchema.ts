@@ -1,6 +1,6 @@
 import { formatD1ExecStatement, type D1DatabaseLike } from '../boundary/d1';
 import { PLAN_BASE_CHARGE_D1_SCHEMA_SQL } from './planBaseCharges';
-import { PLAN_BASE_COLLECTION_D1_SCHEMA_SQL } from './planBaseCollection';
+import { MONTHLY_COLLECTION_D1_SCHEMA_SQL } from './monthlyCollection';
 
 /**
  * Plan state, the card clock, verified payment methods, production usage counts,
@@ -174,7 +174,7 @@ export const FREE_PLAN_D1_SCHEMA_SQL = Object.freeze([
     FOREIGN KEY (namespace, org_id) REFERENCES billing_account_plans(namespace, org_id)
   )`,
   ...PLAN_BASE_CHARGE_D1_SCHEMA_SQL,
-  ...PLAN_BASE_COLLECTION_D1_SCHEMA_SQL,
+  ...MONTHLY_COLLECTION_D1_SCHEMA_SQL,
 ]);
 
 export async function ensureFreePlanD1Schema(database: D1DatabaseLike): Promise<void> {

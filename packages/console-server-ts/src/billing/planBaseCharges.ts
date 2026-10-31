@@ -1,5 +1,5 @@
 import { queryD1One, type D1DatabaseLike, type D1PreparedStatementLike } from '../boundary/d1';
-import { ConsoleBillingError } from './errors';
+import { ConsoleBillingError, isBillingCreditConstraint } from './errors';
 import {
   monthUtcOf,
   SELF_SERVE_PLAN_PRICES_V1,
@@ -181,7 +181,7 @@ export async function accruePlanBaseChargeForMonth(input: {
   if (input.monthUtc > monthUtcOf(input.nowMs)) return null;
   const row = await queryD1One(
     input.database,
-    `SELECT plan, plan_started_at_ms, price_version FROM billing_account_plans
+    `SELECT plan, plan_started_at_ms, price_version, downgrade_at_ms FROM billing_account_plans
       WHERE namespace = ? AND org_id = ?`,
     [input.namespace, input.orgId],
   );
@@ -201,26 +201,45 @@ export async function accruePlanBaseChargeForMonth(input: {
     monthUtc: input.monthUtc,
   });
   if (!charge) return null;
-  await input.database
-    .prepare(
-      `INSERT INTO billing_plan_base_charges
+  if (typeof row.downgrade_at_ms === 'number' && charge.periodStartMs >= row.downgrade_at_ms)
+    return null;
+  try {
+    await input.database
+      .prepare(
+        `INSERT INTO billing_plan_base_charges
         (namespace, org_id, month_utc, plan, price_version, period_start_ms,
           period_end_ms, amount_minor, created_at_ms)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+       WHERE NOT EXISTS(SELECT 1 FROM billing_payment_policies WHERE namespace=? AND org_id=? AND payment_model='postpaid')
+         OR EXISTS(SELECT 1 FROM billing_postpaid_exposure WHERE namespace=? AND org_id=? AND ?<=credit_limit_minor-unpaid_minor-reserved_minor AND collection_blocked=0 AND (first_failed_at_ms IS NULL OR ?<first_failed_at_ms+604800000))
+         OR EXISTS(SELECT 1 FROM billing_plan_base_charges WHERE namespace=? AND org_id=? AND month_utc=?)
        ON CONFLICT(namespace, org_id, month_utc) DO NOTHING`,
-    )
-    .bind(
-      input.namespace,
-      charge.orgId,
-      charge.monthUtc,
-      charge.plan,
-      charge.priceVersion,
-      charge.periodStartMs,
-      charge.periodEndMs,
-      charge.amountMinor,
-      input.nowMs,
-    )
-    .run();
+      )
+      .bind(
+        input.namespace,
+        charge.orgId,
+        charge.monthUtc,
+        charge.plan,
+        charge.priceVersion,
+        charge.periodStartMs,
+        charge.periodEndMs,
+        charge.amountMinor,
+        input.nowMs,
+        input.namespace,
+        input.orgId,
+        input.namespace,
+        input.orgId,
+        charge.amountMinor,
+        input.nowMs,
+        input.namespace,
+        input.orgId,
+        input.monthUtc,
+      )
+      .run();
+  } catch (error: unknown) {
+    if (isBillingCreditConstraint(error)) return null;
+    throw error;
+  }
   const stored = await queryD1One(
     input.database,
     `SELECT plan, price_version, period_start_ms, period_end_ms, amount_minor
@@ -228,8 +247,9 @@ export async function accruePlanBaseChargeForMonth(input: {
       WHERE namespace = ? AND org_id = ? AND month_utc = ?`,
     [input.namespace, input.orgId, input.monthUtc],
   );
+  if (!stored) return null;
   if (
-    stored?.plan !== charge.plan ||
+    stored.plan !== charge.plan ||
     stored.price_version !== charge.priceVersion ||
     Number(stored.period_start_ms) !== charge.periodStartMs ||
     Number(stored.period_end_ms) !== charge.periodEndMs ||

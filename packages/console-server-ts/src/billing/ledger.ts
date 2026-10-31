@@ -23,8 +23,10 @@ function requireEntryDirection(type: BillingLedgerEntryType, amountMinor: number
   switch (type) {
     case 'CREDIT_PURCHASE':
     case 'DISPUTE_WON':
+    case 'INVOICE_PAYMENT':
       if (amountMinor > 0) return;
       break;
+    case 'PLAN_BASE_CHARGE':
     case 'USAGE_DEBIT':
     case 'PRODUCT_EXECUTION_DEBIT':
     case 'REFUND':
@@ -32,6 +34,7 @@ function requireEntryDirection(type: BillingLedgerEntryType, amountMinor: number
       if (amountMinor < 0) return;
       break;
     case 'MANUAL_ADJUSTMENT':
+    case 'PLAN_USAGE_CHARGE':
       return;
     default:
       return assertNever(type);
@@ -47,8 +50,11 @@ function counterpartAccount(type: BillingLedgerEntryType): BillingLedgerAccountC
   switch (type) {
     case 'CREDIT_PURCHASE':
     case 'REFUND':
+    case 'INVOICE_PAYMENT':
       return 'stripe_cash_clearing';
     case 'USAGE_DEBIT':
+    case 'PLAN_BASE_CHARGE':
+    case 'PLAN_USAGE_CHARGE':
       return 'revenue_usage';
     case 'PRODUCT_EXECUTION_DEBIT':
       return 'revenue_product_execution';
@@ -62,17 +68,37 @@ function counterpartAccount(type: BillingLedgerEntryType): BillingLedgerAccountC
   }
 }
 
-export function buildBillingBalancedPostings(input: {
-  entryId: string;
-  type: BillingLedgerEntryType;
-  amountMinor: number;
-  createdAt: string;
-}): BillingBalancedPostings {
+export function buildBillingBalancedPostings(
+  input: {
+    entryId: string;
+    amountMinor: number;
+    createdAt: string;
+  } & (
+    | {
+        paymentModel: 'prepaid';
+        type: Exclude<
+          BillingLedgerEntryType,
+          'PLAN_BASE_CHARGE' | 'PLAN_USAGE_CHARGE' | 'INVOICE_PAYMENT'
+        >;
+      }
+    | {
+        paymentModel: 'postpaid';
+        type:
+          | 'PRODUCT_EXECUTION_DEBIT'
+          | 'PLAN_BASE_CHARGE'
+          | 'PLAN_USAGE_CHARGE'
+          | 'INVOICE_PAYMENT'
+          | 'MANUAL_ADJUSTMENT';
+      }
+  ),
+): BillingBalancedPostings {
   requireEntryDirection(input.type, input.amountMinor);
   const amountMinor = Math.abs(input.amountMinor);
   const counterpart = counterpartAccount(input.type);
-  const debitAccount = input.amountMinor > 0 ? counterpart : ORG_PREPAID_ACCOUNT;
-  const creditAccount = input.amountMinor > 0 ? ORG_PREPAID_ACCOUNT : counterpart;
+  const customerAccount =
+    input.paymentModel === 'postpaid' ? 'org_receivable' : ORG_PREPAID_ACCOUNT;
+  const debitAccount = input.amountMinor > 0 ? counterpart : customerAccount;
+  const creditAccount = input.amountMinor > 0 ? customerAccount : counterpart;
   return [
     {
       id: `${input.entryId}:debit`,

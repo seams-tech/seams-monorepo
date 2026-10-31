@@ -18,6 +18,7 @@ import {
 import type {
   AccountWelcomeEmailV1,
   BillingRefundResultEmailV1,
+  BillingPaymentRecoveryEmailV1,
   ConsoleEmailInvitationRole,
   ConsoleEmailNonInvitationTemplateV1,
   ConsoleEmailTemplateV1,
@@ -215,6 +216,13 @@ export function parseConsoleEmailTemplate(raw: unknown): ConsoleEmailTemplateV1 
       return parsePrepaidTopUpReceipt(record);
     case 'BILLING_REFUND_RESULT':
       return parseBillingRefundResult(record);
+    case 'BILLING_PAYMENT_RECOVERY':
+      return buildBillingPaymentRecoveryEmailV1({
+        organizationName: requiredRawString(record.organizationName, 'organizationName'),
+        invoiceId: requiredRawString(record.invoiceId, 'invoiceId'),
+        deadlineAt: requiredRawString(record.deadlineAt, 'deadlineAt'),
+        consoleBaseUrl: requiredRawString(record.consoleBaseUrl, 'consoleBaseUrl'),
+      });
     case 'FREE_PLAN_NOTICE':
       return buildFreePlanNoticeEmailV1({
         organizationName: requiredRawString(record.organizationName, 'organizationName'),
@@ -279,6 +287,8 @@ export function renderConsoleEmailV1(
       return renderPrepaidTopUpReceipt(template);
     case 'BILLING_REFUND_RESULT':
       return renderSucceededRefund(template);
+    case 'BILLING_PAYMENT_RECOVERY':
+      return renderBillingPaymentRecovery(template);
     case 'FREE_PLAN_NOTICE':
       return renderFreePlanNotice(template);
     case 'TEAM_SIGNUP_ALERT':
@@ -845,4 +855,35 @@ function rejectPresent(record: UnknownRecord, field: string): void {
 
 function assertNever(value: never): never {
   throw new Error(`Unhandled console email branch: ${JSON.stringify(value)}`);
+}
+
+export function buildBillingPaymentRecoveryEmailV1(
+  input: Omit<BillingPaymentRecoveryEmailV1, 'family' | 'version'>,
+): BillingPaymentRecoveryEmailV1 {
+  return {
+    family: 'BILLING_PAYMENT_RECOVERY',
+    version: 1,
+    organizationName: requiredText(input.organizationName, 'organizationName'),
+    invoiceId: requiredText(input.invoiceId, 'invoiceId'),
+    deadlineAt: isoTimestamp(input.deadlineAt, 'deadlineAt'),
+    consoleBaseUrl: httpBaseUrl(input.consoleBaseUrl, 'consoleBaseUrl'),
+  };
+}
+function renderBillingPaymentRecovery(
+  template: BillingPaymentRecoveryEmailV1,
+): RenderedConsoleEmail {
+  const subject = `Payment needs attention for ${template.organizationName}`;
+  const details = `We could not collect invoice ${template.invoiceId}. Update your card and pay the invoice. New paid work stops after ${formatEmailDateTime(template.deadlineAt)}, or sooner if credit is exhausted. Replacing the card does not pay the invoice.`;
+  return {
+    subject,
+    text: `${details}\n\nOpen billing: ${billingUrl(template.consoleBaseUrl)}`,
+    html: htmlMessage({
+      kicker: 'Billing',
+      heading: subject,
+      paragraphs: [details],
+      facts: [],
+      actionLabel: 'Repair payment',
+      actionUrl: billingUrl(template.consoleBaseUrl),
+    }),
+  };
 }

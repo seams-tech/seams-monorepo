@@ -335,11 +335,11 @@ async function planBaseCharges(database: D1DatabaseLike, orgId: string) {
   );
 }
 
-async function planBaseCollections(database: D1DatabaseLike, orgId: string) {
+async function monthlyCollections(database: D1DatabaseLike, orgId: string) {
   return await queryD1All(
     database,
     `SELECT month_utc, status, provider_invoice_ref, idempotency_key
-       FROM billing_plan_base_collections
+       FROM billing_monthly_collections
       WHERE namespace = ? AND org_id = ?
       ORDER BY month_utc`,
     [namespace, orgId],
@@ -722,8 +722,8 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
     });
     expect(monthlyClose.failures).toEqual([]);
     expect(monthlyClose.paidCount).toBe(2);
-    const proCollections = await planBaseCollections(database, pro.orgId);
-    const growthCollections = await planBaseCollections(database, growth.orgId);
+    const proCollections = await monthlyCollections(database, pro.orgId);
+    const growthCollections = await monthlyCollections(database, growth.orgId);
     expect(proCollections).toMatchObject([
       { month_utc: '2026-12', status: 'paid', provider_invoice_ref: expect.any(String) },
     ]);
@@ -739,13 +739,13 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
       providers: services.billingProviders,
     });
     expect(replayedClose.failures).toEqual([]);
-    expect(await planBaseCollections(database, pro.orgId)).toEqual(proCollections);
-    expect(await planBaseCollections(database, growth.orgId)).toEqual(growthCollections);
+    expect(await monthlyCollections(database, pro.orgId)).toEqual(proCollections);
+    expect(await monthlyCollections(database, growth.orgId)).toEqual(growthCollections);
 
     const failedProviders: BillingProviderAdapters = {
       stripe: {
         ...services.billingProviders.stripe,
-        createPlanBaseInvoice: failPlanInvoiceCreate,
+        createBillingInvoice: failPlanInvoiceCreate,
       },
     };
     const failedClose = await runD1ConsoleBillingMonthlyFinalization({
@@ -757,10 +757,10 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
       providers: failedProviders,
     });
     expect(failedClose.failures).toHaveLength(2);
-    const stalledPro = (await planBaseCollections(database, pro.orgId)).find(
+    const stalledPro = (await monthlyCollections(database, pro.orgId)).find(
       (row) => row.month_utc === '2026-10',
     );
-    const stalledGrowth = (await planBaseCollections(database, growth.orgId)).find(
+    const stalledGrowth = (await monthlyCollections(database, growth.orgId)).find(
       (row) => row.month_utc === '2026-10',
     );
     expect(stalledPro?.status).toBe('creating');
@@ -777,7 +777,8 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
     if (!growthCustomerRef || !growthInitialKey || !proInitialKey) {
       throw new Error('Base collection recovery fixture is incomplete');
     }
-    const lostResponseInvoice = await services.billingProviders.stripe.createPlanBaseInvoice({
+    const lostResponseInvoice = await services.billingProviders.stripe.createBillingInvoice({
+      kind: 'plan_base',
       customerRef: growthCustomerRef,
       chargeKey: `${namespace}:${growth.orgId}:2026-10`,
       orgId: growth.orgId,
@@ -798,10 +799,10 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
     });
     expect(recoveredClose.failures).toEqual([]);
     expect(recoveredClose.paidCount).toBe(2);
-    const recoveredPro = (await planBaseCollections(database, pro.orgId)).find(
+    const recoveredPro = (await monthlyCollections(database, pro.orgId)).find(
       (row) => row.month_utc === '2026-10',
     );
-    const recoveredGrowth = (await planBaseCollections(database, growth.orgId)).find(
+    const recoveredGrowth = (await monthlyCollections(database, growth.orgId)).find(
       (row) => row.month_utc === '2026-10',
     );
     expect(recoveredPro?.status).toBe('paid');
@@ -810,7 +811,7 @@ test('Plan start: a verified card starts Growth or Pro once, and only from Free'
     expect(recoveredGrowth?.idempotency_key).toBe(growthInitialKey);
     expect(recoveredGrowth?.provider_invoice_ref).toBe(lostResponseInvoice.id);
     expect(
-      await services.billingProviders.stripe.findPlanBaseInvoices({
+      await services.billingProviders.stripe.findBillingInvoices({
         customerRef: growthCustomerRef,
         chargeKey: `${namespace}:${growth.orgId}:2026-10`,
       }),

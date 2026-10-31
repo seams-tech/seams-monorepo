@@ -86,6 +86,7 @@ export interface ResolveCloudflareConsoleEmailDispatchCronOptionsInput {
 }
 
 export interface CloudflareBillingMonthlyFinalizationCronOptions {
+  emailConsoleBaseUrl?: string;
   /**
    * D1 database for console billing finalization.
    */
@@ -561,6 +562,7 @@ export function createCloudflareCron(opts: CloudflareCronOptions = {}): Schedule
           periodMonthUtc: billingFinalization.periodMonthUtc,
           now: billingFinalization.now,
           providers: billingFinalization.providers,
+          emailConsoleBaseUrl: billingFinalization.emailConsoleBaseUrl,
           ensureSchema: billingFinalization.ensureSchema,
         });
         logger.info('[cron][billing-finalization] completed', {

@@ -1,4 +1,9 @@
 import {
+  signingCreditForRegion,
+  sealSigningCredit,
+} from '@seams-internal/console-server/billing/signingCredit';
+import { installSigningCredit, parseSigningCredit } from './signingCredit';
+import {
   createCloudflareD1RouterAbNormalSigningAdmissionStore,
   queryD1One,
   type D1DatabaseLike,
@@ -31,6 +36,10 @@ function parseAdmission(raw: unknown): ProductionAdmission | null {
 }
 
 /** A paused lane tells the client to retry signing no sooner than this. */
+function notString(value: unknown): boolean {
+  return typeof value !== 'string';
+}
+
 const PAUSED_RETRY_AFTER_MS = 3_600_000;
 
 /**
@@ -84,13 +93,29 @@ export async function handleRegionalProductionAdmission(
     envId: 'prod',
     signingRootVersion: binding.tenantRoot.signingRootVersion,
   };
+  const credit = parseSigningCredit(
+    raw && typeof raw === 'object' && 'credit' in raw ? raw.credit : undefined,
+  );
+  const retireRaw =
+    raw && typeof raw === 'object' && 'retireCreditIds' in raw ? raw.retireCreditIds : [];
+  if (!Array.isArray(retireRaw) || retireRaw.length > 100 || retireRaw.some(notString))
+    return Response.json({ ok: false }, { status: 400 });
+  const retiredCredits = await installSigningCredit({
+    database: input.database,
+    namespace: input.resource.namespace,
+    orgId: binding.tenant.organizationId,
+    projectId: binding.tenant.projectId,
+    revision: admission.revision,
+    credit,
+    retire: retireRaw,
+  });
   await store.setProjectPolicy(
     scope,
     admission.newWork === 'paused'
       ? { kind: 'rejected', retryAfterMs: PAUSED_RETRY_AFTER_MS }
       : { kind: 'allowed' },
   );
-  return Response.json({ ok: true, ...admission });
+  return Response.json({ ok: true, ...admission, retiredCredits, creditAcknowledged: true });
 }
 
 /**
@@ -150,8 +175,18 @@ export async function syncRegionalProductionAdmission(input: {
   readonly nowMs: number;
 }): Promise<'unchanged' | 'pushed'> {
   const decision = await readLaneProductionAdmission(input.database, input.deploymentLane);
+  const tenant = await queryD1One(
+    input.database,
+    `SELECT b.namespace,b.org_id,b.project_id,b.environment_id,p.payment_model FROM active_tenant_deployment_bindings a JOIN tenant_deployment_bindings b ON b.deployment_lane=a.deployment_lane AND b.revision=a.revision LEFT JOIN billing_payment_policies p ON p.namespace=b.namespace AND p.org_id=b.org_id WHERE a.deployment_lane=?`,
+    [input.deploymentLane],
+  );
+  const postpaid =
+    tenant?.payment_model === 'postpaid' &&
+    typeof tenant.environment_id === 'string' &&
+    tenant.environment_id.endsWith(':prod');
   // A periodic re-push repairs a runtime that an overlapping, older push overwrote.
   if (
+    !postpaid &&
     decision.pushed &&
     decision.pushed.newWork === decision.newWork &&
     decision.pushed.revision === decision.revision &&
@@ -160,6 +195,19 @@ export async function syncRegionalProductionAdmission(input: {
     return 'unchanged';
   }
   for (const region of REGIONS) {
+    const target = {
+      database: input.database,
+      namespace: String(tenant?.namespace),
+      orgId: String(tenant?.org_id),
+      projectId: String(tenant?.project_id),
+      environmentId: String(tenant?.environment_id),
+      deploymentLane: input.deploymentLane,
+      region,
+      nowMs: input.nowMs,
+    };
+    const credit = postpaid
+      ? await signingCreditForRegion(target)
+      : { policy: { kind: 'included' as const }, retire: [] };
     const response = await input.runtimes[region].fetch(
       new Request(`${ADMISSION_ORIGIN}${ADMISSION_PATH}`, {
         method: 'POST',
@@ -167,13 +215,43 @@ export async function syncRegionalProductionAdmission(input: {
         body: JSON.stringify({
           deploymentLane: input.deploymentLane,
           newWork: decision.newWork,
-          revision: decision.revision,
+          revision: postpaid ? input.nowMs : decision.revision,
+          credit: credit.policy,
+          retireCreditIds: credit.retire,
         }),
       }),
     );
-    const stored = parseAdmission(await response.json().catch(() => null));
-    if (!response.ok || !stored || stored.revision !== decision.revision) {
+    const rawResponse: unknown = await response.json().catch(() => null);
+    const stored = parseAdmission(rawResponse);
+    if (
+      !response.ok ||
+      !stored ||
+      stored.revision !== (postpaid ? input.nowMs : decision.revision)
+    ) {
       throw new Error(`Regional production admission push failed for ${region}`);
+    }
+    if (postpaid) {
+      if (
+        !rawResponse ||
+        typeof rawResponse !== 'object' ||
+        !('creditAcknowledged' in rawResponse) ||
+        rawResponse.creditAcknowledged !== true ||
+        !('retiredCredits' in rawResponse) ||
+        !Array.isArray(rawResponse.retiredCredits)
+      )
+        throw new Error('Wallet runtime does not support signing credit commitments');
+      for (const raw of rawResponse.retiredCredits) {
+        if (
+          !raw ||
+          typeof raw !== 'object' ||
+          typeof raw.id !== 'string' ||
+          !credit.retire.includes(raw.id) ||
+          !Number.isSafeInteger(raw.admittedCount) ||
+          raw.admittedCount < 0
+        )
+          throw new Error('Invalid retired signing credit grant');
+        await sealSigningCredit(target, raw.id, raw.admittedCount);
+      }
     }
   }
   await input.database

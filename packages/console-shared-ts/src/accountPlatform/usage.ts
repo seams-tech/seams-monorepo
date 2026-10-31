@@ -477,5 +477,5 @@ export class PlatformPlanUsageEventV1 {
 
 export type PlanUsageRecordingResultV1 = PlatformResult<
   { readonly kind: 'counted' | 'already_counted' | 'not_production' },
-  { readonly code: 'scope_forbidden' }
+  { readonly code: 'scope_forbidden' | 'billing_credit_exhausted' }
 >;

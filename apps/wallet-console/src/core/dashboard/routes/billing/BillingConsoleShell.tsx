@@ -1,3 +1,5 @@
+import { PaymentAccountPanel } from './PaymentAccountPanel';
+import { BillingRulesSection } from './BillingRulesSection';
 import React from 'react';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import { FreePlanBanners } from './FreePlanBanners';
@@ -706,30 +708,35 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
             />
             {serviceLabel ? null : (
               <p className="dashboard-pagination-note">
-                Billing is organization-scoped. All projects and services use the same prepaid
-                balance.
+                Billing is organization-scoped. All projects and services use the same billing
+                account.
               </p>
             )}
-            <BillingMetricsGrid
-              metrics={summaryMetrics}
-              ariaLabel="Billing account summary metrics"
-            />
-            <BillingUsageCostsSection
-              organizationId={selectedContext.organization || session.claims.orgId}
-              state={costs}
-              serviceId={serviceId}
-            />
-            <BillingAccountView
-              canManageBilling={canDashboardManageBilling(session.claims)}
-              checkoutActionError={checkoutActionError}
-              startingCheckoutPackId={startingCheckoutPackId}
-              refunds={refunds}
-              refundsLoading={refundsLoading}
-              refundsError={refundsError}
-              onStartStripeCheckout={(checkoutRequest) => {
-                void onStartStripeCheckout(checkoutRequest);
-              }}
-            />
+            <PaymentAccountPanel
+              key={selectedContext.organization || session.claims.orgId}
+              canManage={canDashboardManageBilling(session.claims)}
+            >
+              <BillingMetricsGrid
+                metrics={summaryMetrics}
+                ariaLabel="Billing account summary metrics"
+              />
+              <BillingUsageCostsSection
+                organizationId={selectedContext.organization || session.claims.orgId}
+                state={costs}
+                serviceId={serviceId}
+              />
+              <BillingAccountView
+                canManageBilling={canDashboardManageBilling(session.claims)}
+                checkoutActionError={checkoutActionError}
+                startingCheckoutPackId={startingCheckoutPackId}
+                refunds={refunds}
+                refundsLoading={refundsLoading}
+                refundsError={refundsError}
+                onStartStripeCheckout={(checkoutRequest) => {
+                  void onStartStripeCheckout(checkoutRequest);
+                }}
+              />
+            </PaymentAccountPanel>
             <section
               id="billing-account-activity"
               className="dashboard-view__section dashboard-view__section--plain"
@@ -791,6 +798,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
           />
         </>
       )}
+      <BillingRulesSection />
     </div>
   );
 }

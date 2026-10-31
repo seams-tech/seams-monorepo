@@ -190,7 +190,7 @@ export async function publishSignaturesFromGateway(
     signatures: readonly { readonly signatureId: string; readonly completedAtMs: number }[];
   },
 ): Promise<void> {
-  await gatewayAdmission(input).publishSignatures(input.signatures);
+  await gatewayAdmission(input).publishSignatures(input.signatures.map(includedSignature));
 }
 
 /** An unlock publishes a fresh credential session for an established wallet. */
@@ -225,5 +225,16 @@ export async function registrationCompletionSession(wallet: string) {
     kind: 'credential' as const,
     locator: SessionLocator.credential(session.digest),
     expiresAtMs: session.expiresAtMs,
+  };
+}
+
+function includedSignature(signature: {
+  readonly signatureId: string;
+  readonly completedAtMs: number;
+}) {
+  return {
+    signatureId: signature.signatureId,
+    completedAtMs: signature.completedAtMs,
+    funding: { kind: 'included' as const, outcome: 'succeeded' as const },
   };
 }

@@ -33,6 +33,12 @@ The completion adds:
 - Browser acceptance for the new paths and Stripe test-mode completion without
   a browser return. Each scenario writes JSON and screenshots.
 
+The billing extension now consolidates approved postpaid usage with base fees.
+It removes new USD 3 resource charges from self-serve plans. Credit purchases share
+the persisted Stripe Customer. Payment recovery and a requested return to Free use
+the same billing account. See [Platform billing](feat-3-platform-billing.md) for
+runtime release and deployment gates.
+
 ## Recorded decisions
 
 1. Growth starts when a card is verified for that purpose, or after explicit
@@ -49,6 +55,10 @@ The completion adds:
    longer applies to pricing-card visitors.
 9. The public contact endpoint belongs to feat-5. A mailto action cannot prove
    that an inquiry was sent, so it does not emit `contact_submit`.
+
+10. MAU uses production registration, login, and session refresh during a UTC
+    calendar month. Each identity counts once. Newly billable logins require
+    available credit. Recovery and key export stay available.
 
 ## Current behavior
 

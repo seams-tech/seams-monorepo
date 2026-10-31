@@ -252,6 +252,15 @@ export async function reconcileDashboardCardSetup(
   return { verified: body.verified === true, plan: decodeDashboardBillingPlan(body.plan) };
 }
 
+/** Requests Free for the next eligible UTC month. */
+export async function requestDashboardFreePlan(): Promise<void> {
+  await request('/console/billing/plan/free', {
+    method: 'POST',
+    headers: buildConsoleJsonHeaders(),
+    body: '{}',
+  });
+}
+
 /** Starts a paid plan with the usable card on file. */
 export async function startDashboardPlan(
   plan: DashboardSelfServePlan,

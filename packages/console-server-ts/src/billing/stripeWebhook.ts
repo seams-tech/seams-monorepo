@@ -1,3 +1,4 @@
+import type { StripeInvoiceEvent } from './invoiceRecovery';
 import { ConsoleBillingError } from './errors';
 import type {
   BillingCreditPackId,
@@ -358,6 +359,7 @@ export type StripeCardSetupWebhookEventV1 =
 export type StripeWebhookEventV1 =
   | { readonly kind: 'billing'; readonly request: StripeWebhookEventRequest }
   | { readonly kind: 'card_setup'; readonly event: StripeCardSetupWebhookEventV1 }
+  | { readonly kind: 'invoice'; readonly event: StripeInvoiceEvent }
   | { readonly kind: 'ignored' };
 
 export function parseStripeCardSetupWebhookEvent(
@@ -437,6 +439,34 @@ export async function verifyAndParseStripeWebhookEvent(
 ): Promise<StripeWebhookEventV1> {
   await verifyStripeWebhookSignature(input);
   const payload = parseRawJson(bodyBytes(input.rawBody));
+  const envelope = toRecord(payload);
+  const eventType = readString(envelope, 'type');
+  if (
+    eventType &&
+    [
+      'invoice.paid',
+      'invoice.payment_succeeded',
+      'invoice.payment_failed',
+      'invoice.payment_action_required',
+      'invoice.voided',
+      'invoice.marked_uncollectible',
+    ].includes(eventType)
+  ) {
+    const invoice = toRecord(toRecord(envelope.data).object);
+    const invoiceId = readString(invoice, 'id');
+    const customerRef = readString(invoice, 'customer');
+    const chargeKey = readString(toRecord(invoice.metadata), 'plan_base_charge_key');
+    if (!invoiceId || !customerRef || !chargeKey) return { kind: 'ignored' };
+    const failure =
+      eventType === 'invoice.payment_failed' || eventType === 'invoice.payment_action_required';
+    const created = Number(envelope.created);
+    if (!Number.isSafeInteger(created) || created <= 0)
+      throw invalidPayload('Stripe invoice event time is invalid');
+    return {
+      kind: 'invoice',
+      event: { invoiceId, customerRef, chargeKey, failureAtMs: failure ? created * 1000 : null },
+    };
+  }
   const cardSetup = parseStripeCardSetupWebhookEvent(payload);
   if (cardSetup) return { kind: 'card_setup', event: cardSetup };
   const request = parseStripeWebhookEventEnvelope(payload);

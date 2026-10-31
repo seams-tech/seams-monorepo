@@ -1,13 +1,16 @@
+import { queueInvoiceRecoveryNotice } from './recoveryNotice';
+import { ensureBillingCustomer } from './customer';
+import { readBillingPaymentPolicy } from './postpaid';
 import { secureRandomBase36 } from '../boundary';
 import { ensureBillingFundsD1Schema } from '../billingPrepaidReservations/schema';
 import { ensureBillingUsageD1Schema } from './usageSchema';
 import { ensureFreePlanD1Schema } from './freePlanSchema';
 import { accruePlanBaseChargeForMonth } from './planBaseCharges';
 import {
-  collectPlanBaseCharge,
-  listDuePlanBaseCollectionTasks,
-  type PlanBaseCollectionTask,
-} from './planBaseCollection';
+  collectMonthlyInvoice,
+  listDueMonthlyCollectionTasks,
+  type MonthlyCollectionTask,
+} from './monthlyCollection';
 import { WALLET_MONTHLY_ACTIVE_RESOURCE_PRICE_V1 } from './pricing';
 import { listD1BillingUsageCharges } from './attribution';
 import {
@@ -132,6 +135,7 @@ export interface D1ConsoleBillingServiceOptions {
 }
 
 export interface D1ConsoleBillingMonthlyFinalizationOptions {
+  emailConsoleBaseUrl?: string;
   database: D1DatabaseLike;
   namespace?: string;
   orgIds?: string[];
@@ -195,6 +199,7 @@ interface LedgerEntryInsertInput {
   note: string | null;
   idempotencyKey: string | null;
   createdAtMs: number;
+  ingestedAtMs: number;
   insertGuard?: D1LedgerEntryInsertGuard;
 }
 
@@ -341,6 +346,9 @@ function parseLedgerEntryType(value: unknown): BillingLedgerEntry['type'] {
     case 'REFUND':
     case 'DISPUTE_OPENED':
     case 'DISPUTE_WON':
+    case 'PLAN_BASE_CHARGE':
+    case 'PLAN_USAGE_CHARGE':
+    case 'INVOICE_PAYMENT':
       return normalized;
     default:
       throw new ConsoleBillingError(
@@ -354,6 +362,7 @@ function parseLedgerEntryType(value: unknown): BillingLedgerEntry['type'] {
 function parseLedgerAccountCode(value: unknown): BillingLedgerAccountCode {
   const normalized = String(value || '').trim();
   switch (normalized) {
+    case 'org_receivable':
     case 'org_prepaid_liability':
     case 'stripe_cash_clearing':
     case 'revenue_usage':
@@ -752,6 +761,7 @@ function parseInvoiceDocumentType(value: unknown): BillingDocumentType {
   switch (normalized) {
     case 'PURCHASE_RECEIPT':
     case 'USAGE_STATEMENT':
+    case 'MONTHLY_INVOICE':
       return normalized;
     default:
       throw new ConsoleBillingError(
@@ -783,6 +793,8 @@ function parseInvoiceLineItemType(value: unknown): BillingInvoiceLineItemType {
   const normalized = String(value || '').trim();
   switch (normalized) {
     case 'CREDIT_TOP_UP':
+    case 'PLAN_BASE_FEE':
+    case 'PLAN_SIGNING_USAGE':
     case 'ACTIVE_RESOURCE_USAGE_DEBIT':
     case 'PRODUCT_EXECUTION_DEBIT':
     case 'MANUAL_ADJUSTMENT':
@@ -1138,6 +1150,9 @@ function parseInvoice(row: D1Row): BillingInvoice {
     periodMonthUtc: String(row.period_month_utc || '').trim(),
     createdAt: toIso(toNumber(row.created_at_ms)),
     dueAt: parseNullableIso(row.due_at_ms),
+    ...(typeof row.hosted_invoice_url === 'string'
+      ? { hostedInvoiceUrl: row.hosted_invoice_url }
+      : {}),
   };
 }
 
@@ -1500,7 +1515,7 @@ async function listAllStatementLedgerEntries(input: {
        FROM billing_ledger_entries
       WHERE namespace = ?
         AND org_id = ?
-        AND month_utc IS NOT NULL
+        AND month_utc IS NOT NULL AND payment_model='prepaid'
       ORDER BY month_utc DESC, created_at_ms DESC, id DESC`,
     [input.namespace, input.orgId],
   );
@@ -1538,7 +1553,7 @@ async function listPersistedInvoices(input: {
   const rows = await queryD1All(
     input.database,
     `SELECT *
-       FROM invoices
+       FROM billing_documents
       WHERE namespace = ?
         AND org_id = ?
       ORDER BY created_at_ms DESC, id DESC`,
@@ -1556,7 +1571,7 @@ async function loadPersistedInvoiceById(input: {
   const row = await queryD1One(
     input.database,
     `SELECT *
-       FROM invoices
+       FROM billing_documents
       WHERE namespace = ?
         AND org_id = ?
         AND id = ?
@@ -1575,7 +1590,7 @@ async function listPersistedInvoiceLineItems(input: {
   const rows = await queryD1All(
     input.database,
     `SELECT *
-       FROM invoice_line_items
+       FROM billing_document_line_items
       WHERE namespace = ?
         AND org_id = ?
         AND invoice_id = ?
@@ -2011,7 +2026,7 @@ export function createD1BillingLedgerEntryInsertStatement(
           reason_code,
           note,
           idempotency_key,
-          created_at_ms
+          created_at_ms, payment_model, ingested_at_ms
         )
        ${sourceSql}`,
     )
@@ -2032,11 +2047,19 @@ export function createD1BillingLedgerEntryInsertStatement(
       input.note,
       input.idempotencyKey,
       input.createdAtMs,
+      input.ingestedAtMs,
     );
 }
 
 function d1LedgerEntryInsertSourceSql(insertGuard: LedgerEntryInsertInput['insertGuard']): string {
-  const sourceSql = "SELECT ?, ?, ?, ?, ?, 'USD', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?";
+  const sourceSql = `SELECT source.namespace,source.org_id,source.id,source.entry_type,source.amount_minor,'USD',source.description,source.month_utc,
+    CASE WHEN source.entry_type='PRODUCT_EXECUTION_DEBIT' AND EXISTS(SELECT 1 FROM billing_payment_policies p WHERE p.namespace=source.namespace AND p.org_id=source.org_id AND p.payment_model='postpaid') THEN NULL ELSE source.related_invoice_id END,
+    source.related_purchase_id,source.source_event_id,source.actor_type,source.actor_user_id,source.reason_code,source.note,source.idempotency_key,source.created_at_ms,
+    CASE WHEN source.entry_type IN ('CREDIT_PURCHASE','REFUND','DISPUTE_OPENED','DISPUTE_WON','USAGE_DEBIT') THEN 'prepaid'
+      ELSE COALESCE((SELECT r.payment_model FROM billing_execution_charges c JOIN billing_funds_reservations r ON r.namespace=c.namespace AND r.id=c.reservation_id WHERE c.namespace=source.namespace AND c.org_id=source.org_id AND c.charge_id=source.id),
+        (SELECT p.payment_model FROM billing_payment_policies p WHERE p.namespace=source.namespace AND p.org_id=source.org_id),'prepaid') END,
+    source.ingested_at_ms
+    FROM (SELECT ? AS namespace,? AS org_id,? AS id,? AS entry_type,? AS amount_minor,? AS description,? AS month_utc,? AS related_invoice_id,? AS related_purchase_id,? AS source_event_id,? AS actor_type,? AS actor_user_id,? AS reason_code,? AS note,? AS idempotency_key,? AS created_at_ms,? AS ingested_at_ms) source`;
   if (!insertGuard) return sourceSql;
   return `${sourceSql} WHERE changes() = 1`;
 }
@@ -2052,6 +2075,7 @@ function buildProductExecutionDebitInsert(input: {
   const eventMonthUtc = monthUtcFromMs(input.occurredAtMs);
   const sourceEventId = normalizeRequiredString(input.request.sourceEventId, 'sourceEventId');
   return createD1BillingLedgerEntryInsertStatement(input.state.database, {
+    ingestedAtMs: input.state.now().getTime(),
     namespace: input.state.namespace,
     orgId: input.ctx.orgId,
     entryId: input.entryId,
@@ -2170,6 +2194,7 @@ async function getUsageStatementTotals(input: {
        FROM billing_ledger_entries
       WHERE namespace = ?
         AND org_id = ?
+        AND payment_model='prepaid'
         AND entry_type IN ('USAGE_DEBIT', 'PRODUCT_EXECUTION_DEBIT')
         AND month_utc = ?`,
     [input.state.namespace, input.orgId, input.periodMonthUtc],
@@ -2190,6 +2215,12 @@ async function reconcileUsageDebitCoverageD1(input: {
   monthlyActiveResources: number;
   createdAtMs: number;
 }): Promise<void> {
+  const plan = await queryD1One(
+    input.state.database,
+    'SELECT plan FROM billing_account_plans WHERE namespace=? AND org_id=?',
+    [input.state.namespace, input.ctx.orgId],
+  );
+  if (plan && plan.plan !== 'enterprise') return;
   const totals = await getUsageStatementTotals({
     state: input.state,
     orgId: input.ctx.orgId,
@@ -2211,6 +2242,7 @@ async function reconcileUsageDebitCoverageD1(input: {
   try {
     await input.state.database.batch([
       createD1BillingLedgerEntryInsertStatement(input.state.database, {
+        ingestedAtMs: input.state.now().getTime(),
         namespace: input.state.namespace,
         orgId: input.ctx.orgId,
         entryId,
@@ -2525,6 +2557,7 @@ async function settleCreditPurchaseD1(input: {
   });
   const statements: D1PreparedStatementLike[] = [
     createD1BillingLedgerEntryInsertStatement(input.state.database, {
+      ingestedAtMs: input.state.now().getTime(),
       namespace: input.state.namespace,
       orgId: input.orgId,
       entryId: ledgerEntryId,
@@ -2652,6 +2685,7 @@ async function finalizeRefundD1(input: {
     try {
       await input.state.database.batch([
         createD1BillingLedgerEntryInsertStatement(input.state.database, {
+          ingestedAtMs: input.state.now().getTime(),
           namespace: input.state.namespace,
           orgId: input.refund.orgId,
           entryId: ledgerEntryId,
@@ -3268,6 +3302,7 @@ async function applyDisputeOpenedD1(input: {
   });
   await input.state.database.batch([
     createD1BillingLedgerEntryInsertStatement(input.state.database, {
+      ingestedAtMs: input.state.now().getTime(),
       namespace: input.state.namespace,
       orgId: input.purchase.orgId,
       entryId: ledgerEntryId,
@@ -3361,6 +3396,7 @@ async function applyDisputeClosedD1(input: {
     });
     await input.state.database.batch([
       createD1BillingLedgerEntryInsertStatement(input.state.database, {
+        ingestedAtMs: input.state.now().getTime(),
         namespace: input.state.namespace,
         orgId: input.dispute.orgId,
         entryId: ledgerEntryId,
@@ -4009,6 +4045,13 @@ export async function createD1ConsoleBillingService(
       ctx: ConsoleBillingContext,
       request: GenerateMonthlyInvoiceRequest,
     ): Promise<GenerateMonthlyInvoiceResult> {
+      const policy = await readBillingPaymentPolicy(state.database, state.namespace, ctx.orgId);
+      if (policy.kind === 'postpaid')
+        throw new ConsoleBillingError(
+          'postpaid_monthly_collection_required',
+          409,
+          'Postpaid accounts use monthly collection. Refresh payment status in account billing.',
+        );
       const periodMonthUtc = normalizeMonthUtc(request.periodMonthUtc);
       return await generateMonthlyInvoiceD1({
         state,
@@ -4080,6 +4123,20 @@ export async function createD1ConsoleBillingService(
         state.consoleBaseUrl,
         ctx.returnOrigin,
       );
+      const policy = await readBillingPaymentPolicy(state.database, state.namespace, ctx.orgId);
+      if (policy.kind === 'postpaid')
+        throw new ConsoleBillingError(
+          'postpaid_credit_purchase',
+          409,
+          'Postpaid accounts pay monthly invoices',
+        );
+      const payerRef = await ensureBillingCustomer({
+        database: state.database,
+        namespace: state.namespace,
+        orgId: ctx.orgId,
+        stripe: providers.stripe,
+        nowMs: currentNow.getTime(),
+      });
       const purchaseId = makeId('bcp', currentNow);
       await state.database
         .prepare(
@@ -4099,6 +4156,7 @@ export async function createD1ConsoleBillingService(
         )
         .run();
       const providerCheckoutSession = await providers.stripe.createCheckoutSession({
+        customerRef: payerRef,
         purchaseId,
         orgId: ctx.orgId,
         ...checkoutReturnUrls,
@@ -4375,10 +4433,11 @@ export async function runD1ConsoleBillingMonthlyFinalization(
     namespace,
     now,
     providers: options.providers,
+    emailConsoleBaseUrl: options.emailConsoleBaseUrl,
     ensureSchema: options.ensureSchema,
   });
 
-  let tasks: PlanBaseCollectionTask[];
+  let tasks: MonthlyCollectionTask[];
   if (options.orgIds) {
     const orgIds = new Set<string>();
     for (const rawOrgId of options.orgIds) {
@@ -4388,7 +4447,7 @@ export async function runD1ConsoleBillingMonthlyFinalization(
     tasks = [];
     for (const orgId of orgIds) tasks.push({ orgId, monthUtc: periodMonthUtc });
   } else {
-    tasks = await listDuePlanBaseCollectionTasks({
+    tasks = await listDueMonthlyCollectionTasks({
       database: options.database,
       namespace,
       nowMs: currentNow.getTime(),
@@ -4411,19 +4470,32 @@ export async function runD1ConsoleBillingMonthlyFinalization(
 
   for (const task of tasks) {
     try {
-      const out = await service.generateMonthlyInvoice(
-        {
+      const policy = await readBillingPaymentPolicy(options.database, namespace, task.orgId);
+      if (policy.kind === 'postpaid') {
+        await accruePlanBaseChargeForMonth({
+          database: options.database,
+          namespace,
           orgId: task.orgId,
-          actorUserId: 'system-billing-finalizer',
-        },
-        { periodMonthUtc: task.monthUtc },
-      );
+          monthUtc: task.monthUtc,
+          nowMs: currentNow.getTime(),
+        });
+      }
+      const out =
+        policy.kind === 'postpaid'
+          ? { generated: false }
+          : await service.generateMonthlyInvoice(
+              {
+                orgId: task.orgId,
+                actorUserId: 'system-billing-finalizer',
+              },
+              { periodMonthUtc: task.monthUtc },
+            );
       if (out.generated) {
         generatedCount += 1;
       } else {
         skippedCount += 1;
       }
-      const collection = await collectPlanBaseCharge({
+      const collection = await collectMonthlyInvoice({
         database: options.database,
         namespace,
         orgId: task.orgId,
@@ -4431,6 +4503,9 @@ export async function runD1ConsoleBillingMonthlyFinalization(
         nowMs: currentNow.getTime(),
         stripe: options.providers.stripe,
       });
+      const billingRuntime = getConsoleBillingD1Runtime(service);
+      if (billingRuntime)
+        await queueInvoiceRecoveryNotice(billingRuntime, task.orgId, task.monthUtc);
       switch (collection) {
         case null:
           noChargeCount += 1;
@@ -4499,7 +4574,7 @@ async function countPersistedInvoices(
   const row = await queryD1One(
     state.database,
     `SELECT COUNT(*) AS invoice_count
-       FROM invoices
+       FROM billing_documents
       WHERE namespace = ?
         AND org_id = ?`,
     [state.namespace, orgId],
@@ -4609,6 +4684,7 @@ async function appendManualAdjustmentD1(input: {
   });
   await input.state.database.batch([
     createD1BillingLedgerEntryInsertStatement(input.state.database, {
+      ingestedAtMs: input.state.now().getTime(),
       namespace: input.state.namespace,
       orgId: input.ctx.orgId,
       entryId,

@@ -125,11 +125,11 @@ function buildInvoicePdfLines(input: {
   const { orgId, invoice, lineItems, exportedAt } = input;
   const outstandingMinor = Math.max(0, invoice.amountDueMinor - invoice.amountPaidMinor);
   const subtotalMinor = lineItems.reduce(
-    (sum, lineItem) => sum + Number(lineItem.amountMinor || 0),
+    (sum, lineItem) => sum + Math.max(0, Number(lineItem.amountMinor || 0)),
     0,
   );
-  const title =
-    invoice.documentType === 'PURCHASE_RECEIPT' ? 'Purchase receipt' : 'Usage statement';
+  const creditsMinor = lineItems.reduce(totalInvoiceCredits, 0);
+  const title = billingDocumentTitle(invoice.documentType);
   const lines: PdfLine[] = [
     { text: title, size: 20 },
     { text: `Exported ${formatUtcTimestamp((exportedAt || new Date()).toISOString())}`, size: 10 },
@@ -144,7 +144,7 @@ function buildInvoicePdfLines(input: {
     { text: '', size: 8 },
     { text: 'Amounts', size: 13 },
     { text: `Subtotal: ${formatUsdMinor(subtotalMinor)}`, size: 11 },
-    { text: 'Credits: $0.00', size: 11 },
+    { text: `Credits: ${formatUsdMinor(creditsMinor)}`, size: 11 },
     { text: `Total due: ${formatUsdMinor(invoice.amountDueMinor)}`, size: 11 },
     { text: `Amount paid: ${formatUsdMinor(invoice.amountPaidMinor)}`, size: 11 },
     { text: `Outstanding balance: ${formatUsdMinor(outstandingMinor)}`, size: 11 },
@@ -235,7 +235,7 @@ export function buildConsoleBillingInvoicePdfFilename(invoice: BillingInvoice): 
   const invoiceId = String(invoice.id || 'invoice')
     .trim()
     .replace(/[^a-zA-Z0-9_-]+/g, '_');
-  const prefix = invoice.documentType === 'PURCHASE_RECEIPT' ? 'receipt' : 'statement';
+  const prefix = billingDocumentFilenamePrefix(invoice.documentType);
   return `${prefix}_${period}_${invoiceId}.pdf`;
 }
 
@@ -297,4 +297,29 @@ export function buildConsoleBillingInvoicePdf(input: {
   partList.push(`startxref\n${xrefOffset}\n%%EOF`);
 
   return concatPdf(partList);
+}
+
+function billingDocumentTitle(type: BillingInvoice['documentType']): string {
+  switch (type) {
+    case 'PURCHASE_RECEIPT':
+      return 'Purchase receipt';
+    case 'USAGE_STATEMENT':
+      return 'Usage statement';
+    case 'MONTHLY_INVOICE':
+      return 'Monthly invoice';
+  }
+}
+function billingDocumentFilenamePrefix(type: BillingInvoice['documentType']): string {
+  switch (type) {
+    case 'PURCHASE_RECEIPT':
+      return 'receipt';
+    case 'USAGE_STATEMENT':
+      return 'statement';
+    case 'MONTHLY_INVOICE':
+      return 'invoice';
+  }
+}
+
+function totalInvoiceCredits(sum: number, item: BillingInvoiceLineItem): number {
+  return sum + Math.max(0, -item.amountMinor);
 }

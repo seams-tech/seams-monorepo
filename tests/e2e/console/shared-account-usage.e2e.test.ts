@@ -520,6 +520,13 @@ async function journey(): Promise<void> {
         Date.parse(occurredAt),
       )
       .run();
+    // This account retains the fixed resource contract. Self-serve plans use MAU pricing.
+    await database
+      .prepare(
+        `UPDATE billing_account_plans SET plan='enterprise',plan_started_at_ms=?,price_version='wallet-monthly-active-resource-v1' WHERE namespace=? AND org_id=?`,
+      )
+      .bind(now().getTime(), namespace, owner.orgId)
+      .run();
     const first = monthlyEvent(walletA, 'resource-a', 'same-resource', occurredAt);
     await expect(loseAcknowledgement(core.billingUsage, wallet, first)).rejects.toThrow(
       'Injected transport loss after committed usage',

@@ -1,8 +1,8 @@
 # Free plan card requirement and Growth move: implementation plan
 
-Status: phases 1–5 implemented on `dev`; signature counts and the SDK code wait for a
-seams-wallet release. See [Implementation status](#implementation-status).
-Date: October 21, 2026.
+Status: implemented locally on `dev`. Deployment is disabled.
+See [Implementation status](#implementation-status) for the new postpaid runtime release gate.
+Updated: October 31, 2026.
 
 ## Outcome
 
@@ -206,17 +206,38 @@ decision:
 - **SDK error code.** seams-wallet keeps the server's code on a refused setup, so the
   SDK reports `production_paused`.
 
-Not built yet:
+Updated October 31, 2026:
 
-- **seams-wallet release.** Signature counts and the SDK code need an
-  `@seams/wallet-server` and `@seams/wallet` release with seams-wallet `b5f523cb` and
-  `e7e289ad`, and the private pins moved to it. Deploy the private Gateway only with
-  that release; without migration `0082` its scheduled delivery fails.
-- **In-flight signatures at a stop.** A signature prepared before the stop cannot be
-  finalized after it (open decision 4).
-- **Growth charges.** The plan and price are persisted, but the feat-3 monthly close
-  that bills them does not exist. The existing `wallet.monthly_active_resource`
-  prepaid charge still applies.
-- **Switch back to Free**, the Stripe test-mode staging run, and the existing credit
-  purchase flow's own Stripe Customer creation, which does not use the persisted
-  mapping.
+- The exact `@seams/wallet` and `@seams/wallet-server` pins are `0.35.0`.
+  Signature delivery, migration `0082`, and the SDK refusal code are present.
+- Growth and Pro already accrued and collected base fees before this change.
+  Approved postpaid accounts now consolidate base fees and usage in one monthly
+  invoice. Paid MAU uses production registration and session activity, as Free does.
+  A newly billable login must fit the available credit. Repeated logins by an
+  already-counted user do not create another MAU charge.
+- Free, Growth, and Pro no longer receive new USD 3 monthly-resource debits.
+  Existing billing records and Enterprise resource charges remain intact.
+- Card setup and prepaid purchases share the persisted Stripe Customer.
+- `POST /console/billing/plan/free` requests Free at the next eligible UTC month.
+  The account must be below both Free limits, with no execution reservations or
+  unpaid invoices. Current accrued charges remain due. The transition preserves
+  the original card clock and billing history. Accepted signing commitments must
+  settle before the transition completes. No new base fee accrues from the requested
+  effective date while the transition waits.
+- Payment recovery preserves the first grace deadline. Replacing a card cannot
+  clear debt or extend grace. Recovery and key export remain available.
+- Local D1 and Stripe test-mode acceptance retain repeatable evidence under
+  `.artifacts/platform-billing/`.
+
+Remaining deployment gates:
+
+- Publish and adopt the new Wallet server release containing migration `0088` for
+  postpaid signing credit. Each runtime must enforce its allocated credit locally.
+- Run the composed flow on staging after migrations and package adoption.
+- Approve production credit policy, tax treatment, Stripe recovery settings, and
+  the provisional Pro price.
+- Existing Free-plan policy checks still apply during finalization. The earlier
+  prepared-signature behavior is unchanged. Previously accepted terminal billing
+  records remain deliverable and settle during a stop.
+
+No staging or production deployment occurred in this implementation task.

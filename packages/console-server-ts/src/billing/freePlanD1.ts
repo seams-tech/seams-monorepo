@@ -1,3 +1,5 @@
+import { applyFreeDowngrade } from './postpaid';
+import { ensureBillingCustomer } from './customer';
 import type {
   PlanUsageRecordingResultV1,
   PlatformPlanUsageEventV1,
@@ -16,7 +18,7 @@ import {
 } from '../boundary/d1';
 import { createConsoleEmailOutboxInsertStatement } from '../email/d1';
 import { buildFreePlanNoticeEmailV1 } from '../email/templates';
-import { ConsoleBillingError } from './errors';
+import { ConsoleBillingError, isBillingCreditConstraint } from './errors';
 import {
   FREE_PLAN_CARD_GRACE_DAYS,
   FREE_PLAN_CARD_REMINDER_DAYS,
@@ -283,7 +285,13 @@ export class D1FreePlanService {
       );
     }
     const billingAccountId = requiredText(account.id, 'billing account id');
-    const customerRef = await this.ensureCustomer(ctx.orgId, billingAccountId, now);
+    const customerRef = await ensureBillingCustomer({
+      database: this.database,
+      namespace: this.namespace,
+      orgId: ctx.orgId,
+      stripe: this.providers.stripe,
+      nowMs: now.getTime(),
+    });
     const setupId = `cset_${now.getTime().toString(36)}_${secureRandomBase36(12, 'card setup id')}`;
     const urls = buildCardSetupReturnUrls(
       this.consoleBaseUrl,
@@ -450,29 +458,35 @@ export class D1FreePlanService {
       event.measure.kind === 'production_active_user'
         ? `${event.measure.environmentId}:${event.measure.userKey}`
         : `${event.measure.environmentId}:${event.measure.signatureId}`;
-    const result = await this.database
-      .prepare(
-        `INSERT INTO billing_plan_usage_facts
+    try {
+      const result = await this.database
+        .prepare(
+          `INSERT INTO billing_plan_usage_facts
           (namespace, org_id, billing_account_id, month_utc, kind, fact_key, environment_id,
             recorded_at_ms)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT DO NOTHING`,
-      )
-      .bind(
-        this.namespace,
-        requiredText(instance.org_id, 'org_id'),
-        requiredText(instance.billing_account_id, 'billing_account_id'),
-        monthUtcOf(occurredAtMs),
-        event.measure.kind === 'production_active_user' ? 'active_user' : 'signature',
-        factKey,
-        event.measure.environmentId,
-        occurredAtMs,
-      )
-      .run();
-    return {
-      kind: 'accepted',
-      value: { kind: d1ChangedRows(result) === 1 ? 'counted' : 'already_counted' },
-    };
+         ON CONFLICT DO NOTHING RETURNING fact_key`,
+        )
+        .bind(
+          this.namespace,
+          requiredText(instance.org_id, 'org_id'),
+          requiredText(instance.billing_account_id, 'billing_account_id'),
+          monthUtcOf(occurredAtMs),
+          event.measure.kind === 'production_active_user' ? 'active_user' : 'signature',
+          factKey,
+          event.measure.environmentId,
+          this.clock().getTime(),
+        )
+        .first<{ fact_key: unknown }>();
+      return {
+        kind: 'accepted',
+        value: { kind: result?.fact_key === factKey ? 'counted' : 'already_counted' },
+      };
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message.includes('billing_mau_credit_exhausted'))
+        return { kind: 'rejected', error: { code: 'billing_credit_exhausted' } };
+      throw error;
+    }
   }
 
   /** Evaluates accounts whose usage or card changed, and accounts at a day or month boundary. */
@@ -500,34 +514,6 @@ export class D1FreePlanService {
       }
     }
     return { evaluated, movedToGrowth, failures };
-  }
-
-  private async ensureCustomer(
-    orgId: string,
-    billingAccountId: string,
-    now: Date,
-  ): Promise<string> {
-    const existing = await queryD1One(
-      this.database,
-      'SELECT customer_ref FROM billing_payment_customers WHERE namespace = ? AND org_id = ?',
-      [this.namespace, orgId],
-    );
-    if (existing) return requiredText(existing.customer_ref, 'customer_ref');
-    const customerRef = await this.providers.stripe.createCustomer({ orgId, billingAccountId });
-    await this.database
-      .prepare(
-        `INSERT INTO billing_payment_customers
-          (namespace, org_id, billing_account_id, provider, customer_ref, created_at_ms)
-         VALUES (?, ?, ?, 'stripe', ?, ?) ON CONFLICT(namespace, org_id) DO NOTHING`,
-      )
-      .bind(this.namespace, orgId, billingAccountId, customerRef, now.getTime())
-      .run();
-    const stored = await queryD1One(
-      this.database,
-      'SELECT customer_ref FROM billing_payment_customers WHERE namespace = ? AND org_id = ?',
-      [this.namespace, orgId],
-    );
-    return requiredText(stored?.customer_ref, 'customer_ref');
   }
 
   /**
@@ -688,12 +674,18 @@ export class D1FreePlanService {
       productionState: snapshot.productionState,
       card: snapshot.card,
       usage: { ...snapshot.usage, monthUtc: monthUtcOf(nowMs), limits: FREE_PLAN_LIMITS_V1 },
-      banners: evaluation.banners,
+      banners:
+        plan.kind === 'free' &&
+        snapshot.productionState === 'free_limit_reached' &&
+        evaluation.kind === 'move_to_growth'
+          ? [{ kind: 'free_limit_reached', limit: evaluation.limit }]
+          : evaluation.banners,
     };
   }
 
   private async evaluate(orgId: string): Promise<'moved_to_growth' | 'stayed' | 'missing'> {
     const nowMs = this.clock().getTime();
+    await applyFreeDowngrade(this.database, this.namespace, orgId, nowMs);
     const snapshot = await this.loadSnapshot(orgId, nowMs);
     if (!snapshot) return 'missing';
     if (snapshot.plan.kind === 'growth' || snapshot.plan.kind === 'pro') {
@@ -772,7 +764,19 @@ export class D1FreePlanService {
         );
       }
     }
-    const results = await this.database.batch<D1ResultLike>(statements);
+    let results: readonly D1ResultLike[];
+    try {
+      results = await this.database.batch<D1ResultLike>(statements);
+    } catch (error: unknown) {
+      if (evaluation.kind !== 'move_to_growth' || !isBillingCreditConstraint(error)) throw error;
+      await this.database
+        .prepare(
+          `UPDATE billing_account_plans SET production_state='free_limit_reached',production_state_changed_at_ms=?,evaluation_due_at_ms=? WHERE namespace=? AND org_id=? AND plan='free'`,
+        )
+        .bind(nowMs, nowMs + 60000, this.namespace, orgId)
+        .run();
+      return 'stayed';
+    }
     if (evaluation.kind === 'move_to_growth') {
       const moved = results[1];
       return moved && d1ChangedRows(moved) === 1 ? 'moved_to_growth' : 'stayed';

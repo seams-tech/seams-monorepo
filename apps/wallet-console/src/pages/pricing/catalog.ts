@@ -174,12 +174,12 @@ export const messages = {
   },
   faqTitle: { en: 'Frequently asked questions', ja: 'よくある質問' },
   faqUserQ: {
-    en: 'What counts as a monthly active user?',
+    en: 'What counts as a paid monthly active user?',
     ja: '月間アクティブユーザーとは何ですか？',
   },
   faqUserA: {
-    en: 'A user who signs in during the month, or who gets a new wallet that month. A user counts once, however many times they sign in.',
-    ja: 'その月にログインしたユーザー、または新しいウォレットを作成したユーザーです。ログイン回数にかかわらず、1ユーザーとして数えます。',
+    en: 'A production user counts after registration, sign-in, or a session refresh during a UTC calendar month. Each user identity counts once that month. Repeated logins and signatures do not add another MAU. Development environments do not count.',
+    ja: 'UTCの暦月内に本番環境で登録、ログイン、またはセッション更新を行ったユーザーを数えます。同じユーザーIDは、その月に何度ログインや署名を行っても1人として数えます。開発環境は対象外です。',
   },
   faqPoolQ: {
     en: 'What if my users sign more than 10 times a day?',

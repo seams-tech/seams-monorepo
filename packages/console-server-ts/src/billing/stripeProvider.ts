@@ -1,5 +1,7 @@
 import type {
   BillingProviderAdapters,
+  StripeInvoiceCredit,
+  StripeInvoiceCreditInput,
   StripeBillingProviderAdapter,
   StripeCardSetupSessionLookupProviderInput,
   StripeCardSetupSessionLookupProviderOutput,
@@ -7,10 +9,10 @@ import type {
   StripeCardSetupSessionProviderOutput,
   StripeCustomerProviderInput,
   StripeDefaultPaymentMethodProviderInput,
-  StripePlanBaseInvoice,
-  StripePlanBaseInvoiceCreateInput,
-  StripePlanBaseInvoiceItemInput,
-  StripePlanBaseInvoiceLookupInput,
+  StripeBillingInvoice,
+  StripeBillingInvoiceCreateInput,
+  StripeBillingInvoiceItemInput,
+  StripeBillingInvoiceLookupInput,
   StripeVerifiedCardV1,
   StripeCheckoutSessionLookupProviderInput,
   StripeCheckoutSessionLookupProviderOutput,
@@ -184,7 +186,7 @@ function parseStripeCard(paymentMethod: UnknownRecord): StripeVerifiedCardV1 | n
   return { id, brand, last4, expMonth, expYear };
 }
 
-function parseStripePlanBaseInvoiceStatus(value: unknown): StripePlanBaseInvoice['status'] {
+function parseStripeBillingInvoiceStatus(value: unknown): StripeBillingInvoice['status'] {
   switch (normalizeString(value)) {
     case 'draft':
       return 'draft';
@@ -201,9 +203,9 @@ function parseStripePlanBaseInvoiceStatus(value: unknown): StripePlanBaseInvoice
   }
 }
 
-function parseStripePlanBaseInvoiceLineItem(
+function parseStripeBillingInvoiceLineItem(
   raw: unknown,
-): StripePlanBaseInvoice['lineItems'][number] {
+): StripeBillingInvoice['lineItems'][number] {
   const row = toUnknownRecord(raw);
   const amountMinor = Number(row.amount);
   const chargeKey = normalizeString(toUnknownRecord(row.metadata).plan_base_charge_key);
@@ -213,12 +215,27 @@ function parseStripePlanBaseInvoiceLineItem(
   return { chargeKey, amountMinor };
 }
 
-function parseStripePlanBaseInvoice(payload: UnknownRecord): StripePlanBaseInvoice {
+function paymentIntentFailed(intent: UnknownRecord): boolean {
+  return (
+    intent.status === 'requires_action' ||
+    (intent.status === 'requires_payment_method' &&
+      intent.last_payment_error !== null &&
+      intent.last_payment_error !== undefined)
+  );
+}
+
+function requiredStripeAmount(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0)
+    throw new Error(`Invalid Stripe ${field}`);
+  return value;
+}
+
+function parseStripeBillingInvoice(payload: UnknownRecord): StripeBillingInvoice {
   const id = normalizeString(payload.id);
   const customerRef = normalizeString(payload.customer);
   const metadata = toUnknownRecord(payload.metadata);
   const chargeKey = normalizeString(metadata.plan_base_charge_key);
-  const status = parseStripePlanBaseInvoiceStatus(payload.status);
+  const status = parseStripeBillingInvoiceStatus(payload.status);
   const currency = normalizeString(payload.currency).toLowerCase();
   const collectionMethod = normalizeString(payload.collection_method);
   const autoAdvance = payload.auto_advance;
@@ -241,7 +258,7 @@ function parseStripePlanBaseInvoice(payload: UnknownRecord): StripePlanBaseInvoi
   ) {
     throw new Error('Stripe plan invoice returned invalid identity, status, or lines');
   }
-  const lineItems = rawLineItems.map(parseStripePlanBaseInvoiceLineItem);
+  const lineItems = rawLineItems.map(parseStripeBillingInvoiceLineItem);
   return {
     id,
     customerRef,
@@ -253,6 +270,14 @@ function parseStripePlanBaseInvoice(payload: UnknownRecord): StripePlanBaseInvoi
     subtotalMinor,
     totalMinor,
     lineItems,
+    amountPaidMinor: requiredStripeAmount(payload.amount_paid, 'amount_paid'),
+    confirmedPaymentMinor: 0,
+    confirmedPayments: [],
+    amountRemainingMinor: requiredStripeAmount(payload.amount_remaining, 'amount_remaining'),
+    attempted: payload.attempted === true,
+    paymentFailed: false,
+    paidOutOfBand: payload.paid_out_of_band === true,
+    hostedInvoiceUrl: normalizeString(payload.hosted_invoice_url) || null,
   };
 }
 
@@ -270,7 +295,6 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
   private readonly secretKey: string;
   private readonly apiBaseUrl: string;
   private readonly requestTimeoutMs: number;
-  private readonly customerByOrg = new Map<string, string>();
 
   constructor(options: StripeBillingProviderOptions) {
     this.secretKey = normalizeStripeSecretKey(options.secretKey);
@@ -288,7 +312,7 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
   async createCheckoutSession(
     input: StripeCheckoutSessionProviderInput,
   ): Promise<StripeCheckoutSessionProviderOutput> {
-    const customerRef = await this.ensureCustomer(input.orgId);
+    const customerRef = input.customerRef;
     const form = new URLSearchParams();
     setFormField(form, 'mode', 'payment');
     setFormField(form, 'customer', customerRef);
@@ -467,9 +491,55 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
     );
   }
 
-  async createPlanBaseInvoice(
-    input: StripePlanBaseInvoiceCreateInput,
-  ): Promise<StripePlanBaseInvoice> {
+  async reconcileInvoiceCredit(input: StripeInvoiceCreditInput): Promise<StripeInvoiceCredit> {
+    let cursor: string | null = null;
+    const matches: StripeInvoiceCredit[] = [];
+    const seen = new Set<string>();
+    for (let page = 0; page < 100; page += 1) {
+      const params = new URLSearchParams({ invoice: input.invoiceId, limit: '100' });
+      if (cursor) params.set('starting_after', cursor);
+      const response = await this.getJson(`/v1/credit_notes?${params}`);
+      if (!Array.isArray(response.data) || typeof response.has_more !== 'boolean')
+        throw new Error('Stripe credit note lookup is incomplete');
+      for (const raw of response.data) {
+        const note = toUnknownRecord(raw);
+        const id = normalizeString(note.id);
+        if (!id || seen.has(id)) throw new Error('Stripe credit note pagination did not advance');
+        seen.add(id);
+        cursor = id;
+        if (normalizeString(toUnknownRecord(note.metadata).billing_credit_key) === input.creditKey)
+          matches.push(parseInvoiceCredit(note));
+      }
+      if (!response.has_more) {
+        if (matches.length > 1)
+          throw new Error('Stripe has multiple credit notes for one adjustment');
+        if (matches[0]) return matches[0];
+        const form = new URLSearchParams();
+        setFormField(form, 'invoice', input.invoiceId);
+        setFormField(form, 'lines[0][type]', 'custom_line_item');
+        setFormField(
+          form,
+          'lines[0][description]',
+          'Wallet usage adjustment credited to the Seams billing account',
+        );
+        setFormField(form, 'lines[0][quantity]', 1);
+        setFormField(form, 'lines[0][unit_amount]', input.amountMinor);
+        setFormField(form, 'out_of_band_amount', input.amountMinor);
+        setFormField(form, 'email_type', 'none');
+        setFormField(form, 'metadata[billing_credit_key]', input.creditKey);
+        return parseInvoiceCredit(
+          await this.postForm('/v1/credit_notes', form, `invoice-credit:${input.idempotencyKey}`),
+        );
+      }
+      if (response.data.length === 0)
+        throw new Error('Stripe credit note pagination did not advance');
+    }
+    throw new Error('Stripe credit note lookup exceeded its page limit');
+  }
+
+  async createBillingInvoice(
+    input: StripeBillingInvoiceCreateInput,
+  ): Promise<StripeBillingInvoice> {
     const form = new URLSearchParams();
     setFormField(form, 'customer', input.customerRef);
     setFormField(form, 'currency', 'usd');
@@ -479,30 +549,80 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
     setFormField(form, 'metadata[plan_base_charge_key]', input.chargeKey);
     setFormField(form, 'metadata[org_id]', input.orgId);
     setFormField(form, 'metadata[month_utc]', input.monthUtc);
-    setFormField(form, 'metadata[plan]', input.plan);
+    if (input.kind === 'plan_base') setFormField(form, 'metadata[plan]', input.plan);
     setFormField(form, 'metadata[price_version]', input.priceVersion);
     const payload = await this.postForm(
       '/v1/invoices',
       form,
       `plan-base-invoice:${input.idempotencyKey}`,
     );
-    return parseStripePlanBaseInvoice(payload);
+    return parseStripeBillingInvoice(payload);
   }
 
-  async getPlanBaseInvoice(invoiceId: string): Promise<StripePlanBaseInvoice> {
+  async getBillingInvoice(invoiceId: string): Promise<StripeBillingInvoice> {
     const id = normalizeString(invoiceId);
     if (!id) throw new Error('Stripe plan invoice id is required');
-    return parseStripePlanBaseInvoice(await this.getJson(`/v1/invoices/${encodeURIComponent(id)}`));
+    const payload = await this.getJson(`/v1/invoices/${encodeURIComponent(id)}`);
+    const invoice = parseStripeBillingInvoice(payload);
+    if ((invoice.status !== 'open' || !invoice.attempted) && invoice.status !== 'paid')
+      return invoice;
+    let failed = false;
+    let confirmedPaymentMinor = 0;
+    const confirmedPayments: { paymentRef: string; amountMinor: number }[] = [];
+    if (typeof payload.payment_intent === 'string') {
+      const intent = await this.getJson(
+        `/v1/payment_intents/${encodeURIComponent(payload.payment_intent)}`,
+      );
+      failed = paymentIntentFailed(intent);
+      if (
+        intent.status === 'succeeded' &&
+        intent.currency === 'usd' &&
+        intent.customer === invoice.customerRef &&
+        requiredStripeAmount(intent.amount_received, 'amount received') >= invoice.amountPaidMinor
+      ) {
+        confirmedPaymentMinor = invoice.amountPaidMinor;
+        confirmedPayments.push({
+          paymentRef: normalizeString(intent.id),
+          amountMinor: invoice.amountPaidMinor,
+        });
+      }
+    } else {
+      const payments = await this.getJson(
+        `/v1/invoice_payments?invoice=${encodeURIComponent(id)}&limit=100&expand[]=data.payment.payment_intent`,
+      );
+      if (!Array.isArray(payments.data) || payments.has_more !== false)
+        throw new Error('Stripe invoice payment lookup is incomplete');
+      for (const raw of payments.data) {
+        const payment = toUnknownRecord(raw);
+        if (payment.invoice !== id) throw new Error('Stripe payment belongs to another invoice');
+        const details = toUnknownRecord(payment.payment);
+        const intent = toUnknownRecord(details.payment_intent);
+        if (paymentIntentFailed(intent)) failed = true;
+        if (
+          payment.status === 'paid' &&
+          intent.status === 'succeeded' &&
+          intent.currency === 'usd' &&
+          intent.customer === invoice.customerRef
+        ) {
+          const applied = requiredStripeAmount(payment.amount_paid, 'invoice payment amount');
+          if (requiredStripeAmount(intent.amount_received, 'amount received') < applied)
+            throw new Error('Stripe payment received less than its invoice allocation');
+          confirmedPaymentMinor += applied;
+          confirmedPayments.push({ paymentRef: normalizeString(intent.id), amountMinor: applied });
+        }
+      }
+    }
+    return { ...invoice, paymentFailed: failed, confirmedPaymentMinor, confirmedPayments };
   }
 
-  async findPlanBaseInvoices(
-    input: StripePlanBaseInvoiceLookupInput,
-  ): Promise<readonly StripePlanBaseInvoice[]> {
+  async findBillingInvoices(
+    input: StripeBillingInvoiceLookupInput,
+  ): Promise<readonly StripeBillingInvoice[]> {
     const customerRef = normalizeString(input.customerRef);
     const chargeKey = normalizeString(input.chargeKey);
     if (!customerRef || !chargeKey) throw new Error('Stripe plan invoice lookup is incomplete');
 
-    const invoices: StripePlanBaseInvoice[] = [];
+    const invoices: StripeBillingInvoice[] = [];
     const seenIds = new Set<string>();
     let startingAfter: string | null = null;
     for (let page = 0; page < 100; page += 1) {
@@ -522,7 +642,7 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
         startingAfter = id;
         const metadata = toUnknownRecord(invoice.metadata);
         if (normalizeString(metadata.plan_base_charge_key) === chargeKey) {
-          invoices.push(parseStripePlanBaseInvoice(invoice));
+          invoices.push(parseStripeBillingInvoice(invoice));
         }
       }
       if (!response.has_more) return invoices;
@@ -533,13 +653,13 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
     throw new Error('Stripe invoice list exceeded the reconciliation page limit');
   }
 
-  async addPlanBaseInvoiceItem(input: StripePlanBaseInvoiceItemInput): Promise<void> {
+  async addBillingInvoiceItem(input: StripeBillingInvoiceItemInput): Promise<void> {
     const form = new URLSearchParams();
     setFormField(form, 'customer', input.customerRef);
     setFormField(form, 'invoice', input.invoiceId);
     setFormField(form, 'amount', input.amountMinor);
     setFormField(form, 'currency', 'usd');
-    setFormField(form, 'description', `Seams ${input.plan} plan base fee`);
+    setFormField(form, 'description', input.description);
     setFormField(form, 'discountable', 'false');
     setFormField(form, 'period[start]', Math.floor(input.periodStartMs / 1000));
     setFormField(form, 'period[end]', Math.floor(input.periodEndMs / 1000));
@@ -547,12 +667,12 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
     await this.postForm('/v1/invoiceitems', form, `plan-base-item:${input.idempotencyKey}`);
   }
 
-  async finalizePlanBaseInvoice(invoiceId: string): Promise<StripePlanBaseInvoice> {
+  async finalizeBillingInvoice(invoiceId: string): Promise<StripeBillingInvoice> {
     const id = normalizeString(invoiceId);
     if (!id) throw new Error('Stripe plan invoice id is required');
     const form = new URLSearchParams();
     setFormField(form, 'auto_advance', 'true');
-    return parseStripePlanBaseInvoice(
+    return parseStripeBillingInvoice(
       await this.postForm(
         `/v1/invoices/${encodeURIComponent(id)}/finalize`,
         form,
@@ -569,24 +689,6 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
     setFormField(form, 'line_items[0][price_data][unit_amount]', input.amountMinor);
     setFormField(form, 'line_items[0][price_data][product_data][name]', buildCreditPackName(input));
     setFormField(form, 'line_items[0][quantity]', 1);
-  }
-
-  private async ensureCustomer(orgId: string): Promise<string> {
-    const cached = this.customerByOrg.get(orgId);
-    if (cached) return cached;
-
-    const form = new URLSearchParams();
-    setFormField(form, 'name', `Console ${orgId}`);
-    setFormField(form, 'metadata[org_id]', orgId);
-    setFormField(form, 'description', `Seams console billing customer for ${orgId}`);
-
-    const payload = await this.postForm('/v1/customers', form);
-    const customerId = normalizeString(payload.id);
-    if (!customerId) {
-      throw new Error('Stripe customer create returned missing id');
-    }
-    this.customerByOrg.set(orgId, customerId);
-    return customerId;
   }
 
   private async postForm(
@@ -661,4 +763,29 @@ export function createStripeBillingProviderAdaptersFromEnv(
   } catch {
     return { stripe: new UnavailableStripeBillingProvider('Stripe configuration is invalid') };
   }
+}
+
+function parseInvoiceCredit(raw: UnknownRecord): StripeInvoiceCredit {
+  const id = normalizeString(raw.id);
+  const invoiceId = normalizeString(raw.invoice);
+  const customerRef = normalizeString(raw.customer);
+  const creditKey = normalizeString(toUnknownRecord(raw.metadata).billing_credit_key);
+  const amountMinor = requiredStripeAmount(raw.total, 'credit note total');
+  if (
+    !id ||
+    !invoiceId ||
+    !customerRef ||
+    !creditKey ||
+    raw.currency !== 'usd' ||
+    (raw.status !== 'issued' && raw.status !== 'void') ||
+    amountMinor <= 0 ||
+    raw.out_of_band_amount !== amountMinor ||
+    raw.post_payment_amount !== amountMinor ||
+    raw.pre_payment_amount !== 0 ||
+    raw.customer_balance_transaction !== null ||
+    !Array.isArray(raw.refunds) ||
+    raw.refunds.length !== 0
+  )
+    throw new Error('Stripe credit note does not represent the Platform ledger credit');
+  return { id, invoiceId, customerRef, creditKey, amountMinor, status: raw.status };
 }

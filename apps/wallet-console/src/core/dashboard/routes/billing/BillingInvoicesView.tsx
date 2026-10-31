@@ -1,3 +1,4 @@
+import { billingDocumentLabel } from './consoleBillingApi';
 import React from 'react';
 import { Download, LoaderCircle } from 'lucide-react';
 import {
@@ -103,6 +104,7 @@ export function BillingInvoicesView(props: BillingInvoicesViewProps): React.JSX.
                 <option value="all">All documents</option>
                 <option value="PURCHASE_RECEIPT">Purchase receipts</option>
                 <option value="USAGE_STATEMENT">Usage statements</option>
+                <option value="MONTHLY_INVOICE">Monthly invoices</option>
               </select>
             </label>
             <label className="dashboard-form-field">
@@ -182,7 +184,7 @@ export function BillingInvoicesView(props: BillingInvoicesViewProps): React.JSX.
                   <code>{invoice.id}</code>
                 </DashboardTableCell>
                 <DashboardTableCell truncate>
-                  {invoice.documentType === 'PURCHASE_RECEIPT' ? 'Receipt' : 'Statement'}
+                  {billingDocumentLabel(invoice.documentType)}
                 </DashboardTableCell>
                 <DashboardTableCell>
                   <span className={getInvoiceStatusBadgeClassName(invoice.status)}>

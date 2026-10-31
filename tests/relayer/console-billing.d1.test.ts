@@ -102,6 +102,7 @@ async function seedHistoricalUsageDebit(
   database: Parameters<typeof createD1ConsoleBillingService>[0]['database'],
 ): Promise<void> {
   await createD1BillingLedgerEntryInsertStatement(database, {
+    ingestedAtMs: Date.now(),
     namespace: BILLING_NAMESPACE,
     orgId: SUPPORT_CONTEXT.orgId,
     entryId: 'historical-refund-usage',
@@ -503,6 +504,7 @@ for (const directory of ['d1-console-core', 'd1-console'] as const) {
       const createdAtMs = Date.now();
       await temporary.database.batch([
         createD1BillingLedgerEntryInsertStatement(temporary.database, {
+          ingestedAtMs: Date.now(),
           namespace: BILLING_NAMESPACE,
           orgId: SUPPORT_CONTEXT.orgId,
           entryId,

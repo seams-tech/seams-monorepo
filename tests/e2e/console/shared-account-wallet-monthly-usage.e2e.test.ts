@@ -369,9 +369,9 @@ test('Wallet monthly facts survive lost replies, restart, archive and a UTC mont
     await captureReceipt(database, services, clock, owner, 'wallet-b', resourceId, 'november');
     await services.monthly.resumePending(20);
     const ledger = await rows(database, 'billing_ledger_entries');
-    expect(ledger).toHaveLength(4);
-    expect((await services.core.billing.getOverview(owner)).creditBalanceMinor).toBe(-900);
-    expect((await services.core.billing.getOverview(otherOwner)).creditBalanceMinor).toBe(-300);
+    expect(ledger).toHaveLength(0);
+    expect((await services.core.billing.getOverview(owner)).creditBalanceMinor).toBe(0);
+    expect((await services.core.billing.getOverview(otherOwner)).creditBalanceMinor).toBe(0);
     const outbox = await rows(database, 'wallet_monthly_usage_outbox');
     expect(outbox).toHaveLength(5);
     for (const row of outbox) expect(row.delivery_status).toBe('delivered');

@@ -90,7 +90,8 @@ export const CONSOLE_EMAIL_D1_SCHEMA_SQL = Object.freeze([
           'BILLING_REFUND_RESULT',
           'LOW_BALANCE_WARNING',
           'FREE_PLAN_NOTICE',
-          'TEAM_SIGNUP_ALERT'
+          'TEAM_SIGNUP_ALERT',
+          'BILLING_PAYMENT_RECOVERY'
         )
       ),
       CHECK (template_version = 1),
@@ -811,6 +812,7 @@ async function renderClaimedConsoleEmail(
     case 'PREPAID_TOP_UP_RECEIPT':
     case 'BILLING_REFUND_RESULT':
     case 'FREE_PLAN_NOTICE':
+    case 'BILLING_PAYMENT_RECOVERY':
     case 'TEAM_SIGNUP_ALERT':
       return renderConsoleEmailV1(claimed.template);
     default:
@@ -1352,6 +1354,7 @@ function parseTemplateFamily(value: unknown): ConsoleEmailTemplateFamily {
     case 'BILLING_REFUND_RESULT':
     case 'LOW_BALANCE_WARNING':
     case 'FREE_PLAN_NOTICE':
+    case 'BILLING_PAYMENT_RECOVERY':
     case 'TEAM_SIGNUP_ALERT':
       return value;
     default:

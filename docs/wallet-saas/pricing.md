@@ -1,22 +1,32 @@
 # Wallet pricing and costs
 
-Date: October 21, 2026
+Updated: October 31, 2026
 
-Status: proposed. The public pricing page and the Console billing code do not use
-this model yet.
+Status: implemented locally for approved postpaid accounts. Deployment is disabled.
+Pro prices, production credit policy, tax treatment, and runtime rollout require approval.
 
 ## Price model
 
-Seams charges per monthly active user (MAU), at least 20% below Dynamic's list
-price at every size. Each MAU includes a signature allowance of 10 signatures a
-day. Signatures above the allowance have a published price.
+Monthly active users (MAU) are production users who register, sign in, or refresh
+a session during a UTC calendar month. Each production user identity counts once
+that month. Repeated logins and signatures do not add another MAU.
 
-| Plan       | Price                           | Users included | Signature allowance |
-| ---------- | ------------------------------- | -------------: | ------------------- |
-| Free       | $0                              |      Up to 300 | 30,000 / month      |
-| Growth     | $99 / month                     |    Up to 5,000 | 300 per MAU, pooled |
-| Growth     | + $0.004 per MAU above 5,000    |              — | 300 per MAU, pooled |
-| Enterprise | From $0.003 per MAU above 5,000 |     Negotiated | Negotiated          |
+This definition applies to Free limits and paid pricing. Development environments
+are excluded. Signing has its own pooled allowance and overage price.
+Each paid MAU adds 300 signatures to the organization's monthly pool.
+
+The approved credit limit is a hard limit. A login that adds a charge must fit
+within available credit. A user already counted this month can log in again
+without another MAU charge. Recovery and key export remain available.
+
+| Plan       | Price                           | Users included | Signature allowance            |
+| ---------- | ------------------------------- | -------------: | ------------------------------ |
+| Free       | $0                              |      Up to 300 | 30,000 / month                 |
+| Growth     | $99 / month                     |    Up to 5,000 | 300 per MAU, pooled            |
+| Growth     | + $0.004 per MAU above 5,000    |              — | 300 per MAU, pooled            |
+| Pro        | $399 / month, provisional       |    100,000 MAU | 300 per MAU, pooled            |
+| Pro        | + $0.0035 per MAU above 100,000 |              — | $0.04 per 1,000 above the pool |
+| Enterprise | From $0.003 per MAU above 5,000 |     Negotiated | Negotiated                     |
 
 - **Pooled allowance:** the app gets 300 signatures for each MAU, for all its
   users together. With 10,000 MAU, the pool is 3,000,000 signatures. A few busy

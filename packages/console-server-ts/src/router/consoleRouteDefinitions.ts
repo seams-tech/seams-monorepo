@@ -178,6 +178,7 @@ const BILLING_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_billing_invoices_activity_get', 'GET', '/console/billing/invoices/:id/activity'],
   ['console_billing_invoices_line_items_get', 'GET', '/console/billing/invoices/:id/line-items'],
   ['console_billing_refunds_list', 'GET', '/console/billing/refunds'],
+  ['console_billing_payment_account_get', 'GET', '/console/billing/payment-account'],
   ['console_billing_plan_get', 'GET', '/console/billing/plan'],
 ];
 
@@ -194,10 +195,13 @@ const BILLING_MANAGE_ROUTES: readonly ConsoleRouteTuple[] = [
   ],
   ['console_billing_card_setup_create', 'POST', '/console/billing/card-setup'],
   ['console_billing_card_setup_reconcile', 'POST', '/console/billing/card-setup/reconcile'],
+  ['console_billing_plan_free', 'POST', '/console/billing/plan/free'],
+  ['console_billing_payment_reconcile', 'POST', '/console/billing/payment-account/reconcile'],
   ['console_billing_plan_start', 'POST', '/console/billing/plan/start'],
 ];
 
 const PLATFORM_SUPPORT_ROUTES: readonly ConsoleRouteTuple[] = [
+  ['console_platform_billing_credit_limit', 'POST', '/console/platform/billing/credit-limit'],
   ['console_onboarding_telemetry_get', 'GET', '/console/onboarding/telemetry'],
   ['console_platform_billing_search_get', 'GET', '/console/platform/billing/search'],
   ['console_platform_billing_account_get', 'GET', '/console/platform/billing/account'],

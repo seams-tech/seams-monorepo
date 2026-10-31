@@ -1,10 +1,12 @@
 import type { BillingUsageChargeV1 } from './attribution';
 
 export type BillingUsageMetricVersion = 'active_resource_v1';
-export type BillingDocumentType = 'PURCHASE_RECEIPT' | 'USAGE_STATEMENT';
+export type BillingDocumentType = 'PURCHASE_RECEIPT' | 'USAGE_STATEMENT' | 'MONTHLY_INVOICE';
 export type InvoiceStatus = 'OPEN' | 'PAID' | 'VOID' | 'UNCOLLECTIBLE';
 export type BillingInvoiceLineItemType =
   | 'CREDIT_TOP_UP'
+  | 'PLAN_BASE_FEE'
+  | 'PLAN_SIGNING_USAGE'
   | 'ACTIVE_RESOURCE_USAGE_DEBIT'
   | 'PRODUCT_EXECUTION_DEBIT'
   | 'MANUAL_ADJUSTMENT';
@@ -16,10 +18,14 @@ export type BillingLedgerEntryType =
   | 'MANUAL_ADJUSTMENT'
   | 'REFUND'
   | 'DISPUTE_OPENED'
-  | 'DISPUTE_WON';
+  | 'DISPUTE_WON'
+  | 'PLAN_BASE_CHARGE'
+  | 'PLAN_USAGE_CHARGE'
+  | 'INVOICE_PAYMENT';
 export type BillingLedgerPostingDirection = 'DEBIT' | 'CREDIT';
 export type BillingLedgerAccountCode =
   | 'org_prepaid_liability'
+  | 'org_receivable'
   | 'stripe_cash_clearing'
   | 'revenue_usage'
   | 'revenue_product_execution'
@@ -158,6 +164,7 @@ export interface BillingMonthlyActiveResources {
 }
 
 export interface BillingInvoice {
+  hostedInvoiceUrl?: string;
   id: string;
   orgId: string;
   documentType: BillingDocumentType;

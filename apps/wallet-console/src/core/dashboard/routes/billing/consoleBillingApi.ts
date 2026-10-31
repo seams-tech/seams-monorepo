@@ -131,7 +131,7 @@ export type DashboardBillingCostsState =
 
 export interface DashboardBillingInvoice {
   id: string;
-  documentType: 'PURCHASE_RECEIPT' | 'USAGE_STATEMENT';
+  documentType: 'PURCHASE_RECEIPT' | 'USAGE_STATEMENT' | 'MONTHLY_INVOICE';
   status: string;
   amountDueMinor: number;
   amountPaidMinor: number;
@@ -144,7 +144,7 @@ export interface DashboardBillingInvoiceListRequest {
   status?: 'OPEN' | 'PAID' | 'VOID' | 'UNCOLLECTIBLE' | 'OVERDUE';
   overdue?: boolean;
   periodMonthUtc?: string;
-  documentType?: 'PURCHASE_RECEIPT' | 'USAGE_STATEMENT';
+  documentType?: 'PURCHASE_RECEIPT' | 'USAGE_STATEMENT' | 'MONTHLY_INVOICE';
   limit?: number;
   cursor?: string;
 }
@@ -221,6 +221,9 @@ export type DashboardBillingAccountActivityEventType =
   | 'CREDIT_PURCHASE'
   | 'USAGE_DEBIT'
   | 'PRODUCT_EXECUTION_DEBIT'
+  | 'PLAN_BASE_CHARGE'
+  | 'PLAN_USAGE_CHARGE'
+  | 'INVOICE_PAYMENT'
   | 'MANUAL_ADJUSTMENT'
   | 'REFUND'
   | 'DISPUTE_OPENED'
@@ -731,7 +734,7 @@ function decodeInvoice(raw: unknown): DashboardBillingInvoice | null {
     .toUpperCase();
   return {
     id,
-    documentType: documentTypeRaw === 'PURCHASE_RECEIPT' ? 'PURCHASE_RECEIPT' : 'USAGE_STATEMENT',
+    documentType: parseBillingDocumentType(documentTypeRaw),
     status: String(row.status || '').trim() || 'OPEN',
     amountDueMinor: Number(row.amountDueMinor || 0),
     amountPaidMinor: Number(row.amountPaidMinor || 0),
@@ -1062,6 +1065,9 @@ export function parseDashboardBillingAccountActivityEntry(
       eventType === 'CREDIT_PURCHASE' ||
       eventType === 'USAGE_DEBIT' ||
       eventType === 'PRODUCT_EXECUTION_DEBIT' ||
+      eventType === 'PLAN_BASE_CHARGE' ||
+      eventType === 'PLAN_USAGE_CHARGE' ||
+      eventType === 'INVOICE_PAYMENT' ||
       eventType === 'REFUND' ||
       eventType === 'DISPUTE_OPENED' ||
       eventType === 'DISPUTE_WON'
@@ -1608,4 +1614,25 @@ export function formatUsdMinor(amountMinor: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
+}
+
+function parseBillingDocumentType(value: string): DashboardBillingInvoice['documentType'] {
+  switch (value) {
+    case 'PURCHASE_RECEIPT':
+    case 'USAGE_STATEMENT':
+    case 'MONTHLY_INVOICE':
+      return value;
+    default:
+      throw new Error('Invalid billing document type');
+  }
+}
+export function billingDocumentLabel(type: DashboardBillingInvoice['documentType']): string {
+  switch (type) {
+    case 'PURCHASE_RECEIPT':
+      return 'Purchase receipt';
+    case 'USAGE_STATEMENT':
+      return 'Usage statement';
+    case 'MONTHLY_INVOICE':
+      return 'Monthly invoice';
+  }
 }

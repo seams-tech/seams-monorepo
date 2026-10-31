@@ -6,6 +6,7 @@ import type { BillingCreditPackId, StripeProviderRefundStatus } from './types';
 export interface StripeCheckoutSessionProviderInput {
   purchaseId: string;
   orgId: string;
+  customerRef: string;
   successUrl: string;
   cancelUrl: string;
   creditPackId: BillingCreditPackId;
@@ -113,48 +114,86 @@ export interface StripeDefaultPaymentMethodProviderInput {
   paymentMethodRef: string;
 }
 
-export type StripePlanBaseInvoiceStatus = 'draft' | 'open' | 'paid' | 'void' | 'uncollectible';
+export type StripeBillingInvoiceStatus = 'draft' | 'open' | 'paid' | 'void' | 'uncollectible';
 
-export interface StripePlanBaseInvoice {
+export interface StripeBillingInvoice {
   readonly id: string;
   readonly customerRef: string;
   readonly chargeKey: string;
-  readonly status: StripePlanBaseInvoiceStatus;
+  readonly status: StripeBillingInvoiceStatus;
   readonly currency: 'USD';
   readonly collectionMethod: 'charge_automatically';
   readonly autoAdvance: boolean;
+  readonly amountPaidMinor: number;
+  readonly confirmedPaymentMinor: number;
+  readonly confirmedPayments: readonly {
+    readonly paymentRef: string;
+    readonly amountMinor: number;
+  }[];
+  readonly amountRemainingMinor: number;
+  readonly attempted: boolean;
+  readonly paymentFailed: boolean;
+  readonly paidOutOfBand: boolean;
+  readonly hostedInvoiceUrl: string | null;
   readonly subtotalMinor: number;
   readonly totalMinor: number;
   readonly lineItems: readonly { readonly chargeKey: string; readonly amountMinor: number }[];
 }
 
-export interface StripePlanBaseInvoiceCreateInput {
+export type StripeBillingInvoiceCreateInput = {
   readonly customerRef: string;
   readonly chargeKey: string;
   readonly orgId: string;
   readonly monthUtc: string;
-  readonly plan: SelfServePlanKindV1;
-  readonly priceVersion: string;
   readonly idempotencyKey: string;
-}
+} & (
+  | {
+      readonly kind: 'plan_base';
+      readonly plan: SelfServePlanKindV1;
+      readonly priceVersion: string;
+    }
+  | {
+      readonly kind: 'monthly_usage';
+      readonly plan?: never;
+      readonly priceVersion: 'platform-monthly-v1';
+    }
+);
 
-export interface StripePlanBaseInvoiceItemInput {
+export interface StripeBillingInvoiceItemInput {
   readonly invoiceId: string;
   readonly customerRef: string;
   readonly chargeKey: string;
-  readonly plan: SelfServePlanKindV1;
+  readonly description: string;
   readonly amountMinor: number;
   readonly periodStartMs: number;
   readonly periodEndMs: number;
   readonly idempotencyKey: string;
 }
 
-export interface StripePlanBaseInvoiceLookupInput {
+export interface StripeBillingInvoiceLookupInput {
   readonly customerRef: string;
   readonly chargeKey: string;
 }
 
+export interface StripeInvoiceCreditInput {
+  readonly invoiceId: string;
+  readonly customerRef: string;
+  readonly creditKey: string;
+  readonly amountMinor: number;
+  readonly idempotencyKey: string;
+}
+export interface StripeInvoiceCredit {
+  readonly id: string;
+  readonly invoiceId: string;
+  readonly customerRef: string;
+  readonly creditKey: string;
+  readonly amountMinor: number;
+  readonly status: 'issued' | 'void';
+}
 export interface StripeBillingProviderAdapter {
+  reconcileInvoiceCredit(
+    input: StripeInvoiceCreditInput,
+  ): Promise<StripeInvoiceCredit> | StripeInvoiceCredit;
   createCustomer(input: StripeCustomerProviderInput): Promise<string> | string;
   createCardSetupSession(
     input: StripeCardSetupSessionProviderInput,
@@ -165,17 +204,15 @@ export interface StripeBillingProviderAdapter {
     | Promise<StripeCardSetupSessionLookupProviderOutput>
     | StripeCardSetupSessionLookupProviderOutput;
   setDefaultPaymentMethod(input: StripeDefaultPaymentMethodProviderInput): Promise<void> | void;
-  createPlanBaseInvoice(
-    input: StripePlanBaseInvoiceCreateInput,
-  ): Promise<StripePlanBaseInvoice> | StripePlanBaseInvoice;
-  getPlanBaseInvoice(invoiceId: string): Promise<StripePlanBaseInvoice> | StripePlanBaseInvoice;
-  findPlanBaseInvoices(
-    input: StripePlanBaseInvoiceLookupInput,
-  ): Promise<readonly StripePlanBaseInvoice[]> | readonly StripePlanBaseInvoice[];
-  addPlanBaseInvoiceItem(input: StripePlanBaseInvoiceItemInput): Promise<void> | void;
-  finalizePlanBaseInvoice(
-    invoiceId: string,
-  ): Promise<StripePlanBaseInvoice> | StripePlanBaseInvoice;
+  createBillingInvoice(
+    input: StripeBillingInvoiceCreateInput,
+  ): Promise<StripeBillingInvoice> | StripeBillingInvoice;
+  getBillingInvoice(invoiceId: string): Promise<StripeBillingInvoice> | StripeBillingInvoice;
+  findBillingInvoices(
+    input: StripeBillingInvoiceLookupInput,
+  ): Promise<readonly StripeBillingInvoice[]> | readonly StripeBillingInvoice[];
+  addBillingInvoiceItem(input: StripeBillingInvoiceItemInput): Promise<void> | void;
+  finalizeBillingInvoice(invoiceId: string): Promise<StripeBillingInvoice> | StripeBillingInvoice;
   createCheckoutSession(
     input: StripeCheckoutSessionProviderInput,
   ): Promise<StripeCheckoutSessionProviderOutput> | StripeCheckoutSessionProviderOutput;
@@ -220,10 +257,11 @@ export function createSimulatedBillingProviderAdapters(
   options: SimulatedBillingProviderOptions = {},
 ): BillingProviderAdapters {
   const sessions = new Map<string, StripeCheckoutSessionLookupProviderOutput>();
+  const invoiceCredits = new Map<string, StripeInvoiceCredit>();
   const refunds = new Map<string, StripeRefundProviderOutput>();
   const setupSessions = new Map<string, StripeCardSetupSessionLookupProviderOutput>();
   const customers = new Map<string, string>();
-  const planInvoices = new Map<string, StripePlanBaseInvoice>();
+  const planInvoices = new Map<string, StripeBillingInvoice>();
   const planInvoiceByKey = new Map<string, string>();
   const setupCard = options.setupCard ?? {
     brand: 'visa',
@@ -269,10 +307,24 @@ export function createSimulatedBillingProviderAdapters(
         return session;
       },
       setDefaultPaymentMethod(): void {},
-      createPlanBaseInvoice(input: StripePlanBaseInvoiceCreateInput): StripePlanBaseInvoice {
+      reconcileInvoiceCredit(input: StripeInvoiceCreditInput): StripeInvoiceCredit {
+        const existing = invoiceCredits.get(input.creditKey);
+        if (existing) return existing;
+        const credit: StripeInvoiceCredit = {
+          id: makeProviderId('cn', new Date()),
+          invoiceId: input.invoiceId,
+          customerRef: input.customerRef,
+          creditKey: input.creditKey,
+          amountMinor: input.amountMinor,
+          status: 'issued',
+        };
+        invoiceCredits.set(input.creditKey, credit);
+        return credit;
+      },
+      createBillingInvoice(input: StripeBillingInvoiceCreateInput): StripeBillingInvoice {
         const existingId = planInvoiceByKey.get(input.idempotencyKey);
         if (existingId) return planInvoices.get(existingId)!;
-        const invoice: StripePlanBaseInvoice = {
+        const invoice: StripeBillingInvoice = {
           id: makeProviderId('in', new Date()),
           customerRef: input.customerRef,
           chargeKey: input.chargeKey,
@@ -280,6 +332,14 @@ export function createSimulatedBillingProviderAdapters(
           currency: 'USD',
           collectionMethod: 'charge_automatically',
           autoAdvance: false,
+          amountPaidMinor: 0,
+          confirmedPaymentMinor: 0,
+          confirmedPayments: [],
+          amountRemainingMinor: 0,
+          attempted: false,
+          paymentFailed: false,
+          paidOutOfBand: false,
+          hostedInvoiceUrl: null,
           subtotalMinor: 0,
           totalMinor: 0,
           lineItems: [],
@@ -288,13 +348,13 @@ export function createSimulatedBillingProviderAdapters(
         planInvoiceByKey.set(input.idempotencyKey, invoice.id);
         return invoice;
       },
-      getPlanBaseInvoice(invoiceId: string): StripePlanBaseInvoice {
+      getBillingInvoice(invoiceId: string): StripeBillingInvoice {
         const invoice = planInvoices.get(invoiceId);
         if (!invoice) throw new Error(`Stripe plan invoice ${invoiceId} was not found`);
         return invoice;
       },
-      findPlanBaseInvoices(input: StripePlanBaseInvoiceLookupInput): StripePlanBaseInvoice[] {
-        const matches: StripePlanBaseInvoice[] = [];
+      findBillingInvoices(input: StripeBillingInvoiceLookupInput): StripeBillingInvoice[] {
+        const matches: StripeBillingInvoice[] = [];
         for (const invoice of planInvoices.values()) {
           if (invoice.customerRef === input.customerRef && invoice.chargeKey === input.chargeKey) {
             matches.push(invoice);
@@ -302,7 +362,7 @@ export function createSimulatedBillingProviderAdapters(
         }
         return matches;
       },
-      addPlanBaseInvoiceItem(input: StripePlanBaseInvoiceItemInput): void {
+      addBillingInvoiceItem(input: StripeBillingInvoiceItemInput): void {
         const invoice = planInvoices.get(input.invoiceId);
         if (!invoice || invoice.status !== 'draft') {
           throw new Error(`Stripe plan invoice ${input.invoiceId} is not a draft`);
@@ -312,14 +372,24 @@ export function createSimulatedBillingProviderAdapters(
           ...invoice,
           subtotalMinor: input.amountMinor,
           totalMinor: input.amountMinor,
+          amountRemainingMinor: input.amountMinor,
           lineItems: [{ chargeKey: input.chargeKey, amountMinor: input.amountMinor }],
         });
       },
-      finalizePlanBaseInvoice(invoiceId: string): StripePlanBaseInvoice {
+      finalizeBillingInvoice(invoiceId: string): StripeBillingInvoice {
         const invoice = planInvoices.get(invoiceId);
         if (!invoice) throw new Error(`Stripe plan invoice ${invoiceId} was not found`);
         if (invoice.status !== 'draft') return invoice;
-        const finalized: StripePlanBaseInvoice = { ...invoice, status: 'paid', autoAdvance: true };
+        const finalized: StripeBillingInvoice = {
+          ...invoice,
+          status: 'paid',
+          autoAdvance: true,
+          amountPaidMinor: invoice.totalMinor,
+          confirmedPaymentMinor: invoice.totalMinor,
+          confirmedPayments: [{ paymentRef: `pi_${invoice.id}`, amountMinor: invoice.totalMinor }],
+          amountRemainingMinor: 0,
+          attempted: true,
+        };
         planInvoices.set(invoiceId, finalized);
         return finalized;
       },
@@ -327,7 +397,7 @@ export function createSimulatedBillingProviderAdapters(
         input: StripeCheckoutSessionProviderInput,
       ): StripeCheckoutSessionProviderOutput {
         const id = makeProviderId('cs', input.now);
-        const customerRef = makeCustomerRef(input.orgId);
+        const customerRef = input.customerRef;
         sessions.set(id, {
           id,
           orgId: input.orgId,
@@ -398,6 +468,10 @@ export class UnavailableStripeBillingProvider implements StripeBillingProviderAd
     throw new ConsoleBillingError('payment_provider_unavailable', 503, this.message);
   }
 
+  reconcileInvoiceCredit(_input: StripeInvoiceCreditInput): StripeInvoiceCredit {
+    throw new ConsoleBillingError('billing_provider_unavailable', 503, 'Stripe is not configured');
+  }
+
   createCustomer(): never {
     return this.requireAvailable();
   }
@@ -414,23 +488,23 @@ export class UnavailableStripeBillingProvider implements StripeBillingProviderAd
     return this.requireAvailable();
   }
 
-  createPlanBaseInvoice(): never {
+  createBillingInvoice(): never {
     return this.requireAvailable();
   }
 
-  getPlanBaseInvoice(): never {
+  getBillingInvoice(): never {
     return this.requireAvailable();
   }
 
-  findPlanBaseInvoices(): never {
+  findBillingInvoices(): never {
     return this.requireAvailable();
   }
 
-  addPlanBaseInvoiceItem(): never {
+  addBillingInvoiceItem(): never {
     return this.requireAvailable();
   }
 
-  finalizePlanBaseInvoice(): never {
+  finalizeBillingInvoice(): never {
     return this.requireAvailable();
   }
 

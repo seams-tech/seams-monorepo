@@ -29,7 +29,7 @@ export const WALLET_GROWTH_PLAN_PRICE_V1 = Object.freeze({
 
 /**
  * The Pro price is a placeholder from the pricing page; it is not approved and not in
- * docs/wallet-saas/pricing.md yet. Base charges accrue before monthly collection exists.
+ * docs/wallet-saas/pricing.md yet. Production use requires approval of the Pro price.
  */
 export const WALLET_PRO_PLAN_PRICE_V1 = Object.freeze({
   version: 'wallet-pro-v1',

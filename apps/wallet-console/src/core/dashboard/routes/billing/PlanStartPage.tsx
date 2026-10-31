@@ -1,3 +1,4 @@
+import { BillingRulesSection } from './BillingRulesSection';
 import React from 'react';
 import { Check, CheckCircle2, Rocket, Sprout, TrendingUp, type LucideIcon } from 'lucide-react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
@@ -17,6 +18,7 @@ import {
   reconcileDashboardCardSetup,
   startDashboardCardSetup,
   startDashboardPlan,
+  requestDashboardFreePlan,
   type DashboardBillingPlan,
   type DashboardSelfServePlan,
 } from './freePlanApi';
@@ -145,6 +147,45 @@ const PLAN_OFFERS: readonly {
 ];
 
 const count = new Intl.NumberFormat('en-US');
+
+type FreeRequestState =
+  | { readonly kind: 'idle' | 'pending' | 'requested'; readonly message?: never }
+  | { readonly kind: 'error'; readonly message: string };
+
+async function requestFree(setState: (state: FreeRequestState) => void): Promise<void> {
+  setState({ kind: 'pending' });
+  try {
+    await requestDashboardFreePlan();
+    setState({ kind: 'requested' });
+  } catch (error: unknown) {
+    setState({
+      kind: 'error',
+      message: error instanceof Error ? error.message : 'Free request failed.',
+    });
+  }
+}
+
+function FreePlanRequest(): React.JSX.Element {
+  const [state, setState] = React.useState<FreeRequestState>({ kind: 'idle' });
+  return (
+    <>
+      <button
+        type="button"
+        className="dashboard-pagination-button"
+        disabled={state.kind === 'pending' || state.kind === 'requested'}
+        onClick={requestFree.bind(null, setState)}
+      >
+        {state.kind === 'pending' ? 'Requesting Free…' : 'Request Free next month'}
+      </button>
+      {state.kind === 'requested' ? (
+        <p role="status">
+          Free is requested for the next eligible UTC month. Current charges remain due.
+        </p>
+      ) : null}
+      {state.kind === 'error' ? <p role="alert">{state.message}</p> : null}
+    </>
+  );
+}
 
 /* Stripe names brands in lower case, such as "visa". */
 function cardLabel(card: { readonly brand: string; readonly last4: string }): string {
@@ -464,7 +505,11 @@ export function PlanStartPage(): React.JSX.Element {
                         <CheckCircle2 size={16} aria-hidden />
                         Current plan
                       </span>
-                    ) : offer.plan === 'free' ? null : plan.plan !== 'free' ? (
+                    ) : offer.plan === 'free' ? (
+                      canManageBilling && (plan.plan === 'growth' || plan.plan === 'pro') ? (
+                        <FreePlanRequest />
+                      ) : null
+                    ) : plan.plan !== 'free' ? (
                       <p className="dashboard-plan-card__note">Contact us to change plans.</p>
                     ) : !canManageBilling ? (
                       <p className="dashboard-plan-card__note">
@@ -511,6 +556,7 @@ export function PlanStartPage(): React.JSX.Element {
           </a>
         </>
       )}
+      <BillingRulesSection />
     </div>
   );
 }

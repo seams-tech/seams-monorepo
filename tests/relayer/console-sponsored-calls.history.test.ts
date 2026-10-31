@@ -187,6 +187,7 @@ async function seedSponsoredExecutionDebit(
 ): Promise<string> {
   const entryId = `historical-execution:${input.id}`;
   await createD1BillingLedgerEntryInsertStatement(database, {
+    ingestedAtMs: Date.now(),
     namespace,
     orgId: ctx.orgId,
     entryId,

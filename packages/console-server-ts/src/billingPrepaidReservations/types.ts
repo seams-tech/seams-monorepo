@@ -59,11 +59,29 @@ export type ExecutionChargeV1 = ExecutionChargeIdentityV1 &
       }
   );
 
-export interface FundsSummaryV1 {
+interface FundsSummaryScope {
   readonly scope: PlatformScopeV1;
-  readonly postedBalanceMinor: number;
   readonly reservedMinor: number;
-  readonly pendingRefundMinor: number;
-  readonly availableBalanceMinor: number;
   readonly activeReservationCount: number;
 }
+export type FundsSummaryV1 = FundsSummaryScope &
+  (
+    | {
+        readonly kind: 'prepaid';
+        readonly postedBalanceMinor: number;
+        readonly pendingRefundMinor: number;
+        readonly availableBalanceMinor: number;
+        readonly creditLimitMinor?: never;
+        readonly unpaidMinor?: never;
+        readonly availableCreditMinor?: never;
+      }
+    | {
+        readonly kind: 'postpaid';
+        readonly creditLimitMinor: number;
+        readonly unpaidMinor: number;
+        readonly availableCreditMinor: number;
+        readonly postedBalanceMinor?: never;
+        readonly pendingRefundMinor?: never;
+        readonly availableBalanceMinor?: never;
+      }
+  );

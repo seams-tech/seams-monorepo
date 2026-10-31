@@ -199,12 +199,10 @@ export function buildCardSetupReturnUrls(
       query: `plan=${startPlan}`,
     });
   }
-  const { successUrl } = buildBillingAccountReturnUrls(
-    consoleBaseUrl,
-    returnOrigin,
-    'card_setup',
-    { pathname: '/dashboard/overview', query: `plan=${startPlan}` },
-  );
+  const { successUrl } = buildBillingAccountReturnUrls(consoleBaseUrl, returnOrigin, 'card_setup', {
+    pathname: '/dashboard/overview',
+    query: `plan=${startPlan}`,
+  });
   const { cancelUrl } = buildBillingAccountReturnUrls(consoleBaseUrl, returnOrigin, 'card_setup', {
     pathname: '/dashboard/billing/plan',
     query: `plan=${startPlan}`,
@@ -476,7 +474,13 @@ function sortRefundsByMostRecent(refunds: Iterable<BillingRefund>): BillingRefun
 
 function appendMemoryLedgerEntry(
   store: OrgBillingStore,
-  input: Omit<BillingLedgerEntry, 'id' | 'postings' | 'createdAt'> & { now: Date },
+  input: Omit<BillingLedgerEntry, 'id' | 'postings' | 'createdAt' | 'type'> & {
+    now: Date;
+    type: Exclude<
+      BillingLedgerEntry['type'],
+      'PLAN_BASE_CHARGE' | 'PLAN_USAGE_CHARGE' | 'INVOICE_PAYMENT'
+    >;
+  },
 ): BillingLedgerEntry {
   const id = makeId('ble', input.now);
   const createdAt = coerceIsoDate(input.now);
@@ -497,6 +501,7 @@ function appendMemoryLedgerEntry(
     note: input.note,
     idempotencyKey: input.idempotencyKey,
     postings: buildBillingBalancedPostings({
+      paymentModel: 'prepaid',
       entryId: id,
       type: input.type,
       amountMinor: input.amountMinor,
@@ -2153,6 +2158,10 @@ export function createInMemoryConsoleBillingService(
       };
       store.purchases.set(requestedPurchase.id, requestedPurchase);
       const providerCheckoutSession = await providers.stripe.createCheckoutSession({
+        customerRef: await providers.stripe.createCustomer({
+          orgId: ctx.orgId,
+          billingAccountId: `payer:${ctx.orgId}`,
+        }),
         purchaseId,
         orgId: ctx.orgId,
         ...checkoutReturnUrls,

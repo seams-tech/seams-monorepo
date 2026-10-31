@@ -106,7 +106,9 @@ export function buildInvoicePdfFilename(
   const safePeriod = String(invoice?.periodMonthUtc || 'unknown')
     .trim()
     .replace(/[^a-zA-Z0-9_-]+/g, '_');
-  const prefix = invoice?.documentType === 'PURCHASE_RECEIPT' ? 'receipt' : 'statement';
+  let prefix = 'statement';
+  if (invoice?.documentType === 'PURCHASE_RECEIPT') prefix = 'receipt';
+  else if (invoice?.documentType === 'MONTHLY_INVOICE') prefix = 'invoice';
   return `${prefix}_${safePeriod}_${safeInvoiceId}.pdf`;
 }
 

@@ -1,3 +1,4 @@
+import { parseSignatureFunding, type SignatureOutcome } from './signatureOutcome';
 import { queryD1All, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import type { TenantDeploymentBindingV1 } from '../tenantDeployment/types';
 import type { ConsoleRegistrationHomeAdmission } from './registrationAdmission';
@@ -16,17 +17,37 @@ export async function resumeGatewaySignatureCompletions(input: {
   readonly authority: Pick<ConsoleRegistrationHomeAdmission, 'publishSignatures'>;
 }): Promise<{ readonly delivered: number; readonly discarded: number }> {
   const tenant = input.binding.tenant;
+  const columns = await queryD1All(
+    input.database,
+    "SELECT name FROM pragma_table_info('wallet_signature_completions') WHERE name='credit_grant_id'",
+    [],
+  );
+  // Normalize pre-migration outbox rows at the persistence boundary.
+  const fundingColumns =
+    columns.length === 1
+      ? 'credit_grant_id,wallet_id,outcome'
+      : "NULL AS credit_grant_id,NULL AS wallet_id,'succeeded' AS outcome";
   const rows = await queryD1All(
     input.database,
-    `SELECT authorized_operation_id, completed_at_ms FROM wallet_signature_completions
+    `SELECT authorized_operation_id, completed_at_ms, ${fundingColumns} FROM wallet_signature_completions
      WHERE namespace = ?1 AND tenant_id = ?2 AND (env_id IS NULL OR env_id = ?3)
      ORDER BY completed_at_ms, authorized_operation_id LIMIT ?4`,
     [tenant.namespace, tenant.organizationId, tenant.environmentId, DELIVERY_LIMIT],
   );
   if (rows.length === 0) return { delivered: 0, discarded: 0 };
-  const signatures = rows.map((row) => ({
+  const signatures: SignatureOutcome[] = rows.map((row) => ({
     signatureId: String(row.authorized_operation_id),
     completedAtMs: Number(row.completed_at_ms),
+    funding: parseSignatureFunding(
+      row.credit_grant_id === null
+        ? { kind: 'included', outcome: 'succeeded' }
+        : {
+            kind: 'credit',
+            outcome: row.outcome,
+            grantId: row.credit_grant_id,
+            walletId: row.wallet_id,
+          },
+    ),
   }));
   const production = input.binding.mode.environment === 'production';
   if (production) await input.authority.publishSignatures(signatures);

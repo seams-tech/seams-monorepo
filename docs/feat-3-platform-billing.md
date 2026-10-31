@@ -1,7 +1,113 @@
 # Monthly postpaid Platform billing implementation plan
 
-Status: proposed; implementation has not started.
-Date: October 14, 2026.
+Status: implemented locally on `dev`. Deployment is disabled.
+Updated: October 31, 2026.
+
+## Current implementation
+
+The original proposal predates verified cards, paid-plan activation, and base-fee
+collection. Those paths existed before this change and remain authoritative.
+The implementation now adds:
+
+- Explicit prepaid and postpaid policies. Platform support approves a credit limit
+  through `POST /console/platform/billing/credit-limit`. Conversion requires a usable
+  card, zero prepaid balance, and no unsettled reservations, purchases, refunds, or
+  base-fee obligations. Each approval has an immutable operation record.
+- Atomic admission against one account's receivable and commitments. Reservations
+  pin their payment model. Postpaid settlement cannot exceed its accepted bound.
+  Terminal delivery remains available after credit or payment restrictions change.
+- Signing credit allocated to individual regional runtimes before execution.
+  One cent bounds one self-serve signing operation. Each grant pins the price.
+  The runtime consumes a unit in the operation-claim transaction. Exact replay
+  consumes no second unit. Confirmed unused work releases its commitment.
+  Indeterminate outcomes retain it. Grants expire within one hour and before the
+  current month or known payment-grace deadline ends.
+- Receivable and payment postings in the existing balanced ledger. Historical
+  prepaid postings retain their amounts and identities.
+- Immutable monthly snapshots, fixed Stripe invoice totals, and detailed Platform
+  attribution. Invoice creation never reduces debt. Stripe payment evidence must
+  match the customer, currency, invoice, and amount before debt clears.
+- Durable recovery notices. Card replacement preserves the original grace deadline.
+  Verified payment, reordered events, and exact replays cannot credit an account twice.
+  Disputes restore the receivable and restrict credit until a verified win.
+- One persisted Stripe Customer for card setup and prepaid purchases.
+- Monthly invoices in the existing document list, detail view, and PDF export.
+  Account billing shows unpaid charges, commitments, available credit, and payment links.
+
+Console migrations `0018` and `0019`, and Wallet Console migrations `0114` and `0115`,
+add these records. Applied migrations remain unchanged.
+
+### Pricing decision
+
+The user chose **login/session-based monthly active users (MAU)** on October 31.
+A production user counts after registration, sign-in, or session refresh in a UTC
+calendar month. Each production user identity counts once per month. Signing is
+metered separately. This uses the existing production activity facts for both
+Free limits and paid usage.
+
+The hard credit limit remains in force. A login that creates an additional charge
+must pass atomic credit admission. Already-counted users can log in again without
+another MAU charge. Recovery and key export remain available. The Console applies
+this check inside the existing session-publication transaction, before a credential
+returns to the caller. No new serial billing request is added.
+
+Growth includes 5,000 MAU and 300 signatures per MAU, pooled.
+Its overages remain USD 0.004 per MAU and USD 0.05 per 1,000 signatures.
+Pro retains its provisional pinned price. Production approval remains required.
+The combined monthly overage rounds upward once to whole cents.
+
+New `wallet.monthly_active_resource` events create no USD 3 debit for Free, Growth,
+or Pro. Historical debits remain intact. Enterprise resource contracts retain that
+meter and their existing payment model. Enterprise postpaid conversion requires
+configured contract pricing. Funded prepaid accounts retain their payment model.
+
+### Closing and recovery
+
+The existing daily finalizer runs at 03:00 UTC. A month becomes eligible at 01:00 UTC
+on the following month's first day. Each account closes independently.
+A zero close records a receipt without collection. Amounts below USD 0.50 carry
+forward and remain unpaid exposure. Late charges enter a later open snapshot and
+retain their original usage month.
+
+Late usage can reduce a pooled charge. The ledger records the credit. A matching
+Stripe credit note records the credit held in Platform. A later invoice consumes
+that credit. This does not create an additional Stripe customer-balance credit or
+refund. Credit-note delivery reconciles its original operation before retrying.
+
+The fixed grace period is seven days from the first recorded payment failure.
+Credit restrictions remain in force during grace. Stripe owns card-payment retries.
+Scheduled work reconciles provider state and retries API delivery.
+A replacement card does not prove payment. Void and uncollectible invoices remain
+restricted and visible for support review.
+
+Owners and billing administrators can request Free from the plan page for either
+payment model. Retries preserve the original requested date. The transition waits
+until current and preceding UTC month usage fit Free, and accepted work and invoices
+are resolved. A delayed request is checked again against each new month's usage.
+The Console billing pages document MAU, invoices, credit limits, and these plan rules.
+
+### Validation and remaining rollout gates
+
+Repeatable evidence is under `.artifacts/platform-billing/`. The composed account
+journey covers concurrent services, restart and replay, lost provider replies,
+monthly consolidation, minimum amounts, late delivery, payment recovery, disputes,
+Free downgrade, regional credit accounting, and usage credits.
+The Stripe test-mode journey uses real invoices, declined payments, card replacement,
+verified payment evidence, and credit-note replay. It creates no live charges.
+
+The installed exact `@seams/wallet` and `@seams/wallet-server` versions are `0.35.0`.
+They include signature delivery and the `production_paused` SDK error. The old
+release blocker for migration `0082` is therefore retired.
+
+The new local Wallet admission change requires migration
+`0088_signing_credit_commitments.sql` from `seams-wallet`. Publish a new Wallet server
+release and adopt its exact version before enabling postpaid production lanes.
+The existing SDK preserves server error codes. No dependency pin points to local
+source or an unpublished version.
+
+Staging deployment, runtime migration, the deployed Stripe acceptance run, Pro price
+approval, production credit limits, tax treatment, and Stripe retry settings remain
+rollout gates. This task performs no deployment or production billing activation.
 
 ## Outcome
 
@@ -68,10 +174,9 @@ Paths below are relative to this repository. Keep their current owners.
 | Existing Console billing pages                                                   | Payment method, current costs, credit availability, invoices, and recovery actions |
 | Existing scheduled Console work and product outboxes                             | Monthly close, provider reconciliation, and durable usage delivery                 |
 
-Current Stripe support covers credit purchases and refunds. Current ledger
-postings use `org_prepaid_liability`. Current billing documents include purchase
-receipts and usage statements. These are useful foundations, but they do not
-already implement postpaid collection.
+Prepaid postings use `org_prepaid_liability`. Postpaid postings use
+`org_receivable`. Purchase receipts and paid usage statements retain their meaning.
+Collectible monthly invoices use a separate document type.
 
 Extend the existing ledger with receivable and payment postings. Record usage as
 money owed, then reduce that receivable when payment succeeds. Invoice creation
@@ -209,7 +314,7 @@ of previously accepted work after suspension, revocation, or product disablement
 
 ## Implementation phases
 
-### 1. Account state and payment setup
+### 1. Account state and payment setup — implemented
 
 - Add the required persisted account state and Stripe Customer mapping through
   forward migrations. Preserve applied migration files and existing records.
@@ -222,7 +327,7 @@ of previously accepted work after suspension, revocation, or product disablement
 Exit: an authorised owner can establish a verified default payment method.
 Foreign methods, failed setup, and forged success redirects cannot enable spending.
 
-### 2. Postpaid admission and ledger
+### 2. Postpaid admission and ledger — implemented locally
 
 - Extend current account factories, reservation transactions, charge posting, and
   overview calculations. Keep one implementation for shared reservation transitions.
@@ -234,7 +339,7 @@ Foreign methods, failed setup, and forged success redirects cannot enable spendi
 Exit: concurrent paid operations respect one developer account limit. Settlement and
 release preserve balanced postings and never count a commitment and its charge twice.
 
-### 3. Close, collect, and recover
+### 3. Close, collect, and recover — implemented locally
 
 - Extend the current monthly document flow with immutable snapshots and durable
   Stripe delivery. Reuse the existing scheduled worker and retry conventions.
@@ -246,7 +351,7 @@ release preserve balanced postings and never count a commitment and its charge t
 Exit: a repeated close or lost provider response produces one collectible invoice.
 Payment failure restricts new spend without losing usage or preventing payment repair.
 
-### 4. Acceptance and rollout
+### 4. Acceptance and rollout — local acceptance; deployment pending
 
 Read `tests/AGENTS.md` before changing tests. Extend the existing composed billing,
 funds, and usage journeys under `tests/e2e/console/`. Add no unit tests or source-text

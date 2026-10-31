@@ -46,6 +46,10 @@ export function describeAccountActivityType(input: DashboardBillingAccountActivi
   if (input.type === 'MANUAL_ADJUSTMENT') {
     return input.amountMinor >= 0 ? 'Manual support credit' : 'Manual admin debit';
   }
+  if (input.type === 'PLAN_BASE_CHARGE') return 'Plan base fee';
+  if (input.type === 'PLAN_USAGE_CHARGE')
+    return input.amountMinor < 0 ? 'Plan usage charge' : 'Plan usage credit';
+  if (input.type === 'INVOICE_PAYMENT') return 'Monthly invoice payment';
   if (input.type === 'CREDIT_PURCHASE') return 'Credit purchase settled';
   if (input.type === 'USAGE_DEBIT') return 'Usage debit recorded';
   if (input.type === 'PRODUCT_EXECUTION_DEBIT') return 'Sponsored execution debit recorded';
@@ -54,6 +58,8 @@ export function describeAccountActivityType(input: DashboardBillingAccountActivi
 
 function getAccountActivityTone(input: DashboardBillingAccountActivityEntry) {
   if (
+    input.type === 'PLAN_BASE_CHARGE' ||
+    (input.type === 'PLAN_USAGE_CHARGE' && input.amountMinor < 0) ||
     input.type === 'USAGE_DEBIT' ||
     input.type === 'PRODUCT_EXECUTION_DEBIT' ||
     (input.type === 'MANUAL_ADJUSTMENT' && input.amountMinor < 0)

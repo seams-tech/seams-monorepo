@@ -66,7 +66,7 @@ function bannerMessage(banner: Exclude<DashboardFreePlanBanner, { kind: 'growth_
         ? `You used 80% of a Free limit (${limitLabel(banner.limit)}). You will move to Growth at the limit.`
         : `You used 80% of a Free limit (${limitLabel(banner.limit)}). Add a card before the limit, or production sign-ups and signing stop.`;
     case 'free_limit_reached':
-      return `Production sign-ups or signing are paused: you reached ${limitLabel(banner.limit)}. Add a card to move to Growth.`;
+      return `Production sign-ups or signing are paused: you reached ${limitLabel(banner.limit)}. Review your card and billing eligibility to start Growth.`;
   }
 }
 

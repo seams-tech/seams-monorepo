@@ -501,7 +501,8 @@ export class D1BillingUsageService {
             `INSERT INTO billing_ledger_entries
           (namespace, org_id, id, entry_type, amount_minor, currency, description, month_utc, related_invoice_id, related_purchase_id, source_event_id, actor_type, actor_user_id, reason_code, note, idempotency_key, created_at_ms)
           SELECT ?, ?, ?, 'USAGE_DEBIT', ?, 'USD', ?, ?, ?, NULL, ?, 'SYSTEM', ?, 'usage_debit', ?, ?, ?
-          WHERE EXISTS (SELECT 1 FROM billing_monthly_active_resources WHERE namespace = ? AND org_id = ? AND month_utc = ? AND resource_id = ? AND source_event_id = ?)
+          WHERE EXISTS (SELECT 1 FROM billing_monthly_active_resources WHERE namespace = ? AND org_id = ? AND month_utc = ? AND resource_id = ? AND source_event_id = ?
+          AND NOT EXISTS (SELECT 1 FROM billing_account_plans p WHERE p.namespace=billing_monthly_active_resources.namespace AND p.org_id=billing_monthly_active_resources.org_id AND p.plan IN ('free','growth','pro')))
           ON CONFLICT DO NOTHING`,
           )
           .bind(

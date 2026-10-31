@@ -10,7 +10,6 @@ import { isD1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import {
   MarkFundsIndeterminateRequestV1,
   ReconcileFundsRequestV1,
-  ReleaseFundsRequestV1,
   ReserveFundsRequestV1,
   ServiceProvisionCommandV1,
   ServiceTenantBindingV1,
@@ -21,11 +20,7 @@ import {
   type PlatformScopeV1,
 } from '../../../packages/console-shared-ts/src/accountPlatform';
 import { createD1AccountPlatformService } from '../../../packages/console-server-ts/src/accountPlatform/d1';
-import {
-  createD1ConsoleBillingService,
-  createProductExecutionDebitD1Statements,
-  getConsoleBillingD1Runtime,
-} from '../../../packages/console-server-ts/src/billing/d1';
+import { createD1ConsoleBillingService } from '../../../packages/console-server-ts/src/billing/d1';
 import { buildConsoleBillingInvoicePdf } from '../../../packages/console-server-ts/src/billing/pdf';
 import {
   createD1ConsoleBillingPrepaidReservationService,
@@ -275,32 +270,6 @@ function terminalOptions(
     statements,
   };
 }
-async function release(database: D1DatabaseLike, reservation: FundsReservationV1): Promise<void> {
-  const store = await funds(database);
-  accepted(
-    await store.release(
-      wallet,
-      accepted(
-        ReleaseFundsRequestV1.parse({
-          version: 1,
-          operationId: `release:${reservation.instanceId}:${reservation.executionId}`,
-          reservationId: reservation.reservationId,
-          executionId: reservation.executionId,
-          noChargeEvidence: {
-            sourceRecordId: `no-charge:${reservation.executionId}`,
-            sourceDigest: digest(['never-admitted', reservation.executionId]),
-          },
-        }),
-      ),
-      {
-        chargeId: fundsChargeId(reservation.reservationId),
-        ledgerSourceEventId: `sponsored_evm_call_debit:${reservation.executionId}`,
-        occurredAt: now().toISOString(),
-        statements: [],
-      },
-    ),
-  );
-}
 async function sourceSnapshot(database: D1DatabaseLike) {
   const rows = await database
     .prepare('SELECT * FROM billing_prepaid_reservations ORDER BY id')
@@ -371,24 +340,16 @@ async function oldSource(database: D1DatabaseLike): Promise<void> {
       )
       .run();
   }
-  const source = await services(database);
-  const runtime = getConsoleBillingD1Runtime(source.billing);
-  if (!runtime) throw new Error('Historical billing runtime is unavailable');
-  const debit = await createProductExecutionDebitD1Statements({
-    runtime,
-    ctx: context('migration'),
-    request: {
-      amountMinor: 40,
-      sourceEventId: 'sponsored_evm_call_debit:old-execution-SETTLED',
-      resourceId: 'old-wallet',
-      occurredAt: now().toISOString(),
-      pricingVersion: 'old-wallet-price-v1',
-      txOrExecutionRef: 'old-chain-reference',
-    },
-    entryId: 'ble_old_settled',
-    occurredAtMs: timestamp,
-  });
-  await database.batch([debit.ledgerStatement, ...debit.notificationStatements]);
+  // This persistence fixture represents the schema before the funds migration.
+  await database
+    .prepare(
+      `INSERT INTO billing_ledger_entries
+    (namespace,org_id,id,entry_type,amount_minor,currency,description,month_utc,source_event_id,actor_type,reason_code,idempotency_key,created_at_ms)
+    VALUES(?,'migration','historical-credit','MANUAL_ADJUSTMENT',500,'USD','Historical credit','2026-10','credit-migration','SYSTEM','funds_acceptance','credit-migration',?),
+          (?,'migration','ble_old_settled','PRODUCT_EXECUTION_DEBIT',-40,'USD','Historical settled execution','2026-10','sponsored_evm_call_debit:old-execution-SETTLED','SYSTEM','product_execution_debit','old-settled',?)`,
+    )
+    .bind(namespace, timestamp, namespace, timestamp)
+    .run();
 }
 function isAccepted<T, E>(result: PlatformResult<T, E>): boolean {
   return result.kind === 'accepted';
@@ -402,7 +363,7 @@ test('shared funds preserve old holds and serialize service, refund, debit, and 
   try {
     let database = await databaseFor(worker);
     await migrateBeforeFunds(database);
-    await seedOrganization(database, 'migration', 500);
+    await seedOrganization(database, 'migration', 0);
     await oldSource(database);
     const original = await sourceSnapshot(database);
     await expect(applyMigration(database, '0094_funds_authority.sql')).rejects.toThrow(

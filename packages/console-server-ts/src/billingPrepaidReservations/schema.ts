@@ -13,6 +13,7 @@ export const BILLING_FUNDS_D1_SCHEMA_SQL = Object.freeze([
     execution_id TEXT NOT NULL,
     reserve_operation_id TEXT NOT NULL,
     requested_minor INTEGER NOT NULL CHECK (requested_minor >= 0),
+    payment_model TEXT NOT NULL DEFAULT 'prepaid' CHECK (payment_model IN ('prepaid','postpaid')),
     price_version TEXT NOT NULL,
     reserve_digest TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('reserved', 'indeterminate', 'settled', 'released')),
@@ -94,7 +95,7 @@ export const BILLING_FUNDS_D1_SCHEMA_SQL = Object.freeze([
           AND i.phase = 'active' AND i.desired_state = 'enabled' AND i.observed_state = 'active'
           AND i.observed_revision = i.desired_revision AND o.status = 'ACTIVE' AND p.status = 'ACTIVE'
       );
-      SELECT RAISE(ABORT, 'funds_insufficient') WHERE NEW.requested_minor >
+      SELECT RAISE(ABORT, 'funds_insufficient') WHERE NEW.payment_model = 'prepaid' AND NEW.requested_minor >
         COALESCE((SELECT SUM(CASE direction WHEN 'CREDIT' THEN amount_minor ELSE -amount_minor END)
           FROM billing_ledger_postings WHERE namespace = NEW.namespace AND org_id = NEW.org_id
             AND account_code = 'org_prepaid_liability'), 0)
@@ -104,6 +105,19 @@ export const BILLING_FUNDS_D1_SCHEMA_SQL = Object.freeze([
         - COALESCE((SELECT SUM(amount_minor) FROM billing_refunds
           WHERE namespace = NEW.namespace AND org_id = NEW.org_id AND origin = 'console'
             AND status IN ('requested', 'provider_pending')), 0);
+      SELECT RAISE(ABORT, 'funds_insufficient') WHERE NEW.payment_model = 'postpaid' AND (
+        NOT EXISTS (SELECT 1 FROM billing_payment_methods m WHERE m.namespace=NEW.namespace AND m.org_id=NEW.org_id
+          AND m.status='usable' AND m.exp_year * 12 + m.exp_month - 1 >=
+            CAST(strftime('%Y', NEW.created_at_ms / 1000, 'unixepoch') AS INTEGER) * 12 + CAST(strftime('%m', NEW.created_at_ms / 1000, 'unixepoch') AS INTEGER) - 1)
+        OR NOT EXISTS (SELECT 1 FROM billing_postpaid_exposure e WHERE e.namespace=NEW.namespace AND e.org_id=NEW.org_id
+          AND e.credit_limit_minor > 0 AND NEW.requested_minor <= e.credit_limit_minor - e.unpaid_minor - e.reserved_minor
+          AND e.collection_blocked=0 AND (e.first_failed_at_ms IS NULL OR NEW.created_at_ms < e.first_failed_at_ms + 604800000))
+        OR EXISTS (SELECT 1 FROM billing_account_plans p WHERE p.namespace=NEW.namespace AND p.org_id=NEW.org_id
+          AND p.plan IN ('growth','pro') AND NOT EXISTS (SELECT 1 FROM billing_plan_base_charges c
+            WHERE c.namespace=p.namespace AND c.org_id=p.org_id AND c.month_utc=strftime('%Y-%m', NEW.created_at_ms / 1000, 'unixepoch')))
+      );
+      SELECT RAISE(ABORT, 'funds_operation_conflict') WHERE NEW.payment_model <>
+        (SELECT payment_model FROM billing_payment_policies WHERE namespace=NEW.namespace AND org_id=NEW.org_id);
     END`,
   `CREATE TRIGGER IF NOT EXISTS billing_funds_identity_immutable
     BEFORE UPDATE ON billing_funds_reservations

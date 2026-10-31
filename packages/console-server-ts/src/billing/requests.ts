@@ -31,7 +31,7 @@ function createParseError(code: string, status: number, message: string): Consol
 }
 
 const BILLING_INVOICE_STATUSES = new Set(['OPEN', 'PAID', 'VOID', 'UNCOLLECTIBLE']);
-const BILLING_DOCUMENT_TYPES = new Set(['PURCHASE_RECEIPT', 'USAGE_STATEMENT']);
+const BILLING_DOCUMENT_TYPES = new Set(['PURCHASE_RECEIPT', 'USAGE_STATEMENT', 'MONTHLY_INVOICE']);
 const BILLING_LEDGER_ENTRY_TYPES = new Set([
   'CREDIT_PURCHASE',
   'USAGE_DEBIT',

@@ -1,8 +1,8 @@
 # Free plan card requirement and Growth move: implementation plan
 
-Status: implemented locally on `dev`. Deployment is disabled.
-See [Implementation status](#implementation-status) for the new postpaid runtime release gate.
-Updated: October 31, 2026.
+Status: deployed with v0.37.0.
+See the [rollout record](evidence/release-0370-billing-preparation.md) for deployment and acceptance evidence.
+Updated: November 1, 2026.
 
 ## Outcome
 
@@ -206,9 +206,9 @@ decision:
 - **SDK error code.** seams-wallet keeps the server's code on a refused setup, so the
   SDK reports `production_paused`.
 
-Updated October 31, 2026:
+Verified November 1, 2026:
 
-- The exact `@seams/wallet` and `@seams/wallet-server` pins are `0.35.0`.
+- The exact `@seams/wallet` and `@seams/wallet-server` pins are `0.37.0`.
   Signature delivery, migration `0082`, and the SDK refusal code are present.
 - Growth and Pro already accrued and collected base fees before this change.
   Approved postpaid accounts now consolidate base fees and usage in one monthly
@@ -229,15 +229,14 @@ Updated October 31, 2026:
 - Local D1 and Stripe test-mode acceptance retain repeatable evidence under
   `.artifacts/platform-billing/`.
 
-Remaining deployment gates:
+Deployment and account activation:
 
-- Publish and adopt the new Wallet server release containing migration `0088` for
-  postpaid signing credit. Each runtime must enforce its allocated credit locally.
-- Run the composed flow on staging after migrations and package adoption.
+- Wallet server `0.37.0` and migration `0088` are deployed. Runtime signing credit
+  enforcement and composed staging billing acceptance passed.
 - Approve production credit policy, tax treatment, Stripe recovery settings, and
   the provisional Pro price.
 - Existing Free-plan policy checks still apply during finalization. The earlier
   prepared-signature behavior is unchanged. Previously accepted terminal billing
   records remain deliverable and settle during a stop.
 
-No staging or production deployment occurred in this implementation task.
+Staging, production testnet, production mainnet, and GetSignal runtime deployment passed.

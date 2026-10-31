@@ -1,9 +1,11 @@
 # Wallet pricing and costs
 
-Updated: October 31, 2026
+Updated: November 1, 2026
 
-Status: implemented locally for approved postpaid accounts. Deployment is disabled.
-Pro prices, production credit policy, tax treatment, and runtime rollout require approval.
+Status: deployed with v0.37.0 for explicitly approved postpaid accounts.
+Existing production accounts remain prepaid. Pro prices, production credit approvals,
+tax treatment, and Stripe recovery settings remain business-policy gates.
+See the [rollout record](../evidence/release-0370-billing-preparation.md).
 
 ## Price model
 

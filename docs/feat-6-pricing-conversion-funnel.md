@@ -1,7 +1,7 @@
 # Pricing conversion funnel
 
-Status: implemented on `dev`, October 31, 2026. No production deployment occurred.
-Billing rollout and Pro price approval remain separate gates.
+Status: deployed with v0.37.0 on November 1, 2026.
+Production postpaid credit and Pro price approvals remain separate business decisions.
 
 ## Built so far
 
@@ -37,7 +37,7 @@ The billing extension now consolidates approved postpaid usage with base fees.
 It removes new USD 3 resource charges from self-serve plans. Credit purchases share
 the persisted Stripe Customer. Payment recovery and a requested return to Free use
 the same billing account. See [Platform billing](feat-3-platform-billing.md) for
-runtime release and deployment gates.
+runtime release and deployment evidence.
 
 ## Recorded decisions
 
@@ -221,14 +221,12 @@ outcomes, and Stripe test object IDs.
 - Consume the billing completion in feat-3/feat-4. Its owner implements credit
   limits, consolidated collection, payment recovery, Free downgrade, and removal
   of the prepaid monthly-resource debit from Free/Growth/Pro.
-- Before deployment, verify those billing acceptance results and migrations
-  against the same revision. No monthly-resource prepaid balance should be
-  required for covered plan usage. Gas sponsorship retains its separate charges.
-- The billing chat is adding regional signing-credit commitments. Its Wallet
-  runtime release, exact package adoption, and admission acceptance remain
-  unresolved at this handoff. The funnel does not supply that runtime contract.
-- Approve Pro pricing before production promotion.
-- Deploy the existing paid-plan and collection migrations with the billing work.
+- Billing acceptance and migrations passed for the deployed revision. Covered
+  plan usage requires no monthly-resource prepaid balance. Gas sponsorship
+  retains its separate charges.
+- Regional signing-credit commitments ship in Wallet server `0.37.0`. Exact
+  package adoption, migrations, and staging admission acceptance passed.
+- Approve Pro pricing and account credit before postpaid activation.
 - Keep the public contact endpoint and actual sent-inquiry measurement in feat-5.
-- No production deployment, live customer charge, or external email was part of
-  this acceptance run.
+- The [rollout record](evidence/release-0370-billing-preparation.md) records the
+  verified production deployment. Billing acceptance used Stripe test-mode charges.

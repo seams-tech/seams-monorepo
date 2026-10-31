@@ -1,66 +1,77 @@
-# v0.37.0 release preparation
+# v0.37.0 billing rollout
 
-Status: publication and deployment authorized on November 1, 2026 (JST).
-Package publication and full Wallet validation passed. Deployment is pending.
+Status: published and deployed. Final verification passed on November 1, 2026 (JST).
 
-The `0.37.0` candidate includes the published `0.36.0` recovery work, hosted billing admission, and
-Wallet-owned VoiceID enrollment records. A version change does not establish
-production readiness or API stability.
+Wallet, Wallet Server, and VoiceID are published as `0.37.0`. Staging, production
+testnet, production mainnet, and the Seams-hosted GetSignal runtime use the release.
+The Wallet iframe protocol remains `22.0.0`. The wallet-management protocol remains
+`5`, and the signed recovery CLI remains `0.29.0`.
 
-## Source scope
+## Verified source
 
-- Wallet billing admission: `cb81c010c`, with earlier error handling in `bd393832c`.
-- VoiceID record ownership: `925c4ada7`.
-- Console billing, invoices, and billing rules: `0e5d0001` and `60eed5e9`.
-- Wallet, Wallet Server, and VoiceID candidate versions: `0.37.0`.
-- Pinned public release revision: `b2f0053c7d3503363970bac561d4c723062bb524`.
-- [Wallet validation](https://github.com/seams-tech/seams-wallet/actions/runs/41213492500).
-- [Package release](https://github.com/seams-tech/seams-wallet/actions/runs/41213492804).
-- Wallet iframe protocol: `22.0.0`, unchanged from `0.36.0`.
-- Wallet-management protocol: `5`. Signed recovery CLI: `0.29.0`.
+- Public package revision: `b2f0053c7d3503363970bac561d4c723062bb524`.
+- Production application revision: `93ac4954b8bb25850734a081c7cb3a0cf43c4619`.
+- All three npm package records report the pinned public revision as `gitHead`.
+- Console consumers use exact `0.37.0` versions and a frozen lockfile.
+- The later Wallet module refactor `94e224f40` is outside this release.
 
-All three `0.37.0` package versions were verified in npm after its processing delay.
-Console consumers use exact `0.37.0` versions and the regenerated lockfile.
+## Release and deployment checks
 
-## Billing contract
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Wallet clean build, types, billing admission, browser and lifecycle acceptance | Passed | [Wallet validation](https://github.com/seams-tech/seams-wallet/actions/runs/41213492500) |
+| Signed npm publication | Passed | [Package release](https://github.com/seams-tech/seams-wallet/actions/runs/41213492804) |
+| Private repository checks and billing acceptance | Passed | [Dev validation](https://github.com/seams-tech/seams-monorepo/actions/runs/41218999990), [main validation](https://github.com/seams-tech/seams-monorepo/actions/runs/41219732547) |
+| Corrected staging backend, migrations, activation, readiness | Passed | [Backend jobs](https://github.com/seams-tech/seams-monorepo/actions/runs/41218770530) |
+| Final staging frontend | Passed | [Frontend deployment](https://github.com/seams-tech/seams-monorepo/actions/runs/41219458087) |
+| Production testnet full stack | Passed | [Deployment](https://github.com/seams-tech/seams-monorepo/actions/runs/41219732499) |
+| Production mainnet full stack | Passed | [Deployment](https://github.com/seams-tech/seams-monorepo/actions/runs/41219735235) |
+| GetSignal runtime and activation | Passed | [Deployment](https://github.com/seams-tech/seams-monorepo/actions/runs/41219738023) |
 
-Production registration, login, or session refresh counts a user once per UTC
-calendar month. A newly billable login must fit the available credit. Repeated
-logins add no MAU charge. Recovery and key export remain available.
-Signing reserves credit before execution. Unknown outcomes retain their commitment.
-Monthly invoices combine plan fees and usage. The Console billing pages explain
-these rules and the payment recovery process.
+The corrected staging backend used `d6fc442a`. The final revision adds only the
+prepaid-warning UI correction. All backend jobs passed before the superseded
+frontend job was cancelled. The separate final frontend deployment used `93ac4954`.
 
-## Validation evidence
+CI found two account-lifecycle regressions before production promotion. Checkout
+needed to create a payer before the first project. Empty-account deletion needed
+to remove the new payment-policy row. Commit `4061599d` fixes both and preserves
+billing visibility before a project exists. Commit `d6fc442a` updates historical
+schema fixtures and the retired USD 3 resource-charge expectation. Commit
+`93ac4954` confines prepaid balance warnings to prepaid accounts.
 
-Billing acceptance evidence is in `.artifacts/platform-billing/` in this repository.
-It includes credit races, replay, restart, monthly collection, payment recovery,
-late usage, Free downgrade, and real Stripe test-mode acceptance.
-Wallet signing admission evidence is in `.artifacts/signing-credit/` in seams-wallet.
-Earlier validation logs are in `.artifacts/release-100/` there. The final version's
-package and documentation checks are in `.artifacts/release-0370-final/`.
-Sequential package builds, full TypeScript checks, signing-credit acceptance,
-documentation builds, packed-package checks, and the bloat check passed locally.
-Worker and WASM artifacts were reused by the package build. The clean production
-build and full lifecycle CI remain release gates.
+## Billing acceptance and preservation
 
-The initial preparation ran builds and type checks concurrently. VoiceID type
-checks failed during that run, then passed after the build finished. Candidate
-validation must build first and run type checks afterward.
+The deployed staging test used an isolated account and Stripe test-mode objects.
+It verified concurrent MAU credit admission, repeated login, monthly collection,
+failed-payment grace, card replacement, one-time payment posting, and a Free request.
+Two additional USD 0.004 MAUs fit one remaining cent. A third was refused.
+The rendered billing page showed the rules without a prepaid warning on a postpaid account.
 
-## Remaining release gates
+Wallet migration `0088` and Console migrations `0114`/`0115` were applied through
+the configured deployment workflows. Historical production ledger hashes matched
+after migration: one entry and two postings on testnet, and three entries and six
+postings on mainnet. Recovery trust bundles, signed revocation snapshots, and
+Console recovery certificates remained byte-for-byte unchanged on staging and mainnet.
 
-- Apply Wallet migration `0088` and Console migrations `0018`/`0019` or the Wallet
-  Console mirrors `0114`/`0115` through an authorized staging rollout.
-- Verify billing end to end in staging, including exhausted-credit login refusal,
-  signing commitments, monthly invoices, failed payment, and recovery access.
-- Resolve provisional Pro pricing, tax treatment, Stripe retry settings, and
-  production credit approvals before production billing activation.
+All 23 final live readiness checks passed. The three public Wallet host manifests
+reported SDK `0.37.0` and iframe protocol `22.0.0`.
 
-These gates remain pending. No production readiness claim is made by this record.
+Repeatable local evidence is under `.artifacts/release-0370/`:
 
-Deployment does not approve production credit limits or convert customer accounts
-to postpaid. Those account-level billing approvals remain separate.
+- `staging-billing/acceptance.json` and the committed runner
+  `tests/e2e/console/platform-staging-billing.e2e.mjs`.
+- `billing-rules-staging.png` and `billing-page.json`.
+- `npm-packages.json`, including package integrity values and source revisions.
+- `*-ledger-preserved.json` and `*-recovery-preserved.json`.
+- `readiness-staging-testnet-production-testnet-production-mainnet-getsignal-testnet.json`.
 
-Before a future 1.0 release, review the public API and define its stable
-compatibility policy. Version 0.37.0 does not make that stability commitment.
+## Account policy
+
+Deployment did not approve production credit limits or convert customer accounts
+to postpaid. Readback confirmed one prepaid account on production testnet and three
+on mainnet. Pro pricing, production credit approvals, tax treatment, and Stripe
+recovery settings remain business-policy gates before postpaid activation.
+No live customer payment was initiated by the acceptance test.
+
+Before a future 1.0 release, review the public API and define its stable compatibility policy.
+Version 0.37.0 does not make that stability commitment.

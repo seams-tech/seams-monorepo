@@ -1,7 +1,7 @@
 # Monthly postpaid Platform billing implementation plan
 
-Status: implemented on `dev`. The authorized v0.37.0 deployment is in progress.
-Updated: October 31, 2026.
+Status: deployed with v0.37.0. See the [rollout record](evidence/release-0370-billing-preparation.md).
+Updated: November 1, 2026.
 
 ## Current implementation
 
@@ -86,7 +86,7 @@ until current and preceding UTC month usage fit Free, and accepted work and invo
 are resolved. A delayed request is checked again against each new month's usage.
 The Console billing pages document MAU, invoices, credit limits, and these plan rules.
 
-### Validation and remaining rollout gates
+### Validation and account activation
 
 Repeatable evidence is under `.artifacts/platform-billing/`. The composed account
 journey covers concurrent services, restart and replay, lost provider replies,
@@ -99,16 +99,17 @@ The installed exact `@seams/wallet` and `@seams/wallet-server` versions are `0.3
 They include signature delivery and the `production_paused` SDK error. The old
 release blocker for migration `0082` is therefore retired.
 
-The new local Wallet admission change requires migration
+The deployed Wallet admission change uses migration
 `0088_signing_credit_commitments.sql` from `seams-wallet`. This migration is packaged
-in the published `0.37.0` release. Its remaining rollout gates are recorded in
-[release preparation](evidence/release-0370-billing-preparation.md).
+in the published `0.37.0` release. Deployment evidence is recorded in
+[the rollout record](evidence/release-0370-billing-preparation.md).
 The existing SDK preserves server error codes. No dependency pin points to local
 source or an unpublished version.
 
-Staging deployment, runtime migration, the deployed Stripe acceptance run, Pro price
-approval, production credit limits, tax treatment, and Stripe retry settings remain
-rollout gates. Deployment is authorized. Production credit approval remains separate.
+Staging and production deployment, runtime migrations, and deployed Stripe test-mode
+acceptance passed. Pro pricing, production credit approvals, tax treatment, and
+Stripe recovery settings remain business-policy gates before postpaid activation.
+Existing production accounts remain prepaid.
 
 ## Outcome
 

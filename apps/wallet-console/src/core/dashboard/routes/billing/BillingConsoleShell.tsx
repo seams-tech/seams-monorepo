@@ -653,22 +653,6 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
 
   return (
     <div className="dashboard-view" aria-label="Billing page">
-      {billingWarningMessage && !billingWarningDismissed ? (
-        <section className="dashboard-view__section">
-          <div className="dashboard-warning-banner" role="alert">
-            <p>{billingWarningMessage}</p>
-            <button
-              type="button"
-              className="dashboard-warning-banner__dismiss"
-              aria-label="Dismiss billing warning"
-              onClick={() => setBillingWarningDismissed(true)}
-            >
-              Dismiss
-            </button>
-          </div>
-        </section>
-      ) : null}
-
       {checkoutReturnMessage ? (
         <section className="dashboard-view__section">
           <p className="dashboard-info-banner">{checkoutReturnMessage}</p>
@@ -716,6 +700,21 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
               key={selectedContext.organization || session.claims.orgId}
               canManage={canDashboardManageBilling(session.claims)}
             >
+              {billingWarningMessage && !billingWarningDismissed ? (
+                <section className="dashboard-view__section">
+                  <div className="dashboard-warning-banner" role="alert">
+                    <p>{billingWarningMessage}</p>
+                    <button
+                      type="button"
+                      className="dashboard-warning-banner__dismiss"
+                      aria-label="Dismiss billing warning"
+                      onClick={() => setBillingWarningDismissed(true)}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </section>
+              ) : null}
               <BillingMetricsGrid
                 metrics={summaryMetrics}
                 ariaLabel="Billing account summary metrics"

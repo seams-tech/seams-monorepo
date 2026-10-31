@@ -1,9 +1,9 @@
 # v0.37.0 release preparation
 
-Status: candidate source preparation. Publication and deployment are disabled.
+Status: publication and deployment authorized on November 1, 2026 (JST).
+Package publication and full Wallet validation passed. Deployment is pending.
 
-The `0.37.0` candidate
-includes the published `0.36.0` recovery work, hosted billing admission, and
+The `0.37.0` candidate includes the published `0.36.0` recovery work, hosted billing admission, and
 Wallet-owned VoiceID enrollment records. A version change does not establish
 production readiness or API stability.
 
@@ -13,11 +13,14 @@ production readiness or API stability.
 - VoiceID record ownership: `925c4ada7`.
 - Console billing, invoices, and billing rules: `0e5d0001` and `60eed5e9`.
 - Wallet, Wallet Server, and VoiceID candidate versions: `0.37.0`.
+- Pinned public release revision: `b2f0053c7d3503363970bac561d4c723062bb524`.
+- [Wallet validation](https://github.com/seams-tech/seams-wallet/actions/runs/41213492500).
+- [Package release](https://github.com/seams-tech/seams-wallet/actions/runs/41213492804).
 - Wallet iframe protocol: `22.0.0`, unchanged from `0.36.0`.
 - Wallet-management protocol: `5`. Signed recovery CLI: `0.29.0`.
 
-Console consumers remain pinned to published `0.36.0`. Update their exact versions
-and lockfile only after the new packages are published and verified.
+All three `0.37.0` package versions were verified in npm after its processing delay.
+Console consumers use exact `0.37.0` versions and the regenerated lockfile.
 
 ## Billing contract
 
@@ -47,10 +50,6 @@ validation must build first and run type checks afterward.
 
 ## Remaining release gates
 
-- Run the full release CI and representative Wallet lifecycle acceptance on the
-  exact candidate revision. Local focused billing checks do not replace this gate.
-- Publish packages only after authorization. Verify package identities and adopt
-  exact versions in Console consumers.
 - Apply Wallet migration `0088` and Console migrations `0018`/`0019` or the Wallet
   Console mirrors `0114`/`0115` through an authorized staging rollout.
 - Verify billing end to end in staging, including exhausted-credit login refusal,
@@ -59,6 +58,9 @@ validation must build first and run type checks afterward.
   production credit approvals before production billing activation.
 
 These gates remain pending. No production readiness claim is made by this record.
+
+Deployment does not approve production credit limits or convert customer accounts
+to postpaid. Those account-level billing approvals remain separate.
 
 Before a future 1.0 release, review the public API and define its stable
 compatibility policy. Version 0.37.0 does not make that stability commitment.

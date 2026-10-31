@@ -1,6 +1,6 @@
 # Monthly postpaid Platform billing implementation plan
 
-Status: implemented locally on `dev`. Deployment is disabled.
+Status: implemented on `dev`. The authorized v0.37.0 deployment is in progress.
 Updated: October 31, 2026.
 
 ## Current implementation
@@ -95,21 +95,20 @@ Free downgrade, regional credit accounting, and usage credits.
 The Stripe test-mode journey uses real invoices, declined payments, card replacement,
 verified payment evidence, and credit-note replay. It creates no live charges.
 
-The installed exact `@seams/wallet` and `@seams/wallet-server` versions are `0.36.0`.
+The installed exact `@seams/wallet` and `@seams/wallet-server` versions are `0.37.0`.
 They include signature delivery and the `production_paused` SDK error. The old
 release blocker for migration `0082` is therefore retired.
 
 The new local Wallet admission change requires migration
-`0088_signing_credit_commitments.sql` from `seams-wallet`. Publish a new Wallet server
-release and adopt its exact version before enabling postpaid production lanes.
-The prepared candidate is `0.37.0`. Its remaining gates are recorded in
+`0088_signing_credit_commitments.sql` from `seams-wallet`. This migration is packaged
+in the published `0.37.0` release. Its remaining rollout gates are recorded in
 [release preparation](evidence/release-0370-billing-preparation.md).
 The existing SDK preserves server error codes. No dependency pin points to local
 source or an unpublished version.
 
 Staging deployment, runtime migration, the deployed Stripe acceptance run, Pro price
 approval, production credit limits, tax treatment, and Stripe retry settings remain
-rollout gates. This task performs no deployment or production billing activation.
+rollout gates. Deployment is authorized. Production credit approval remains separate.
 
 ## Outcome
 

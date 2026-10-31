@@ -1,74 +1,64 @@
-# Bring Your Own Application Authentication
+# Bring your own authentication: Console configuration
 
-Application authentication and wallet ownership are separate boundaries.
+Use the public integration guides for Wallet behavior and SDK examples:
 
-Use Better Auth, Auth0, Clerk, Firebase, Supabase, an enterprise IdP, or your
-own backend to authenticate users in your application. Keep those sessions in
-your application. The wallet SDK neither accepts nor mints an application
-session JWT.
+- [Application sessions and owner approval](https://wallet.seams.sh/docs/guides/application-auth)
+  covers trusted application-issuer handoffs, association, and fresh approval for each NEAR operation.
+- [Google authentication](https://wallet.seams.sh/docs/guides/google-sso)
+  covers direct Google credentials and backend handoffs.
+- [Authentication](https://wallet.seams.sh/docs/guides/authentication) and
+  [VoiceID](https://wallet.seams.sh/docs/concepts/auth-methods/voiceid) cover Wallet authentication methods.
+- [Release notes](https://wallet.seams.sh/docs/releases) identify package versions.
 
-## Wallet connection
+This private guide owns Console configuration. Console administrator authentication
+remains separate from application login and Wallet owner authentication.
 
-Your application may retain a wallet ID and owner-method locator after a user
-connects a wallet. These values select the next wallet ceremony; they grant no
-wallet authority.
+## Configure environment trust
 
-The wallet server supports two owner methods:
+Use an authenticated Console administration session to call
+`PUT /console/environments/:environmentId/external-auth`.
+Select one provider configuration for that environment.
 
-- passkey;
-- Email OTP.
+For an application issuer, send:
 
-The selected method performs a server-prepared ceremony. A successful verifier
-creates a server-internal `VerifiedOwnerProof`, which can mint an opaque Wallet
-Session or authorize one exact operation. The browser never receives that
-proof.
+```json
+{
+  "kind": "application",
+  "issuer": "https://app.example.com",
+  "publicKeyB64u": "YOUR_ED25519_PUBLIC_KEY_BASE64URL"
+}
+```
 
-Opaque Wallet Session tokens contain no claims. The server hashes and resolves
-them against the authoritative wallet, owner method, budget, expiry, and
-revocation state. An application JWT cannot substitute for this token or for a
-fresh owner proof.
+The issuer must be a canonical HTTPS origin, without a path or trailing slash.
+The public key must contain 32 Ed25519 bytes in canonical base64url.
+Keep the private key on the application backend.
+Follow the public application guide to create and exchange signed assertions.
 
-## Recommended integration
+For direct Google trust, send:
 
-1. Authenticate the user with your application auth provider.
-2. Read the wallet locator associated with that application user.
-3. Open the wallet SDK with that locator.
-4. Let the wallet SDK run passkey or Email OTP owner authentication.
-5. Keep application and wallet logout behavior separate.
+```json
+{
+  "kind": "google",
+  "clientId": "YOUR_CLIENT_ID.apps.googleusercontent.com"
+}
+```
 
-Google-assisted Email OTP registration verifies the Google identity only to
-resolve the stored Email OTP owner identity or begin registration. The user
-still completes Email OTP before wallet authority is granted.
+The environment's publishable key must allow the application origin and hosted Wallet origin.
+Use that environment ID and publishable key in the SDK configuration.
+See [API keys](api-keys.md) for Console credential and origin procedures.
 
-## Hosted wallet iframe
+The server owns the configuration revision. Omit it from the update request.
+Trust changes increment the revision and invalidate earlier external sessions.
+The Wallet reads provider configuration from Console on each external-auth request.
+Console remains the configuration store for Console-managed environments.
 
-The hosted wallet uses an origin-bound, single-use exchange capability. The
-wallet host redeems it for its own opaque Wallet Session. The outer application
-does not receive that token.
+To disable exchanges and deny existing external sessions, send:
 
-## External owner methods
+```json
+{ "kind": "disabled" }
+```
 
-Customer-configured verification webhooks are deferred to a later refactor.
-That system will need explicit server configuration, enrollment, challenge and
-operation binding, replay protection, and custody binding before it can produce
-`VerifiedOwnerProof`.
+## Historical records
 
-Until that work lands, external JWTs, voice identity, application sessions, and
-custom provider assertions cannot unlock a wallet or authorize wallet
-operations.
-
-Console authentication remains independent and is outside this wallet SDK
-boundary.
-
-## Published SDK integration
-
-Use the [authentication guide](https://wallet.seams.sh/docs/guides/authentication)
-and [compiled examples](https://wallet.seams.sh/docs/examples/wallet-setup-and-authentication)
-for the published 0.15.4 API. Mount the hosted auth menu inside the provider.
-An application-owned Google broker supplies identity evidence; Email OTP still
-establishes wallet authority. VoiceID remains proposed.
-
-When application logout should also end wallet authority, call `seams.auth.lock()`
-explicitly. Lock retains valid durable presignatures for a later authorized
-unlock. A local session display, wallet ID, or restored application login does
-not itself authorize signing.
+[BYO authentication implementation and release history](../../refactor-201-BYO-auth.md)
+retains the 0.28 and 0.29 release evidence, migration conditions, and original design.

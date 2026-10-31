@@ -1,6 +1,13 @@
-# VoiceID transaction confirmation phrases
+# VoiceID transaction confirmation: historical release and design record
 
-Status: SDK 0.26.0 is published. The Wallet site, hosted Wallet, and production
+Historical record: this page retains the October 27–28, 2026 experiments,
+0.26.0 release evidence, and deferred transaction-phrase design.
+Model, threshold, and deployment statements below describe those records.
+Use the [public VoiceID guide](https://wallet.seams.sh/docs/concepts/auth-methods/voiceid)
+for integration and the [current-state review](../../seams-wallet/docs/voiceid-current-state.md)
+for source behavior and its limits.
+
+Release snapshot: SDK 0.26.0 is published. The Wallet site, hosted Wallet, and production
 testnet backend are deployed. The private applications consume published 0.26.0.
 Per-request action-only phrase selection is available through
 `options.voiceId.confirmationCommand`. Exact-amount transaction phrases remain

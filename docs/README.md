@@ -18,7 +18,8 @@ of Platform and Wallet entry points and the reasons for that design.
 - [Onboarding](wallet-saas/console-docs/wallet-console-onboarding.md): organization,
   project, and Development environment creation. Activation remains separate.
 - [API keys](wallet-saas/console-docs/api-keys.md): environment credentials and origins.
-- [Bring your own authentication](wallet-saas/console-docs/byo-auth.md).
+- [Bring your own authentication](wallet-saas/console-docs/byo-auth.md): private
+  Console configuration and links to the public integration guides.
 - [Account settings](wallet-saas/console-docs/account-settings.md).
 - [Billing](wallet-saas/console-docs/wallet-billing.md).
 - [Pricing and costs](wallet-saas/pricing.md): the proposed MAU price with a
@@ -32,8 +33,6 @@ of Platform and Wallet entry points and the reasons for that design.
   contact form.
 - [Wallet SEO implementation](wallet-seo-plan.md): build rendering, crawl rules,
   search content, deployment checks, and outcome measurement.
-- [VoiceID transaction confirmations](voiceid-transaction-confirmation-plan.md):
-  the canvas preview and short confirmation phrases derived from prepared intents.
 - [Wallet database schema](wallet-saas/console-docs/wallet-db-schema.md).
 - [PostgreSQL and Hyperdrive preparation](future-plan-wallet-postgresql-preparation.md): a
   potential latency upgrade, remaining storage ports, and required hosted evidence.
@@ -42,6 +41,12 @@ of Platform and Wallet entry points and the reasons for that design.
   infrastructure into the dedicated Seams account with fresh application state.
 - [Local/provider runtime qualification](../deployment/celld/README.md): retain
   its qualification limits when describing private infrastructure.
+
+## Historical feature records
+
+- [BYO authentication](refactor-201-BYO-auth.md): 0.28 and 0.29 implementation and release evidence.
+- [VoiceID transaction confirmations](voiceid-transaction-confirmation-plan.md):
+  October 2026 experiments, 0.26.0 release evidence, and deferred design.
 
 ## Build, preview, and publish public documentation
 

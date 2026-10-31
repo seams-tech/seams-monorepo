@@ -1,6 +1,15 @@
-# Refactor 201 — Bring your own authentication
+# Refactor 201 — BYO authentication implementation and release history
 
-Status: All four public packages are published at 0.29.0. Wallet runtimes are deployed to staging, production testnet/mainnet, and GetSignal. Native CLI 0.29.0 is signed and public on GitHub.
+Historical record: this page retains the 0.28 and 0.29 implementation, validation,
+deployment evidence, and original design. Version and deployment statements below
+describe those releases. The original plan records requirements at that time.
+Use the [public application integration guide](https://wallet.seams.sh/docs/guides/application-auth)
+for current behavior and the [private Console guide](wallet-saas/console-docs/byo-auth.md)
+for environment configuration.
+
+0.29 release status: all four public packages were published at 0.29.0.
+Wallet runtimes were deployed to staging, production testnet/mainnet, and GetSignal.
+Native CLI 0.29.0 was signed and public on GitHub.
 
 ## SDK 0.29 extension
 
@@ -216,7 +225,7 @@ This plan owns the cross-repository change.
 Implement public Wallet behavior in `seams-wallet` and private configuration and composition in `seams-monorepo`.
 Keep one implementation of each verification and session operation.
 
-## Current behavior and reusable code
+## Pre-implementation behavior and reusable code
 
 The following paths are relative to `seams-wallet`:
 

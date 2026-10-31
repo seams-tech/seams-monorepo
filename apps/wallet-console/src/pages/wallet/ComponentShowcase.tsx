@@ -3,10 +3,14 @@ import React from 'react';
 import { Play } from 'lucide-react';
 import { ComponentPreview } from './ComponentPreview';
 import { BackgroundPreview, type BackgroundPreviewKind } from './BackgroundPreview';
-import { FieldBanner } from '@/components/h2/sections';
 import './component-showcase.css';
 
-export type PreviewId = 'create' | 'transaction-modal' | 'prediction-market' | 'profile' | 'voiceid';
+export type PreviewId =
+  | 'create'
+  | 'transaction-modal'
+  | 'prediction-market'
+  | 'profile'
+  | 'voiceid';
 
 type Preview = {
   id: PreviewId;
@@ -241,18 +245,6 @@ export function ComponentShowcase(): React.JSX.Element {
 
   return (
     <>
-      {/* the band's heading gets its own ruled row, under the network logos */}
-      <section id="components" className="component-showcase__intro h2-rule">
-        {/* a grey card that fades into a moving gradient, as the page's
-            other banners do */}
-        <FieldBanner field="teal-peach">
-          <div>
-            <h2 id="component-showcase-title" className="h2-display h2-eco__title h2-banner__title">
-              {t('componentsTitle')}
-            </h2>
-          </div>
-        </FieldBanner>
-      </section>
       <section
         className="component-showcase h2-rule"
         aria-labelledby="component-showcase-title"

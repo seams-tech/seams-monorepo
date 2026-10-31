@@ -1,4 +1,5 @@
 import { locale, t } from '@/marketing/i18n/browser';
+import '@seams/wallet/react/styles';
 import type { MessageKey } from '@/marketing/i18n/catalog';
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';

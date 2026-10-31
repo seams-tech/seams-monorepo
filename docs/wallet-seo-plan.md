@@ -1,33 +1,38 @@
 # Wallet SEO implementation plan
 
-Status: initial focused changes implemented; broader work deferred. Date: October 26, 2026. Scope: `seams-monorepo`.
+Status: the six-page implementation and local browser acceptance are complete on `dev`, October 31, 2026. Hosted publication and acceptance are next.
 
-October 26 implementation: clearer English and Japanese homepage titles, generated
-robots.txt and 404.html, showcase exclusions, and deployment-specific indexing headers.
-Staging and Console responses receive noindex. Production marketing remains indexable.
-The assembled robots file includes the docs sitemap when that artifact contains it.
-Cloudflare Pages uses the top-level 404.html to disable its implicit SPA fallback.
-Deployed HTTP behavior still requires verification.
+## October 31 implementation
 
-Validation: all 53 existing script checks passed. Build and typecheck could not complete
-because the demo imports external-near exports absent from the installed Wallet package.
-No production deployment or live acceptance run occurred.
-Follow-up: added `tests/e2e/wallet-marketing-seo.e2e.mjs` for the focused staging
-acceptance checks. Run it with `SEAMS_WALLET_SITE_ORIGIN` set to the staging origin.
-The initial staging run reached the site but failed because robots.txt lacked the
-expected sitemap reference. Evidence is under `output/playwright/wallet-marketing-seo/`.
-The published SDK remains 0.22.0. Its NEAR exports are absent, and the separate
-SDK release must complete before this checkout can build and deploy normally.
-Build rendering, new landing pages, analytics, and performance refactors remain deferred
-under the request to keep this pass small.
+- The existing Vite build renders the English and Japanese home, pricing, and features pages with React. Browser hydration preserves that HTML.
+- The marketing render tree receives a required page and locale. Unknown routes have a separate state. Live Wallet code, contact dialogs, showcases, and figure scripts load after hydration.
+- Public text, prices, navigation, documentation links, and language links work without JavaScript. Interactive areas reserve their layout space.
+- Each page has a canonical URL, reciprocal language alternatives, social preview metadata, and minimal WebPage structured data. The shared preview is `public/wallet-social.png`.
+- Marketing no longer loads Console styles and its toaster. Wallet styles load with the live demo. Feature copy links directly to recovery requirements and hosting qualification.
+- The assembled artifact preserves docs and SDK assets. Staging, Pages preview hosts, Console, showcases, and hosted Wallet surfaces receive `noindex`. Production marketing and docs remain indexable.
+- Frontend smoke checks require rendered homepage text. Both frontend deployment workflows run the browser acceptance scenario and retain evidence for one day.
 
-Further focused improvements: pricing and features now have descriptive bilingual
-titles. Company-to-Wallet marketing redirects use permanent status codes, including
-the Japanese Wallet entry. Authentication redirects retain their existing behavior.
-The frontend deployment smoke check now requires a plain-text robots file with the
-correct sitemap URL. This detects the observed homepage fallback at that address.
-All 53 script checks pass after these changes. Typecheck remains blocked by the same
-unreleased external-near exports. Deployment is still pending SDK adoption.
+Local verification passes: app typecheck, route type fixtures, all 53 existing script checks, and the assembled staging browser scenario.
+The scenario checks original HTML, no-JavaScript navigation, metadata, robots, sitemaps, documentation receipts, SDK assets, redirects, 404s, mobile layout, calculator controls, contact controls, language switching, and failed Wallet discovery.
+
+Evidence: `output/playwright/wallet-marketing-seo/`. The JSON results record the tested origin, source revision, dirty-source status, docs revision, response headers, failures, and browser errors. Screenshots and traces accompany each run.
+The local docs fixture identifies public commit `6ba675eba77d2daa005b973ae0e903a882fbf956` (SDK 0.18.0). It verifies artifact routing only. Hosted acceptance must use the matching released docs revision selected by the deployment workflow.
+
+The October 31 production/staging baseline is accessible. Both sites serve the current metadata, robots, sitemap, docs, and HTTP 404 responses. Their baseline marketing HTML still has an empty root before this change.
+Three cold mobile lab observations per origin use a 390 × 844 viewport, 4× CPU slowdown, 150 ms latency, and 200,000 bytes/s downloads. Results are in `mobile-lab.json`. Local and hosted transport differ, so these observations establish no causal speed improvement or field percentile.
+
+## Remaining operator and evidence gates
+
+- Search Console is not configured, confirmed by the user on October 31. Verify the property, submit the marketing and docs sitemaps, and retain the first indexing/query export. No search baseline or organic attribution is available yet.
+- Publish the checked frontend through the existing staging and production workflows. Record their exact revisions and deployed acceptance below.
+- The three proposed landing pages remain conditional on distinct search demand and sufficient original content. Evaluate them after Search Console provides a baseline. The existing features page already links to passkey, recovery, and hosting documentation.
+- Compare equal 28-day search periods after publication. Real-user Core Web Vitals and search growth remain unmeasured outcomes.
+
+No analytics provider, database schema, or marketing click tracker is added. Pricing-funnel measurement remains owned by `feat-6-pricing-conversion-funnel.md`.
+
+## Original scope and acceptance requirements
+
+The sections below retain the original requirements. The initial findings describe October 26 and are superseded by the implementation checkpoint above.
 
 Make Wallet marketing pages readable in the first HTML response. Then improve search coverage for developers evaluating embedded wallets.
 Keep the existing Vite, React, translation, and deployment paths.
@@ -38,17 +43,17 @@ Search volume, current rankings, and conversion baselines remain unknown.
 
 **1. Current evidence and ownership**
 
-| Finding | Source | Consequence |
-| --- | --- | --- |
-| The build emits six marketing pages: home, pricing, and features in English and Japanese. | `apps/wallet-console/vite.config.ts` | Extend this build path. |
-| Titles, descriptions, canonical URLs, language alternatives, and a sitemap already exist. | The same Vite configuration | Preserve these features and check their deployed output. |
-| The HTML entry has an empty root. React renders the page after loading JavaScript. | `apps/wallet-console/index.html`, `src/app/main.tsx` | Render public page content during the build. |
-| Routing and translation modules read browser globals at import time. | `src/marketing/WalletMarketingRoute.tsx`, `src/marketing/i18n/browser.ts` | Pass page and locale into the render tree before adding build rendering. |
-| Unknown paths resolve to the home page in the marketing parser. | `src/marketing/i18n/locale.ts` | Add an explicit unknown-route result and check real HTTP 404 behavior. |
-| The English homepage title is only “Seams Wallet.” | `src/marketing/i18n/catalog.ts` | Describe the product category in the title. |
-| The deployment script explicitly adds staging `noindex` only under `/docs/*`. | `scripts/deploy-surface.mjs` | Check all surface headers and apply a complete staging policy. |
-| Public documentation comes from an exact `seams-wallet` revision. | `docs/README.md`, `scripts/deploy-surface.mjs` | Preserve that ownership and artifact publication path. |
-| Marketing and both Console builds share a public asset directory. | `apps/wallet-console/vite.console.config.ts` | Generate crawl rules per deployment surface. |
+| Finding                                                                                   | Source                                                                    | Consequence                                                              |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| The build emits six marketing pages: home, pricing, and features in English and Japanese. | `apps/wallet-console/vite.config.ts`                                      | Extend this build path.                                                  |
+| Titles, descriptions, canonical URLs, language alternatives, and a sitemap already exist. | The same Vite configuration                                               | Preserve these features and check their deployed output.                 |
+| The HTML entry has an empty root. React renders the page after loading JavaScript.        | `apps/wallet-console/index.html`, `src/app/main.tsx`                      | Render public page content during the build.                             |
+| Routing and translation modules read browser globals at import time.                      | `src/marketing/WalletMarketingRoute.tsx`, `src/marketing/i18n/browser.ts` | Pass page and locale into the render tree before adding build rendering. |
+| Unknown paths resolve to the home page in the marketing parser.                           | `src/marketing/i18n/locale.ts`                                            | Add an explicit unknown-route result and check real HTTP 404 behavior.   |
+| The English homepage title is only “Seams Wallet.”                                        | `src/marketing/i18n/catalog.ts`                                           | Describe the product category in the title.                              |
+| The deployment script explicitly adds staging `noindex` only under `/docs/*`.             | `scripts/deploy-surface.mjs`                                              | Check all surface headers and apply a complete staging policy.           |
+| Public documentation comes from an exact `seams-wallet` revision.                         | `docs/README.md`, `scripts/deploy-surface.mjs`                            | Preserve that ownership and artifact publication path.                   |
+| Marketing and both Console builds share a public asset directory.                         | `apps/wallet-console/vite.console.config.ts`                              | Generate crawl rules per deployment surface.                             |
 
 Source paths beginning with `src/` in this table are relative to `apps/wallet-console`.
 
@@ -130,12 +135,12 @@ Confirm production responses again after publication.
 
 **5. P1: Improve the existing pages before adding more URLs**
 
-| Page | Search intent hypothesis | Content change |
-| --- | --- | --- |
-| `/` | Embedded wallet SDK, passkey wallet SDK | Explain the audience, integration model, supported capabilities, and next step. |
-| `/features/` | Wallet authentication, recovery, self-hosting | Explain each capability, its limits, and its documentation link. |
-| `/pricing/` | Embedded wallet pricing | Explain plans, usage units, included limits, and billing conditions with visible text. |
-| Japanese equivalents | Corresponding Japanese developer searches | Use natural Japanese terminology and independently reviewed copy. |
+| Page                 | Search intent hypothesis                      | Content change                                                                         |
+| -------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `/`                  | Embedded wallet SDK, passkey wallet SDK       | Explain the audience, integration model, supported capabilities, and next step.        |
+| `/features/`         | Wallet authentication, recovery, self-hosting | Explain each capability, its limits, and its documentation link.                       |
+| `/pricing/`          | Embedded wallet pricing                       | Explain plans, usage units, included limits, and billing conditions with visible text. |
+| Japanese equivalents | Corresponding Japanese developer searches     | Use natural Japanese terminology and independently reviewed copy.                      |
 
 These phrases are hypotheses. Validate them with search results and Search Console data before committing to new pages.
 Assign one primary purpose to each URL to reduce overlapping content.
@@ -237,13 +242,13 @@ Classify existing failures under `AGENTS.md` before changing code to repair them
 
 **9. Delivery order and measurement**
 
-| Change set | Deliverable | Completion gate |
-| --- | --- | --- |
-| A | Baseline and build-rendered existing pages | Useful HTML without JavaScript; interactions survive hydration. |
-| B | Crawl rules, HTTP statuses, and deployment checks | Artifact and staging evidence proves route behavior and indexing policy. |
-| C | Metadata, copy, links, and measured performance fixes | Both languages pass the public-page E2E scenario. |
-| D | Validated landing pages | Each page answers a distinct question and links to public evidence. |
-| E | Production inspection and outcome review | Record actual indexing and search performance after publication. |
+| Change set | Deliverable                                           | Completion gate                                                          |
+| ---------- | ----------------------------------------------------- | ------------------------------------------------------------------------ |
+| A          | Baseline and build-rendered existing pages            | Useful HTML without JavaScript; interactions survive hydration.          |
+| B          | Crawl rules, HTTP statuses, and deployment checks     | Artifact and staging evidence proves route behavior and indexing policy. |
+| C          | Metadata, copy, links, and measured performance fixes | Both languages pass the public-page E2E scenario.                        |
+| D          | Validated landing pages                               | Each page answers a distinct question and links to public evidence.      |
+| E          | Production inspection and outcome review              | Record actual indexing and search performance after publication.         |
 
 Keep implementation commits on `dev`. Use the existing staging and production publication process.
 Retain the previous frontend artifact and exact docs revision for rollback.

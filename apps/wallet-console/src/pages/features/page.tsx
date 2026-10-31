@@ -14,13 +14,13 @@ import {
 } from 'lucide-react';
 import { FieldBanner, H2Footer } from '@/components/h2/sections';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
-import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
+import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigureSlot';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { startSiteAnchorScroll } from '@/app/router/siteRouting';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 import type { MessageKey } from './catalog';
-import { t } from './i18n';
+import { useFeaturesTranslation } from './i18n';
 import { RegionalGlobe } from './RegionalGlobe';
 import '@/styles/h2.css';
 import './styles.css';
@@ -118,6 +118,7 @@ function FeatureCards({
   /* one card per row, beside a figure */
   stacked?: boolean;
 }): React.JSX.Element {
+  const t = useFeaturesTranslation();
   return (
     <ul className={stacked ? 'features-cards features-cards--stack' : 'features-cards'}>
       {features.map(({ icon: Icon, title, copy }) => (
@@ -146,6 +147,7 @@ function SectionHead({
   title: MessageKey;
   copy?: MessageKey;
 }): React.JSX.Element {
+  const t = useFeaturesTranslation();
   return (
     <div className="h2-split-head">
       <h2 id={`${id}-title`} className="h2-display">
@@ -177,6 +179,7 @@ function SiteLink({
 
 /* Closing call to action: the plans, on the site's moving banner. */
 function PricingBanner(): React.JSX.Element {
+  const t = useFeaturesTranslation();
   return (
     <section
       className="h2-section h2-section--banner h2-rule"
@@ -203,6 +206,7 @@ function PricingBanner(): React.JSX.Element {
 }
 
 export function FeaturesPage(): React.JSX.Element {
+  const t = useFeaturesTranslation();
   React.useEffect(startSiteAnchorScroll, []);
 
   return (
@@ -247,7 +251,17 @@ export function FeaturesPage(): React.JSX.Element {
               <SectionHead id="recovery" title="recoveryTitle" />
               <div className="features-split">
                 <FeatureFigure figure="devices" playMs={FIGURE_PLAY_MS} />
-                <FeatureCards features={RECOVERY} field="teal-peach" stacked />
+                <div>
+                  <FeatureCards features={RECOVERY} field="teal-peach" stacked />
+                  <div className="features-actions">
+                    <SiteLink
+                      to="/docs/concepts/custody/recovery-and-export"
+                      className="h2-btn h2-btn--outline"
+                    >
+                      {t('recoveryGuide')}
+                    </SiteLink>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -289,6 +303,12 @@ export function FeaturesPage(): React.JSX.Element {
                 <div>
                   <FeatureCards features={SELF_HOSTED} field="slate-amber" stacked />
                   <div className="features-actions">
+                    <SiteLink
+                      to="/docs/deploy-and-operate/hosting-targets"
+                      className="h2-btn h2-btn--outline"
+                    >
+                      {t('hostingGuide')}
+                    </SiteLink>
                     <SiteLink to="/pricing/#enterprise" className="h2-btn h2-btn--primary">
                       {t('seePricing')}
                     </SiteLink>

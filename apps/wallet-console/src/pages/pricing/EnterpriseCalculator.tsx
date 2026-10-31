@@ -4,7 +4,8 @@ import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 import type { MessageKey } from './catalog';
 import { estimate, FREE_USERS, lowestSelfServePlan, type SelfServePlanId } from './estimate';
-import { locale, t } from './i18n';
+import { usePricingTranslation, type PricingTranslator } from './i18n';
+import { useMarketingPage } from '@/marketing/context';
 import { formatPrice } from './prices';
 
 // A log-like scale from the Free plan's users: each slider step is one of these counts.
@@ -48,7 +49,7 @@ const SELF_SERVE_LABELS: Record<
 };
 
 const wholeNumber = new Intl.NumberFormat('en-US');
-function signaturePoolNote(free: boolean, overage: number): string {
+function signaturePoolNote(t: PricingTranslator, free: boolean, overage: number): string {
   if (free) return t('insideFree');
   if (overage > 0) return t('abovePool').replace('{count}', wholeNumber.format(overage));
   return t('insidePool');
@@ -102,6 +103,8 @@ function Range(props: {
 }
 
 export function EnterpriseCalculator(): React.JSX.Element {
+  const t = usePricingTranslation();
+  const { locale } = useMarketingPage();
   const compact = new Intl.NumberFormat(locale === 'ja' ? 'ja-JP' : 'en-US', {
     notation: 'compact',
   });
@@ -163,7 +166,7 @@ export function EnterpriseCalculator(): React.JSX.Element {
             />
             <p className="pricing-calc__note">
               {t('monthlySignatures').replace('{count}', wholeNumber.format(lowest.signatures))}{' '}
-              {signaturePoolNote(free, lowest.overageSignatures)}
+              {signaturePoolNote(t, free, lowest.overageSignatures)}
             </p>
           </div>
           <div className="pricing-calc__result" aria-live="polite">

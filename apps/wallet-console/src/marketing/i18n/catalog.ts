@@ -73,7 +73,7 @@ export const catalog = {
     ja: 'パスキー対応の組み込みウォレットSDK | Seams',
   },
   pageDescription: {
-    en: 'Non-custodial embedded wallets opened with a passkey.',
+    en: 'Embed passkey wallets with the Seams SDK. Add authentication, device linking, recovery, and transaction signing. Explore pricing and integration guides.',
     ja: 'パスキーで開く、ノンカストディアルの組み込みウォレット。認証、署名、復元をひとつのSDKで。',
   },
   heroTitle: {
@@ -81,8 +81,8 @@ export const catalog = {
     ja: 'ロックインのない組み込みウォレット。',
   },
   heroDescription: {
-    en: 'Passkey wallets with device linking and recovery, running on serverless infrastructure like Cloudflare Workers. Start free, pay as you grow, and never get locked in.',
-    ja: 'デバイスのリンクと復元に対応したパスキーウォレットを、Cloudflare Workersなどのサーバーレス基盤で。無料で始めて利用に応じて支払い、ロックインもありません。',
+    en: 'Add passkey wallets to your app, with device linking, recovery, and transaction signing. Use managed hosting or discuss an assisted deployment.',
+    ja: 'アプリにパスキーウォレットを組み込み、デバイスのリンク、復元、トランザクション署名に対応。マネージド環境を利用するか、導入支援付きの環境構築をご相談ください。',
   },
   startFree: { en: 'Start free', ja: '無料で始める' },
   startBuilding: { en: 'Start building', ja: '開発を始める' },

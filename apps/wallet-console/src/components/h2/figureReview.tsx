@@ -9,6 +9,7 @@ import previousDevices from '../../../showcase/motion/delegation/index.html?raw'
 import previousInfrastructure from '../../../showcase/motion/infrastructure-array/index.html?raw';
 import edgePlatforms from '../../../showcase/motion/lockin-edge/index.html?raw';
 import { H2Security } from './sections';
+import { MarketingContext } from '@/marketing/context';
 import {
   candidateFigureDocument,
   WalletFigure,
@@ -124,4 +125,8 @@ function FigureReview(): React.JSX.Element {
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Figure review requires #root');
-createRoot(root).render(<FigureReview />);
+createRoot(root).render(
+  <MarketingContext.Provider value={{ page: 'home', locale: 'en' }}>
+    <FigureReview />
+  </MarketingContext.Provider>,
+);

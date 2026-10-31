@@ -149,3 +149,22 @@ jobs:
         run: |
           pnpm deploy:backend smoke --lane "$DEPLOY_BACKEND_LANE" --component wallet-system
           pnpm deploy:backend smoke --lane "$DEPLOY_BACKEND_LANE" --component console
+      - name: Install browser for Wallet marketing acceptance
+        if: env.DEPLOY_COMPONENT == 'wallet-site' || env.DEPLOY_COMPONENT == 'all'
+        run: pnpm -C tests exec playwright install --with-deps chromium
+      - name: Verify deployed Wallet marketing
+        if: env.DEPLOY_COMPONENT == 'wallet-site' || env.DEPLOY_COMPONENT == 'all'
+        env:
+          SEAMS_SEO_TARGET: ${{ env.DEPLOY_SITE }}
+          SEAMS_WALLET_DOCS_REVISION: ${{ env.SEAMS_WALLET_REVISION }}
+        run: |
+          export SEAMS_WALLET_SITE_ORIGIN="$(node --input-type=module -e 'import { readFrontendSite } from "./scripts/deployment-targets.mjs"; console.log(readFrontendSite(process.env.DEPLOY_SITE).walletSiteOrigin)')"
+          pnpm -C tests exec node e2e/wallet-marketing-seo.e2e.mjs
+      - name: Retain Wallet marketing acceptance evidence
+        if: always() && (env.DEPLOY_COMPONENT == 'wallet-site' || env.DEPLOY_COMPONENT == 'all')
+        uses: actions/upload-artifact@v7
+        with:
+          name: wallet-marketing-seo-${{ env.DEPLOY_SITE }}-${{ github.run_id }}
+          path: output/playwright/wallet-marketing-seo
+          if-no-files-found: ignore
+          retention-days: 1

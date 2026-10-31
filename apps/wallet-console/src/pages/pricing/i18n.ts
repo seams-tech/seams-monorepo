@@ -1,9 +1,8 @@
-import { locale } from '@/marketing/i18n/browser';
+import { useMarketingPage } from '@/marketing/context';
 import { translate, type MessageKey } from './catalog';
 
-export { locale };
+export type PricingTranslator = (key: MessageKey) => string;
 
-// Language changes use document navigation, so the page keeps one locale.
-export function t(key: MessageKey): string {
-  return translate(locale, key);
+export function usePricingTranslation(): PricingTranslator {
+  return translate.bind(null, useMarketingPage().locale);
 }

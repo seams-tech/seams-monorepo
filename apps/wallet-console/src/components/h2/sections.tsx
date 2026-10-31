@@ -1,4 +1,5 @@
-import { t } from '@/marketing/i18n/browser';
+import { useTranslation, type MarketingTranslator } from '@/marketing/context';
+import type { MessageKey } from '@/marketing/i18n/catalog';
 import React from 'react';
 import {
   ChevronDown,
@@ -17,7 +18,7 @@ import type { HostedAuthMenuMode } from '@seams/wallet/react';
 import { WalletDemoSlot } from './WalletDemoSlot';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
-import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
+import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigureSlot';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
@@ -29,10 +30,14 @@ import { LanguageSelector } from '@/marketing/LanguageSelector';
 /* ---------- demo hero ---------- */
 
 /* Compact product forks under the CTAs, each on its own moving gradient chip */
-const productForks: readonly { label: string; to: string; field: GrainFieldName }[] = [
-  { label: t('wallet'), to: '/wallet', field: 'teal-peach' },
-  { label: t('api'), to: '/docs/concepts/', field: 'azure-coral' },
-];
+function createProductForks(
+  t: MarketingTranslator,
+): readonly { label: string; to: string; field: GrainFieldName }[] {
+  return [
+    { label: t('wallet'), to: '/wallet', field: 'teal-peach' },
+    { label: t('api'), to: '/docs/concepts/', field: 'azure-coral' },
+  ];
+}
 
 export type H2DemoHeroProps = {
   title: React.ReactNode;
@@ -45,6 +50,8 @@ export function H2DemoHero({
   sub,
   authDefaultModeWhenNoDetectedAccount,
 }: H2DemoHeroProps): React.JSX.Element {
+  const t = useTranslation();
+  const productForks = createProductForks(t);
   const { linkProps } = useSiteRouter();
   const startProps = linkProps('/docs/');
   const authProps = linkProps('/docs/guides/authentication');
@@ -102,6 +109,7 @@ export function H2DemoHero({
 /* ---------- networks ---------- */
 
 export function H2Networks(): React.JSX.Element {
+  const t = useTranslation();
   return (
     <section className="h2-section h2-rule h2-logos" aria-label={t('supportedNetworks')}>
       <div className="h2-shell">
@@ -215,9 +223,9 @@ function securityServerHasFocus(): boolean {
    light up beside another capability's figure. */
 type WalletCapability = {
   figure: WalletFigureName;
-  label: string;
-  title: string;
-  copy: string;
+  label: MessageKey;
+  title: MessageKey;
+  copy: MessageKey;
   /* the row's tile; the copy fits one line beside it, so rows match */
   icon: TileIcon;
   field: GrainFieldName;
@@ -230,36 +238,36 @@ type WalletCapability = {
 const walletCapabilities: readonly WalletCapability[] = [
   {
     figure: 'keychain',
-    label: t('keysControl'),
-    title: t('nobodySignsAlone'),
-    copy: t('splitKeysDescription'),
+    label: 'keysControl',
+    title: 'nobodySignsAlone',
+    copy: 'splitKeysDescription',
     icon: KeyRound,
     field: 'teal-peach',
     playMs: 3600,
   },
   {
     figure: 'interlock',
-    label: t('scopedPermissions'),
-    title: t('permissions'),
-    copy: t('permissionsDescription'),
+    label: 'scopedPermissions',
+    title: 'permissions',
+    copy: 'permissionsDescription',
     icon: SlidersHorizontal,
     field: 'azure-coral',
     playMs: 3600,
   },
   {
     figure: 'devices',
-    label: t('linkedDevices'),
-    title: t('walletsNotLost'),
-    copy: t('devicesDescription'),
+    label: 'linkedDevices',
+    title: 'walletsNotLost',
+    copy: 'devicesDescription',
     icon: MonitorSmartphone,
     field: 'aqua-evergreen',
     playMs: 3600,
   },
   {
     figure: 'infrastructure',
-    label: t('noLockIn'),
-    title: t('ownAccounts'),
-    copy: t('hostingDescription'),
+    label: 'noLockIn',
+    title: 'ownAccounts',
+    copy: 'hostingDescription',
     icon: Server,
     field: 'slate-amber',
     playMs: 3800,
@@ -279,6 +287,7 @@ function SecurityItem({
   active: boolean;
   onPick: (index: number) => void;
 }): React.JSX.Element {
+  const t = useTranslation();
   const picked = React.useCallback(() => onPick(index), [onPick, index]);
   return (
     <div className={`h2-security__item${active ? ' is-active' : ''}`}>
@@ -291,10 +300,10 @@ function SecurityItem({
             aria-pressed={active}
             onClick={picked}
           >
-            {capability.title}
+            {t(capability.title)}
           </button>
         </h3>
-        <p>{capability.copy}</p>
+        <p>{t(capability.copy)}</p>
       </div>
     </div>
   );
@@ -314,6 +323,7 @@ function WalletCapabilityCell({
   lead: boolean;
   onHover: (index: number, inside: boolean) => void;
 }): React.JSX.Element {
+  const t = useTranslation();
   const hovered = React.useCallback((inside: boolean) => onHover(index, inside), [onHover, index]);
   return (
     <div
@@ -321,12 +331,13 @@ function WalletCapabilityCell({
       data-lead={lead || undefined}
     >
       <WalletFigure figure={capability.figure} playing={playing} onHover={hovered} />
-      <span>{capability.label}</span>
+      <span>{t(capability.label)}</span>
     </div>
   );
 }
 
 export function H2Security(): React.JSX.Element {
+  const t = useTranslation();
   // The page opens on the signing diagram; the features view follows it.
   const [position, setPosition] = React.useState<SecurityPosition>({
     view: 'signing',
@@ -477,22 +488,24 @@ export function H2Security(): React.JSX.Element {
 
 /* The console band's two screens: the legend rows and the stage cards are
    driven from one list so a label can never name the screen beside it. */
-const CONSOLE_SCREENS = [
-  {
-    id: 'observability' as const,
-    label: t('observability'),
-    src: '/wallet-preview/wallet-console-observability.png?v=2',
-    callout: t('failureAlerts'),
-  },
-  {
-    id: 'audit' as const,
-    label: t('auditLogs'),
-    src: '/wallet-preview/wallet-console-audit.png?v=6',
-    callout: t('csvExport'),
-  },
-];
+function createConsoleScreens(t: MarketingTranslator) {
+  return [
+    {
+      id: 'observability' as const,
+      label: t('observability'),
+      src: '/wallet-preview/wallet-console-observability.png?v=2',
+      callout: t('failureAlerts'),
+    },
+    {
+      id: 'audit' as const,
+      label: t('auditLogs'),
+      src: '/wallet-preview/wallet-console-audit.png?v=6',
+      callout: t('csvExport'),
+    },
+  ];
+}
 
-type ConsoleScreenId = (typeof CONSOLE_SCREENS)[number]['id'];
+type ConsoleScreenId = ReturnType<typeof createConsoleScreens>[number]['id'];
 
 type ApiNoteProps = {
   title: string;
@@ -501,30 +514,39 @@ type ApiNoteProps = {
   field: GrainFieldName;
 };
 
-const ACCOUNT_NOTES: readonly ApiNoteProps[] = [
-  {
-    title: t('passkeySignup'),
-    body: t('signupDescription'),
-    icon: Fingerprint,
-    field: 'sky-sand',
-  },
-  { title: t('recovery'), body: t('recoveryDescription'), icon: LifeBuoy, field: 'aqua-evergreen' },
-];
+function createAccountNotes(t: MarketingTranslator): readonly ApiNoteProps[] {
+  return [
+    {
+      title: t('passkeySignup'),
+      body: t('signupDescription'),
+      icon: Fingerprint,
+      field: 'sky-sand',
+    },
+    {
+      title: t('recovery'),
+      body: t('recoveryDescription'),
+      icon: LifeBuoy,
+      field: 'aqua-evergreen',
+    },
+  ];
+}
 
-const POLICY_NOTES: readonly ApiNoteProps[] = [
-  {
-    title: t('signingSessions'),
-    body: t('sessionsDescription'),
-    icon: Timer,
-    field: 'azure-coral',
-  },
-  {
-    title: t('approvals'),
-    body: t('approvalsDescription'),
-    icon: ShieldCheck,
-    field: 'mauve-ember',
-  },
-];
+function createPolicyNotes(t: MarketingTranslator): readonly ApiNoteProps[] {
+  return [
+    {
+      title: t('signingSessions'),
+      body: t('sessionsDescription'),
+      icon: Timer,
+      field: 'azure-coral',
+    },
+    {
+      title: t('approvals'),
+      body: t('approvalsDescription'),
+      icon: ShieldCheck,
+      field: 'mauve-ember',
+    },
+  ];
+}
 
 type TileIcon = React.ComponentType<{ size?: number; strokeWidth?: number }>;
 
@@ -601,6 +623,10 @@ export function FieldBanner({
 }
 
 export function H2Start(): React.JSX.Element {
+  const t = useTranslation();
+  const CONSOLE_SCREENS = createConsoleScreens(t);
+  const ACCOUNT_NOTES = createAccountNotes(t);
+  const POLICY_NOTES = createPolicyNotes(t);
   const { linkProps } = useSiteRouter();
   const dashboardProps = linkProps('/dashboard');
   const docsProps = linkProps('/docs/concepts/');
@@ -848,61 +874,63 @@ type FaqGroup = {
   items: readonly FaqItem[];
 };
 
-const walletFaqs: readonly FaqGroup[] = [
-  {
-    id: 'security',
-    heading: t('security'),
-    items: [
-      {
-        id: 'custody',
-        q: t('custodialQuestion'),
-        a: t('custodialAnswer'),
-        more: { label: t('custodyModel'), to: '/docs/concepts/custody/' },
-      },
-      {
-        id: 'lost-device',
-        q: t('lostDeviceQuestion'),
-        a: t('lostDeviceAnswer'),
-        more: { label: t('walletSessions'), to: '/docs/concepts/sessions/wallet-sessions' },
-      },
-    ],
-  },
-  {
-    id: 'integration',
-    heading: t('integration'),
-    items: [
-      {
-        id: 'api-keys',
-        q: t('apiKeysQuestion'),
-        a: t('apiKeysAnswer'),
-        more: { label: t('signInMethods'), to: '/docs/concepts/auth-methods/' },
-      },
-      {
-        id: 'networks',
-        q: t('networksQuestion'),
-        a: t('networksAnswer'),
-      },
-    ],
-  },
-  {
-    id: 'hosting-pricing',
-    heading: t('hostingPricing'),
-    items: [
-      {
-        id: 'hosting',
-        q: t('hostingQuestion'),
-        a: t('hostingAnswer'),
-        more: { label: t('architecture'), to: '/docs/concepts/architecture' },
-      },
-      {
-        id: 'metering',
-        q: t('meteringQuestion'),
-        a: t('meteringAnswer'),
-        more: { label: t('seePricing'), to: '/pricing/' },
-      },
-    ],
-  },
-];
+function createWalletFaqs(t: MarketingTranslator): readonly FaqGroup[] {
+  return [
+    {
+      id: 'security',
+      heading: t('security'),
+      items: [
+        {
+          id: 'custody',
+          q: t('custodialQuestion'),
+          a: t('custodialAnswer'),
+          more: { label: t('custodyModel'), to: '/docs/concepts/custody/' },
+        },
+        {
+          id: 'lost-device',
+          q: t('lostDeviceQuestion'),
+          a: t('lostDeviceAnswer'),
+          more: { label: t('walletSessions'), to: '/docs/concepts/sessions/wallet-sessions' },
+        },
+      ],
+    },
+    {
+      id: 'integration',
+      heading: t('integration'),
+      items: [
+        {
+          id: 'api-keys',
+          q: t('apiKeysQuestion'),
+          a: t('apiKeysAnswer'),
+          more: { label: t('signInMethods'), to: '/docs/concepts/auth-methods/' },
+        },
+        {
+          id: 'networks',
+          q: t('networksQuestion'),
+          a: t('networksAnswer'),
+        },
+      ],
+    },
+    {
+      id: 'hosting-pricing',
+      heading: t('hostingPricing'),
+      items: [
+        {
+          id: 'hosting',
+          q: t('hostingQuestion'),
+          a: t('hostingAnswer'),
+          more: { label: t('architecture'), to: '/docs/concepts/architecture' },
+        },
+        {
+          id: 'metering',
+          q: t('meteringQuestion'),
+          a: t('meteringAnswer'),
+          more: { label: t('seePricing'), to: '/pricing/' },
+        },
+      ],
+    },
+  ];
+}
 
 type FaqPopFrame = { left: number; top: number; w: number; h: number };
 
@@ -912,6 +940,7 @@ type FaqPopFrame = { left: number; top: number; w: number; h: number };
    questions, as the navbar menus do. A hover opens the card and the
    pointer can move into it to reach its link; a click pins it open. */
 function H2FooterFaq({ groups }: { groups: readonly FaqGroup[] }): React.JSX.Element {
+  const t = useTranslation();
   const CLOSE_DELAY_MS = 120;
   /* the card's inner padding, so the answer text lines up with the question */
   const POP_INSET_PX = 20;
@@ -1142,66 +1171,71 @@ type H2FooterLink = {
   external?: boolean;
 };
 
-const footerGroups: { id: string; heading: string; links: H2FooterLink[] }[] = [
-  {
-    id: 'products',
-    heading: t('products'),
-    links: [
-      { label: t('embeddedWallet'), to: '/wallet' },
-      { label: t('allFeatures'), to: '/features/' },
-      { label: t('custodyLink'), to: '/docs/concepts/custody/' },
-      { label: t('walletSessions'), to: '/docs/concepts/sessions/wallet-sessions' },
-    ],
-  },
-  {
-    id: 'platform',
-    heading: t('platform'),
-    links: [
-      { label: t('authLink'), to: '/docs/concepts/auth-methods/' },
-      { label: t('passkeys'), to: '/docs/concepts/auth-methods/passkeys' },
-      { label: t('walletsSignatures'), to: '/docs/concepts/threshold-signing/' },
-      { label: t('permissionsPolicy'), to: '/docs/concepts/policy/mandates' },
-    ],
-  },
-  {
-    id: 'developers',
-    heading: t('developers'),
-    links: [
-      { label: t('documentation'), to: '/docs/concepts/' },
-      { label: t('architecture'), to: '/docs/concepts/architecture' },
-      { label: t('walletIframe'), to: '/docs/concepts/custody/wallet-iframe' },
-    ],
-  },
-  {
-    id: 'resources',
-    heading: t('resources'),
-    links: [
-      { label: t('guides'), to: '/docs/guides/' },
-      { label: t('useCases'), to: '/docs/use-cases/' },
-      { label: t('pricing'), to: '/pricing/' },
-    ],
-  },
-  {
-    id: 'socials',
-    heading: t('socials'),
-    links: [
-      { label: 'X', to: 'https://x.com/lowerarchy', external: true },
-      { label: 'GitHub', to: 'https://github.com/seams-tech', external: true },
-    ],
-  },
-  {
-    id: 'company',
-    heading: t('company'),
-    links: [
-      { label: t('about'), to: '/company/' },
-      { label: t('blog'), to: '/company/#blog' },
-    ],
-  },
-];
+function createFooterGroups(
+  t: MarketingTranslator,
+): { id: string; heading: string; links: H2FooterLink[] }[] {
+  return [
+    {
+      id: 'products',
+      heading: t('products'),
+      links: [
+        { label: t('embeddedWallet'), to: '/wallet' },
+        { label: t('allFeatures'), to: '/features/' },
+        { label: t('custodyLink'), to: '/docs/concepts/custody/' },
+        { label: t('walletSessions'), to: '/docs/concepts/sessions/wallet-sessions' },
+      ],
+    },
+    {
+      id: 'platform',
+      heading: t('platform'),
+      links: [
+        { label: t('authLink'), to: '/docs/concepts/auth-methods/' },
+        { label: t('passkeys'), to: '/docs/concepts/auth-methods/passkeys' },
+        { label: t('walletsSignatures'), to: '/docs/concepts/threshold-signing/' },
+        { label: t('permissionsPolicy'), to: '/docs/concepts/policy/mandates' },
+      ],
+    },
+    {
+      id: 'developers',
+      heading: t('developers'),
+      links: [
+        { label: t('documentation'), to: '/docs/concepts/' },
+        { label: t('architecture'), to: '/docs/concepts/architecture' },
+        { label: t('walletIframe'), to: '/docs/concepts/custody/wallet-iframe' },
+      ],
+    },
+    {
+      id: 'resources',
+      heading: t('resources'),
+      links: [
+        { label: t('guides'), to: '/docs/guides/' },
+        { label: t('useCases'), to: '/docs/use-cases/' },
+        { label: t('pricing'), to: '/pricing/' },
+      ],
+    },
+    {
+      id: 'socials',
+      heading: t('socials'),
+      links: [
+        { label: 'X', to: 'https://x.com/lowerarchy', external: true },
+        { label: 'GitHub', to: 'https://github.com/seams-tech', external: true },
+      ],
+    },
+    {
+      id: 'company',
+      heading: t('company'),
+      links: [
+        { label: t('about'), to: '/company/' },
+        { label: t('blog'), to: '/company/#blog' },
+      ],
+    },
+  ];
+}
 
 /* ---------- closing call to action: the shared grey banner ---------- */
 
 export function H2Cta(): React.JSX.Element {
+  const t = useTranslation();
   const { linkProps } = useSiteRouter();
   const docsProps = linkProps('/docs/');
   const startProps = linkProps('/dashboard');
@@ -1232,6 +1266,9 @@ export function H2Cta(): React.JSX.Element {
 
 /* The pricing page carries its own FAQ section, so it leaves out the footer's. */
 export function H2Footer({ faq = true }: { faq?: boolean } = {}): React.JSX.Element {
+  const t = useTranslation();
+  const walletFaqs = createWalletFaqs(t);
+  const footerGroups = createFooterGroups(t);
   const { linkProps } = useSiteRouter();
   const homeProps = linkProps('https://seams.sh/');
 

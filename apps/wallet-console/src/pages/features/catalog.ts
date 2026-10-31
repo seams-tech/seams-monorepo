@@ -59,6 +59,8 @@ export const messages = {
     ja: '声で承認。AuroraASR-1MまたはNVIDIA Citrinet-256 LSの音声モデルで、読み上げたフレーズをデバイス上で照合します。音声データと声のテンプレートはデバイスから出ません。',
   },
   readDocs: { en: 'Read the docs', ja: 'ドキュメントを読む' },
+  recoveryGuide: { en: 'Recovery requirements and export', ja: '復元の条件と鍵のエクスポート' },
+  hostingGuide: { en: 'Hosting targets and tested limits', ja: 'ホスティング環境と検証範囲' },
 
   globalKicker: { en: 'Global deployments', ja: 'グローバル展開' },
   globeTitle: { en: 'Closer to your users.', ja: 'ユーザーの近くで。' },

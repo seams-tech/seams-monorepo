@@ -288,7 +288,9 @@ function buildFrontend(site, component, walletLanes) {
     fs.appendFileSync(
       path.join(WALLET_SITE_OUTPUT, '_headers'),
       '\n/docs/*\n  Cache-Control: public, max-age=0, must-revalidate, no-transform\n' +
-        '\n/showcase/*\n  X-Robots-Tag: noindex\n/wallet-service/*\n  X-Robots-Tag: noindex\n',
+        '\n/showcase/*\n  X-Robots-Tag: noindex\n/wallet-service/*\n  X-Robots-Tag: noindex\n' +
+        '\nhttps://:project.pages.dev/*\n  X-Robots-Tag: noindex\n' +
+        '\nhttps://:version.:project.pages.dev/*\n  X-Robots-Tag: noindex\n',
     );
     assertFile(path.join(WALLET_SITE_OUTPUT, 'index.html'), 'Wallet site entry');
     assertFile(path.join(WALLET_SITE_OUTPUT, 'ja', 'index.html'), 'Japanese Wallet site entry');
@@ -328,6 +330,7 @@ function buildFrontend(site, component, walletLanes) {
     );
     copySdkAssets(output);
     copyVoiceIdAssets(output);
+    fs.appendFileSync(path.join(output, '_headers'), '\n/*\n  X-Robots-Tag: noindex\n');
     assertFile(path.join(output, 'index.html'), 'Wallet settings entry');
     fs.writeFileSync(path.join(output, '_redirects'), '/wallet-settings /index.html 200\n');
     assertFile(path.join(output, 'wallet-service', 'index.html'), 'wallet-service entry');
@@ -563,7 +566,7 @@ function buildSmokeChecks(site, component, walletLanes) {
     return smokeChecks('company', site.origin, ['/', '/company/', '/ja/company/', '/sitemap.xml']);
   if (component === 'wallet-site') {
     return smokeChecks('wallet-site', site.walletSiteOrigin, [
-      '/',
+      { path: '/', isReady: walletMarketingIsReady },
       '/ja/',
       '/pricing/',
       '/ja/pricing/',
@@ -596,6 +599,12 @@ async function walletRobotsIsReady(response) {
   const body = await response.text();
   const sitemap = new URL('/sitemap.xml', response.url).href;
   return body.includes('User-agent: *') && body.includes(`Sitemap: ${sitemap}`);
+}
+
+async function walletMarketingIsReady(response) {
+  if (!response.headers.get('content-type')?.includes('text/html')) return false;
+  const html = await response.text();
+  return html.includes('data-rendered="true"') && /<h1\b[^>]*>[^<]+/.test(html);
 }
 
 function smokeChecks(surface, origin, requests) {

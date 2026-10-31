@@ -1,4 +1,5 @@
-import { t } from '@/marketing/i18n/browser';
+import { useTranslation } from '@/marketing/context';
+import { BrowserOnly } from '@/marketing/BrowserOnly';
 import React from 'react';
 import type { HostedAuthMenuMode } from '@seams/wallet/react';
 import { GrainField } from '@seams-internal/grain-field';
@@ -36,6 +37,7 @@ function reloadPage(): void {
 }
 
 function DemoUnavailable(): React.JSX.Element {
+  const t = useTranslation();
   return (
     <HeroDemoCell>
       <div className="h2-demo__unavailable" role="status">
@@ -49,6 +51,11 @@ function DemoUnavailable(): React.JSX.Element {
   );
 }
 
+function DemoLoading(): React.JSX.Element {
+  const t = useTranslation();
+  return <HeroDemoCell aria-label={t('demoLoading')} />;
+}
+
 export class WalletDemoSlot extends React.Component<DemoProps, DemoState> {
   state: DemoState = { kind: 'ready' };
 
@@ -59,9 +66,11 @@ export class WalletDemoSlot extends React.Component<DemoProps, DemoState> {
   render(): React.ReactNode {
     if (this.state.kind === 'unavailable') return <DemoUnavailable />;
     return (
-      <React.Suspense fallback={<HeroDemoCell aria-label={t('demoLoading')} />}>
-        <WalletDemo {...this.props} />
-      </React.Suspense>
+      <BrowserOnly fallback={<DemoLoading />}>
+        <React.Suspense fallback={<DemoLoading />}>
+          <WalletDemo {...this.props} />
+        </React.Suspense>
+      </BrowserOnly>
     );
   }
 }

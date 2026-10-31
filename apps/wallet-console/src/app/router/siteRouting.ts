@@ -1,5 +1,5 @@
 import { readFrontendSiteLinks } from '@/frontendConfig';
-import { locale } from '@/marketing/i18n/browser';
+import type { MarketingPageState } from '@/marketing/context';
 import { walletLanguageUrl, walletPagePath, type Locale } from '@/marketing/i18n/locale';
 
 const SITE_LINKS = readFrontendSiteLinks(import.meta.env);
@@ -19,17 +19,18 @@ export function isHttpUrl(value: string): boolean {
   return /^https?:\/\//.test(value);
 }
 
-export function getWalletLanguageHref(language: Locale): string {
-  return walletLanguageUrl(new URL(window.location.href), SITE_LINKS.walletPath, language);
+export function getWalletLanguageHref(page: MarketingPageState['page'], language: Locale): string {
+  return walletLanguageUrl(new URL(window.location.href), SITE_LINKS.walletPath, page, language);
 }
 
-function toSiteAbsolutePath(pathOrHash: string): string {
+function toSiteAbsolutePath(state: MarketingPageState, pathOrHash: string): string {
   if (!pathOrHash) return '/';
-  if (pathOrHash.startsWith('#')) return `${window.location.pathname}${pathOrHash}`;
+  if (pathOrHash.startsWith('#'))
+    return `${walletPagePath(SITE_LINKS.walletPath, state.page, state.locale)}${pathOrHash}`;
   return pathOrHash.startsWith('/') ? pathOrHash : `/${pathOrHash}`;
 }
 
-export function maybeDocsHref(target: string): string | null {
+export function maybeDocsHref(locale: Locale, target: string): string | null {
   if (!target.startsWith(DOCS_PREFIX)) return null;
   const docsOrigin = getDocsOrigin();
   const suffix = target === DOCS_PREFIX ? '/' : target.slice(DOCS_PREFIX.length);
@@ -39,26 +40,24 @@ export function maybeDocsHref(target: string): string | null {
   return `${docsOrigin}${suffix.startsWith('/') ? suffix : `/${suffix}`}`;
 }
 
-export function resolveHref(target: string): string {
+export function resolveHref(state: MarketingPageState, target: string): string {
+  const { locale } = state;
   if (isHttpUrl(target)) return target;
-  if (target.startsWith('#')) return toSiteAbsolutePath(target);
+  if (target.startsWith('#')) return toSiteAbsolutePath(state, target);
 
   if (normalizePathname(target) === '/wallet') {
-    return walletLanguageUrl(
-      new URL(target, window.location.origin),
-      SITE_LINKS.walletPath,
-      locale,
-    );
+    const url = new URL(target, 'https://wallet.seams.sh');
+    return `${walletPagePath(SITE_LINKS.walletPath, 'home', locale)}${url.search}${url.hash}`;
   }
 
-  const docsHref = maybeDocsHref(target);
+  const docsHref = maybeDocsHref(locale, target);
   if (docsHref) return docsHref;
 
   const pathname = normalizePathname(target);
   switch (pathname) {
     case '/pricing':
     case '/features': {
-      const url = new URL(target, window.location.origin);
+      const url = new URL(target, 'https://wallet.seams.sh');
       const page = pathname === '/pricing' ? 'pricing' : 'features';
       return `${walletPagePath(SITE_LINKS.walletPath, page, locale)}${url.search}${url.hash}`;
     }
@@ -67,13 +66,13 @@ export function resolveHref(target: string): string {
     case '/ecommerce': {
       const base = SITE_LINKS.companyOrigin === '/' ? '' : SITE_LINKS.companyOrigin;
       if (locale === 'ja' && pathname === '/company') {
-        const url = new URL(target, window.location.origin);
+        const url = new URL(target, 'https://wallet.seams.sh');
         return `${base}/ja${url.pathname}${url.search}${url.hash}`;
       }
-      return `${base}${toSiteAbsolutePath(target)}`;
+      return `${base}${toSiteAbsolutePath(state, target)}`;
     }
     default:
-      return toSiteAbsolutePath(target);
+      return toSiteAbsolutePath(state, target);
   }
 }
 

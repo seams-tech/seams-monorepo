@@ -1,6 +1,6 @@
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import React from 'react';
-import { t } from './i18n';
+import { usePricingTranslation } from './i18n';
 import { planSignupHref, walletConsoleOrigin, type SignupPlan } from './planSignup';
 
 export type SignupOffer = {
@@ -56,6 +56,7 @@ export function PlanSignupDialog({
   offer: SignupOffer | null;
   onClose: () => void;
 }): React.JSX.Element {
+  const t = usePricingTranslation();
   const dialogRef = React.useRef<HTMLDialogElement>(null);
   const frameRef = React.useRef<HTMLIFrameElement>(null);
   const [frameHeight, setFrameHeight] = React.useState(FRAME_DEFAULT_HEIGHT);

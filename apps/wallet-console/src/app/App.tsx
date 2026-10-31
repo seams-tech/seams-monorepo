@@ -1,19 +1,11 @@
 import React from 'react';
-import { DashboardToaster } from '@core/dashboard/components/DashboardToaster';
+import { WalletMarketingRoute } from '../marketing/WalletMarketingRoute';
+import { MarketingContext, type MarketingPageState } from '../marketing/context';
 
-const WalletMarketingRoute = React.lazy(() =>
-  import('../marketing/WalletMarketingRoute').then((module) => ({
-    default: module.WalletMarketingRoute,
-  })),
-);
-
-export function App(): React.JSX.Element {
+export function App({ state }: { state: MarketingPageState }): React.JSX.Element {
   return (
-    <>
-      <React.Suspense fallback={null}>
-        <WalletMarketingRoute />
-      </React.Suspense>
-      <DashboardToaster />
-    </>
+    <MarketingContext.Provider value={state}>
+      <WalletMarketingRoute />
+    </MarketingContext.Provider>
   );
 }

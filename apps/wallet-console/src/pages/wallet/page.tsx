@@ -1,4 +1,4 @@
-import { t } from '@/marketing/i18n/browser';
+import { useTranslation } from '@/marketing/context';
 import React from 'react';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import {
@@ -11,10 +11,11 @@ import {
 } from '@/components/h2/sections';
 import { startSiteAnchorScroll } from '@/app/router/siteRouting';
 import '@/styles/h2.css';
-import { ComponentShowcase } from './ComponentShowcase';
+import { ComponentShowcase } from './ComponentShowcaseSlot';
 import { DemoThemeProvider } from '@/context/demoTheme';
 
 export function WalletPage(): React.JSX.Element {
+  const t = useTranslation();
   React.useEffect(startSiteAnchorScroll, []);
   return (
     <div className="h2-page h2-page--wallet">

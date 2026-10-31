@@ -2,12 +2,14 @@ import { createRequire } from 'node:module';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig, type Plugin } from 'vite';
+import { createServer, defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { translate } from './src/marketing/i18n/catalog';
 import {
-  localeFromUrl,
-  pageFromUrl,
+  parseWalletRoute,
+  assertNeverWalletPage,
+  walletPages,
+  locales,
   walletPagePath,
   type Locale,
   type WalletPage,
@@ -17,9 +19,6 @@ import { translate as translatePricing } from './src/pages/pricing/catalog';
 
 const walletSiteUrl = new URL(process.env.VITE_WALLET_SITE_ORIGIN || 'https://wallet.seams.sh/');
 walletSiteUrl.pathname = `${walletSiteUrl.pathname.replace(/\/$/, '')}/`;
-
-const walletPages: readonly WalletPage[] = ['home', 'pricing', 'features'];
-const locales: readonly Locale[] = ['en', 'ja'];
 
 function pageUrl(page: WalletPage, locale: Locale): string {
   return new URL(walletPagePath(walletSiteUrl.pathname, page, locale), walletSiteUrl).href;
@@ -48,22 +47,25 @@ function escapeHtml(value: string): string {
 }
 
 function pageText(page: WalletPage, language: Locale): { title: string; description: string } {
-  if (page === 'pricing') {
-    return {
-      title: translatePricing(language, 'pricingPageTitle'),
-      description: translatePricing(language, 'pricingDescription'),
-    };
+  switch (page) {
+    case 'pricing':
+      return {
+        title: translatePricing(language, 'pricingPageTitle'),
+        description: translatePricing(language, 'pricingDescription'),
+      };
+    case 'features':
+      return {
+        title: translateFeatures(language, 'featuresPageTitle'),
+        description: translateFeatures(language, 'featuresDescription'),
+      };
+    case 'home':
+      return {
+        title: translate(language, 'pageTitle'),
+        description: translate(language, 'pageDescription'),
+      };
+    default:
+      return assertNeverWalletPage(page);
   }
-  if (page === 'features') {
-    return {
-      title: translateFeatures(language, 'featuresPageTitle'),
-      description: translateFeatures(language, 'featuresDescription'),
-    };
-  }
-  return {
-    title: translate(language, 'pageTitle'),
-    description: translate(language, 'pageDescription'),
-  };
 }
 
 function languageHtml(html: string, page: WalletPage, language: Locale): string {
@@ -73,6 +75,16 @@ function languageHtml(html: string, page: WalletPage, language: Locale): string 
   const text = pageText(page, language);
   const title = escapeHtml(text.title);
   const description = escapeHtml(text.description);
+  const image = new URL('/wallet-social.png', walletSiteUrl).href;
+  const structuredData = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: text.title,
+    description: text.description,
+    url: canonical,
+    inLanguage: language,
+    publisher: { '@type': 'Organization', name: 'Seams', url: 'https://seams.sh/' },
+  }).replaceAll('<', '\\u003c');
   const metadata = `
     <meta data-wallet-meta name="description" content="${description}" />
     <link data-wallet-meta rel="canonical" href="${escapeHtml(canonical)}" />
@@ -85,13 +97,20 @@ function languageHtml(html: string, page: WalletPage, language: Locale): string 
     <meta data-wallet-meta property="og:url" content="${escapeHtml(canonical)}" />
     <meta data-wallet-meta property="og:locale" content="${language === 'ja' ? 'ja_JP' : 'en_US'}" />
     <meta data-wallet-meta property="og:locale:alternate" content="${language === 'ja' ? 'en_US' : 'ja_JP'}" />
-    <meta data-wallet-meta name="twitter:card" content="summary" />
+    <meta data-wallet-meta property="og:image" content="${escapeHtml(image)}" />
+    <meta data-wallet-meta property="og:image:width" content="1200" />
+    <meta data-wallet-meta property="og:image:height" content="630" />
+    <meta data-wallet-meta property="og:image:alt" content="Seams Wallet — Embedded wallets with passkeys" />
+    <meta data-wallet-meta name="twitter:card" content="summary_large_image" />
+    <meta data-wallet-meta name="twitter:image" content="${escapeHtml(image)}" />
     <meta data-wallet-meta name="twitter:title" content="${title}" />
-    <meta data-wallet-meta name="twitter:description" content="${description}" />`;
+    <meta data-wallet-meta name="twitter:description" content="${description}" />
+    <script data-wallet-meta type="application/ld+json">${structuredData}</script>`;
   return html
     .replace(/<html lang="[^"]*"/, `<html lang="${language}"`)
     .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
     .replace(/\s*<(?:meta|link) data-wallet-meta[^>]*>/g, '')
+    .replace(/\s*<script data-wallet-meta[^>]*>[\s\S]*?<\/script>/g, '')
     .replace('</head>', `${metadata}\n  </head>`);
 }
 
@@ -109,9 +128,11 @@ const walletLanguagePages: Plugin = {
       return html.replace('</head>', '<meta name="robots" content="noindex" /></head>');
     }
     const url = new URL(context.originalUrl || context.path, walletSiteUrl);
-    return languageHtml(html, pageFromUrl(url), localeFromUrl(url));
+    const route = parseWalletRoute(url, walletSiteUrl.pathname);
+    if (route.kind === 'not-found') return html;
+    return languageHtml(html, route.page, route.locale);
   },
-  generateBundle(_options, bundle) {
+  async generateBundle(_options, bundle) {
     const entry = bundle['index.html'];
     if (!entry || entry.type !== 'asset' || typeof entry.source !== 'string') {
       throw new Error('Wallet marketing build requires index.html');
@@ -142,21 +163,48 @@ const walletLanguagePages: Plugin = {
       fileName: 'robots.txt',
       source: `User-agent: *\nAllow: /\n\nSitemap: ${new URL('sitemap.xml', walletSiteUrl).href}\n`,
     });
-    for (const page of walletPages) {
-      const english = escapeHtml(pageUrl(page, 'en'));
-      const japanese = escapeHtml(pageUrl(page, 'ja'));
-      const alternates = `<xhtml:link rel="alternate" hreflang="en" href="${english}"/><xhtml:link rel="alternate" hreflang="ja" href="${japanese}"/><xhtml:link rel="alternate" hreflang="x-default" href="${english}"/>`;
-      for (const locale of locales) {
-        // the English home page is the bundle's own index.html
-        if (page !== 'home' || locale !== 'en') {
-          this.emitFile({
-            type: 'asset',
-            fileName: `${walletPagePath('', page, locale).slice(1)}index.html`,
-            source: languageHtml(entry.source, page, locale),
-          });
+    const appRoot = fileURLToPath(new URL('.', import.meta.url));
+    const renderer = await createServer({
+      configFile: false,
+      root: appRoot,
+      mode: 'production',
+      plugins: [react()],
+      resolve: {
+        alias: { '@': `${appRoot}src`, '@core': `${appRoot}src/core` },
+        dedupe: ['react', 'react-dom'],
+      },
+      ssr: { noExternal: ['@seams-internal/site-navbar', '@seams-internal/grain-field'] },
+      server: { middlewareMode: true },
+      appType: 'custom',
+    });
+    const template = entry.source;
+    try {
+      const { renderMarketingPage } = await renderer.ssrLoadModule('/src/marketing/render.tsx');
+      for (const page of walletPages) {
+        const english = escapeHtml(pageUrl(page, 'en'));
+        const japanese = escapeHtml(pageUrl(page, 'ja'));
+        const alternates = `<xhtml:link rel="alternate" hreflang="en" href="${english}"/><xhtml:link rel="alternate" hreflang="ja" href="${japanese}"/><xhtml:link rel="alternate" hreflang="x-default" href="${english}"/>`;
+        for (const locale of locales) {
+          const html = languageHtml(template, page, locale)
+            .split('<div id="root"></div>')
+            .join(
+              `<div id="root" data-rendered="true">${renderMarketingPage({ page, locale })}</div>`,
+            );
+          // the English home page is the bundle's own index.html
+          if (page !== 'home' || locale !== 'en') {
+            this.emitFile({
+              type: 'asset',
+              fileName: `${walletPagePath('', page, locale).slice(1)}index.html`,
+              source: html,
+            });
+          } else {
+            entry.source = html;
+          }
+          urls.push(`  <url><loc>${locale === 'ja' ? japanese : english}</loc>${alternates}</url>`);
         }
-        urls.push(`  <url><loc>${locale === 'ja' ? japanese : english}</loc>${alternates}</url>`);
       }
+    } finally {
+      await renderer.close();
     }
     this.emitFile({
       type: 'asset',

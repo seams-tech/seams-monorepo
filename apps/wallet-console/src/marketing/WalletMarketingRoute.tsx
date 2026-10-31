@@ -1,21 +1,21 @@
 import React from 'react';
-import '@seams/wallet/react/styles';
 import '@/app.css';
-import { ContactModalHost } from '@/components/contact/ContactModal';
-import { pageFromUrl } from '@/marketing/i18n/locale';
+import { BrowserOnly } from './BrowserOnly';
+import { useMarketingPage } from './context';
+import { assertNeverWalletPage } from './i18n/locale';
 import { WalletPage } from '@/pages/wallet/page';
+import { PricingPage } from '@/pages/pricing/page';
+import { FeaturesPage } from '@/pages/features/page';
 
-const PricingPage = React.lazy(() =>
-  import('@/pages/pricing/page').then((module) => ({ default: module.PricingPage })),
-);
-const FeaturesPage = React.lazy(() =>
-  import('@/pages/features/page').then((module) => ({ default: module.FeaturesPage })),
-);
+async function loadContactModal() {
+  const module = await import('@/components/contact/ContactModal');
+  return { default: module.ContactModalHost };
+}
 
-// Links between pages use document navigation, so the page is read once.
-const page = pageFromUrl(new URL(window.location.href));
+const ContactModalHost = React.lazy(loadContactModal);
 
 function MarketingPage(): React.JSX.Element {
+  const { page } = useMarketingPage();
   switch (page) {
     case 'pricing':
       return <PricingPage />;
@@ -23,6 +23,8 @@ function MarketingPage(): React.JSX.Element {
       return <FeaturesPage />;
     case 'home':
       return <WalletPage />;
+    default:
+      return assertNeverWalletPage(page);
   }
 }
 
@@ -31,7 +33,11 @@ export function WalletMarketingRoute(): React.JSX.Element {
   return (
     <>
       <MarketingPage />
-      <ContactModalHost />
+      <BrowserOnly fallback={null}>
+        <React.Suspense fallback={null}>
+          <ContactModalHost />
+        </React.Suspense>
+      </BrowserOnly>
     </>
   );
 }

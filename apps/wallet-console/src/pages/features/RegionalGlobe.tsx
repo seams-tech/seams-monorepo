@@ -1,5 +1,6 @@
 import React from 'react';
-import { t } from './i18n';
+import { useFeaturesTranslation } from './i18n';
+import type { MessageKey } from './catalog';
 import geography from './globe-geography.json';
 import './regional-globe.css';
 
@@ -226,7 +227,7 @@ const RINGS: Record<Region, Position[][]> = {
 };
 const CONNECTORS = [connector(REGIONS.apac, REGIONS.europe), connector(REGIONS.europe, REGIONS.us)];
 
-function regionName(region: Region): string {
+function regionName(t: (key: MessageKey) => string, region: Region): string {
   switch (region) {
     case 'europe':
       return t('globeEurope');
@@ -245,7 +246,7 @@ type RegionMarks = {
   label: SVGTextElement | null;
 };
 
-export class RegionalGlobe extends React.Component {
+class RegionalGlobeView extends React.Component<{ t: (key: MessageKey) => string }> {
   private graticule = React.createRef<SVGPathElement>();
   private land = React.createRef<SVGPathElement>();
   private coast = React.createRef<SVGPathElement>();
@@ -392,6 +393,7 @@ export class RegionalGlobe extends React.Component {
   }
 
   render(): React.JSX.Element {
+    const { t } = this.props;
     return (
       <section
         id="global"
@@ -464,7 +466,7 @@ export class RegionalGlobe extends React.Component {
                       this.marks[region].label = label;
                     }}
                   >
-                    {regionName(region)}
+                    {regionName(this.props.t, region)}
                   </text>
                 </g>
               ))}
@@ -474,4 +476,9 @@ export class RegionalGlobe extends React.Component {
       </section>
     );
   }
+}
+
+export function RegionalGlobe(): React.JSX.Element {
+  const t = useFeaturesTranslation();
+  return <RegionalGlobeView t={t} />;
 }

@@ -9,7 +9,8 @@ import { startSiteAnchorScroll, subscribeToSiteNavigation } from '@/app/router/s
 import type { MessageKey } from './catalog';
 import { EnterpriseCalculator } from './EnterpriseCalculator';
 import { estimate, lowestSelfServePlan } from './estimate';
-import { locale, t } from './i18n';
+import { usePricingTranslation, type PricingTranslator } from './i18n';
+import { useMarketingPage } from '@/marketing/context';
 import { planSignupHref } from './planSignup';
 import { PlanSignupDialog, type SignupOffer } from './PlanSignupDialog';
 import { formatPrice } from './prices';
@@ -29,7 +30,7 @@ type Plan = {
   cta: { label: string; to: string };
 };
 
-function getPlans(): readonly Plan[] {
+function getPlans(t: PricingTranslator): readonly Plan[] {
   return [
     {
       id: 'free',
@@ -99,7 +100,7 @@ const examples = EXAMPLE_USERS.map((users) => {
 });
 
 /* Short summaries for the closing banner's plan cards. */
-function planTeasers(): Record<PlanId, string> {
+function planTeasers(t: PricingTranslator): Record<PlanId, string> {
   return {
     free: t('freeTeaser'),
     growth: t('growthTeaser'),
@@ -142,6 +143,7 @@ function BannerPlanCard({
   plan: Plan;
   onSignup: (offer: SignupOffer) => void;
 }): React.JSX.Element {
+  const t = usePricingTranslation();
   const ctaProps = usePlanCardLink(plan, onSignup);
   // The plan's gradient shows on hover or focus; it only animates while shown.
   const [lit, setLit] = React.useState(false);
@@ -164,7 +166,7 @@ function BannerPlanCard({
       <span className="pricing-banner__card-price">
         <strong>{plan.price}</strong> {plan.id === 'enterprise' ? '' : plan.unit}
       </span>
-      <span className="pricing-banner__card-teaser">{planTeasers()[plan.id]}</span>
+      <span className="pricing-banner__card-teaser">{planTeasers(t)[plan.id]}</span>
       <span className="pricing-banner__card-cta">
         {plan.cta.label}
         <ArrowRightAnim size={12} />
@@ -181,6 +183,7 @@ function PlanBanner({
   plans: readonly Plan[];
   onSignup: (offer: SignupOffer) => void;
 }): React.JSX.Element {
+  const t = usePricingTranslation();
   return (
     <>
       <section
@@ -261,6 +264,10 @@ function PlanCard({
   );
 }
 
+function serverSelectedPlanId(): PlanId {
+  return 'free';
+}
+
 function readSelectedPlanId(): PlanId {
   switch (window.location.hash) {
     case '#free':
@@ -285,6 +292,7 @@ const FAQ: readonly { q: MessageKey; a: MessageKey }[] = [
 ];
 
 function PricingFaq(): React.JSX.Element {
+  const t = usePricingTranslation();
   return (
     <section className="h2-section h2-rule" aria-labelledby="pricing-faq-title">
       <div className="h2-shell">
@@ -307,9 +315,15 @@ function PricingFaq(): React.JSX.Element {
 }
 
 export function PricingPage(): React.JSX.Element {
-  const plans = getPlans();
+  const t = usePricingTranslation();
+  const { locale } = useMarketingPage();
+  const plans = getPlans(t);
   React.useEffect(startSiteAnchorScroll, []);
-  const selectedPlanId = React.useSyncExternalStore(subscribeToSiteNavigation, readSelectedPlanId);
+  const selectedPlanId = React.useSyncExternalStore(
+    subscribeToSiteNavigation,
+    readSelectedPlanId,
+    serverSelectedPlanId,
+  );
   const [signupOffer, setSignupOffer] = React.useState<SignupOffer | null>(null);
   const closeSignup = React.useCallback(() => setSignupOffer(null), []);
 

@@ -10,11 +10,7 @@ import {
     origin that owns the signed-in session. */
 export function isPlatformConsolePath(pathname: string): boolean {
   const path = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
-  return (
-    path === '/dashboard/invitations/accept' ||
-    path === '/dashboard/billing/plan' ||
-    path === '/platform/billing'
-  );
+  return path === '/dashboard/invitations/accept' || path === '/platform/billing';
 }
 
 function consoleOrigin(value: unknown, fallback: string): string {

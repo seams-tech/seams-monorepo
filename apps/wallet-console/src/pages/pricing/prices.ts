@@ -12,22 +12,20 @@ export const PRICING_USD = {
   enterprisePer1000Signatures: 0.03,
 } as const;
 
-// Japanese display prices use the approved Growth price as a fixed conversion ratio.
-const GROWTH_BASE_JPY = 15_500;
-
+// Billing uses USD on every locale. Display the currency that Stripe collects.
 export function formatPrice(locale: Locale, priceUsd: number, maximumFractionDigits = 0): string {
-  const amount = locale === 'ja' ? (priceUsd * GROWTH_BASE_JPY) / PRICING_USD.growthBase : priceUsd;
   return new Intl.NumberFormat(locale === 'ja' ? 'ja-JP' : 'en-US', {
     style: 'currency',
-    currency: locale === 'ja' ? 'JPY' : 'USD',
+    currency: 'USD',
+    currencyDisplay: 'code',
     minimumFractionDigits: 0,
     maximumFractionDigits,
-  }).format(amount);
+  }).format(priceUsd);
 }
 
 function priceLabels(locale: Locale): Record<keyof typeof PRICING_USD | 'zero', string> {
   // Four US-dollar digits keep the Pro rate, $0.0035, apart from Growth's $0.004.
-  const rateDigits = locale === 'ja' ? 2 : 4;
+  const rateDigits = 4;
   return {
     zero: formatPrice(locale, 0),
     growthBase: formatPrice(locale, PRICING_USD.growthBase),

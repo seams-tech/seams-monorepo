@@ -91,7 +91,14 @@ export interface FreePlanNoticeEmailV1 {
   readonly version: 1;
   readonly organizationName: string;
   readonly consoleBaseUrl: string;
-  readonly notice: FreePlanNoticeV1;
+  readonly notice:
+    | FreePlanNoticeV1
+    | {
+        readonly kind: 'plan_start_reminder';
+        readonly plan: 'growth' | 'pro';
+        readonly orgId: string;
+        readonly userId: string;
+      };
 }
 
 /** Sent to the platform support addresses, not to the customer. */

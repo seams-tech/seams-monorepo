@@ -1392,7 +1392,7 @@ function localHostedConsoleAuthentication(
   handler: FetchHandler,
   services: Pick<
     Awaited<ReturnType<typeof createCloudflareD1AccountServiceBundle>>,
-    'serviceAccess' | 'account' | 'organizationAccess'
+    'serviceAccess' | 'account' | 'organizationAccess' | 'audit'
   >,
   session: RevocableConsoleSessionAdapter,
 ): FetchHandler {
@@ -1400,6 +1400,7 @@ function localHostedConsoleAuthentication(
   const githubOAuth = localGithubOAuthConfig(env);
   const consoleAuthHandler = new HostedConsoleAuthHandler({
     handler,
+    audit: services.audit,
     recordVerifiedGoogleIdentity: services.serviceAccess.recordVerifiedGoogleIdentity.bind(
       services.serviceAccess,
     ),

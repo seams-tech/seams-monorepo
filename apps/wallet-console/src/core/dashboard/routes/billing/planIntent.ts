@@ -11,6 +11,8 @@ import {
   getDashboardOnboardingState,
 } from '../onboarding/consoleOnboardingApi';
 import type { DashboardSelfServePlan } from './freePlanApi';
+import { requireConsoleBaseUrl } from '../../consoleHttp';
+import { readPendingDashboardInvitation } from '../invitations/invitation';
 
 /**
  * The plan a visitor picked on the pricing page. It only routes the visitor: a plan
@@ -49,7 +51,13 @@ function parseIntent(value: unknown, nowMs: number): DashboardPlanIntent | null 
   const savedAtMs = objectField(value, 'savedAtMs');
   const projectId = objectField(value, 'projectId');
   if (!isDashboardPlanChoice(plan) || src !== 'pricing_card') return null;
-  if (typeof savedAtMs !== 'number' || nowMs - savedAtMs > PLAN_INTENT_MAX_AGE_MS) return null;
+  if (
+    typeof savedAtMs !== 'number' ||
+    !Number.isFinite(savedAtMs) ||
+    savedAtMs > nowMs ||
+    nowMs - savedAtMs > PLAN_INTENT_MAX_AGE_MS
+  )
+    return null;
   if (typeof projectId !== 'string' || !/^proj_[a-f0-9]{32}$/.test(projectId)) return null;
   return { plan, src, savedAtMs, projectId };
 }
@@ -85,6 +93,8 @@ export function captureDashboardPlanIntentLink(): DashboardPlanIntent | null {
   if (!isDashboardPlanChoice(plan) || src !== 'pricing_card') {
     return readPendingDashboardPlanIntent();
   }
+  const pending = readPendingDashboardPlanIntent();
+  if (pending?.plan === plan && pending.src === src) return pending;
   const intent: DashboardPlanIntent = {
     plan,
     src,
@@ -97,6 +107,37 @@ export function captureDashboardPlanIntentLink(): DashboardPlanIntent | null {
     // Without storage the intent still routes this page load.
   }
   return intent;
+}
+
+export function dashboardPlanAttribution(intent: DashboardPlanIntent): {
+  plan: DashboardPlanChoice;
+  src: 'pricing_card';
+  projectId: string;
+} {
+  return { plan: intent.plan, src: intent.src, projectId: intent.projectId };
+}
+
+export async function recordDashboardFunnelStep(
+  event: 'console_login_view' | 'plan_ready' | 'growth_continue_free' | 'card_setup_canceled',
+  intent: DashboardPlanIntent,
+): Promise<void> {
+  try {
+    await fetch(`${requireConsoleBaseUrl()}/console/auth/funnel`, {
+      method: 'POST',
+      credentials: 'include',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, intent: dashboardPlanAttribution(intent) }),
+    });
+  } catch {
+    // Attribution must not block sign-in or plan access. Replays use the same event ID.
+  }
+}
+
+export function recordDashboardLoginView(): void {
+  const intent = readPendingDashboardPlanIntent();
+  if (intent && !readPendingDashboardInvitation())
+    void recordDashboardFunnelStep('console_login_view', intent);
 }
 
 /* The organization and first project as onboarding ends. A session issued before the
@@ -143,6 +184,7 @@ export async function prepareDashboardAccountForPlan(
     await createInitialOrganization(
       DEFAULT_PLAN_ORGANIZATION_NAME,
       deriveDashboardOrganizationSlug(DEFAULT_PLAN_ORGANIZATION_NAME),
+      dashboardPlanAttribution(intent),
     );
   }
   const state = await getDashboardOnboardingState();

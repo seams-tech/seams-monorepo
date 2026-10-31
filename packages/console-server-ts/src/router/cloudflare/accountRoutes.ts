@@ -441,6 +441,9 @@ export async function handleConsoleAccount(ctx: AccountConsoleContext): Promise<
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const request = parseUpdateConsoleAccountOrganizationRequest(await readJson(ctx.request));
+      const before = (await account.listOrganizations(toAccountContext(auth.claims))).find(
+        matchesOrganizationId.bind(null, orgId),
+      );
       const organization = await account.updateOrganization(
         toAccountContext(auth.claims),
         orgId,
@@ -455,6 +458,8 @@ export async function handleConsoleAccount(ctx: AccountConsoleContext): Promise<
           organizationName: organization.name,
           organizationSlug: organization.slug,
           source: 'account_settings',
+          name_changed: before?.name !== organization.name,
+          was_default: before?.name === 'My organization',
         },
       });
       return json({ ok: true, organization }, { status: 200 });
@@ -911,6 +916,10 @@ export async function emitConsoleAuditEvent(
       message: error instanceof Error ? error.message : String(error),
     });
   }
+}
+
+function matchesOrganizationId(orgId: string, organization: { readonly id: string }): boolean {
+  return organization.id === orgId;
 }
 
 export async function handleConsoleProjects(ctx: AccountConsoleContext): Promise<Response | null> {

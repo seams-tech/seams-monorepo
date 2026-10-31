@@ -764,6 +764,7 @@ function createHostedConsoleAuthentication(
   handler: FetchHandler,
   services: {
     readonly account: ConsoleAccountService;
+    readonly audit: CloudflareD1AccountServiceBundle['audit'];
     readonly organizationAccess: CloudflareD1AccountServiceBundle['organizationAccess'];
     readonly serviceAccess: CloudflareD1AccountServiceBundle['serviceAccess'];
   },
@@ -774,6 +775,7 @@ function createHostedConsoleAuthentication(
   const githubOAuth = consoleGithubOAuthConfig(env, request);
   const authHandler = new HostedConsoleAuthHandler({
     handler,
+    audit: services.audit,
     recordVerifiedGoogleIdentity: services.serviceAccess.recordVerifiedGoogleIdentity.bind(
       services.serviceAccess,
     ),

@@ -11,9 +11,9 @@ import {
   FREE_PLAN_CARD_GRACE_DAYS,
   FREE_PLAN_CARD_REMINDER_DAYS,
   FREE_PLAN_LIMITS_V1,
+  SELF_SERVE_PLAN_PRICES_V1,
   type FreePlanCardReminderDayV1,
   type FreePlanLimitV1,
-  type FreePlanNoticeV1,
 } from '../billing/freePlan';
 import type {
   AccountWelcomeEmailV1,
@@ -83,7 +83,7 @@ export interface BillingRefundResultEmailV1Input {
 export interface FreePlanNoticeEmailV1Input {
   readonly organizationName: string;
   readonly consoleBaseUrl: string;
-  readonly notice: FreePlanNoticeV1;
+  readonly notice: FreePlanNoticeEmailV1['notice'];
 }
 
 export interface TeamSignupAlertEmailV1Input {
@@ -503,8 +503,15 @@ function renderTeamSignupAlert(template: TeamSignupAlertEmailV1): RenderedConsol
   };
 }
 
-function freePlanNotice(notice: FreePlanNoticeV1): FreePlanNoticeV1 {
+function freePlanNotice(notice: FreePlanNoticeEmailV1['notice']): FreePlanNoticeEmailV1['notice'] {
   switch (notice.kind) {
+    case 'plan_start_reminder':
+      return {
+        kind: notice.kind,
+        plan: notice.plan,
+        orgId: requiredText(notice.orgId, 'orgId'),
+        userId: requiredText(notice.userId, 'userId'),
+      };
     case 'card_reminder':
       return {
         kind: notice.kind,
@@ -538,8 +545,17 @@ function freePlanNotice(notice: FreePlanNoticeV1): FreePlanNoticeV1 {
   }
 }
 
-function parseFreePlanNotice(record: UnknownRecord): FreePlanNoticeV1 {
+function parseFreePlanNotice(record: UnknownRecord): FreePlanNoticeEmailV1['notice'] {
   switch (record.kind) {
+    case 'plan_start_reminder':
+      if (record.plan !== 'growth' && record.plan !== 'pro')
+        throw new Error('Invalid reminder plan');
+      return freePlanNotice({
+        kind: record.kind,
+        plan: record.plan,
+        orgId: requiredRawString(record.orgId, 'orgId'),
+        userId: requiredRawString(record.userId, 'userId'),
+      });
     case 'card_reminder':
       return freePlanNotice({
         kind: record.kind,
@@ -616,6 +632,17 @@ function renderFreePlanNotice(template: FreePlanNoticeEmailV1): RenderedConsoleE
   let paragraphs: string[];
   let actionLabel = 'Add a card';
   switch (notice.kind) {
+    case 'plan_start_reminder': {
+      const name = notice.plan === 'growth' ? 'Growth' : 'Pro';
+      subject = `Finish starting ${name}`;
+      paragraphs = [
+        `${organization} is still on Free. You can finish starting ${name} when you are ready.`,
+        `${name} starts at ${usd(SELF_SERVE_PLAN_PRICES_V1[notice.plan].monthlyBaseMinor)} a month when you confirm a usable card. The first month is prorated. We charge your card after each month.`,
+        'You can also continue on Free within its limits. A card is required after 30 days.',
+      ];
+      actionLabel = `Review ${name}`;
+      break;
+    }
     case 'card_reminder': {
       const daysLeft = FREE_PLAN_CARD_GRACE_DAYS - notice.day;
       subject = `Add a card by ${utcDate(notice.deadlineAt)} to keep production running`;
@@ -664,7 +691,10 @@ function renderFreePlanNotice(template: FreePlanNoticeEmailV1): RenderedConsoleE
     default:
       return assertNever(notice);
   }
-  const url = billingUrl(template.consoleBaseUrl);
+  const url =
+    notice.kind === 'plan_start_reminder'
+      ? planReminderUrl(template.consoleBaseUrl, notice)
+      : billingUrl(template.consoleBaseUrl);
   return {
     subject,
     text: `${paragraphs.join('\n\n')}\n\n${actionLabel}: ${url}`,
@@ -676,6 +706,16 @@ function renderFreePlanNotice(template: FreePlanNoticeEmailV1): RenderedConsoleE
       actionUrl: url,
     }),
   };
+}
+
+function planReminderUrl(
+  consoleBaseUrl: string,
+  notice: Extract<FreePlanNoticeEmailV1['notice'], { kind: 'plan_start_reminder' }>,
+): string {
+  const url = consoleApplicationUrl(new URL(consoleBaseUrl), '/dashboard/billing/plan');
+  url.searchParams.set('plan', notice.plan);
+  url.searchParams.set('db_org', notice.orgId);
+  return url.href;
 }
 
 function htmlMessage(input: {

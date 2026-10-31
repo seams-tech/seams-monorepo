@@ -26,6 +26,7 @@ import {
   fetchDashboardConsoleSession,
 } from '../consoleSession';
 import { readUnscopedConsoleSession } from '../routes/onboarding/initialOrganizationApi';
+import { listDashboardAccountOrganizations } from '../routes/account-settings/consoleAccountApi';
 import {
   consoleSignInHref,
   rememberConsoleContext,
@@ -41,6 +42,9 @@ import {
   readDashboardOverviewHref,
   readPendingDashboardPlanIntent,
   selectDashboardPlanContext,
+  dashboardPlanAttribution,
+  recordDashboardLoginView,
+  recordDashboardFunnelStep,
   type DashboardPlanChoice,
 } from '../routes/billing/planIntent';
 import { isEmbeddedSignIn, postToWalletSite } from './embeddedSignIn';
@@ -81,11 +85,13 @@ const PLAN_LOGIN_TEXT: Record<DashboardPlanChoice, { title: string; description:
   },
   growth: {
     title: 'Start Growth',
-    description: 'Sign in, then add a card. Growth is $99 a month with 5,000 users included.',
+    description:
+      'Growth is $99 a month from card confirmation, with 5,000 users included. We charge your card after each month.',
   },
   pro: {
     title: 'Start Pro',
-    description: 'Sign in, then add a card. Pro is $399 a month with 100,000 users included.',
+    description:
+      'Pro is $399 a month from card confirmation, with 100,000 users included. We charge your card after each month.',
   },
 };
 
@@ -174,7 +180,7 @@ async function exchangeDashboardSession(
     method: 'POST',
     credentials: 'include',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(loginBodyWithIntent(body)),
   });
   const responseBody = await parseDashboardLoginExchangeBody(response);
   if (!response.ok || responseBody?.ok !== true) {
@@ -191,6 +197,13 @@ async function exchangeDashboardSession(
   rememberStepUpEnrollmentProof(responseBody.enrollmentProof);
   clearDashboardConsoleSignOut();
   return responseBody.kind;
+}
+
+function loginBodyWithIntent(
+  body: { readonly idToken: string } | { readonly code: string },
+): object {
+  const intent = readPendingDashboardInvitation() ? null : readPendingDashboardPlanIntent();
+  return intent ? { ...body, planIntent: dashboardPlanAttribution(intent) } : body;
 }
 
 function authConfigurationNote(input: {
@@ -240,6 +253,7 @@ export function DashboardLoginPage(): React.JSX.Element {
   );
 
   React.useEffect(rememberConsoleContext, []);
+  React.useEffect(recordDashboardLoginView, []);
 
   /* In the dialog, the company site opens the next page in the whole tab. */
   const openPage = React.useCallback(
@@ -254,8 +268,8 @@ export function DashboardLoginPage(): React.JSX.Element {
 
   /* After sign-in, a visitor with a plan intent gets an organization and a first project
      with default names. A Growth or Pro intent on a Free organization without a card goes
-     straight to Stripe; every other intent opens the dashboard (Wallet Console) or the
-     plan page (Platform Console). Everyone else continues as before. */
+     straight to Stripe. A saved card opens the plan page for confirmation. Free opens
+     the Wallet overview. Multiple organizations require a selection first. */
   const continueSignedIn = React.useCallback(
     async (pathname: '/dashboard' | '/dashboard/onboarding') => {
       const enrollmentReturn = takeStepUpEnrollmentReturn();
@@ -268,7 +282,13 @@ export function DashboardLoginPage(): React.JSX.Element {
       else if (intent) {
         setPreparingPlan('setup');
         try {
+          const organizations = await listDashboardAccountOrganizations();
+          if (organizations.length > 1) {
+            openPage('/dashboard/billing/plan?choose_org=1');
+            return;
+          }
           await prepareDashboardAccountForPlan(intent, relayerBaseUrl);
+          await recordDashboardFunnelStep('plan_ready', intent);
           const claims = await fetchDashboardConsoleSession();
           if (intent.plan !== 'free' && canDashboardManageBilling(claims)) {
             const plan = await getDashboardBillingPlan();
@@ -278,13 +298,12 @@ export function DashboardLoginPage(): React.JSX.Element {
               // Only the plan page reads the intent after Stripe.
               if (PLAN_RETURN_PAGE === 'dashboard') {
                 await selectDashboardPlanContext();
-                clearPendingDashboardPlanIntent();
               }
               openPage(checkoutUrl);
               return;
             }
           }
-          if (PLAN_RETURN_PAGE === 'dashboard') {
+          if (PLAN_RETURN_PAGE === 'dashboard' && intent.plan === 'free') {
             setPreparingPlan('dashboard');
             clearPendingDashboardPlanIntent();
             openPage((await readDashboardOverviewHref()) ?? walletConsoleHref('/dashboard'));
@@ -294,6 +313,15 @@ export function DashboardLoginPage(): React.JSX.Element {
         } catch (error: unknown) {
           const message = error instanceof Error ? error.message : String(error);
           setErrorMessage(`Account setup failed: ${message}. Reload the page to try again.`);
+          // The plan page retains the intent and offers retry or Continue on Free.
+          if (
+            await fetchDashboardConsoleSession().then(
+              () => true,
+              () => false,
+            )
+          ) {
+            openPage('/dashboard/billing/plan?setup_failed=1');
+          }
         }
         setPreparingPlan(null);
         return;

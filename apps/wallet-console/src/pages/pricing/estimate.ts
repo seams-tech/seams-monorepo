@@ -4,6 +4,25 @@ import { PRICING_USD } from './prices';
    prices. Enterprise prices are negotiated, so its estimate applies only its
    published floors. */
 export const FREE_USERS = 300;
+export const USER_STEPS: readonly number[] = [
+  FREE_USERS,
+  500,
+  1_000,
+  2_500,
+  5_000,
+  10_000,
+  25_000,
+  50_000,
+  100_000,
+  250_000,
+  500_000,
+  1_000_000,
+  2_500_000,
+  5_000_000,
+  10_000_000,
+];
+export const MIN_PER_DAY = 1;
+export const MAX_PER_DAY = 50;
 const FREE_SIGNATURES = 30_000;
 const POOL_PER_USER = 300;
 const DAYS_PER_MONTH = 30;
@@ -49,12 +68,13 @@ export type Estimate = {
   total: number;
 };
 
-/* A month on the plan; zero while the app stays inside the Free plan. */
+export function isWithinFreePlan(users: number, perDay: number): boolean {
+  return users <= FREE_USERS && users * perDay * DAYS_PER_MONTH <= FREE_SIGNATURES;
+}
+
+/* A full month after this paid plan starts, including its base fee. */
 export function estimate(plan: PaidPlanId, users: number, perDay: number): Estimate {
   const signatures = users * perDay * DAYS_PER_MONTH;
-  if (users <= FREE_USERS && signatures <= FREE_SIGNATURES) {
-    return { signatures, base: 0, users: 0, overageSignatures: 0, overage: 0, total: 0 };
-  }
   const rates = RATES[plan];
   const userCost = Math.max(0, users - rates.includedUsers) * rates.perUser;
   const overageSignatures = Math.max(0, signatures - users * POOL_PER_USER);

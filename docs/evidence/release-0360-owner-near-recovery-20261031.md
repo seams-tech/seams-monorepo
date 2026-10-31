@@ -2,6 +2,8 @@
 
 Date: 2026-10-31
 
+Status: complete. Final live checks passed at 23:45 JST on October 31, 2026.
+
 ## Release scope
 
 Wallet SDK, Wallet Server, and VoiceID advance together to `0.36.0`.
@@ -41,8 +43,50 @@ without rebroadcast. It does not establish the reported deposit's on-chain outco
 ## Deployment status
 
 Publication and release validation succeeded. All three `0.36.0` package versions
-were verified in npm after its processing delay. Staging and production remain pending.
-Production follows successful staging validation.
+were verified in npm after its processing delay.
+
+- Isolated consumer revision: `adb02b115973136773ea59f8b4926f23953e5baa`.
+- Frozen installation and full private backend/frontend type checks passed against an archive of that exact revision.
+- [Staging deployment](https://github.com/seams-tech/seams-monorepo/actions/runs/41208660853) passed from that revision, including backend and Console readiness.
+- The staging host manifest returned HTTP 200 with package `0.36.0` and protocol `22.0.0`.
+- [Private repository validation](https://github.com/seams-tech/seams-monorepo/actions/runs/41208660598) passed for the same revision.
+- Production promotion revision: `b4787ea2f26bc00eedbe8464e95be7ef764ae6da`.
+- The promotion preserves the existing main-only commit. Its file tree is identical to verified staging: `10cb5e77650e42dfd7daff3abc8e614b958f9a23`.
+
+Production deployment status:
+
+- [Production testnet](https://github.com/seams-tech/seams-monorepo/actions/runs/41210007064): passed, including activation, backend/Console smoke checks, frontend deployment, and marketing acceptance.
+- [Production mainnet](https://github.com/seams-tech/seams-monorepo/actions/runs/41210009233): passed, including activation, readiness, frontend deployment, and marketing acceptance.
+- [Seams-hosted GetSignal runtime retry](https://github.com/seams-tech/seams-monorepo/actions/runs/41210485627): passed, including resource preflight, runtime deployment, activation, and readiness.
+
+Final independent verification:
+
+| Hosted assets | HTTP status | SDK | Iframe protocol |
+| --- | --- | --- | --- |
+| `staging.sign.seams.sh` | 200 | `0.36.0` | `22.0.0` |
+| `test.sign.seams.sh` | 200 | `0.36.0` | `22.0.0` |
+| `sign.seams.sh` | 200 | `0.36.0` | `22.0.0` |
+
+All 23 live readiness checks passed on their first attempt. They covered the
+staging, production-testnet, production-mainnet, and GetSignal Gateways, both
+signing protocol health endpoints, ceremony public keys, and the three public
+Console readiness endpoints. The generated local evidence is
+`.artifacts/sdk0360-final-readiness.json`.
+
+The initial GetSignal run `41210011649` stopped at its preflight. Its shared
+onboarding test omitted the browser `Origin` header on authenticated mutations.
+The production Console correctly rejected those requests with `origin_forbidden`.
+Classification: `valid_test_needs_update`. No production origin policy changed.
+
+Release successor `51c3bb589358e9a0943757f003a398320abb3bc4` changes only
+`tests/relayer/console-onboarding.scenario.ts`. The corrected Console service-auth
+E2E passed against the isolated release tree in 10.6 seconds. GetSignal deployed
+from this test-only successor; testnet and mainnet used `b4787ea2`.
+
+Initial runs `41209763047`, `41209765281`, and `41209767744` were accidentally
+dispatched against the previous main revision after the ancestry check failed.
+They were cancelled before deployment or migration commands ran. The corrected
+runs above use the verified promotion revision.
 
 Registry integrity values:
 
@@ -63,4 +107,8 @@ The deployment tree uses private base `346f9b58` plus the exact SDK consumer pin
 and this evidence record. Later billing commits `0e5d0001` and `60eed5e9` remain on
 local `dev` and are excluded from this rollout. Their companion SDK billing commit
 `cb81c010c` is also outside the published `0.36.0` revision.
+The consumer update is retained locally by `d6254c69` and merge `181ff4b9`.
+Remote `main` retains the deployed test-only successor. Final evidence is a
+documentation-only successor on remote `dev`. Do not promote local `HEAD`, which
+also contains the unrelated billing work.
 Existing recovery trust and signed revocation history remain unchanged.

@@ -82,5 +82,26 @@ The sample occurs five seconds after the heading appears. Reduced motion is enab
 Local and hosted transport differ. These are bounded lab observations, with no causal speed claim, field percentile, or Interaction to Next Paint result.
 
 Search Console was not configured at the start of this work, as confirmed by the user.
-Property verification and sitemap submission await the user's separate approval. Indexing coverage, search queries, organic attribution, and 28-day comparisons remain unavailable.
+The user approved verification and both sitemap submissions on October 31. Setup is complete as recorded below. Indexing coverage, search queries, organic attribution, and 28-day comparisons remain unavailable while Google processes the new property.
 The proposed landing pages remain gated on distinct demand and original content. Existing features link to the relevant public guides.
+
+## Search Console setup — October 31, 2026
+
+The URL-prefix property [https://wallet.seams.sh/](https://search.google.com/search-console?resource_id=https%3A%2F%2Fwallet.seams.sh%2F) is verified under the user's signed-in Google account.
+Google displayed **Ownership verified** with verification method **HTML tag**.
+Keep the `google-site-verification` tag in `apps/wallet-console/index.html` to retain ownership verification.
+
+The tag is committed on `dev` as `77c55737`. Its isolated production commit is `1bf2894d49ff24e240075b273b0dc5be91ac52db`, based on the deployed SEO revision.
+This promotion excludes subsequent pricing-funnel changes on `dev`.
+The [production verification-tag deployment](https://github.com/seams-tech/seams-monorepo/actions/runs/41194034963) passed build, smoke, and the existing marketing browser acceptance scenario.
+An independent HTTP request confirmed the tag in the production homepage.
+
+The [Search Console sitemap report](https://search.google.com/search-console/sitemaps?resource_id=https%3A%2F%2Fwallet.seams.sh%2F) shows both entries below:
+
+| Sitemap             | Submitted and last read | Status  | Discovered pages |
+| ------------------- | ----------------------- | ------- | ---------------- |
+| `/sitemap.xml`      | October 31, 2026        | Success | 6                |
+| `/docs/sitemap.xml` | October 31, 2026        | Success | 172              |
+
+Google's overview reports that performance and indexing data are processing. The discovered-page counts above establish successful sitemap processing. They do not establish that those pages are indexed.
+HTTP sitemap checks are retained in `output/playwright/wallet-marketing-seo/search-console/sitemap-http-checks.json` with the fetched XML files.

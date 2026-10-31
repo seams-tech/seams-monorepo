@@ -1,6 +1,6 @@
 # Wallet SEO implementation plan
 
-Status: the six-page SEO implementation is published to staging and production and passes deployed acceptance, October 31, 2026. Search Console setup and measurement remain open.
+Status: the six-page SEO implementation is published to staging and production and passes deployed acceptance, October 31, 2026. Search Console ownership is verified and both sitemaps are submitted. Search measurement awaits Google's processing.
 
 ## October 31 implementation
 
@@ -23,7 +23,7 @@ Three cold mobile lab observations per origin use a 390 × 844 viewport, 4× CPU
 
 ## Delivery record and remaining evidence gates
 
-- Search Console is not configured, confirmed by the user on October 31. Verify the property, submit the marketing and docs sitemaps, and retain the first indexing/query export. No search baseline or organic attribution is available yet.
+- Search Console setup is complete on October 31. The URL-prefix property `https://wallet.seams.sh/` is verified through the homepage HTML tag. Both `/sitemap.xml` (6 URLs) and `/docs/sitemap.xml` (172 URLs) show **Success**. Retain the verification tag in `apps/wallet-console/index.html`. Google is processing the indexing and performance reports, so a search baseline and organic attribution remain unavailable.
 - Publication is complete at `ce2e5e2576d9c62a84d718fa4f91dda097992041`. Both marketing workflows passed deployed acceptance with public docs `fafbd28d79102cdb996f6c89f226363fbd7efc0f`. Hosted Wallet settings exclusions also passed both deployments. See the [deployment evidence](evidence/wallet-marketing-seo-20261031.md).
 - The three proposed landing pages remain conditional on distinct search demand and sufficient original content. Evaluate them after Search Console provides a baseline. The existing features page already links to passkey, recovery, and hosting documentation.
 - Compare equal 28-day search periods after publication. Real-user Core Web Vitals and search growth remain unmeasured outcomes.

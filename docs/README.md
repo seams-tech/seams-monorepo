@@ -91,7 +91,7 @@ Staging documentation requests `noindex` through Pages headers. Console and
 marketing links use the configured docs origin. A 403 leaves live verification
 incomplete. A successful build does not establish what a deployed site serves.
 
-The current SDK target is **0.34.0**, with iframe protocol **21.0.0** and recovery CLI **0.29.0**.
+The current SDK target is **0.35.0**, with iframe protocol **21.0.0** and recovery CLI **0.29.0**.
 
 An earlier October 30, 2026 documentation refresh targeted SDK **0.28.0** and iframe protocol **18.0.0**.
 Public docs source `5193e12ab7359cc8f6607e8447dc5444e763c18a` passed its build and link checks.

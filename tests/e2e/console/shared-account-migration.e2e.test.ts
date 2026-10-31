@@ -1,4 +1,3 @@
-import { createSimulatedBillingProviderAdapters } from '../../../packages/console-server-ts/src/billing/providers';
 import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
@@ -21,13 +20,7 @@ import {
 import type { D1DatabaseLike, D1Row } from '../../../packages/console-server-ts/src/boundary/d1';
 import { createD1ConsoleOrgProjectService } from '../../../packages/console-server-ts/src/orgProjectEnv/d1';
 import { seedPreFundsWalletEnvironments } from '../../helpers/accountWalletProject.fixtures';
-import {
-  buildBillingUsageStatementId,
-  createD1BillingLedgerEntryInsertStatement,
-  createD1ConsoleBillingService,
-} from '../../../packages/console-server-ts/src/billing/d1';
 import { createD1ConsoleOrganizationAccessService } from '../../../packages/console-server-ts/src/teamRbac/d1';
-import { buildConsoleBillingInvoicePdf } from '../../../packages/console-server-ts/src/billing/pdf';
 
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
 const output = path.join(repository, '.artifacts/shared-account-platform/rehearsal');
@@ -108,82 +101,67 @@ async function seedSource(database: D1DatabaseLike): Promise<void> {
     projectId: 'native-project-b',
     createdAtMs: now().getTime(),
   });
-  const billing = await createD1ConsoleBillingService({
-    database,
-    namespace,
-    now,
-    providers: createSimulatedBillingProviderAdapters(),
-  });
-  await billing.grantManualSupportCredit(context, {
-    amountMinor: 2500,
-    reasonCode: 'migration_rehearsal',
-    note: 'Isolated acceptance funds',
-    idempotencyKey: 'rehearsal-credit',
-  });
-  const purchase = await billing.createStripeCheckoutSession(context, { creditPackId: 'usd_10' });
-  await billing.reconcileStripeCheckoutSession(context, { checkoutSessionId: purchase.id });
-  const replayedPurchase = await billing.reconcileStripeCheckoutSession(context, {
-    checkoutSessionId: purchase.id,
-  });
-  expect(replayedPurchase.settledNow).toBe(false);
-  const refund = await billing.createRefund(
-    { ...context, platformSupport: true },
-    {
-      purchaseId: purchase.purchaseId,
-      amountMinor: 200,
-      reason: 'Isolated migration refund',
-      idempotencyKey: 'rehearsal-refund',
-    },
-  );
-  expect(refund.refund.status).toBe('succeeded');
+  // Persist the historical schema directly. Current billing services require later migrations.
+  const timestamp = now().getTime();
   await database.batch([
     database
       .prepare(
-        `INSERT INTO billing_monthly_active_resources (namespace, org_id, month_utc, resource_id, source_event_id, created_at_ms)
-      VALUES (?, ?, '2026-10', 'shared-native-wallet', 'wallet-project-a-action', ?)`,
+        `INSERT INTO billing_accounts(namespace,org_id,created_at_ms,updated_at_ms)
+      VALUES(?,?,?,?)`,
       )
-      .bind(namespace, context.orgId, now().getTime()),
-    createD1BillingLedgerEntryInsertStatement(database, {
-      ingestedAtMs: Date.now(),
-      namespace,
-      orgId: context.orgId,
-      entryId: 'historical-monthly-wallet-debit',
-      type: 'USAGE_DEBIT',
-      amountMinor: -300,
-      description: 'Historical monthly active-resource debit',
-      monthUtc: '2026-10',
-      relatedInvoiceId: buildBillingUsageStatementId(context.orgId, '2026-10'),
-      relatedPurchaseId: null,
-      sourceEventId: 'wallet-project-a-action',
-      actorType: 'USER',
-      actorUserId: context.actorUserId,
-      reasonCode: 'usage_debit',
-      note: 'Source record before instance attribution',
-      idempotencyKey: 'usage_debit:wallet-project-a-action',
-      createdAtMs: now().getTime(),
-    }),
+      .bind(namespace, context.orgId, timestamp, timestamp),
+    database
+      .prepare(
+        `INSERT INTO billing_credit_purchases
+      (namespace,org_id,id,credit_pack_id,status,amount_minor,currency,provider,provider_checkout_session_ref,provider_customer_ref,provider_payment_ref,related_invoice_id,settled_at_ms,created_at_ms,updated_at_ms)
+      VALUES(?,?,'historical-purchase','usd_10','SETTLED',1000,'USD','stripe','cs_historical','cus_historical','pi_historical','receipt-historical',?,?,?)`,
+      )
+      .bind(namespace, context.orgId, timestamp, timestamp, timestamp),
+    database
+      .prepare(
+        `INSERT INTO billing_ledger_entries
+      (namespace,org_id,id,entry_type,amount_minor,currency,description,month_utc,actor_type,created_at_ms)
+      VALUES(?1,?2,'historical-credit','MANUAL_ADJUSTMENT',2500,'USD','Historical support credit','2026-10','SYSTEM',?3),
+      (?1,?2,'historical-purchase-entry','CREDIT_PURCHASE',1000,'USD','Historical purchase','2026-10','SYSTEM',?3),
+      (?1,?2,'historical-refund-entry','REFUND',-200,'USD','Historical refund','2026-10','SYSTEM',?3),
+      (?1,?2,'historical-monthly-wallet-debit','USAGE_DEBIT',-300,'USD','Historical monthly active-resource debit','2026-10','SYSTEM',?3),
+      (?1,?2,'historical-admin-debit','MANUAL_ADJUSTMENT',-3100,'USD','Historical admin debit','2026-10','SYSTEM',?3)`,
+      )
+      .bind(namespace, context.orgId, timestamp),
+    database
+      .prepare(
+        `INSERT INTO billing_refunds
+      (namespace,org_id,id,purchase_id,amount_minor,currency,reason,origin,requester_user_id,idempotency_key,status,provider_refund_id,journal_entry_id,created_at_ms,updated_at_ms)
+      VALUES(?,?,'historical-refund','historical-purchase',200,'USD','Migration rehearsal','console',?,'rehearsal-refund','succeeded','re_historical','historical-refund-entry',?,?)`,
+      )
+      .bind(namespace, context.orgId, context.actorUserId, timestamp, timestamp),
+    database
+      .prepare(
+        `INSERT INTO invoices(namespace,org_id,id,document_type,status,currency,amount_due_minor,amount_paid_minor,period_month_utc,created_at_ms)
+      VALUES(?,?,'receipt-historical','PURCHASE_RECEIPT','PAID','USD',1000,1000,'2026-10',?)`,
+      )
+      .bind(namespace, context.orgId, timestamp),
+    database
+      .prepare(
+        `INSERT INTO billing_monthly_active_resources(namespace,org_id,month_utc,resource_id,source_event_id,created_at_ms)
+      VALUES(?,?,'2026-10','shared-native-wallet','wallet-project-a-action',?)`,
+      )
+      .bind(namespace, context.orgId, timestamp),
     database
       .prepare(
         `INSERT INTO billing_prepaid_reservations
-      (namespace, org_id, id, environment_id, policy_id, source_event_id, requested_minor, posted_balance_minor, settled_minor, released_minor, status, tx_or_execution_ref, pricing_version, expires_at_ms, created_at_ms, updated_at_ms)
-      VALUES (?, ?, 'historical-open-reservation', 'native-project-a:dev', NULL, 'accepted-unfinished-execution', 75, 3000, 0, 0, 'RESERVED', NULL, NULL, ?, ?, ?)`,
+      (namespace,org_id,id,environment_id,policy_id,source_event_id,requested_minor,posted_balance_minor,settled_minor,released_minor,status,tx_or_execution_ref,pricing_version,expires_at_ms,created_at_ms,updated_at_ms)
+      VALUES(?,?,'historical-open-reservation','native-project-a:dev',NULL,'accepted-unfinished-execution',75,3000,0,0,'RESERVED',NULL,NULL,?,?,?)`,
       )
-      .bind(
-        namespace,
-        context.orgId,
-        Date.parse('2026-10-14T00:00:00.000Z'),
-        now().getTime(),
-        now().getTime(),
-      ),
+      .bind(namespace, context.orgId, Date.parse('2026-10-14T00:00:00.000Z'), timestamp, timestamp),
   ]);
-  // Existing metered or manual debits can exhaust the balance after admission.
-  await billing.appendManualAdminDebit(context, {
-    amountMinor: 3100,
-    reasonCode: 'migration_rehearsal',
-    note: 'Preserve a real outstanding obligation',
-    idempotencyKey: 'rehearsal-debit',
-  });
-  expect((await billing.getOverview(context)).creditBalanceMinor).toBe(-100);
+  const posted = await database
+    .prepare(
+      'SELECT SUM(amount_minor) AS balance FROM billing_ledger_entries WHERE namespace=? AND org_id=?',
+    )
+    .bind(namespace, context.orgId)
+    .first('balance');
+  expect(posted).toBe(-100);
 }
 
 async function snapshot(database: D1DatabaseLike): Promise<Record<string, readonly D1Row[]>> {
@@ -437,24 +415,6 @@ test('migration preflight preserves two native Wallet projects, money, holds, an
     let database = await sourceDatabase(worker);
     const migrations = await migrateSource(database);
     await seedSource(database);
-    const billing = await createD1ConsoleBillingService({
-      database,
-      namespace,
-      now,
-      providers: createSimulatedBillingProviderAdapters(),
-    });
-    const generated = await billing.generateMonthlyInvoice(context, { periodMonthUtc: '2026-10' });
-    if (!generated.invoice) throw new Error('Rehearsal statement is unavailable');
-    const lineItems = await billing.listInvoiceLineItems(context, generated.invoice.id);
-    await writeFile(
-      path.join(output, 'statement.pdf'),
-      buildConsoleBillingInvoicePdf({
-        orgId: context.orgId,
-        invoice: generated.invoice,
-        lineItems,
-        exportedAt: now(),
-      }),
-    );
     const before = await snapshot(database);
     const input = cohortInput(before);
     const cohort = accepted(AccountMigrationCohortV1.parse(input));
@@ -545,7 +505,6 @@ test('migration preflight preserves two native Wallet projects, money, holds, an
             unchangedSourceRows: true,
           },
           rejectedConflicts: conflicts,
-          billingDocument: 'statement.pdf',
           limitations: [
             'Satyr tenant checkpoint is synthetic',
             'No target schema or production cutover',

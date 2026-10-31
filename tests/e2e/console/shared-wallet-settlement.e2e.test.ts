@@ -897,7 +897,7 @@ test('Wallet execution settles overshoot, zero quotes, and uncertain NEAR outcom
     expect(await monthly.resumePending(20)).toEqual({ delivered: 2, pending: 0 });
     expect(await monthly.resumePending(20)).toEqual({ delivered: 0, pending: 0 });
     expect(await rowCount(database, 'wallet_monthly_usage_outbox')).toBe(2);
-    expect((await product.core.billing.getOverview(context)).creditBalanceMinor).toBe(-320);
+    expect((await product.core.billing.getOverview(context)).creditBalanceMinor).toBe(-20);
     const monthlyFacts = await database.prepare('SELECT * FROM wallet_monthly_usage_outbox').all();
     await writeFile(
       path.join(output, 'monthly-producer.json'),

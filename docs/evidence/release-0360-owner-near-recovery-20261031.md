@@ -16,9 +16,7 @@ The example preserves hashes after reload and prevents replacement of unresolved
 
 Update application SDKs and hosted Wallet assets together. Clients using an older
 iframe protocol require an SDK update before connecting to the new host.
-The customer application update needs its deployed source revision. The currently
-available `get-signal/signal-watch-analytics` wallet branch uses SDK `0.24.0` and
-does not contain the reported `0.34` owner-operation integration.
+The user excluded customer application source changes from this rollout.
 
 ## Source and verification
 
@@ -42,9 +40,17 @@ without rebroadcast. It does not establish the reported deposit's on-chain outco
 
 ## Deployment status
 
-Publication and deployment are pending. Record the exact package versions,
-consumer revision, deployment workflow results, and served host manifests below
-after verification. Production follows successful staging validation.
+Publication and release validation succeeded. All three `0.36.0` package versions
+were verified in npm after its processing delay. Staging and production remain pending.
+Production follows successful staging validation.
+
+Registry integrity values:
+
+| Package | SHA-512 integrity |
+| --- | --- |
+| `@seams/wallet` | `sha512-Pab6ho+V24Vr7gg+8v7oxA1/Gixv8oFWNWtFHgkeOm68C3D8PUZTgmKTlo3BPcVZmbAwOSse/bD7HgMmqrWN7Q==` |
+| `@seams/wallet-server` | `sha512-qoMPm9FOM6UKe5oBgLPxX+cV9spAlVDaa6KLBhAp8g2MgpNv0HOmNCWO1T1XyRsVavwG4uLya38gzXjfciLxHg==` |
+| `@seams/voiceid` | `sha512-ieQFQMmLfrJzC4qJQLQil+plHaxlQ8yYKc6JwipsXegpKqdioS02IxlNt92aF2hxFsT5k3TcH1ZnQ6Qz7JoaeQ==` |
 
 Before rollout, all three host manifests returned HTTP 200 with package `0.35.0`
 and iframe protocol `21.0.0`:
@@ -53,5 +59,8 @@ and iframe protocol `21.0.0`:
 - `https://test.sign.seams.sh/wallet-assets.manifest.json`
 - `https://sign.seams.sh/wallet-assets.manifest.json`
 
-Active uncommitted billing and session work is excluded from the release revisions.
+The deployment tree uses private base `346f9b58` plus the exact SDK consumer pins
+and this evidence record. Later billing commits `0e5d0001` and `60eed5e9` remain on
+local `dev` and are excluded from this rollout. Their companion SDK billing commit
+`cb81c010c` is also outside the published `0.36.0` revision.
 Existing recovery trust and signed revocation history remain unchanged.

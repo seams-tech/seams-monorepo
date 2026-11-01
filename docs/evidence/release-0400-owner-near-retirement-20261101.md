@@ -47,7 +47,9 @@ The deployed NEAR owner-operation runtime asset matched the published Wallet pac
 Both documentation sites report the public release revision.
 
 The staging and mainnet recovery trust bundles, signed revocation snapshots, and Console recovery certificates matched the current signed trust artifacts, protected GitHub inputs, and live Worker bindings before and after rollout.
-Legacy lane deployment backup files contain earlier trust values. The rollout did not use them. Update those backup copies before any recovery-trust restoration exercise.
+The local backups `~/.seams/staging-deployment.env` and `~/.seams/production-deployment.env` held the current trust bundle and snapshot throughout the rollout. The rollout did not use them.
+This record first said that those backups held earlier values. That statement was wrong. The files stored the values as double-quoted JSON with escaped quotes, and Node `parseEnv` read each value as `{\`.
+After the rollout, those two fields were rewritten with single quotes so that `parseEnv` reads them. The values did not change, and no other line in the files changed.
 
 Live-chain retirement remains unverified because the first expiry requires about 25 hours.
 The contract scenario uses real MPC signatures and a passkey with controlled RPC responses.

@@ -10,16 +10,7 @@ type Pt = readonly [number, number];
 /* in parts of the radius: x, y, brush width */
 type Mark = readonly [number, number, number];
 
-type KiteShape =
-  | 'diamond'
-  | 'wing'
-  | 'almond'
-  | 'edo'
-  | 'flower'
-  | 'delta'
-  | 'hex'
-  | 'butterfly'
-  | 'round';
+type KiteShape = 'diamond' | 'almond' | 'edo' | 'delta' | 'hex' | 'butterfly' | 'round';
 type KiteTail = 'ties' | 'long' | 'ribbons' | 'tassel' | 'none';
 
 type KiteString = {
@@ -234,44 +225,6 @@ function drawShape(shape: KiteShape, color: InkColor, pen: KitePen): Drawn {
         logo: [0, -0.2],
         logoSize: 0.74,
       };
-    case 'wing': {
-      const R = 1.14;
-      const on = (angle: number, radius = R): Pt => [
-        Math.sin(angle) * radius,
-        0.72 - Math.cos(angle) * radius,
-      ];
-      const spine = Array.from({ length: 9 }, (_, i): Mark => {
-        const angle = -1.56 + (i / 8) * 3.12;
-        const [px, py] = on(angle);
-        return [px, py, 0.1 + 1.18 * Math.pow(Math.cos((angle / 1.56) * (Math.PI / 2)), 0.72)];
-      });
-      const layer = (angle: number): InkStroke => {
-        const [ax, ay] = on(angle - 0.08, R - 0.36);
-        const [bx, by] = on(angle + 0.04, R);
-        const [ex, ey] = on(angle + 0.14, R + 0.36);
-        return cut([
-          [ax, ay, 1.2],
-          [bx, by, 3.2],
-          [ex, ey, 1.2],
-        ]);
-      };
-      const knot: Pt = [0, 1.26];
-      return {
-        strokes: [
-          mass(spine, color),
-          layer(-1.14),
-          layer(-0.84),
-          layer(0.84),
-          layer(1.14),
-          opening(0, -0.4, 0.54),
-          ...bridle(on(-1.5), on(1.5), knot),
-        ],
-        bottom: knot,
-        knot,
-        logo: [0, -0.4],
-        logoSize: 0.7,
-      };
-    }
     case 'almond': {
       const hem = (x: number): number => -0.1 + x * x * 0.26;
       const knot: Pt = [0, 1.12];
@@ -343,23 +296,6 @@ function drawShape(shape: KiteShape, color: InkColor, pen: KitePen): Drawn {
         knot,
         logo: [0, 0],
         logoSize: 0.76,
-      };
-    }
-    case 'flower': {
-      const petals = Array.from({ length: 8 }, (_, i): Pt => {
-        const angle = (i / 8) * TURN + 0.2;
-        return [Math.sin(angle) * 0.88, -Math.cos(angle) * 0.88];
-      });
-      return {
-        strokes: [
-          ...petals.map(([px, py]) => dab(px, py, 0.4, color)),
-          dab(0, 0, 0.84, color),
-          opening(0, 0, 0.6),
-        ],
-        bottom: [0, 1.24],
-        knot: [0, 1.24],
-        logo: [0, 0],
-        logoSize: 0.8,
       };
     }
     case 'delta': {
@@ -656,8 +592,8 @@ export const wideKites: KiteLayout = layout(
   [
     [
       'airtable',
-      150,
-      176,
+      171,
+      241,
       {
         shape: 'diamond',
         color: 'ink',
@@ -669,8 +605,8 @@ export const wideKites: KiteLayout = layout(
     ],
     [
       'googledrive',
-      360,
-      170,
+      262,
+      74,
       {
         shape: 'almond',
         color: 'ink',
@@ -682,10 +618,10 @@ export const wideKites: KiteLayout = layout(
     ],
     [
       'gmail',
-      542,
-      92,
+      356,
+      209,
       {
-        shape: 'wing',
+        shape: 'delta',
         color: 'gold',
         size: 1.04,
         tail: 'ties',
@@ -695,8 +631,8 @@ export const wideKites: KiteLayout = layout(
     ],
     [
       'notion',
-      750,
-      76,
+      478,
+      74,
       {
         shape: 'hex',
         color: 'ink',
@@ -708,11 +644,11 @@ export const wideKites: KiteLayout = layout(
     ],
     [
       'slack',
-      940,
-      84,
+      494,
+      240,
       {
-        shape: 'flower',
-        color: 'gold',
+        shape: 'edo',
+        color: 'ink',
         size: 0.92,
         tail: 'long',
         lean: 0.1,
@@ -721,8 +657,8 @@ export const wideKites: KiteLayout = layout(
     ],
     [
       'dropbox',
-      866,
-      240,
+      831,
+      74,
       {
         shape: 'butterfly',
         color: 'ink',
@@ -734,21 +670,21 @@ export const wideKites: KiteLayout = layout(
     ],
     [
       'shopify',
-      1132,
-      196,
+      632,
+      302,
       {
-        shape: 'edo',
+        shape: 'round',
         color: 'ink',
-        size: 0.94,
-        tail: 'tassel',
+        size: 0.82,
+        tail: 'none',
         lean: 0.22,
         line: { width: 2, dry: 0.3, slack: 0.03, wander: 2 },
       },
     ],
     [
       'stripe',
-      1318,
-      250,
+      1296,
+      140,
       {
         shape: 'delta',
         color: 'ink',
@@ -760,10 +696,10 @@ export const wideKites: KiteLayout = layout(
     ],
     [
       'onepassword',
-      1012,
-      420,
+      884,
+      350,
       {
-        shape: 'round',
+        shape: 'hex',
         color: 'ink',
         size: 0.8,
         tail: 'ribbons',
@@ -773,8 +709,8 @@ export const wideKites: KiteLayout = layout(
     ],
     [
       'square',
-      1262,
-      462,
+      1310,
+      450,
       {
         shape: 'diamond',
         color: 'gold',
@@ -789,7 +725,7 @@ export const wideKites: KiteLayout = layout(
     ...placed(partsNamed(goatScene, 'behind-'), 1, -40, 56),
     ...placed(partsNamed(goatScene, 'under-a'), 1, 180, 56),
     ...placed(partsNamed(goatScene, 'under-b'), 1, 620, 56),
-    ...placed(bird, 1, 1030, 366),
+    ...placed(bird, 1, 1000, 260),
   ],
 );
 
@@ -802,10 +738,10 @@ export const narrowKites: KiteLayout = layout(
   [
     [
       'gmail',
-      120,
-      190,
+      99,
+      309,
       {
-        shape: 'wing',
+        shape: 'delta',
         color: 'gold',
         size: 0.94,
         tail: 'none',
@@ -815,11 +751,11 @@ export const narrowKites: KiteLayout = layout(
     ],
     [
       'slack',
-      262,
-      104,
+      220,
+      78,
       {
-        shape: 'flower',
-        color: 'gold',
+        shape: 'almond',
+        color: 'ink',
         size: 0.8,
         tail: 'ties',
         lean: 0.12,
@@ -828,8 +764,8 @@ export const narrowKites: KiteLayout = layout(
     ],
     [
       'shopify',
-      412,
-      84,
+      265,
+      297,
       {
         shape: 'edo',
         color: 'ink',
@@ -841,8 +777,8 @@ export const narrowKites: KiteLayout = layout(
     ],
     [
       'stripe',
-      548,
-      116,
+      508,
+      173,
       {
         shape: 'diamond',
         color: 'ink',
@@ -854,8 +790,8 @@ export const narrowKites: KiteLayout = layout(
     ],
     [
       'square',
-      510,
-      336,
+      386,
+      435,
       {
         shape: 'hex',
         color: 'ink',
@@ -868,7 +804,7 @@ export const narrowKites: KiteLayout = layout(
     [
       'notion',
       546,
-      496,
+      488,
       {
         shape: 'butterfly',
         color: 'ink',

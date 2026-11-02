@@ -2784,12 +2784,12 @@ body:has(.h2-page) {
   }
 }
 
-/* integrations field: the ink drawing with logos and gold grains on top of it */
-.h2-field {
+/* a connected tools drawing: the ink with a layer of logos on top of it */
+.h2-ink-tools {
   position: relative;
 }
 
-.h2-field__layer {
+.h2-ink-tools__layer {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2798,28 +2798,28 @@ body:has(.h2-page) {
   pointer-events: none;
 }
 
-.h2-field.is-resting .h2-ink__move {
+.h2-ink-tools.is-resting .h2-ink__move {
   animation-play-state: paused;
 }
 
-/* each logo appears after the brush has drawn its stalk */
-.h2-field__logo {
+/* each logo appears after the brush has drawn what holds it */
+.h2-ink-tools__logo {
   opacity: 0;
 }
 
-.h2-field.is-awake .h2-field__logo {
-  animation: h2-field-logo 420ms ease-out forwards;
+.h2-ink-tools.is-awake .h2-ink-tools__logo {
+  animation: h2-ink-tools-logo 420ms ease-out forwards;
 }
 
-@keyframes h2-field-logo {
+@keyframes h2-ink-tools-logo {
   to {
     opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .h2-field__logo,
-  .h2-field.is-awake .h2-field__logo {
+  .h2-ink-tools__logo,
+  .h2-ink-tools.is-awake .h2-ink-tools__logo {
     opacity: 1;
     animation: none;
   }

@@ -390,7 +390,12 @@ function BannerSection({
 export function H2Ecosystem({
   drawing,
   tools,
-}: { drawing?: React.ReactNode; tools?: React.ReactNode } = {}): React.JSX.Element {
+  linkToSatyr = true,
+}: {
+  drawing?: React.ReactNode;
+  tools?: React.ReactNode;
+  linkToSatyr?: boolean;
+} = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const satyrProps = linkProps('/ecommerce');
 
@@ -404,18 +409,18 @@ export function H2Ecosystem({
         title="Connects to the tools a café already uses"
         sub="Slack, Gmail, Shopify, Square, Stripe and your files. Each connection has its own access, and you can disconnect it at any time."
       >
-        <a className="h2-btn h2-btn--outline" href={satyrProps.href} onClick={satyrProps.onClick}>
-          Explore Satyr
-          <ArrowRightAnim size={12} />
-        </a>
+        {linkToSatyr ? (
+          <a className="h2-btn h2-btn--outline" href={satyrProps.href} onClick={satyrProps.onClick}>
+            Explore Satyr
+            <ArrowRightAnim size={12} />
+          </a>
+        ) : null}
       </BannerSection>
       <section
         className="h2-section h2-section--band h2-section--flush-bottom h2-rule"
         aria-labelledby="h2-eco-title"
       >
-        <div className="h2-shell">
-          {tools}
-        </div>
+        <div className="h2-shell">{tools}</div>
       </section>
     </>
   );

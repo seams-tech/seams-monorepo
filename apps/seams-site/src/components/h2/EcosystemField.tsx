@@ -71,7 +71,7 @@ function StalkLogo({
   const k = stalk.logoSize / Math.max(vw, vh);
   return (
     <Swayed motions={stalk.motions} base={stalk.base}>
-      <g className="h2-field__logo" style={{ animationDelay: `${1.6 + order * 0.3}s` }}>
+      <g className="h2-ink-tools__logo" style={{ animationDelay: `${1.6 + order * 0.3}s` }}>
         <g
           transform={`translate(${stalk.x} ${stalk.y}) scale(${k}) translate(${-vx - vw / 2} ${-vy - vh / 2})`}
           filter="url(#h2-field-rough)"
@@ -137,13 +137,13 @@ export function EcosystemField(): React.JSX.Element {
   return (
     <div
       ref={rootRef}
-      className={`h2-field${resting ? ' is-resting' : ''}${awake ? ' is-awake' : ''}`}
+      className={`h2-ink-tools${resting ? ' is-resting' : ''}${awake ? ' is-awake' : ''}`}
       role="img"
       aria-label={label}
     >
       <InkDrawing key={narrow ? 'narrow' : 'wide'} scene={scene} />
       <svg
-        className="h2-field__layer"
+        className="h2-ink-tools__layer"
         viewBox={`0 0 ${scene.width} ${scene.height}`}
         aria-hidden
         focusable="false"

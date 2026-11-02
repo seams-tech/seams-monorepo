@@ -23,6 +23,8 @@ import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
+import { InkDrawing } from '@/components/h2/ink/InkScene';
+import { keyScene, wireScene, type InkScene } from '@/components/h2/ink/scenes';
 import { EcosystemAccessList } from '@/components/h2/EcosystemAccessList';
 import { PortalShot, type PortalShotName } from '@/components/h2/SceneHero';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
@@ -344,6 +346,7 @@ function BannerSection({
   id,
   anchor,
   field,
+  scene,
   title,
   sub,
   children,
@@ -352,21 +355,34 @@ function BannerSection({
   /* the fragment that links to this band, e.g. /ecommerce#kitchen */
   anchor?: string;
   field: GrainFieldName;
+  /* a drawing on paper in place of the gradient field: the home page banners */
+  scene?: InkScene;
   title: string;
   sub?: string;
   children?: React.ReactNode;
 }): React.JSX.Element {
+  const content = (
+    <>
+      <div>
+        <h2 id={id} className="h2-display h2-banner__title">
+          {title}
+        </h2>
+        {sub ? <p className="h2-banner__sub">{sub}</p> : null}
+      </div>
+      {children ? <div className="h2-banner__actions">{children}</div> : null}
+    </>
+  );
+
   return (
     <section id={anchor} className="h2-section h2-section--banner h2-rule" aria-labelledby={id}>
-      <FieldBanner field={field}>
-        <div>
-          <h2 id={id} className="h2-display h2-banner__title">
-            {title}
-          </h2>
-          {sub ? <p className="h2-banner__sub">{sub}</p> : null}
+      {scene ? (
+        <div className="h2-banner h2-banner--ink">
+          <InkDrawing scene={scene} className="h2-ink--banner" />
+          {content}
         </div>
-        {children ? <div className="h2-banner__actions">{children}</div> : null}
-      </FieldBanner>
+      ) : (
+        <FieldBanner field={field}>{content}</FieldBanner>
+      )}
     </section>
   );
 }
@@ -383,6 +399,7 @@ export function H2Ecosystem(): React.JSX.Element {
         id="h2-eco-title"
         anchor="integrations"
         field="teal-peach"
+        scene={wireScene}
         title="Connects to the tools a café already uses"
         sub="Slack, Gmail, Shopify, Square, Stripe and your files. Each connection has its own access, and you can disconnect it at any time."
       >
@@ -586,7 +603,10 @@ const pillars: Pillar[] = [
   },
 ];
 
-export function H2Pillars({ link = true }: { link?: boolean } = {}): React.JSX.Element {
+export function H2Pillars({
+  link = true,
+  scene,
+}: { link?: boolean; scene?: InkScene } = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const satyrProps = linkProps('/ecommerce');
   const [active, setActive] = React.useState(0);
@@ -598,6 +618,7 @@ export function H2Pillars({ link = true }: { link?: boolean } = {}): React.JSX.E
         id="h2-pillars-title"
         anchor="suite"
         field="azure-coral"
+        scene={scene}
         title="One suite for the whole business"
         sub="The online shop, the inbox and the kitchen work from the same orders."
       >
@@ -958,6 +979,7 @@ export function H2WalletBand(): React.JSX.Element {
     <BannerSection
       id="h2-wallet-title"
       field="teal-peach"
+      scene={keyScene}
       title="Also from Seams: Seams Wallet"
       sub="A stablecoin wallet that opens with a passkey. Keys are split between the device and the server, so neither side can sign alone."
     >
@@ -1579,8 +1601,8 @@ export function H2Duo(): React.JSX.Element {
             From the shop to the oven
           </h2>
           <p className="h2-duo__copy">
-            Satyr runs the sales side of the business, and Satyr Kitchen plans what you bake.
-            Both work from the same orders.
+            Satyr runs the sales side of the business, and Satyr Kitchen plans what you bake. Both
+            work from the same orders.
           </p>
         </div>
         <div className="h2-duo__grid">
@@ -2027,14 +2049,26 @@ const ctaCopy = {
   }
 >;
 
-export function H2Cta({ audience }: { audience: keyof typeof ctaCopy }): React.JSX.Element {
+export function H2Cta({
+  audience,
+  scene,
+}: {
+  audience: keyof typeof ctaCopy;
+  scene?: InkScene;
+}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const copy = ctaCopy[audience];
   const secondaryProps = linkProps(copy.secondary.to);
   const primaryProps = linkProps(copy.primary.to);
 
   return (
-    <BannerSection id="h2-cta-title" field={copy.field} title={copy.title} sub={copy.sub}>
+    <BannerSection
+      id="h2-cta-title"
+      field={copy.field}
+      scene={scene}
+      title={copy.title}
+      sub={copy.sub}
+    >
       <a
         className="h2-btn h2-btn--outline"
         href={secondaryProps.href}

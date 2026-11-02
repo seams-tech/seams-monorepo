@@ -1,0 +1,241 @@
+/* The home page ink drawings. The hero and the home banners are paper instead
+   of the gradient field. The hero drawing sits behind the shop feed card, so the
+   kite line runs behind the live feed. */
+
+.h2-ink {
+  position: relative;
+  width: 100%;
+  pointer-events: none;
+}
+
+.h2-ink__stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.h2-ink__part {
+  position: absolute;
+  display: block;
+}
+
+.h2-ink__move {
+  position: absolute;
+  inset: 0;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.h2-ink.is-resting .h2-ink__move {
+  animation-play-state: paused;
+}
+
+.h2-ink__move--sway {
+  animation-name: h2-ink-sway;
+}
+
+.h2-ink__move--bob {
+  animation-name: h2-ink-bob;
+}
+
+.h2-ink__move--drift {
+  animation-name: h2-ink-drift;
+}
+
+.h2-ink__move--flap {
+  animation-name: h2-ink-flap;
+}
+
+@keyframes h2-ink-sway {
+  from {
+    transform: rotate(calc(var(--ink-a) * -1));
+  }
+  to {
+    transform: rotate(var(--ink-a));
+  }
+}
+
+@keyframes h2-ink-bob {
+  from {
+    transform: translateY(calc(var(--ink-a) * -1));
+  }
+  to {
+    transform: translateY(var(--ink-a));
+  }
+}
+
+@keyframes h2-ink-drift {
+  from {
+    transform: translate(calc(var(--ink-a) * -1), 3px);
+  }
+  to {
+    transform: translate(var(--ink-a), -3px);
+  }
+}
+
+@keyframes h2-ink-flap {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(var(--ink-a));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h2-ink__move {
+    animation: none;
+  }
+}
+
+/* ---------- hero: paper, ink type and the kite ---------- */
+
+.h2-hero-simple--ink > .h2-shell {
+  background-color: #faf8f3;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .28 0 0 0 0 .22 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23p)'/%3E%3C/svg%3E");
+  /* room over the card for the kite, and under it for the ground */
+  padding-top: 128px;
+  padding-bottom: 84px;
+}
+
+.h2-hero-simple--ink .h2-hero-simple__copy,
+.h2-hero-simple--ink .h2-ops {
+  position: relative;
+  z-index: 1;
+}
+
+.h2-hero-simple--ink .h2-hero-simple__title {
+  color: var(--h2-ink);
+  text-shadow: none;
+}
+
+.h2-hero-simple--ink .h2-hero-simple__title-muted {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.h2-hero-simple--ink .h2-hero-simple__sub {
+  max-width: 31em;
+  color: var(--h2-graphite);
+  text-shadow: none;
+}
+
+.h2-hero-simple--ink .h2-btn--outline {
+  border-color: rgba(10, 10, 10, 0.14);
+}
+
+.h2-ink--hero {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 760px;
+}
+
+@media (max-width: 1000px) {
+  /* the card no longer hides the middle of the drawing, so it takes its own row */
+  .h2-hero-simple--ink .h2-hero-simple__copy {
+    order: 1;
+  }
+
+  .h2-ink--hero {
+    order: 2;
+    position: relative;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    max-width: 560px;
+    margin: -24px 0 -8px auto;
+  }
+
+  .h2-hero-simple--ink .h2-ops {
+    order: 3;
+  }
+
+  .h2-hero-simple--ink > .h2-shell {
+    padding-bottom: 28px;
+  }
+}
+
+@media (max-width: 560px) {
+  .h2-hero-simple--ink > .h2-shell {
+    padding-bottom: 16px;
+  }
+}
+
+/* ---------- banners: paper, and sparrows between the copy and the actions ---------- */
+
+.h2-banner--ink {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: #faf8f3;
+}
+
+.h2-banner--ink > :not(.h2-ink) {
+  position: relative;
+  z-index: 1;
+}
+
+.h2-banner--ink .h2-banner__title,
+.h2-banner--ink .h2-banner__sub {
+  max-width: 500px;
+}
+
+.h2-ink--banner {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 620px;
+}
+
+@media (max-width: 1040px) {
+  .h2-ink--banner {
+    width: 480px;
+  }
+
+  .h2-banner--ink .h2-banner__title,
+  .h2-banner--ink .h2-banner__sub {
+    max-width: 380px;
+  }
+
+  /* two buttons take more room, so the drawing moves in beside them */
+  .h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--banner {
+    right: 130px;
+    width: 380px;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 900px) {
+  .h2-ink--banner {
+    width: 360px;
+  }
+
+  .h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--banner {
+    display: none;
+  }
+}
+
+/* the actions drop under the copy, so the drawing takes its own row under them */
+@media (max-width: 760px) {
+  .h2-banner--ink {
+    padding-bottom: 0;
+  }
+
+  .h2-banner--ink .h2-banner__title,
+  .h2-banner--ink .h2-banner__sub {
+    max-width: none;
+  }
+
+  .h2-banner--ink .h2-ink--banner,
+  .h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--banner {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    order: 3;
+    width: calc(100% + 24px);
+    max-width: 480px;
+    margin: -8px -24px 0 auto;
+    align-self: flex-end;
+  }
+}

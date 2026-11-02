@@ -1,6 +1,8 @@
 import React from 'react';
 import { Activity, ChevronLeft, ChevronRight, Croissant, Inbox, Slack, Store } from 'lucide-react';
-import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
+import { type GrainFieldName } from '@seams-internal/grain-field';
+import { InkDrawing } from '@/components/h2/ink/InkScene';
+import { carryScene, goatScene, stalkScene } from '@/components/h2/ink/scenes';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { IntegrationsWindow, PortalShot } from '@/components/h2/SceneHero';
 import { ShopOpsFeed } from '@/components/h2/ShopOpsFeed';
@@ -18,22 +20,12 @@ import '@/styles/h2.css';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* Umbrella front page, led by Satyr: a simple headline over a café's live
-   feed, then a paged two-panel scene band (Satyr's views at the left,
+   feed on paper, where a baby goat flies a croissant kite, then a paged two-panel scene band (Satyr's views at the left,
    Satyr Kitchen at the right), the shop-to-oven split, the suite, and one band
    for Seams Wallet. The Satyr and Satyr Kitchen scenes are real Portal screens;
    the Slack scene is an HTML mock. */
 
 /* ---------- hero: headline + paged scenes ---------- */
-
-/* The headline panel is teal-peach in a wisp shape: pink-peach wisps
-   cross cerulean on a diagonal above the headline, over a deeper blue at
-   the lower left. */
-const HOME_HERO_FIELD = 'teal-peach-wisp';
-
-/* half the site pace and flow, so the field stays calm behind the headline
-   and the wisps keep their shape */
-const HOME_HERO_FIELD_PACE = 0.5;
-const HOME_HERO_FIELD_FLOW = 0.5;
 
 type HeroScene = {
   id: string;
@@ -107,13 +99,12 @@ function HomeHeroCurrent(): React.JSX.Element {
 
   return (
     <>
-      <header className="h2-hero-simple h2-hero-simple--panel" aria-labelledby="h2-home-title">
+      <header
+        className="h2-hero-simple h2-hero-simple--panel h2-hero-simple--ink"
+        aria-labelledby="h2-home-title"
+      >
         <div className="h2-shell">
-          <GrainField
-            field={HOME_HERO_FIELD}
-            flow={HOME_HERO_FIELD_FLOW}
-            pace={HOME_HERO_FIELD_PACE}
-          />
+          <InkDrawing scene={goatScene} className="h2-ink--hero" />
           <div className="h2-hero-simple__copy">
             <h1 id="h2-home-title" className="h2-display h2-hero-simple__title">
               <span>Ecommerce on autopilot.</span>{' '}
@@ -235,9 +226,9 @@ export function HomePage(): React.JSX.Element {
         <HomeHeroCurrent />
         <H2Duo />
         <H2Ecosystem />
-        <H2Pillars />
+        <H2Pillars scene={stalkScene} />
         <H2WalletBand />
-        <H2Cta audience="home" />
+        <H2Cta audience="home" scene={carryScene} />
         <H2Footer faq="home" />
       </div>
     </div>

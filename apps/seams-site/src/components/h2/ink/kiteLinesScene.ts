@@ -66,9 +66,11 @@ function kiteParts(hold: Pt, tool: string, x: number, y: number, r: number, seco
   const tailC = at(-r * 0.12, r * 2.36);
 
   /* a slack line, drawn close to the curve that the gold dot follows */
+  const length = Math.hypot(hold[0] - knot[0], hold[1] - knot[1]);
+  /* slack in proportion to length, so that lines from one point keep apart */
   const slack: Pt = [
     (hold[0] + knot[0]) / 2 + (hold[0] - knot[0]) * 0.06,
-    (hold[1] + knot[1]) / 2 + 22,
+    (hold[1] + knot[1]) / 2 + length * 0.03,
   ];
   const onLine = (t: number): Pt => {
     const u = 1 - t;
@@ -190,22 +192,22 @@ export const wideKites: KiteLayout = layout(
   50,
   50,
   [
-    ['googledrive', 360, 210],
-    ['gmail', 517, 114],
-    ['notion', 708, 150],
-    ['slack', 897, 68],
-    ['airtable', 1029, 265],
-    ['dropbox', 1085, 68],
-    ['onepassword', 948, 418],
-    ['stripe', 1222, 252],
-    ['shopify', 1318, 68],
-    ['square', 1296, 448],
+    ['googledrive', 360, 190],
+    ['gmail', 542, 96],
+    ['notion', 750, 76],
+    ['slack', 915, 76],
+    ['dropbox', 884, 226],
+    ['shopify', 1125, 205],
+    ['airtable', 150, 196],
+    ['stripe', 1340, 262],
+    ['onepassword', 1012, 432],
+    ['square', 1262, 474],
   ],
   [
     ...placed(partsNamed(goatScene, 'behind-'), 1, -40, 56),
     ...placed(partsNamed(goatScene, 'under-a'), 1, 180, 56),
     ...placed(partsNamed(goatScene, 'under-b'), 1, 620, 56),
-    ...placed(bird, 1, 66, 60),
+    ...placed(bird, 1, 1030, 366),
   ],
 );
 

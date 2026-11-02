@@ -2,23 +2,25 @@ import type { InkColor, InkPoint, InkStroke } from './brush';
 import { goatScene, wireScene, type InkMotion, type InkPart, type InkScene } from './scenes';
 
 /* The integrations drawing: the kid from the hero holds one kite line to each
-   tool. Every kite has its own angle from the mouth, so no two lines cross, and
-   each is its own toy: painted panels, dots, scallops, a flower, a butterfly,
-   with bows on its tail and a string of its own. */
+   tool. Every kite has its own angle from the mouth, so no two lines cross. The
+   kites are painted as the goat and the croissant are: a few fat strokes with
+   torn edges, shapes cut out of them, and thin dry lines to tie them on. */
 
 type Pt = readonly [number, number];
+/* in parts of the radius: x, y, brush width */
+type Mark = readonly [number, number, number];
 
 type KiteShape =
   | 'diamond'
   | 'wing'
-  | 'bonnet'
+  | 'almond'
   | 'edo'
   | 'flower'
-  | 'scallop'
+  | 'delta'
   | 'hex'
   | 'butterfly'
   | 'round';
-type KiteTail = 'bows' | 'loop' | 'ribbons' | 'tassel' | 'none';
+type KiteTail = 'ties' | 'long' | 'ribbons' | 'tassel' | 'none';
 
 type KiteString = {
   readonly width: number;
@@ -28,13 +30,11 @@ type KiteString = {
   readonly slack: number;
   /* a loose line wanders this many scene units from its curve */
   readonly wander?: number;
-  /* the line turns once around itself here, from 0 at the kite to 1 at the goat */
-  readonly curlAt?: number;
-  readonly color?: InkColor;
 };
 
 type KiteLook = {
   readonly shape: KiteShape;
+  readonly color: InkColor;
   /* the size of this kite against the others */
   readonly size: number;
   readonly tail: KiteTail;
@@ -84,156 +84,79 @@ function partsNamed(scene: InkScene, prefix: string): readonly InkPart[] {
   return scene.parts.filter((part) => part.id.startsWith(prefix));
 }
 
-/* the left and right edge of an outline at one height */
-function spanAt(points: readonly Pt[], y: number): readonly [number, number] {
-  let left = Infinity;
-  let right = -Infinity;
-  points.forEach((a, index) => {
-    const b = points[(index + 1) % points.length] as Pt;
-    if ((a[1] - y) * (b[1] - y) > 0) return;
-    const t = a[1] === b[1] ? 0 : (y - a[1]) / (b[1] - a[1]);
-    const x = a[0] + (b[0] - a[0]) * t;
-    left = Math.min(left, x);
-    right = Math.max(right, x);
-  });
-  return [left, right];
-}
-
-function arc(
-  cx: number,
-  cy: number,
-  rx: number,
-  ry: number,
-  from: number,
-  to: number,
-  n = 10,
-): Pt[] {
-  return Array.from({ length: n + 1 }, (_, i): Pt => {
-    const angle = from + ((to - from) * i) / n;
-    return [cx + Math.cos(angle) * rx, cy + Math.sin(angle) * ry];
-  });
-}
-
 const TURN = Math.PI * 2;
 
-/* The brush for one kite: everything in parts of the radius, y pointing down,
-   leaning with the kite. */
+/* The brush for one kite, leaning with it. */
 function kitePen(x: number, y: number, r: number, lean: number) {
   const cos = Math.cos(lean);
   const sin = Math.sin(lean);
+  /* line widths grow with the kite, so a phone kite has the same hand */
+  const hand = r / 50;
   const at = (px: number, py: number): Pt => [
     x + (px * cos - py * sin) * r,
     y + (px * sin + py * cos) * r,
   ];
-  const line = (points: readonly Pt[], width = 1.1, dry = 0.2, color?: InkColor): InkStroke => ({
-    pts: points.map(([px, py]): InkPoint => [...at(px, py), width]),
+  const marks = (list: readonly Mark[], unit: number): InkPoint[] =>
+    list.map(([px, py, w]): InkPoint => [...at(px, py), w * unit]);
+
+  /* a fat stroke of colour, with widths in parts of the radius */
+  const mass = (list: readonly Mark[], color: InkColor = 'ink', flat = false): InkStroke => ({
+    pts: marks(list, r),
     color,
+    flat,
+    dry: 0.22,
+    rough: 0.85,
+    grain: 0.04,
+  });
+  /* a round blob: it swells and narrows along its own height */
+  const dab = (cx: number, cy: number, radius: number, color: InkColor = 'ink'): InkStroke => ({
+    pts: marks(
+      [
+        [cx, cy - radius, radius * 0.8],
+        [cx, cy - radius * 0.55, radius * 1.72],
+        [cx, cy, radius * 2],
+        [cx, cy + radius * 0.55, radius * 1.72],
+        [cx, cy + radius, radius * 0.8],
+      ],
+      r,
+    ),
+    color,
+    grain: color === 'clear' ? 0 : 0.02,
+    rough: 0.35,
+  });
+  /* a brush cut out of the colour, as the layers of the croissant are */
+  const cut = (list: readonly Mark[]): InkStroke => ({
+    pts: marks(list, hand),
+    color: 'clear',
+    dry: 0.26,
+    rough: 0.9,
+    grain: 0,
+  });
+  /* a thin scratchy line, as the kite line is */
+  const scratch = (list: readonly Mark[], dry = 0.3): InkStroke => ({
+    pts: marks(list, hand),
     dry,
     rough: 1,
-    pace: 2.2,
+    pace: 2,
   });
-  /* straight sides for a polygon with corners; one round stroke for a curve */
-  const closed = (points: readonly Pt[], width = 2): InkStroke[] => {
-    if (points.length <= 6) {
-      return points.map((from, index): InkStroke => {
-        const to = points[(index + 1) % points.length] as Pt;
-        const [ax, ay] = at(from[0], from[1]);
-        const [bx, by] = at(to[0], to[1]);
-        return {
-          pts: [
-            [ax, ay, width * 0.85],
-            [(ax + bx) / 2, (ay + by) / 2, width * 1.1],
-            [bx, by, width * 0.75],
-          ],
-          dry: 0.12,
-          rough: 1,
-          pace: 2,
-        };
-      });
-    }
-    return [
-      {
-        pts: [...points, points[0] as Pt].map(([px, py], i, all): InkPoint => {
-          const swell = 1 + 0.2 * Math.sin((i / all.length) * TURN * 2);
-          return [...at(px, py), width * swell];
-        }),
-        dry: 0.12,
-        rough: 1,
-        pace: 2,
-      },
-    ];
-  };
-  /* paper across an outline hides any line behind the kite */
-  const paper = (points: readonly Pt[]): InkStroke[] => {
-    const ys = points.map((point) => point[1]);
-    const top = Math.min(...ys);
-    const bottom = Math.max(...ys);
-    const rows = 7;
-    const step = (bottom - top) / rows;
-    return Array.from({ length: rows }, (_, row): InkStroke => {
-      const local = top + step * (row + 0.5);
-      const [left, right] = spanAt(points, local);
-      const [ax, ay] = at(left, local);
-      const [bx, by] = at(right, local);
-      return {
-        pts: [
-          [ax, ay, step * r * 1.25],
-          [bx, by, step * r * 1.25],
-        ],
-        color: 'paper',
-        flat: true,
-        rough: 0.05,
-        grain: 0,
-        pace: 4,
-      };
-    });
-  };
-  const disc = (cx: number, cy: number, radius: number): InkStroke[] =>
-    paper(arc(cx, cy, radius, radius, 0, TURN, 16).slice(0, 16));
-  const ring = (cx: number, cy: number, radius: number, width = 1): InkStroke =>
-    line(arc(cx, cy, radius, radius, 0, TURN, 10), width, 0.08);
-  const dot = (cx: number, cy: number, radius: number, color: InkColor = 'ink'): InkStroke => {
-    const [ax, ay] = at(cx, cy - radius * 0.4);
-    const [bx, by] = at(cx, cy + radius * 0.4);
-    return {
-      pts: [
-        [ax, ay, radius * r * 1.6],
-        [bx, by, radius * r * 2],
-      ],
-      color,
-      rough: 0.5,
-      grain: 0.02,
-    };
-  };
-  /* a bow of two loops and a knot */
-  const bow = (cx: number, cy: number, size: number, color: InkColor = 'ink'): InkStroke[] => [
-    line(
+  /* a knot of colour on a tail, wide at both ends */
+  const tie = (cx: number, cy: number, slope: number, color: InkColor = 'gold'): InkStroke => ({
+    pts: marks(
       [
-        [cx, cy],
-        [cx - size * 0.7, cy - size * 0.55],
-        [cx - size * 1.1, cy - size * 0.1],
-        [cx - size * 0.7, cy + size * 0.42],
-        [cx, cy],
+        [cx - 0.18, cy - slope, 7],
+        [cx, cy, 2],
+        [cx + 0.18, cy + slope, 7],
       ],
-      1.1,
-      0.08,
-      color,
+      hand,
     ),
-    line(
-      [
-        [cx, cy],
-        [cx + size * 0.7, cy + size * 0.42],
-        [cx + size * 1.1, cy - size * 0.1],
-        [cx + size * 0.7, cy - size * 0.55],
-        [cx, cy],
-      ],
-      1.1,
-      0.08,
-      color,
-    ),
-    dot(cx, cy, size * 0.14, color),
-  ];
-  return { at, line, closed, paper, disc, ring, dot, bow };
+    color,
+    rough: 0.8,
+    dry: 0.2,
+  });
+  /* the clear place where the logo sits */
+  const opening = (cx: number, cy: number, radius: number): InkStroke =>
+    dab(cx, cy, radius, 'clear');
+  return { mass, dab, cut, scratch, tie, opening, at };
 }
 
 type KitePen = ReturnType<typeof kitePen>;
@@ -248,442 +171,381 @@ type Drawn = {
   readonly logoSize: number;
 };
 
-function drawShape(shape: KiteShape, pen: KitePen): Drawn {
-  const { closed, disc, dot, line, paper, ring, bow } = pen;
+/* a short cut from the logo opening out toward the edge */
+function spoke(
+  pen: KitePen,
+  cx: number,
+  cy: number,
+  angle: number,
+  from: number,
+  to: number,
+): InkStroke {
+  const ux = Math.sin(angle);
+  const uy = -Math.cos(angle);
+  const mid = (from + to) / 2;
+  return pen.cut([
+    [cx + ux * from, cy + uy * from, 1.4],
+    [cx + ux * mid, cy + uy * mid, 3.4],
+    [cx + ux * to, cy + uy * to, 1.2],
+  ]);
+}
+
+function drawShape(shape: KiteShape, color: InkColor, pen: KitePen): Drawn {
+  const { cut, dab, mass, opening, scratch, tie } = pen;
+  const bridle = (a: Pt, b: Pt, knot: Pt): InkStroke[] => [
+    scratch(
+      [
+        [a[0], a[1], 1],
+        [knot[0], knot[1], 1.2],
+      ],
+      0.3,
+    ),
+    scratch(
+      [
+        [b[0], b[1], 1],
+        [knot[0], knot[1], 1.2],
+      ],
+      0.3,
+    ),
+  ];
   switch (shape) {
-    case 'diamond': {
-      const outline: Pt[] = [
-        [0, -1.24],
-        [0.94, -0.22],
-        [0, 1.36],
-        [-0.94, -0.22],
-      ];
+    case 'diamond':
       return {
         strokes: [
-          ...paper(outline),
-          line(
+          mass(
             [
-              [0, -1.24],
-              [0, 1.36],
+              [0, -1.26, 0.08],
+              [0, -0.84, 0.92],
+              [0, -0.26, 1.92],
+              [0, 0.3, 1.26],
+              [0, 0.88, 0.56],
+              [0, 1.42, 0.06],
             ],
-            1,
+            color,
           ),
-          line(
-            [
-              [-0.94, -0.22],
-              [0.94, -0.22],
-            ],
-            1,
-          ),
-          line(
-            [
-              [-0.46, 0.3],
-              [0, 0.72],
-              [0.46, 0.3],
-            ],
-            0.9,
-          ),
-          dot(-0.3, -0.5, 0.05),
-          dot(-0.14, -0.78, 0.05),
-          dot(-0.46, -0.34, 0.05),
-          dot(-0.14, -0.42, 0.05),
-          ...closed(outline, 2.4),
-          ...disc(0, 0, 0.52),
+          spoke(pen, 0, -0.2, Math.PI, 0.56, 1.32),
+          spoke(pen, 0, -0.2, Math.PI / 2, 0.56, 0.9),
+          spoke(pen, 0, -0.2, -Math.PI / 2, 0.56, 0.9),
+          spoke(pen, 0, -0.2, 0, 0.56, 0.96),
+          opening(0, -0.2, 0.56),
         ],
-        bottom: [0, 1.36],
-        knot: [0, 1.36],
-        logo: [0, 0],
-        logoSize: 0.8,
+        bottom: [0, 1.4],
+        knot: [0, 1.4],
+        logo: [0, -0.2],
+        logoSize: 0.74,
       };
-    }
     case 'wing': {
-      const outline: Pt[] = [
-        [-1.2, -0.56],
-        [0.72, -1.02],
-        [1.06, 0.74],
-        [0.3, 0.72],
-        [-0.42, 0.34],
+      const R = 1.14;
+      const on = (angle: number, radius = R): Pt => [
+        Math.sin(angle) * radius,
+        0.72 - Math.cos(angle) * radius,
       ];
+      const spine = Array.from({ length: 9 }, (_, i): Mark => {
+        const angle = -1.56 + (i / 8) * 3.12;
+        const [px, py] = on(angle);
+        return [px, py, 0.1 + 1.18 * Math.pow(Math.cos((angle / 1.56) * (Math.PI / 2)), 0.72)];
+      });
+      const layer = (angle: number): InkStroke => {
+        const [ax, ay] = on(angle - 0.08, R - 0.36);
+        const [bx, by] = on(angle + 0.04, R);
+        const [ex, ey] = on(angle + 0.14, R + 0.36);
+        return cut([
+          [ax, ay, 1.2],
+          [bx, by, 3.2],
+          [ex, ey, 1.2],
+        ]);
+      };
+      const knot: Pt = [0, 1.26];
       return {
         strokes: [
-          ...paper(outline),
-          line(
-            [
-              [0.72, -1.02],
-              [0.3, 0.72],
-            ],
-            1,
-          ),
-          ring(0.72, -0.34, 0.11),
-          ring(0.82, 0.14, 0.14),
-          ring(0.56, 0.42, 0.08),
-          dot(0.6, -0.68, 0.05),
-          ...closed(outline, 2.2),
-          ...disc(-0.16, -0.14, 0.48),
-          line(
-            [
-              [-1.2, -0.56],
-              [-1.46, -0.3],
-              [-1.34, -0.04],
-            ],
-            2.2,
-            0.4,
-          ),
-          line(
-            [
-              [-1.2, -0.56],
-              [-1.56, -0.56],
-              [-1.72, -0.34],
-            ],
-            2.2,
-            0.4,
-          ),
+          mass(spine, color),
+          layer(-1.14),
+          layer(-0.84),
+          layer(0.84),
+          layer(1.14),
+          opening(0, -0.4, 0.54),
+          ...bridle(on(-1.5), on(1.5), knot),
         ],
-        bottom: [0.3, 0.72],
-        knot: [0.3, 0.72],
-        logo: [-0.16, -0.14],
-        logoSize: 0.72,
+        bottom: knot,
+        knot,
+        logo: [0, -0.4],
+        logoSize: 0.7,
       };
     }
-    case 'bonnet': {
-      const dome = arc(0, 0.24, 1.08, 1.26, Math.PI, TURN, 12);
-      const hem = arc(0, 0.24, 1.08, 0.42, 0, Math.PI, 8).slice(1, -1);
-      const outline = [...dome, ...hem];
+    case 'almond': {
+      const hem = (x: number): number => -0.1 + x * x * 0.26;
+      const knot: Pt = [0, 1.12];
       return {
         strokes: [
-          ...paper(outline),
-          line(
-            [
-              [0, -1.02],
-              [-0.56, 0.5],
-            ],
-            1,
+          mass(
+            [-1.24, -0.84, -0.42, 0, 0.42, 0.84, 1.24].map(
+              (x): Mark => [x, hem(x), 0.12 + 1.66 * Math.pow(1 - (x / 1.24) ** 2, 0.62)],
+            ),
+            color,
           ),
-          line(
-            [
-              [0, -1.02],
-              [0.56, 0.5],
-            ],
-            1,
-          ),
-          dot(-0.68, -0.26, 0.05),
-          dot(-0.84, 0.04, 0.05),
-          dot(-0.58, 0.1, 0.05),
-          dot(0.68, -0.26, 0.05),
-          dot(0.84, 0.04, 0.05),
-          ...closed(outline, 2.2),
-          ...disc(0, -0.12, 0.46),
-          line(
-            [
-              [-1.08, 0.24],
-              [-1.34, 0.56],
-              [-1.2, 0.92],
-            ],
-            1,
-          ),
-          line(
-            [
-              [1.08, 0.24],
-              [1.32, 0.56],
-              [1.2, 0.86],
-            ],
-            1,
-          ),
-          line(
-            [
-              [-0.7, 0.54],
-              [0, 1.06],
-              [0.7, 0.54],
-            ],
-            0.9,
-          ),
+          cut([
+            [-0.76, -0.4, 1.3],
+            [-0.8, 0.02, 3.2],
+            [-0.84, 0.42, 1.2],
+          ]),
+          cut([
+            [0.76, -0.4, 1.3],
+            [0.8, 0.02, 3.2],
+            [0.84, 0.42, 1.2],
+          ]),
+          opening(0, -0.1, 0.56),
+          ...bridle([-1.2, hem(1.2)], [1.2, hem(1.2)], knot),
         ],
-        bottom: [0, 0.66],
-        knot: [0, 1.06],
-        logo: [0, -0.12],
-        logoSize: 0.72,
+        bottom: knot,
+        knot,
+        logo: [0, -0.1],
+        logoSize: 0.74,
       };
     }
     case 'edo': {
-      const outline: Pt[] = [
-        [-0.92, -0.92],
-        [0.86, -1.02],
-        [0.98, 0.9],
-        [-0.86, 1],
-      ];
-      const corner = (k: number): Pt[] => [
-        [-0.86 + k, -0.92 + k * 0.1],
-        [-0.8 + k, 0.98 - k],
-        [0.98 - k * 0.1, 0.9 - k],
-      ];
+      const knot: Pt = [0, 1.46];
       return {
         strokes: [
-          ...paper(outline),
-          line(corner(0.16), 1),
-          line(corner(0.3), 1),
-          ...closed(outline, 2.3),
-          ...[-0.62, -0.22, 0.18, 0.58].map((py) => ring(1.02, py, 0.07, 0.9)),
-          ...[-0.46, -0.06, 0.34, 0.74].map((px) => ring(px, 1.04, 0.07, 0.9)),
-          ...disc(0.1, -0.08, 0.52),
-          line(
+          mass(
             [
-              [-0.6, 1],
-              [0, 1.44],
-              [0.6, 0.95],
+              [0, -1, 1.74],
+              [0.02, 0, 1.8],
+              [-0.02, 1, 1.72],
             ],
-            0.9,
+            color,
+            true,
           ),
-          ...bow(0, 1.46, 0.16, 'gold'),
+          cut([
+            [-0.78, -0.74, 1.2],
+            [0, -0.76, 3.2],
+            [0.78, -0.72, 1.2],
+          ]),
+          cut([
+            [-0.74, -0.66, 1.2],
+            [-0.72, 0, 3],
+            [-0.7, 0.72, 1.2],
+          ]),
+          cut([
+            [-0.76, 0.74, 1.2],
+            [0, 0.76, 3.2],
+            [0.78, 0.72, 1.2],
+          ]),
+          cut([
+            [0.72, -0.66, 1.2],
+            [0.7, 0, 3],
+            [0.72, 0.68, 1.2],
+          ]),
+          opening(0, 0, 0.56),
+          ...bridle([-0.62, 1], [0.62, 1], knot),
+          tie(0, 1.46, 0.04),
         ],
-        bottom: [0, 1.46],
-        knot: [0, 1.44],
-        logo: [0.1, -0.08],
-        logoSize: 0.8,
-      };
-    }
-    case 'flower': {
-      const petals = Array.from({ length: 8 }, (_, i): Pt => {
-        const angle = (i / 8) * TURN - Math.PI / 2;
-        return [Math.cos(angle) * 0.92, Math.sin(angle) * 0.92];
-      });
-      return {
-        strokes: [
-          ...disc(0, 0, 0.9),
-          ...petals.flatMap(([px, py]) => disc(px, py, 0.34)),
-          ...petals.map(([px, py]) => {
-            const out = Math.atan2(py, px);
-            return line(arc(px, py, 0.34, 0.34, out - 1.75, out + 1.75, 8), 1.8, 0.1);
-          }),
-          ...disc(0, 0, 0.62),
-          ring(0, 0, 0.62, 1.6),
-        ],
-        bottom: [0, 1.26],
-        knot: [0, 1.26],
-        logo: [0, 0],
-        logoSize: 0.78,
-      };
-    }
-    case 'scallop': {
-      const outline: Pt[] = [
-        [0.22, -1.16],
-        [1.16, 0.78],
-        [-1.2, 0.72],
-      ];
-      const row = (y: number, from: number, to: number, count: number): Pt[] => {
-        const step = (to - from) / count;
-        return Array.from({ length: count }, (_, i) =>
-          arc(from + step * (i + 0.5), y, step / 2, step * 0.5, Math.PI, 0, 5),
-        ).flat();
-      };
-      return {
-        strokes: [
-          ...paper(outline),
-          line(row(0.46, -0.92, 0.98, 6), 1),
-          line(row(0.72, -1.14, 1.1, 7), 1),
-          ...closed(outline, 2.3),
-          ...disc(0.08, -0.08, 0.44),
-          line(
-            [
-              [-1.2, 0.72],
-              [-1.44, 0.46],
-              [-1.66, 0.62],
-            ],
-            1,
-          ),
-          ...bow(-1.7, 0.66, 0.14),
-        ],
-        bottom: [0.1, 0.76],
-        knot: [0.1, 0.76],
-        logo: [0.08, -0.08],
-        logoSize: 0.66,
-      };
-    }
-    case 'hex': {
-      const outline = arc(0, 0, 1.02, 1.08, -Math.PI / 2, TURN - Math.PI / 2, 6).slice(0, 6);
-      return {
-        strokes: [
-          ...paper(outline),
-          ...outline.map((corner) =>
-            line(
-              [
-                [0, 0],
-                [corner[0], corner[1]],
-              ],
-              1,
-            ),
-          ),
-          dot(0.42, -0.62, 0.05),
-          dot(0.6, -0.4, 0.05),
-          dot(0.72, -0.62, 0.05),
-          line(
-            [
-              [-0.72, 0.44],
-              [-0.3, 0.74],
-            ],
-            0.9,
-          ),
-          line(
-            [
-              [-0.56, 0.2],
-              [-0.08, 0.56],
-            ],
-            0.9,
-          ),
-          ...closed(outline, 2.3),
-          ...disc(0, 0, 0.5),
-        ],
-        bottom: [0, 1.08],
-        knot: [0, 1.08],
+        bottom: knot,
+        knot,
         logo: [0, 0],
         logoSize: 0.76,
       };
     }
-    case 'butterfly': {
-      const wings: readonly (readonly [number, number, number, number])[] = [
-        [-0.78, -0.28, 0.6, 0.66],
-        [0.78, -0.28, 0.6, 0.66],
-        [-0.54, 0.62, 0.42, 0.46],
-        [0.54, 0.62, 0.42, 0.46],
-      ];
-      const body: Pt[] = [
-        [0, -0.86],
-        [0.36, 0.1],
-        [0, 1.16],
-        [-0.36, 0.1],
-      ];
-      return {
-        strokes: wings
-          .flatMap(([cx, cy, rx, ry]) => {
-            const shapeOf = arc(cx, cy, rx, ry, 0, TURN, 14).slice(0, 14);
-            return [
-              ...paper(shapeOf),
-              ...closed(shapeOf, 2),
-              ring(cx + (cx < 0 ? -0.12 : 0.12), cy, ry * 0.38, 1),
-            ];
-          })
-          .concat([
-            ...paper(body),
-            ...closed(body, 2),
-            ...disc(0, 0.08, 0.46),
-            line(
-              [
-                [-0.08, -0.86],
-                [-0.26, -1.16],
-                [-0.5, -1.2],
-              ],
-              1,
-            ),
-            line(
-              [
-                [0.08, -0.86],
-                [0.26, -1.16],
-                [0.5, -1.2],
-              ],
-              1,
-            ),
-          ]),
-        bottom: [0, 1.16],
-        knot: [0, 1.16],
-        logo: [0, 0.08],
-        logoSize: 0.7,
-      };
-    }
-    case 'round': {
-      const outline = arc(0, 0, 1.02, 1.02, 0, TURN, 16).slice(0, 16);
+    case 'flower': {
+      const petals = Array.from({ length: 8 }, (_, i): Pt => {
+        const angle = (i / 8) * TURN + 0.2;
+        return [Math.sin(angle) * 0.88, -Math.cos(angle) * 0.88];
+      });
       return {
         strokes: [
-          ...paper(outline),
-          ...arc(0, 0, 0.8, 0.8, 0, TURN, 12)
-            .slice(0, 12)
-            .map(([px, py], i) => dot(px, py, i % 3 === 0 ? 0.07 : 0.04)),
-          ...closed(outline, 2.1),
-          ...disc(0, 0, 0.58),
+          ...petals.map(([px, py]) => dab(px, py, 0.4, color)),
+          dab(0, 0, 0.84, color),
+          opening(0, 0, 0.6),
         ],
-        bottom: [0, 1.02],
-        knot: [0, 1.02],
+        bottom: [0, 1.24],
+        knot: [0, 1.24],
         logo: [0, 0],
-        logoSize: 0.84,
+        logoSize: 0.8,
       };
     }
+    case 'delta': {
+      const knot: Pt = [0, 1.24];
+      const scale = (cx: number, cy: number): InkStroke =>
+        cut([
+          [cx - 0.2, cy + 0.03, 1.1],
+          [cx, cy - 0.14, 2.8],
+          [cx + 0.2, cy + 0.03, 1.1],
+        ]);
+      return {
+        strokes: [
+          mass(
+            [
+              [0, -1.16, 0.06],
+              [0, -0.55, 0.72],
+              [0, 0.1, 1.46],
+              [0, 0.84, 2.3],
+            ],
+            color,
+            true,
+          ),
+          ...[-0.84, -0.42, 0, 0.42, 0.84].map((cx) => scale(cx, 0.76)),
+          opening(0, 0.02, 0.48),
+          ...bridle([-0.74, 0.84], [0.74, 0.84], knot),
+        ],
+        bottom: knot,
+        knot,
+        logo: [0, 0.02],
+        logoSize: 0.62,
+      };
+    }
+    case 'hex':
+      return {
+        strokes: [
+          mass(
+            [
+              [0, -1.12, 0.3],
+              [0, -0.62, 1.72],
+              [0, 0, 1.94],
+              [0, 0.62, 1.72],
+              [0, 1.12, 0.3],
+            ],
+            color,
+          ),
+          ...[0, 1, 2, 3, 4, 5].map((i) => spoke(pen, 0, 0, (i / 6) * TURN, 0.56, 1)),
+          opening(0, 0, 0.56),
+        ],
+        bottom: [0, 1.1],
+        knot: [0, 1.1],
+        logo: [0, 0],
+        logoSize: 0.74,
+      };
+    case 'butterfly': {
+      const wing = (side: 1 | -1): InkStroke[] => [
+        mass(
+          [
+            [side * 0.08, -0.2, 0.32],
+            [side * 0.74, -0.58, 1.02],
+            [side * 1.28, -0.62, 0.32],
+          ],
+          color,
+        ),
+        mass(
+          [
+            [side * 0.08, 0.24, 0.28],
+            [side * 0.58, 0.64, 0.76],
+            [side * 0.9, 0.88, 0.24],
+          ],
+          color,
+        ),
+        dab(side * 0.92, -0.58, 0.13, 'gold'),
+        dab(side * 0.6, 0.66, 0.09, 'gold'),
+      ];
+      return {
+        strokes: [
+          ...wing(-1),
+          ...wing(1),
+          mass(
+            [
+              [0, -0.9, 0.08],
+              [0, -0.2, 1.02],
+              [0, 0.24, 0.96],
+              [0, 1.18, 0.06],
+            ],
+            color,
+          ),
+          scratch([
+            [-0.06, -0.86, 1.3],
+            [-0.28, -1.18, 1],
+            [-0.54, -1.22, 0.7],
+          ]),
+          scratch([
+            [0.06, -0.86, 1.3],
+            [0.28, -1.18, 1],
+            [0.54, -1.22, 0.7],
+          ]),
+          opening(0, 0, 0.46),
+        ],
+        bottom: [0, 1.16],
+        knot: [0, 1.16],
+        logo: [0, 0],
+        logoSize: 0.62,
+      };
+    }
+    case 'round':
+      return {
+        strokes: [
+          dab(0, 0, 1, color),
+          ...[0, 1, 2, 3, 4, 5, 6, 7].map((i) =>
+            spoke(pen, 0, 0, ((i + 0.5) / 8) * TURN, 0.62, 0.94),
+          ),
+          opening(0, 0, 0.58),
+        ],
+        bottom: [0, 1],
+        knot: [0, 1],
+        logo: [0, 0],
+        logoSize: 0.8,
+      };
   }
 }
 
 function drawTail(tail: KiteTail, from: Pt, pen: KitePen, index: number): InkStroke[] {
-  const { bow, line } = pen;
+  const { mass, scratch, tie } = pen;
   const [bx, by] = from;
-  const accent: InkColor = index % 2 === 0 ? 'gold' : 'ink';
+  const accent: InkColor = index % 3 === 2 ? 'ink' : 'gold';
   switch (tail) {
-    case 'bows':
+    case 'ties':
       return [
-        line(
+        scratch(
           [
-            [bx, by],
-            [bx - 0.22, by + 0.34],
-            [bx + 0.2, by + 0.72],
-            [bx - 0.14, by + 1.12],
-            [bx + 0.1, by + 1.5],
+            [bx, by, 2],
+            [bx - 0.22, by + 0.42, 1.4],
+            [bx + 0.18, by + 0.84, 1.8],
+            [bx - 0.06, by + 1.28, 0.8],
           ],
-          1,
+          0.44,
         ),
-        ...bow(bx - 0.2, by + 0.36, 0.2, accent),
-        ...bow(bx + 0.18, by + 0.74, 0.2),
-        ...bow(bx - 0.12, by + 1.14, 0.2, accent),
+        tie(bx - 0.2, by + 0.42, 0.05, accent),
+        tie(bx + 0.16, by + 0.84, -0.05),
       ];
-    case 'loop':
+    case 'long':
       return [
-        line(
+        scratch(
           [
-            [bx, by],
-            [bx + 0.14, by + 0.3],
-            [bx - 0.1, by + 0.56],
-            [bx - 0.42, by + 0.5],
-            [bx - 0.52, by + 0.22],
-            [bx - 0.24, by + 0.12],
-            [bx - 0.02, by + 0.48],
-            [bx + 0.16, by + 0.96],
-            [bx - 0.02, by + 1.32],
+            [bx, by, 2],
+            [bx + 0.24, by + 0.4, 1.4],
+            [bx - 0.18, by + 0.82, 1.8],
+            [bx + 0.2, by + 1.24, 1.4],
+            [bx - 0.1, by + 1.72, 0.7],
           ],
-          1,
-          0.12,
+          0.4,
         ),
-        ...bow(bx, by + 0.02, 0.22, accent),
+        tie(bx + 0.22, by + 0.4, -0.05),
+        tie(bx - 0.17, by + 0.82, 0.05, accent),
+        tie(bx + 0.18, by + 1.24, -0.05),
       ];
     case 'ribbons':
       return [
-        line(
+        mass(
           [
-            [bx - 0.14, by],
-            [bx - 0.3, by + 0.5],
-            [bx - 0.1, by + 1.02],
+            [bx - 0.08, by, 0.12],
+            [bx - 0.26, by + 0.42, 0.14],
+            [bx - 0.12, by + 0.92, 0.02],
           ],
-          1.3,
-          0.3,
+          accent,
         ),
-        line(
+        mass(
           [
-            [bx + 0.14, by],
-            [bx + 0.34, by + 0.42],
-            [bx + 0.22, by + 0.84],
+            [bx + 0.08, by, 0.12],
+            [bx + 0.3, by + 0.36, 0.12],
+            [bx + 0.24, by + 0.76, 0.02],
           ],
-          1.3,
-          0.3,
+          accent,
         ),
-        ...bow(bx - 0.1, by + 1.04, 0.2, accent),
       ];
     case 'tassel':
-      return [
-        ...[-0.2, 0, 0.2].map((spread) =>
-          line(
-            [
-              [bx + spread * 0.3, by],
-              [bx + spread, by + 0.62],
-            ],
-            1.4,
-            0.6,
-          ),
+      return [-0.2, 0, 0.2].map((spread) =>
+        scratch(
+          [
+            [bx + spread * 0.2, by, 1.3],
+            [bx + spread, by + 0.66, 0.5],
+          ],
+          0.62,
         ),
-        ...bow(bx, by + 0.04, 0.16, accent),
-      ];
+      );
     case 'none':
       return [];
   }
@@ -701,7 +563,7 @@ function kiteParts(
 ): { parts: InkPart[]; logo: Pt; logoSize: number } {
   const lean = Math.atan2(x - hold[0], hold[1] - y) * look.lean;
   const pen = kitePen(x, y, r, lean);
-  const drawn = drawShape(look.shape, pen);
+  const drawn = drawShape(look.shape, look.color, pen);
   const knot = pen.at(...drawn.knot);
 
   const length = Math.hypot(hold[0] - knot[0], hold[1] - knot[1]);
@@ -713,42 +575,21 @@ function kiteParts(
     const u = 1 - t;
     const wander =
       Math.sin(t * Math.PI * 5 + index) * Math.sin(t * Math.PI) * (look.line.wander ?? 0);
-    const lineWidth = look.line.width * (1 + 0.25 * Math.sin(t * Math.PI * 2 + index));
+    const lineWidth = look.line.width * (1 + 0.22 * Math.sin(t * Math.PI * 2 + index));
     return [
       u * u * knot[0] + 2 * u * t * slack[0] + t * t * hold[0],
       u * u * knot[1] + 2 * u * t * slack[1] + t * t * hold[1] + wander,
       lineWidth,
     ];
   };
-  const steps = [0, 0.14, 0.28, 0.42, 0.56, 0.7, 0.85, 1];
-  const linePoints: InkPoint[] = [];
-  let curled = look.line.curlAt === undefined;
-  for (const t of steps) {
-    if (!curled && t > (look.line.curlAt ?? 0)) {
-      curled = true;
-      const [cx, cy, w] = onLine(look.line.curlAt ?? 0);
-      for (let a = 0; a <= 8; a += 1) {
-        const angle = (a / 8) * TURN + Math.PI / 2;
-        linePoints.push([cx + Math.cos(angle) * 11, cy - 11 + Math.sin(angle) * 11, w]);
-      }
-    }
-    linePoints.push(onLine(t));
-  }
+  const linePoints = [0, 0.14, 0.28, 0.42, 0.56, 0.7, 0.85, 1].map(onLine);
 
   return {
     parts: [
       {
         id: `${tool}-line`,
         motions: sway,
-        strokes: [
-          {
-            pts: linePoints,
-            color: look.line.color,
-            dry: look.line.dry,
-            rough: 0.9,
-            pace: 2.2,
-          },
-        ],
+        strokes: [{ pts: linePoints, dry: look.line.dry, rough: 1, pace: 1.8 }],
       },
       {
         id: `${tool}-kite`,
@@ -811,7 +652,7 @@ export const wideKites: KiteLayout = layout(
   600,
   [300, 432],
   1.5,
-  52,
+  54,
   [
     [
       'airtable',
@@ -819,22 +660,24 @@ export const wideKites: KiteLayout = layout(
       176,
       {
         shape: 'diamond',
+        color: 'ink',
         size: 1,
-        tail: 'bows',
+        tail: 'ties',
         lean: 0.3,
-        line: { width: 1.1, dry: 0.2, slack: 0.03 },
+        line: { width: 1.8, dry: 0.18, slack: 0.03 },
       },
     ],
     [
       'googledrive',
       360,
-      176,
+      170,
       {
-        shape: 'bonnet',
+        shape: 'almond',
+        color: 'ink',
         size: 0.92,
-        tail: 'none',
+        tail: 'tassel',
         lean: 0.12,
-        line: { width: 0.8, dry: 0.5, slack: 0.05 },
+        line: { width: 1.2, dry: 0.42, slack: 0.05 },
       },
     ],
     [
@@ -843,10 +686,11 @@ export const wideKites: KiteLayout = layout(
       92,
       {
         shape: 'wing',
+        color: 'gold',
         size: 1.04,
-        tail: 'bows',
+        tail: 'ties',
         lean: 0.2,
-        line: { width: 1.7, dry: 0.08, slack: 0.012 },
+        line: { width: 2.2, dry: 0.12, slack: 0.012 },
       },
     ],
     [
@@ -855,10 +699,11 @@ export const wideKites: KiteLayout = layout(
       76,
       {
         shape: 'hex',
+        color: 'ink',
         size: 0.94,
         tail: 'ribbons',
         lean: 0.24,
-        line: { width: 1, dry: 0.3, slack: 0.035, wander: 3.5 },
+        line: { width: 1.5, dry: 0.3, slack: 0.035, wander: 3 },
       },
     ],
     [
@@ -867,10 +712,11 @@ export const wideKites: KiteLayout = layout(
       84,
       {
         shape: 'flower',
-        size: 0.96,
-        tail: 'loop',
+        color: 'gold',
+        size: 0.92,
+        tail: 'long',
         lean: 0.1,
-        line: { width: 1.2, dry: 0.12, slack: 0.03, color: 'gold' },
+        line: { width: 1.7, dry: 0.2, slack: 0.03 },
       },
     ],
     [
@@ -879,10 +725,11 @@ export const wideKites: KiteLayout = layout(
       240,
       {
         shape: 'butterfly',
-        size: 0.8,
+        color: 'ink',
+        size: 0.84,
         tail: 'none',
         lean: 0.3,
-        line: { width: 0.8, dry: 0.3, slack: 0.022 },
+        line: { width: 1.2, dry: 0.34, slack: 0.022 },
       },
     ],
     [
@@ -891,10 +738,11 @@ export const wideKites: KiteLayout = layout(
       196,
       {
         shape: 'edo',
+        color: 'ink',
         size: 0.94,
         tail: 'tassel',
         lean: 0.22,
-        line: { width: 1.4, dry: 0.35, slack: 0.03, wander: 2.5 },
+        line: { width: 2, dry: 0.3, slack: 0.03, wander: 2 },
       },
     ],
     [
@@ -902,11 +750,12 @@ export const wideKites: KiteLayout = layout(
       1318,
       250,
       {
-        shape: 'scallop',
+        shape: 'delta',
+        color: 'ink',
         size: 0.94,
         tail: 'none',
-        lean: 0.34,
-        line: { width: 1, dry: 0.15, slack: 0.024, curlAt: 0.3 },
+        lean: 0.3,
+        line: { width: 1.5, dry: 0.18, slack: 0.024, wander: 2.5 },
       },
     ],
     [
@@ -915,10 +764,11 @@ export const wideKites: KiteLayout = layout(
       420,
       {
         shape: 'round',
+        color: 'ink',
         size: 0.8,
         tail: 'ribbons',
         lean: 0.2,
-        line: { width: 0.9, dry: 0.55, slack: 0.03 },
+        line: { width: 1.2, dry: 0.44, slack: 0.03 },
       },
     ],
     [
@@ -927,10 +777,11 @@ export const wideKites: KiteLayout = layout(
       462,
       {
         shape: 'diamond',
-        size: 0.86,
+        color: 'gold',
+        size: 0.84,
         tail: 'none',
         lean: 0.36,
-        line: { width: 1.8, dry: 0.06, slack: 0.03 },
+        line: { width: 2.3, dry: 0.08, slack: 0.03 },
       },
     ],
   ],
@@ -955,10 +806,11 @@ export const narrowKites: KiteLayout = layout(
       190,
       {
         shape: 'wing',
+        color: 'gold',
         size: 0.94,
         tail: 'none',
         lean: 0.1,
-        line: { width: 1.6, dry: 0.08, slack: 0.012 },
+        line: { width: 2.2, dry: 0.12, slack: 0.012 },
       },
     ],
     [
@@ -967,10 +819,11 @@ export const narrowKites: KiteLayout = layout(
       104,
       {
         shape: 'flower',
-        size: 0.84,
-        tail: 'loop',
+        color: 'gold',
+        size: 0.8,
+        tail: 'ties',
         lean: 0.12,
-        line: { width: 1.2, dry: 0.12, slack: 0.03, color: 'gold' },
+        line: { width: 1.7, dry: 0.2, slack: 0.03 },
       },
     ],
     [
@@ -979,10 +832,11 @@ export const narrowKites: KiteLayout = layout(
       84,
       {
         shape: 'edo',
+        color: 'ink',
         size: 0.84,
         tail: 'tassel',
         lean: 0.2,
-        line: { width: 1.1, dry: 0.35, slack: 0.03, wander: 3 },
+        line: { width: 1.9, dry: 0.3, slack: 0.03, wander: 2.5 },
       },
     ],
     [
@@ -991,10 +845,11 @@ export const narrowKites: KiteLayout = layout(
       116,
       {
         shape: 'diamond',
+        color: 'ink',
         size: 0.94,
-        tail: 'bows',
+        tail: 'ties',
         lean: 0.28,
-        line: { width: 0.9, dry: 0.45, slack: 0.04 },
+        line: { width: 1.3, dry: 0.4, slack: 0.04 },
       },
     ],
     [
@@ -1003,10 +858,11 @@ export const narrowKites: KiteLayout = layout(
       336,
       {
         shape: 'hex',
+        color: 'ink',
         size: 0.88,
         tail: 'none',
         lean: 0.26,
-        line: { width: 1.7, dry: 0.06, slack: 0.025 },
+        line: { width: 2.3, dry: 0.08, slack: 0.025 },
       },
     ],
     [
@@ -1015,10 +871,11 @@ export const narrowKites: KiteLayout = layout(
       496,
       {
         shape: 'butterfly',
+        color: 'ink',
         size: 0.82,
         tail: 'none',
         lean: 0.26,
-        line: { width: 1, dry: 0.25, slack: 0.02, curlAt: 0.4 },
+        line: { width: 1.5, dry: 0.25, slack: 0.02, wander: 2 },
       },
     ],
   ],

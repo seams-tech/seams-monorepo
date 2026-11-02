@@ -1,4 +1,4 @@
-/* Not-found page: copy left, grain panel right, inside the h2 column. */
+/* Not-found page: copy left, drawing panel right, inside the h2 column. */
 
 .not-found {
   padding: 120px 0 72px;
@@ -72,15 +72,26 @@
   place-items: center;
   aspect-ratio: 5 / 4;
   border-radius: var(--h2-radius-card);
-  background: var(--h2-ink);
+  background: #faf8f3;
+}
+
+/* the drawing fills the panel from the bottom, without the banner's empty sides */
+.not-found__ink {
+  position: absolute;
+  left: -30%;
+  bottom: 0;
+  width: 180%;
 }
 
 .not-found__code {
-  font-size: clamp(88px, 11vw, 148px);
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  font-size: clamp(44px, 5vw, 64px);
   font-weight: 300;
   letter-spacing: -0.04em;
   line-height: 1;
-  color: #ffffff;
+  color: var(--h2-ink);
 }
 
 @media (max-width: 900px) {
@@ -95,5 +106,12 @@
 
   .not-found__panel {
     aspect-ratio: 16 / 9;
+  }
+
+  /* the goat stands at the left here, so the code moves to the free corner */
+  .not-found__code {
+    top: 16px;
+    right: 20px;
+    left: auto;
   }
 }

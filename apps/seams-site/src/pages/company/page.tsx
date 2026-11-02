@@ -4,6 +4,8 @@ import React from 'react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
+import { InkDrawing } from '@/components/h2/ink/InkScene';
+import { cupSparrowScene, parcelSparrowScene } from '@/components/h2/ink/scenes';
 import { H2Footer } from '@/components/h2/sections';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { startSiteAnchorScroll } from '@/app/router/siteRouting';
@@ -149,6 +151,7 @@ export function CompanyPage(): React.JSX.Element {
         <main aria-labelledby="company-title">
           <header className="h2-hero-simple company-hero">
             <div className="h2-shell">
+              <InkDrawing scene={parcelSparrowScene} className="company-hero__ink" />
               <h1 id="company-title" className="h2-display h2-hero-simple__title">
                 {t('companyTitle')}
               </h1>
@@ -215,8 +218,8 @@ export function CompanyPage(): React.JSX.Element {
           </section>
 
           <section className="h2-cta h2-cta--banner h2-rule" aria-labelledby="company-banner-title">
-            <div className="h2-shell h2-cta__banner company-banner">
-              <GrainField field="teal-peach" flow={1.6} />
+            <div className="h2-shell h2-cta__banner company-banner company-banner--ink">
+              <InkDrawing scene={cupSparrowScene} className="h2-ink--banner" />
               <div>
                 <h2 id="company-banner-title" className="h2-display h2-cta__title">
                   {t('talkTeam')}

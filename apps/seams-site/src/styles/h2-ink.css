@@ -58,6 +58,12 @@
   animation-timing-function: linear;
 }
 
+.h2-ink__move--fall {
+  animation-name: h2-ink-fall;
+  animation-direction: normal;
+  animation-timing-function: ease-in;
+}
+
 @keyframes h2-ink-sway {
   from {
     transform: rotate(calc(var(--ink-a) * -1));
@@ -116,6 +122,20 @@
   }
   100% {
     transform: translate(5px, calc(var(--ink-a) * -1));
+    opacity: 0;
+  }
+}
+
+@keyframes h2-ink-fall {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(var(--ink-a));
     opacity: 0;
   }
 }
@@ -225,9 +245,24 @@
   width: 620px;
 }
 
+/* two long buttons leave little room, so the copy and the drawing both narrow */
+.h2-banner--ink:has(.h2-ink--beside-actions) .h2-banner__title,
+.h2-banner--ink:has(.h2-ink--beside-actions) .h2-banner__sub {
+  max-width: 400px;
+}
+
+.h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--beside-actions {
+  right: 176px;
+  width: 460px;
+}
+
 @media (max-width: 1040px) {
   .h2-ink--banner {
     width: 480px;
+  }
+
+  .h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--beside-actions {
+    display: none;
   }
 
   .h2-banner--ink .h2-banner__title,
@@ -264,7 +299,9 @@
   }
 
   .h2-banner--ink .h2-ink--banner,
-  .h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--banner {
+  .h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--banner,
+  .h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--beside-actions {
+    display: block;
     position: relative;
     right: auto;
     bottom: auto;

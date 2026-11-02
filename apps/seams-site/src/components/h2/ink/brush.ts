@@ -20,6 +20,8 @@ export type InkStroke = {
   readonly grain?: number;
   /* greater than 1 moves the brush faster */
   readonly pace?: number;
+  /* square ends, for a box or a sack, in place of round ones */
+  readonly flat?: boolean;
 };
 
 const COLORS: Record<InkColor, string> = {
@@ -86,7 +88,7 @@ type Spine = {
 
 const SPINE_STEP = 1.1;
 
-function walkSpine(pts: readonly InkPoint[]): Spine {
+function walkSpine(pts: readonly InkPoint[], flat: boolean): Spine {
   const raw: number[][] = [];
   for (let i = 0; i < pts.length - 1; i += 1) {
     const p0 = pts[Math.max(0, i - 1)];
@@ -139,7 +141,7 @@ function walkSpine(pts: readonly InkPoint[]): Spine {
     const round = Math.max(0.5, Math.min(own * 0.5, length * 0.3));
     const land = Math.min(1, d / round);
     const lift = Math.min(1, (length - d) / round);
-    w[i] = own * Math.sqrt(Math.min(land, lift));
+    w[i] = flat ? own : own * Math.sqrt(Math.min(land, lift));
   }
   return { x, y, nx, ny, w, length };
 }
@@ -154,7 +156,7 @@ const BRISTLE_GAP = 1.5;
 const BRISTLE_OVERLAP = 1.55;
 
 export function prepareStroke(stroke: InkStroke, scale: number, noise: InkNoise): PreparedStroke {
-  const spine = walkSpine(stroke.pts);
+  const spine = walkSpine(stroke.pts, stroke.flat ?? false);
   const steps = spine.x.length;
   const dry = stroke.dry ?? 0;
   const rough = stroke.rough ?? 0.5;

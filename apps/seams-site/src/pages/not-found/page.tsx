@@ -1,14 +1,16 @@
 import React from 'react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
+import { InkDrawing } from '@/components/h2/ink/InkScene';
+import { flourGoatScene } from '@/components/h2/ink/scenes';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { H2Footer } from '@/components/h2/sections';
 import '@/styles/h2.css';
 import './styles.css';
 
-/* Unknown routes: the wallet hero's layout, copy on the left and a grain
-   panel on the right, with the same product forks under the actions. */
+/* Unknown routes: the wallet hero's layout, copy on the left and a panel on the
+   right where a baby goat has tipped over a flour sack, with the same product forks under the actions. */
 
 const destinations: readonly { label: string; to: string; field: GrainFieldName }[] = [
   { label: 'Wallet', to: '/wallet', field: 'teal-peach' },
@@ -82,7 +84,7 @@ export function NotFoundPage(): React.JSX.Element {
             </div>
 
             <div className="not-found__panel" aria-hidden="true">
-              <GrainField field="teal-peach" flow={1.6} />
+              <InkDrawing scene={flourGoatScene} className="not-found__ink" />
               <span className="not-found__code">404</span>
             </div>
           </div>

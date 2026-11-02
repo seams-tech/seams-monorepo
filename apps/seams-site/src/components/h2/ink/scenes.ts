@@ -1,9 +1,9 @@
 import type { InkColor, InkPoint, InkStroke } from './brush';
 
-/* The home page drawings: a croissant that flies itself over a field of wheat. */
+/* The site's drawings, in the style of a croissant that flies itself over wheat. */
 
 export type InkMotion = {
-  readonly kind: 'sway' | 'bob' | 'drift' | 'flap' | 'breathe' | 'rise';
+  readonly kind: 'sway' | 'bob' | 'drift' | 'flap' | 'breathe' | 'rise' | 'fall';
   readonly amount: string;
   readonly seconds: number;
   readonly delay?: number;
@@ -16,11 +16,15 @@ export type InkPart = {
   readonly motions?: readonly InkMotion[];
   /* seconds to wait before this part starts */
   readonly pause?: number;
+  /* its strokes grow at nearly the same time, in place of one after another */
+  readonly together?: boolean;
 };
 
 export type InkScene = {
   readonly width: number;
   readonly height: number;
+  /* the longest time that the first drawing may take, if not the usual limit */
+  readonly drawSeconds?: number;
   readonly parts: readonly InkPart[];
 };
 
@@ -235,7 +239,15 @@ function bezierAt(a: Pt, b: Pt, c: Pt, t: number): [number, number, number, numb
 }
 
 /* one stalk: a dry stem, then an ear of loaded dabs with long whiskers */
-function wheat(id: string, base: Pt, bend: Pt, tip: Pt, seed: number, size: number): InkPart[] {
+function wheat(
+  id: string,
+  base: Pt,
+  bend: Pt,
+  tip: Pt,
+  seed: number,
+  size: number,
+  color: InkColor = 'ink',
+): InkPart[] {
   const shape = shaper(seed);
   const earStart = 0.66;
   const stem: [number, number, number][] = [];
@@ -257,6 +269,7 @@ function wheat(id: string, base: Pt, bend: Pt, tip: Pt, seed: number, size: numb
       const gx = dx * Math.cos(spread) - dy * Math.sin(spread);
       const gy = dx * Math.sin(spread) + dy * Math.cos(spread);
       strokes.push({
+        color,
         dry: 0.22,
         rough: 0.85,
         grain: 0.06,
@@ -293,6 +306,7 @@ function wheat(id: string, base: Pt, bend: Pt, tip: Pt, seed: number, size: numb
     },
     {
       id: `${id}-ear`,
+      together: true,
       motions: [
         { kind: 'sway', amount: '0.8deg', seconds: 3.7 + (seed % 7) * 0.31, origin: base },
         { kind: 'sway', amount: '0.3deg', seconds: 1.73, delay: -(seed % 5) * 0.3, origin: base },
@@ -538,10 +552,10 @@ function perched(x: number, y: number, k: number, facing: Facing): InkStroke[] {
       ]),
       grain: 0,
     },
-    blob(...at(21, -42), 3.8 * k, 3.8 * k, 'clear'),
+    blob(...at(21, -42), 3.8 * k, 3.8 * k, 'paper'),
     blob(...at(22, -41.5), 2 * k, 2 * k),
     {
-      color: 'clear',
+      color: 'paper',
       pts: pts([
         [-12, -32, 1.6],
         [0, -18, 3],
@@ -843,11 +857,12 @@ export const carryScene: InkScene = {
   ],
 };
 
-/* ---------- the pillow goat: a spare banner, not used on a page yet ---------- */
+/* ---------- the pillow goat: the closing banner of the Satyr page ---------- */
 
 /* a truly round mark, for a head: its width follows a circle down its height */
 function roundBlob(x: number, y: number, rx: number, ry: number): InkStroke {
-  const rows = [-0.98, -0.8, -0.5, 0, 0.5, 0.8, 0.98];
+  /* evenly spaced, or the spline would double back and spoil the circle */
+  const rows = Array.from({ length: 19 }, (_, i) => -0.99 + (i / 18) * 1.98);
   return {
     grain: 0.02,
     rough: 0.3,
@@ -883,9 +898,7 @@ const PILLOW_BREATH: InkMotion = {
 };
 const PILLOW_NOD: InkMotion = { kind: 'bob', amount: '0.6px', seconds: 2.3 };
 
-/* A baby goat asleep in side view, with its head on a croissant. To use it, pass
-   <InkDrawing scene={pillowGoatScene} className="h2-ink--banner" /> as a banner's
-   drawing. */
+/* A baby goat asleep in side view, with its head on a croissant. */
 export const pillowGoatScene: InkScene = {
   width: BANNER_WIDTH,
   height: BANNER_HEIGHT,
@@ -1108,5 +1121,1200 @@ export const pillowGoatScene: InkScene = {
     sleepZ('z-small', 326, 62, 7, 0),
     sleepZ('z-middle', 334, 48, 9, -1.5),
     sleepZ('z-large', 332, 32, 11, -3),
+  ],
+};
+
+/* ---------- the other pages: flour, a delivery and a cup ---------- */
+
+function fallingSpeck(id: string, x: number, y: number, r: number, delay: number): InkPart {
+  return {
+    id,
+    motions: [{ kind: 'fall', amount: '20px', seconds: 2.4, delay }],
+    strokes: [blob(x, y, r, r, 'gold')],
+  };
+}
+
+/* the baby goat of the hero at a smaller size, with its feet at x, y */
+const KID_ON_SACK = 0.66;
+
+function onSack(x: number, y: number, w: number): InkPoint {
+  return [204 + (x - 175) * KID_ON_SACK, 99 + (y - 488) * KID_ON_SACK, w * KID_ON_SACK];
+}
+
+function onSackAt(x: number, y: number): [number, number] {
+  const [px, py] = onSack(x, y, 0);
+  return [px, py];
+}
+
+function sackPoints(list: readonly InkPoint[]): InkPoint[] {
+  return list.map(([x, y, w]) => onSack(x, y, w));
+}
+
+const SACK_INK = { dry: 0.14, rough: 0.8, grain: 0.04 } as const;
+
+/* A baby goat on a tall flour sack looks down at the sack that it tipped over. */
+export const flourGoatScene: InkScene = {
+  width: BANNER_WIDTH,
+  height: BANNER_HEIGHT,
+  parts: [
+    {
+      id: 'ground',
+      strokes: [
+        {
+          pts: [
+            [112, 188, 2],
+            [214, 185, 7],
+            [320, 188, 2],
+          ],
+          dry: 0.8,
+          rough: 0.9,
+        },
+        {
+          pts: [
+            [284, 192, 1.5],
+            [350, 190, 6],
+            [418, 192, 1.5],
+          ],
+          dry: 0.78,
+          rough: 0.9,
+        },
+      ],
+    },
+    {
+      id: 'tall-sack',
+      strokes: [
+        /* a full gold sack, square at the top and the bottom */
+        {
+          color: 'gold',
+          flat: true,
+          dry: 0.12,
+          rough: 0.8,
+          grain: 0.05,
+          pace: 0.7,
+          pts: [
+            [204, 98, 72],
+            [204, 122, 80],
+            [204, 154, 86],
+            [204, 186, 84],
+          ],
+        },
+        /* a row of stitches across the top */
+        {
+          pts: [
+            [170, 106, 1.6],
+            [204, 104, 2],
+            [238, 106, 1.6],
+          ],
+          dry: 0.58,
+          rough: 0.5,
+          grain: 0,
+        },
+        /* folds in the cloth */
+        {
+          color: 'clear',
+          dry: 0.5,
+          rough: 1,
+          grain: 0,
+          pts: [
+            [174, 120, 1],
+            [168, 148, 2.4],
+            [172, 176, 0.8],
+          ],
+        },
+        {
+          color: 'clear',
+          dry: 0.5,
+          rough: 1,
+          grain: 0,
+          pts: [
+            [234, 120, 1],
+            [240, 148, 2.4],
+            [236, 176, 0.8],
+          ],
+        },
+        /* the sign of the mill: one dark ear of wheat */
+        {
+          pts: [
+            [204, 170, 1.6],
+            [204, 150, 2.2],
+            [204, 128, 1.2],
+          ],
+          rough: 0.5,
+          grain: 0,
+        },
+        {
+          pts: [
+            [204, 158, 2],
+            [195, 150, 6],
+            [191, 143, 1.2],
+          ],
+          rough: 0.7,
+          grain: 0.02,
+        },
+        {
+          pts: [
+            [204, 158, 2],
+            [213, 150, 6],
+            [217, 143, 1.2],
+          ],
+          rough: 0.7,
+          grain: 0.02,
+        },
+        {
+          pts: [
+            [204, 146, 2],
+            [196, 138, 5.5],
+            [193, 131, 1.2],
+          ],
+          rough: 0.7,
+          grain: 0.02,
+        },
+        {
+          pts: [
+            [204, 146, 2],
+            [212, 138, 5.5],
+            [215, 131, 1.2],
+          ],
+          rough: 0.7,
+          grain: 0.02,
+        },
+      ],
+    },
+    {
+      id: 'tipped-sack',
+      strokes: [
+        /* it lies on its side, with its open mouth to the goat */
+        {
+          color: 'gold',
+          flat: true,
+          dry: 0.12,
+          rough: 0.8,
+          grain: 0.05,
+          pace: 0.7,
+          pts: [
+            [288, 164, 42],
+            [324, 162, 48],
+            [366, 162, 50],
+            [398, 164, 46],
+          ],
+        },
+        {
+          color: 'clear',
+          dry: 0.5,
+          rough: 1,
+          grain: 0,
+          pts: [
+            [316, 148, 0.8],
+            [348, 144, 2.2],
+            [382, 150, 0.8],
+          ],
+        },
+        {
+          color: 'clear',
+          dry: 0.5,
+          rough: 1,
+          grain: 0,
+          pts: [
+            [318, 178, 0.8],
+            [350, 180, 2.2],
+            [382, 176, 0.8],
+          ],
+        },
+        /* the dark inside of the mouth */
+        {
+          ...SACK_INK,
+          dry: 0,
+          rough: 0.7,
+          pts: [
+            [288, 146, 4],
+            [282, 164, 14],
+            [288, 182, 4],
+          ],
+        },
+        /* the flour that came out */
+        {
+          color: 'gold',
+          dry: 0.12,
+          rough: 0.9,
+          grain: 0.03,
+          pts: [
+            [288, 178, 7],
+            [270, 180, 12],
+            [250, 186, 3],
+          ],
+        },
+      ],
+    },
+    fallingSpeck('flour-a', 276, 160, 1.5, 0),
+    fallingSpeck('flour-b', 268, 154, 1.2, -0.8),
+    fallingSpeck('flour-c', 262, 164, 1, -1.6),
+    {
+      id: 'kid-far-legs',
+      strokes: [
+        {
+          pts: sackPoints([
+            [158, 448, 10],
+            [161, 468, 5.5],
+            [158, 488, 5.5],
+          ]),
+          grain: 0.02,
+        },
+        {
+          pts: sackPoints([
+            [190, 448, 10],
+            [188, 468, 5.5],
+            [183, 488, 5.5],
+          ]),
+          grain: 0.02,
+        },
+      ],
+    },
+    {
+      id: 'kid-tail',
+      motions: [
+        {
+          kind: 'sway',
+          amount: '14deg',
+          seconds: 0.47,
+          origin: onSackAt(134, 428),
+        },
+        {
+          kind: 'sway',
+          amount: '5deg',
+          seconds: 2.1,
+          origin: onSackAt(134, 428),
+        },
+      ],
+      strokes: [
+        {
+          dry: 0.16,
+          rough: 0.9,
+          grain: 0.01,
+          pts: sackPoints([
+            [140, 432, 9],
+            [126, 418, 8],
+            [120, 406, 2],
+          ]),
+        },
+      ],
+    },
+    {
+      id: 'kid-body',
+      strokes: [
+        {
+          pts: sackPoints([
+            [146, 446, 14],
+            [139, 466, 7.5],
+            [144, 488, 6.5],
+          ]),
+          grain: 0.02,
+        },
+        {
+          pts: sackPoints([
+            [200, 444, 12],
+            [205, 466, 7.5],
+            [210, 488, 6.5],
+          ]),
+          grain: 0.02,
+        },
+        {
+          dry: 0.03,
+          rough: 0.7,
+          grain: 0.03,
+          pts: sackPoints([
+            [132, 436, 20],
+            [150, 434, 40],
+            [172, 433, 47],
+            [194, 431, 43],
+            [210, 425, 22],
+          ]),
+        },
+        {
+          grain: 0.02,
+          rough: 0.7,
+          pts: sackPoints([
+            [200, 428, 26],
+            [212, 412, 19],
+            [220, 402, 17],
+          ]),
+        },
+        {
+          color: 'clear',
+          dry: 0.2,
+          rough: 1,
+          grain: 0,
+          pts: sackPoints([
+            [150, 428, 5],
+            [161, 431, 14],
+            [174, 434, 11],
+            [184, 442, 2],
+          ]),
+        },
+      ],
+    },
+    {
+      id: 'kid-head',
+      motions: [
+        {
+          kind: 'sway',
+          amount: '3deg',
+          seconds: 2.9,
+          origin: onSackAt(214, 410),
+        },
+      ],
+      strokes: [
+        {
+          grain: 0.01,
+          rough: 0.25,
+          pts: sackPoints([
+            [219, 385, 6],
+            [215, 375, 5],
+            [212, 371, 2],
+          ]),
+        },
+        {
+          grain: 0.01,
+          rough: 0.25,
+          pts: sackPoints([
+            [228, 383, 5.5],
+            [227, 374, 4.5],
+            [224, 369, 1.8],
+          ]),
+        },
+        roundBlob(...onSackAt(222, 398), 17 * KID_ON_SACK, 16 * KID_ON_SACK),
+        /* the muzzle, tipped down to look at the spill */
+        {
+          grain: 0.01,
+          rough: 0.25,
+          pts: sackPoints([
+            [226, 400, 22],
+            [238, 408, 16],
+            [247, 416, 10],
+          ]),
+        },
+        blob(...onSackAt(228, 392), 3, 3, 'clear'),
+        blob(...onSackAt(229, 393), 1.7, 1.7),
+      ],
+    },
+    {
+      id: 'kid-ear',
+      motions: [
+        {
+          kind: 'sway',
+          amount: '7deg',
+          seconds: 1.4,
+          origin: onSackAt(214, 390),
+        },
+      ],
+      strokes: [
+        {
+          grain: 0.01,
+          rough: 0.4,
+          pts: sackPoints([
+            [216, 388, 6],
+            [202, 393, 11],
+            [191, 406, 3.4],
+          ]),
+        },
+      ],
+    },
+  ],
+};
+
+/* A sparrow carries a gold gift box across the banner. */
+const PARCEL_SECONDS = 0.2;
+const PARCEL_TIE: Pt = [226, 66];
+const PARCEL_MOTIONS: readonly InkMotion[] = [
+  { kind: 'bob', amount: '2.5px', seconds: 1.7, delay: -PARCEL_SECONDS },
+  { kind: 'sway', amount: '3.4deg', seconds: 1.9, origin: PARCEL_TIE },
+];
+
+export const parcelSparrowScene: InkScene = {
+  width: BANNER_WIDTH,
+  height: BANNER_HEIGHT,
+  parts: [
+    /* the wheat far below, and the air that the bird left behind */
+    ...wheat('field-a', [110, 225], [140, 196], [206, 184], 977, 0.5),
+    ...wheat('field-b', [226, 225], [262, 194], [330, 182], 7321, 0.56),
+    ...wheat('field-c', [336, 225], [362, 200], [412, 188], 2203, 0.42),
+    {
+      id: 'wake',
+      motions: [{ kind: 'drift', amount: '6px', seconds: 2.9 }],
+      strokes: [
+        {
+          pts: [
+            [96, 48, 0.6],
+            [132, 52, 1.5],
+            [154, 52, 0.5],
+          ],
+          dry: 0.74,
+          rough: 1,
+        },
+        {
+          pts: [
+            [116, 72, 0.5],
+            [146, 74, 1.2],
+            [166, 72, 0.5],
+          ],
+          dry: 0.74,
+          rough: 1,
+        },
+      ],
+    },
+    {
+      id: 'parcel',
+      motions: PARCEL_MOTIONS,
+      strokes: [
+        {
+          pts: [
+            [PARCEL_TIE[0], PARCEL_TIE[1], 1],
+            [228, 104, 1.1],
+          ],
+          dry: 0.12,
+          rough: 0.8,
+          pace: 2,
+        },
+        /* the box: one loaded pull, and the ribbon cut out of the gold */
+        {
+          color: 'gold',
+          flat: true,
+          dry: 0.06,
+          rough: 0.45,
+          grain: 0.04,
+          pts: [
+            [204, 132, 46],
+            [228, 132, 47],
+            [252, 132, 46],
+          ],
+        },
+        {
+          color: 'clear',
+          grain: 0,
+          rough: 0.5,
+          pts: [
+            [228, 106, 4],
+            [228, 132, 4.5],
+            [228, 158, 4],
+          ],
+        },
+        {
+          color: 'clear',
+          grain: 0,
+          rough: 0.5,
+          pts: [
+            [192, 128, 3.4],
+            [228, 128, 3.8],
+            [264, 128, 3.4],
+          ],
+        },
+        /* the bow */
+        {
+          pts: [
+            [228, 106, 1.6],
+            [216, 96, 7],
+            [212, 104, 3],
+          ],
+          rough: 0.7,
+          grain: 0.02,
+        },
+        {
+          pts: [
+            [228, 106, 1.6],
+            [240, 96, 7],
+            [244, 104, 3],
+          ],
+          rough: 0.7,
+          grain: 0.02,
+        },
+      ],
+    },
+    ...flying('carrier', 222, 62, 0.98, 1, PARCEL_SECONDS),
+    ...flying('far', 348, 40, 0.34, 1, 0.16),
+  ],
+};
+
+function steamCurl(id: string, x: number, y: number, k: number, delay: number): InkPart {
+  return {
+    id,
+    motions: [
+      { kind: 'rise', amount: '10px', seconds: 5.2, delay },
+      { kind: 'sway', amount: '4deg', seconds: 2.3, delay, origin: [x, y] },
+    ],
+    strokes: [
+      {
+        dry: 0.5,
+        rough: 1,
+        grain: 0,
+        pace: 0.7,
+        pts: [
+          [x, y, 1],
+          [x + 12 * k, y - 18 * k, 2.2],
+          [x - 8 * k, y - 38 * k, 2.6],
+          [x + 12 * k, y - 60 * k, 1.8],
+          [x + 2 * k, y - 78 * k, 0.8],
+        ],
+      },
+    ],
+  };
+}
+
+/* A gold cup on its saucer, all in side view, with a sparrow on the rim. */
+const CUP_RIM_Y = 92;
+
+export const cupSparrowScene: InkScene = {
+  width: BANNER_WIDTH,
+  height: BANNER_HEIGHT,
+  parts: [
+    {
+      id: 'ground',
+      strokes: [
+        {
+          pts: [
+            [116, 188, 2],
+            [214, 185, 7],
+            [316, 188, 2],
+          ],
+          dry: 0.8,
+          rough: 0.9,
+        },
+        {
+          pts: [
+            [262, 192, 1.5],
+            [330, 190, 5],
+            [396, 192, 1.5],
+          ],
+          dry: 0.78,
+          rough: 0.9,
+        },
+      ],
+    },
+    {
+      id: 'handle',
+      strokes: [
+        {
+          rough: 0.6,
+          grain: 0.03,
+          pace: 0.8,
+          pts: [
+            [278, 106, 6],
+            [306, 102, 8],
+            [316, 122, 8],
+            [302, 142, 7],
+            [272, 150, 5],
+          ],
+        },
+      ],
+    },
+    {
+      id: 'cup',
+      strokes: [
+        /* one gold pull down the cup, wide at the rim and narrow at the foot */
+        {
+          color: 'gold',
+          flat: true,
+          dry: 0.1,
+          rough: 0.7,
+          grain: 0.05,
+          pace: 0.7,
+          pts: [
+            [234, CUP_RIM_Y, 100],
+            [234, 114, 100],
+            [234, 138, 88],
+            [234, 158, 64],
+            [234, 172, 40],
+          ],
+        },
+        /* light on the side of the cup */
+        {
+          color: 'clear',
+          dry: 0.42,
+          rough: 1,
+          grain: 0,
+          pts: [
+            [198, 104, 1.2],
+            [202, 128, 3],
+            [216, 152, 1],
+          ],
+        },
+        /* the dark coffee at the rim, then the saucer and the foot */
+        {
+          rough: 0.6,
+          grain: 0.02,
+          pts: [
+            [184, CUP_RIM_Y, 5],
+            [234, CUP_RIM_Y - 3, 8],
+            [284, CUP_RIM_Y, 5],
+          ],
+        },
+        {
+          rough: 0.8,
+          grain: 0.03,
+          pts: [
+            [150, 172, 3],
+            [234, 180, 8],
+            [318, 172, 3],
+          ],
+        },
+      ],
+    },
+    steamCurl('steam-a', 244, 80, 0.5, 0),
+    steamCurl('steam-b', 266, 84, 0.42, -2.6),
+    sparrowPart('rim-bird', 198, CUP_RIM_Y - 4, 0.72, 1, 2.1),
+  ],
+};
+
+/* ---------- the Satyr page: loaves, wind, a whisk and order slips ---------- */
+
+/* one loaf: a loaded gold pull, with its scores cut out across the top */
+function loaf(x: number, y: number, length: number, width: number): InkStroke[] {
+  const half = length / 2;
+  return [
+    {
+      color: 'gold',
+      dry: 0.1,
+      rough: 0.7,
+      grain: 0.05,
+      pts: [
+        [x - half, y + 1, width * 0.82],
+        [x - half * 0.4, y, width],
+        [x + half * 0.4, y, width],
+        [x + half, y + 1, width * 0.82],
+      ],
+    },
+    ...[-0.42, 0, 0.42].map(
+      (at): InkStroke => ({
+        color: 'clear',
+        grain: 0,
+        rough: 0.7,
+        dry: 0.1,
+        pts: [
+          [x + half * at - 5, y + width * 0.26, 1],
+          [x + half * at, y, 2.6],
+          [x + half * at + 7, y - width * 0.3, 1],
+        ],
+      }),
+    ),
+  ];
+}
+
+const PEEL_Y = 172;
+const CRUMB: Pt = [326, PEEL_Y - 4];
+
+/* A row of loaves cools on a long board, and a sparrow takes a crumb from the last. */
+export const loavesScene: InkScene = {
+  width: BANNER_WIDTH,
+  height: BANNER_HEIGHT,
+  parts: [
+    {
+      id: 'board',
+      strokes: [
+        {
+          pts: [
+            [92, PEEL_Y, 7],
+            [240, PEEL_Y + 1, 9],
+            [404, PEEL_Y, 7],
+          ],
+          dry: 0.2,
+          rough: 0.9,
+          grain: 0.05,
+          pace: 0.8,
+        },
+        {
+          pts: [
+            [108, PEEL_Y + 2, 5],
+            [110, PEEL_Y + 18, 4],
+            [108, PEEL_Y + 30, 3],
+          ],
+          rough: 0.6,
+        },
+        {
+          pts: [
+            [388, PEEL_Y + 2, 5],
+            [386, PEEL_Y + 18, 4],
+            [388, PEEL_Y + 30, 3],
+          ],
+          rough: 0.6,
+        },
+      ],
+    },
+    { id: 'loaf-a', strokes: loaf(130, PEEL_Y - 21, 58, 36) },
+    { id: 'loaf-b', strokes: loaf(194, PEEL_Y - 21, 58, 36) },
+    { id: 'loaf-c', strokes: loaf(258, PEEL_Y - 21, 58, 36) },
+    steamCurl('steam-a', 130, 124, 0.56, 0),
+    steamCurl('steam-b', 194, 124, 0.62, -1.7),
+    steamCurl('steam-c', 258, 124, 0.56, -3.4),
+    {
+      id: 'crumbs',
+      strokes: [
+        blob(CRUMB[0], CRUMB[1], 3, 2.6, 'gold'),
+        blob(CRUMB[0] + 9, CRUMB[1] + 1, 1.8, 1.6, 'gold'),
+      ],
+    },
+    {
+      id: 'pecking',
+      motions: [
+        { kind: 'sway', amount: '7deg', seconds: 0.55, origin: [364, PEEL_Y - 4] },
+        { kind: 'sway', amount: '3deg', seconds: 2.3, origin: [364, PEEL_Y - 4] },
+      ],
+      strokes: perched(364, PEEL_Y - 4, 0.78, -1),
+    },
+  ],
+};
+
+/* Wheat in the wind: each stalk leans a moment after the one before it, so a slow
+   wave crosses the banner, and one ear is gold. */
+function windStalk(
+  index: number,
+  x: number,
+  height: number,
+  size: number,
+  color: InkColor,
+): InkPart[] {
+  const base: Pt = [x, 225];
+  const motions: readonly InkMotion[] = [
+    { kind: 'sway', amount: '3.2deg', seconds: 2.4, delay: -index * 0.26, origin: base },
+  ];
+  return wheat(
+    `stalk-${index}`,
+    base,
+    [x + 8, 225 - height * 0.56],
+    [x + 40, 225 - height],
+    977 + index * 613,
+    size,
+    color,
+  ).map(
+    /* an unbroken stem, because one gap shows in a dense field */
+    (part) => ({
+      ...part,
+      motions,
+      strokes: part.id.endsWith('-stem')
+        ? part.strokes.map((stroke) => ({ ...stroke, dry: 0.08 }))
+        : part.strokes,
+    }),
+  );
+}
+
+export const windScene: InkScene = {
+  width: BANNER_WIDTH,
+  height: BANNER_HEIGHT,
+  drawSeconds: 1.5,
+  parts: [
+    windStalk(0, 76, 150, 0.6, 'ink'),
+    windStalk(1, 104, 182, 0.66, 'ink'),
+    windStalk(2, 132, 158, 0.6, 'ink'),
+    windStalk(3, 160, 192, 0.7, 'ink'),
+    windStalk(4, 188, 166, 0.62, 'ink'),
+    windStalk(5, 216, 198, 0.74, 'gold'),
+    windStalk(6, 244, 170, 0.62, 'ink'),
+    windStalk(7, 272, 188, 0.68, 'ink'),
+    windStalk(8, 300, 156, 0.6, 'ink'),
+    windStalk(9, 328, 178, 0.66, 'ink'),
+    windStalk(10, 356, 146, 0.58, 'ink'),
+  ].flat(),
+};
+
+/* A baby goat walks away from the bowl with the whisk in its mouth. */
+const KID_WALK = { x: 256, feet: 182, k: 0.72 } as const;
+
+function kidAt(x: number, y: number): [number, number] {
+  return [KID_WALK.x + (x - 175) * KID_WALK.k, KID_WALK.feet + (y - 488) * KID_WALK.k];
+}
+
+function kidPoints(list: readonly InkPoint[]): InkPoint[] {
+  return list.map(([x, y, w]): InkPoint => [...kidAt(x, y), w * KID_WALK.k]);
+}
+
+/* a small whisk, held by its handle, that tips forward and down from the mouth */
+const WHISK_MOUTH = kidAt(250, 408);
+const WHISK_NECK: Pt = [WHISK_MOUTH[0] + 12, WHISK_MOUTH[1] + 4];
+const WHISK_TIP: Pt = [WHISK_MOUTH[0] + 36, WHISK_MOUTH[1] + 13];
+
+function whiskWire(bulge: number): InkStroke {
+  const midX = (WHISK_NECK[0] + WHISK_TIP[0]) / 2;
+  const midY = (WHISK_NECK[1] + WHISK_TIP[1]) / 2;
+  return {
+    rough: 0.3,
+    grain: 0,
+    pace: 1.4,
+    pts: [
+      [WHISK_NECK[0], WHISK_NECK[1], 0.9],
+      [midX - bulge * 0.35, midY + bulge * 0.94, 1.1],
+      [WHISK_TIP[0], WHISK_TIP[1], 0.9],
+    ],
+  };
+}
+
+export const whiskGoatScene: InkScene = {
+  width: BANNER_WIDTH,
+  height: BANNER_HEIGHT,
+  parts: [
+    {
+      id: 'ground',
+      strokes: [
+        {
+          pts: [
+            [96, 186, 2],
+            [196, 183, 7],
+            [300, 186, 2],
+          ],
+          dry: 0.8,
+          rough: 0.9,
+        },
+        {
+          pts: [
+            [250, 191, 1.5],
+            [330, 189, 6],
+            [404, 191, 1.5],
+          ],
+          dry: 0.78,
+          rough: 0.9,
+        },
+      ],
+    },
+    {
+      id: 'bowl',
+      strokes: [
+        /* a deep bowl, with a little batter on the rim */
+        {
+          color: 'gold',
+          flat: true,
+          dry: 0.1,
+          rough: 0.7,
+          grain: 0.05,
+          pts: [
+            [116, 136, 76],
+            [116, 158, 70],
+            [116, 176, 48],
+            [116, 184, 34],
+          ].map(([x, y, w]): InkPoint => [x + 32, y, w]),
+        },
+        {
+          pts: [
+            [106, 136, 5],
+            [148, 133, 6],
+            [190, 136, 5],
+          ],
+          rough: 0.7,
+          grain: 0.03,
+        },
+      ],
+    },
+    {
+      id: 'far-legs',
+      motions: [{ kind: 'sway', amount: '3deg', seconds: 0.9, origin: kidAt(172, 440) }],
+      strokes: [
+        {
+          pts: kidPoints([
+            [158, 448, 10],
+            [161, 468, 5.5],
+            [158, 488, 5.5],
+          ]),
+          grain: 0.02,
+        },
+        {
+          pts: kidPoints([
+            [190, 448, 10],
+            [188, 468, 5.5],
+            [183, 488, 5.5],
+          ]),
+          grain: 0.02,
+        },
+      ],
+    },
+    {
+      id: 'tail',
+      motions: [
+        { kind: 'sway', amount: '14deg', seconds: 0.47, origin: kidAt(134, 428) },
+        { kind: 'sway', amount: '5deg', seconds: 2.1, origin: kidAt(134, 428) },
+      ],
+      strokes: [
+        {
+          dry: 0.16,
+          rough: 0.9,
+          grain: 0.01,
+          pts: kidPoints([
+            [140, 432, 9],
+            [126, 418, 8],
+            [120, 406, 2],
+          ]),
+        },
+      ],
+    },
+    {
+      id: 'kid',
+      motions: [{ kind: 'bob', amount: '0.8px', seconds: 0.45 }],
+      strokes: [
+        {
+          pts: kidPoints([
+            [146, 446, 14],
+            [139, 466, 7.5],
+            [144, 488, 6.5],
+          ]),
+          grain: 0.02,
+        },
+        {
+          pts: kidPoints([
+            [200, 444, 12],
+            [205, 466, 7.5],
+            [210, 488, 6.5],
+          ]),
+          grain: 0.02,
+        },
+        {
+          dry: 0.03,
+          rough: 0.7,
+          grain: 0.03,
+          pts: kidPoints([
+            [132, 436, 20],
+            [150, 434, 40],
+            [172, 433, 47],
+            [194, 431, 43],
+            [210, 425, 22],
+          ]),
+        },
+        {
+          grain: 0.02,
+          rough: 0.7,
+          pts: kidPoints([
+            [200, 428, 26],
+            [212, 408, 19],
+            [218, 396, 17],
+          ]),
+        },
+        {
+          color: 'clear',
+          dry: 0.2,
+          rough: 1,
+          grain: 0,
+          pts: kidPoints([
+            [150, 428, 5],
+            [161, 431, 14],
+            [174, 434, 11],
+            [184, 442, 2],
+          ]),
+        },
+        {
+          grain: 0.01,
+          rough: 0.25,
+          pts: kidPoints([
+            [219, 383, 6],
+            [215, 373, 5],
+            [212, 369, 2],
+          ]),
+        },
+        {
+          grain: 0.01,
+          rough: 0.25,
+          pts: kidPoints([
+            [228, 381, 5.5],
+            [227, 372, 4.5],
+            [224, 367, 1.8],
+          ]),
+        },
+        roundBlob(...kidAt(222, 396), 17 * KID_WALK.k, 16 * KID_WALK.k),
+        {
+          grain: 0.01,
+          rough: 0.25,
+          pts: kidPoints([
+            [226, 398, 22],
+            [238, 403, 16],
+            [249, 408, 10],
+          ]),
+        },
+        blob(...kidAt(229, 389), 3.2, 3.2, 'clear'),
+        blob(...kidAt(230, 389.5), 1.8, 1.8),
+      ],
+    },
+    {
+      id: 'ear',
+      motions: [{ kind: 'sway', amount: '7deg', seconds: 1.4, origin: kidAt(214, 388) }],
+      strokes: [
+        {
+          grain: 0.01,
+          rough: 0.4,
+          pts: kidPoints([
+            [216, 386, 6],
+            [202, 391, 11],
+            [191, 404, 3.4],
+          ]),
+        },
+      ],
+    },
+    {
+      id: 'whisk',
+      motions: [{ kind: 'sway', amount: '2deg', seconds: 0.9, origin: WHISK_MOUTH }],
+      strokes: [
+        {
+          pts: [
+            [WHISK_MOUTH[0] - 4, WHISK_MOUTH[1] - 1, 2.4],
+            [WHISK_NECK[0], WHISK_NECK[1], 2.4],
+          ],
+          rough: 0.3,
+          grain: 0,
+        },
+        whiskWire(-6),
+        whiskWire(-3),
+        whiskWire(0),
+        whiskWire(3),
+        whiskWire(6),
+      ],
+    },
+    fallingSpeck('batter-a', WHISK_TIP[0] + 1, WHISK_TIP[1] + 6, 1.5, 0),
+    fallingSpeck('batter-b', WHISK_TIP[0] - 8, WHISK_TIP[1] + 6, 1.2, -0.9),
+    fallingSpeck('batter-c', WHISK_TIP[0] - 3, WHISK_TIP[1] + 9, 1.3, -1.7),
+  ],
+};
+
+/* Order slips hang on one line, and a sparrow carries one away in its beak. */
+function onSlipLine(t: number): Pt {
+  const [x, y] = bezierAt([56, 26], [300, 84], [632, 8], t);
+  return [x, y];
+}
+
+function orderSlip(
+  id: string,
+  t: number,
+  length: number,
+  seconds: number,
+  delay: number,
+  gold = false,
+): InkPart {
+  const [x, y] = onSlipLine(t);
+  const top = y + 2;
+  const width = 34;
+  const left = x - width / 2;
+  const right = x + width / 2;
+  const bottom = top + length;
+  const outline = (pts: readonly InkPoint[]): InkStroke => ({
+    pts,
+    dry: 0.22,
+    rough: 0.8,
+    grain: 0.02,
+    pace: 1.6,
+  });
+  return {
+    id,
+    motions: [{ kind: 'sway', amount: '5deg', seconds, delay, origin: [x, y] }],
+    strokes: [
+      {
+        color: gold ? 'gold' : 'paper',
+        flat: true,
+        grain: gold ? 0.04 : 0,
+        rough: 0.4,
+        pts: [
+          [x, top, width],
+          [x, (top + bottom) / 2, width],
+          [x, bottom, width],
+        ],
+      },
+      ...(gold
+        ? []
+        : [
+            outline([
+              [left, top, 1.6],
+              [left, bottom, 1.4],
+            ]),
+            outline([
+              [right, top, 1.6],
+              [right, bottom, 1.4],
+            ]),
+            outline([
+              [left, bottom, 1.4],
+              [x - 8, bottom + 3, 1.3],
+              [x + 6, bottom - 1, 1.3],
+              [right, bottom + 2, 1.4],
+            ]),
+          ]),
+      /* the printed lines */
+      ...[0.26, 0.44, 0.62, 0.78].map(
+        (at, i): InkStroke => ({
+          color: gold ? 'clear' : 'ink',
+          dry: 0.36,
+          rough: 0.6,
+          grain: 0,
+          pace: 2,
+          pts: [
+            [left + 6, top + length * at, 1.1],
+            [right - (i % 2 === 0 ? 6 : 13), top + length * at, 1.1],
+          ],
+        }),
+      ),
+      /* the peg on the line */
+      {
+        pts: [
+          [x, y - 6, 3.6],
+          [x, y + 7, 3.6],
+        ],
+        rough: 0.3,
+        grain: 0,
+      },
+    ],
+  };
+}
+
+const SLIP_BIRD = onSlipLine(0.56);
+const SLIP_BEAK: Pt = [SLIP_BIRD[0] + 29, SLIP_BIRD[1] - 30];
+const SLIP_CARRIED: readonly InkMotion[] = [
+  { kind: 'sway', amount: '4deg', seconds: 1.5, origin: SLIP_BEAK },
+];
+
+export const orderSlipsScene: InkScene = {
+  width: BANNER_WIDTH,
+  height: BANNER_HEIGHT,
+  parts: [
+    {
+      id: 'line',
+      strokes: [
+        {
+          pts: [0, 0.2, 0.4, 0.6, 0.8, 1].map((t): InkPoint => [...onSlipLine(t), 1.5]),
+          dry: 0.16,
+          rough: 0.9,
+          pace: 1.6,
+        },
+      ],
+    },
+    orderSlip('slip-a', 0.1, 74, 2.2, 0),
+    orderSlip('slip-b', 0.22, 60, 2.6, -0.6),
+    orderSlip('slip-c', 0.34, 82, 2, -1.2),
+    orderSlip('slip-d', 0.46, 64, 2.4, -1.8),
+    sparrowPart('taker', SLIP_BIRD[0], SLIP_BIRD[1], 0.78, 1, 2.3),
+    {
+      id: 'carried-slip',
+      motions: SLIP_CARRIED,
+      strokes: [
+        {
+          pts: [
+            [SLIP_BEAK[0], SLIP_BEAK[1], 1],
+            [SLIP_BEAK[0] + 2, SLIP_BEAK[1] + 34, 1],
+          ],
+          rough: 0.5,
+          grain: 0,
+          pace: 2,
+        },
+        {
+          color: 'gold',
+          flat: true,
+          rough: 0.4,
+          grain: 0.04,
+          pts: [
+            [SLIP_BEAK[0] + 2, SLIP_BEAK[1] + 34, 34],
+            [SLIP_BEAK[0] + 2, SLIP_BEAK[1] + 62, 34],
+            [SLIP_BEAK[0] + 2, SLIP_BEAK[1] + 96, 34],
+          ],
+        },
+        ...[0.2, 0.42, 0.64, 0.84].map(
+          (at, i): InkStroke => ({
+            color: 'clear',
+            dry: 0.3,
+            rough: 0.6,
+            grain: 0,
+            pts: [
+              [SLIP_BEAK[0] - 9, SLIP_BEAK[1] + 34 + 62 * at, 1.3],
+              [SLIP_BEAK[0] + (i % 2 === 0 ? 13 : 6), SLIP_BEAK[1] + 34 + 62 * at, 1.3],
+            ],
+          }),
+        ),
+      ],
+    },
   ],
 };

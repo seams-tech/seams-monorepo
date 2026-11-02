@@ -714,13 +714,14 @@ function MoneyGateMock(): React.JSX.Element {
   );
 }
 
-export function H2Bento(): React.JSX.Element {
+export function H2Bento({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
   return (
     <>
       <BannerSection
         id="h2-bento-title"
         anchor="control"
         field="mauve-ember"
+        drawing={drawing}
         title="Agents act inside your rules"
         sub="Agents prepare the work. People approve the changes that matter, and every action leaves a receipt."
       />
@@ -900,13 +901,14 @@ export function H2WorkflowCanvas(): React.JSX.Element {
   );
 }
 
-export function H2Cases(): React.JSX.Element {
+export function H2Cases({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
   return (
     <>
       <BannerSection
         id="h2-cases-title"
         anchor="workflows"
         field="mauve-ember"
+        drawing={drawing}
         title="Turn café work into agent workflows"
         sub="Agents watch the shop and the inbox, prepare the work, and act inside the limits that you set."
       />
@@ -946,13 +948,14 @@ const productionViews: readonly UseCase[] = [
   },
 ];
 
-export function H2Production(): React.JSX.Element {
+export function H2Production({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
   return (
     <>
       <BannerSection
         id="h2-production-title"
         anchor="kitchen"
         field="apricot-beam"
+        drawing={drawing}
         title="Satyr Kitchen: from orders to the oven"
         sub="Satyr Kitchen is the production workspace inside Satyr. It turns orders and preorders into production runs, and it shows one run in three views."
       />

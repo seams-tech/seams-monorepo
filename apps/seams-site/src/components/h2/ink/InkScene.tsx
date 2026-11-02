@@ -15,6 +15,8 @@ const SHORTEST_STROKE_S = 0.055;
 const STROKE_OVERLAP = 0.55;
 /* a scene with many strokes speeds up to finish inside this time */
 const LONGEST_SCENE_S = 4.2;
+/* the strokes of a part that grows together start this far apart */
+const TOGETHER_STAGGER_S = 0.012;
 
 function reducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -46,21 +48,26 @@ function paint(
     canvas.height = Math.ceil(box.height * scale);
     ctx.setTransform(scale, 0, 0, scale, -box.x * scale, -box.y * scale);
     clock += part.pause ?? 0;
-    for (const raw of part.strokes) {
+    const first = clock;
+    let end = clock;
+    part.strokes.forEach((raw, strokeIndex) => {
       const stroke = prepareStroke(raw, scale, noise);
       const duration = Math.min(
         LONGEST_STROKE_S,
         Math.max(SHORTEST_STROKE_S, stroke.length / (BRUSH_SPEED * (raw.pace ?? 1))),
       );
-      timed.push({ stroke, ctx, start: clock, duration });
+      const start = part.together ? first + strokeIndex * TOGETHER_STAGGER_S : clock;
+      timed.push({ stroke, ctx, start, duration });
+      end = Math.max(end, start + duration);
       clock += duration * STROKE_OVERLAP;
-    }
+    });
+    if (part.together) clock = first + (end - first) * STROKE_OVERLAP;
   });
 
-  const last = timed[timed.length - 1];
-  const total = last ? last.start + last.duration : 0;
-  if (total > LONGEST_SCENE_S) {
-    const quicken = LONGEST_SCENE_S / total;
+  const total = timed.reduce((latest, entry) => Math.max(latest, entry.start + entry.duration), 0);
+  const longest = scene.drawSeconds ?? LONGEST_SCENE_S;
+  if (total > longest) {
+    const quicken = longest / total;
     for (const entry of timed) {
       entry.start *= quicken;
       entry.duration *= quicken;

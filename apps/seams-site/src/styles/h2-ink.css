@@ -48,6 +48,16 @@
   animation-name: h2-ink-flap;
 }
 
+.h2-ink__move--breathe {
+  animation-name: h2-ink-breathe;
+}
+
+.h2-ink__move--rise {
+  animation-name: h2-ink-rise;
+  animation-direction: normal;
+  animation-timing-function: linear;
+}
+
 @keyframes h2-ink-sway {
   from {
     transform: rotate(calc(var(--ink-a) * -1));
@@ -81,6 +91,32 @@
   }
   to {
     transform: scaleY(var(--ink-a));
+  }
+}
+
+@keyframes h2-ink-breathe {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(var(--ink-a));
+  }
+}
+
+@keyframes h2-ink-rise {
+  0% {
+    transform: translate(0, 6px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(5px, calc(var(--ink-a) * -1));
+    opacity: 0;
   }
 }
 

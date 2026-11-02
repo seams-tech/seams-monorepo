@@ -3,7 +3,7 @@ import type { InkColor, InkPoint, InkStroke } from './brush';
 /* The home page drawings: a croissant that flies itself over a field of wheat. */
 
 export type InkMotion = {
-  readonly kind: 'sway' | 'bob' | 'drift' | 'flap';
+  readonly kind: 'sway' | 'bob' | 'drift' | 'flap' | 'breathe' | 'rise';
   readonly amount: string;
   readonly seconds: number;
   readonly delay?: number;
@@ -46,8 +46,9 @@ function blob(x: number, y: number, rx: number, ry: number, color: InkColor = 'i
 /* ---------- the croissant kite ---------- */
 
 /* one fat crescent with its tips turned down, then its layers cut out across it */
-function croissant(cx: number, cy: number, radius: number): InkStroke[] {
-  const size = radius / 40;
+function croissant(cx: number, cy: number, radius: number, thickness = radius / 40): InkStroke[] {
+  const size = thickness;
+  const reach = (size * 40) / radius;
   const at = (angle: number, r: number): [number, number] => [
     cx + Math.sin(angle) * r,
     cy - Math.cos(angle) * r,
@@ -59,9 +60,9 @@ function croissant(cx: number, cy: number, radius: number): InkStroke[] {
     body.push([x, y, (5 + 37 * Math.pow(Math.cos((angle / 1.72) * (Math.PI / 2)), 0.72)) * size]);
   }
   const cuts = [-1.12, -0.62, -0.2, 0.22, 0.64, 1.14].map((angle): InkStroke => {
-    const [ax, ay] = at(angle - 0.1, radius * 0.5);
+    const [ax, ay] = at(angle - 0.1, radius * (1 - 0.5 * reach));
     const [bx, by] = at(angle + 0.06, radius);
-    const [ex, ey] = at(angle + 0.2, radius * 1.56);
+    const [ex, ey] = at(angle + 0.2, radius * (1 + 0.56 * reach));
     return {
       color: 'clear',
       dry: 0.26,
@@ -839,5 +840,273 @@ export const carryScene: InkScene = {
     },
     ...flying('left', 122, 48, 0.66, 1, 0.2),
     ...flying('right', 244, 42, 0.62, -1, 0.17),
+  ],
+};
+
+/* ---------- the pillow goat: a spare banner, not used on a page yet ---------- */
+
+/* a truly round mark, for a head: its width follows a circle down its height */
+function roundBlob(x: number, y: number, rx: number, ry: number): InkStroke {
+  const rows = [-0.98, -0.8, -0.5, 0, 0.5, 0.8, 0.98];
+  return {
+    grain: 0.02,
+    rough: 0.3,
+    pts: rows.map((t): InkPoint => [x, y + t * ry, 2 * rx * Math.sqrt(1 - t * t)]),
+  };
+}
+
+function sleepZ(id: string, x: number, y: number, size: number, delay: number): InkPart {
+  return {
+    id,
+    pause: 0.05,
+    motions: [{ kind: 'rise', amount: '14px', seconds: 4.5, delay }],
+    strokes: [
+      {
+        rough: 0.6,
+        grain: 0.01,
+        pts: [
+          [x, y, 1.2],
+          [x + size, y, 1.7],
+          [x, y + size, 1.7],
+          [x + size, y + size, 1.2],
+        ],
+      },
+    ],
+  };
+}
+
+const PILLOW_BREATH: InkMotion = {
+  kind: 'breathe',
+  amount: '1.03',
+  seconds: 2.3,
+  origin: [200, 174],
+};
+const PILLOW_NOD: InkMotion = { kind: 'bob', amount: '0.6px', seconds: 2.3 };
+
+/* A baby goat asleep in side view, with its head on a croissant. To use it, pass
+   <InkDrawing scene={pillowGoatScene} className="h2-ink--banner" /> as a banner's
+   drawing. */
+export const pillowGoatScene: InkScene = {
+  width: BANNER_WIDTH,
+  height: BANNER_HEIGHT,
+  parts: [
+    ...wheat('wheat', [92, 225], [72, 150], [108, 70], 6101, 0.74),
+    {
+      id: 'ground',
+      strokes: [
+        {
+          pts: [
+            [100, 180, 2],
+            [190, 176, 7],
+            [266, 180, 2],
+          ],
+          dry: 0.8,
+          rough: 0.9,
+        },
+        {
+          pts: [
+            [210, 190, 1.5],
+            [284, 187, 6],
+            [352, 190, 1.5],
+          ],
+          dry: 0.76,
+          rough: 0.9,
+        },
+      ],
+    },
+    { id: 'pillow', strokes: croissant(296, 168, 46, 1.25) },
+    {
+      id: 'tail',
+      motions: [{ kind: 'sway', amount: '9deg', seconds: 2.6, origin: [146, 142] }],
+      strokes: [
+        {
+          dry: 0.16,
+          rough: 0.9,
+          grain: 0.01,
+          pts: [
+            [150, 146, 11],
+            [136, 132, 10],
+            [128, 118, 2],
+          ],
+        },
+      ],
+    },
+    {
+      id: 'body',
+      motions: [PILLOW_BREATH],
+      strokes: [
+        /* a small round body that rests on the ground */
+        {
+          dry: 0.03,
+          rough: 0.7,
+          grain: 0.03,
+          pace: 0.7,
+          pts: [
+            [146, 154, 38],
+            [170, 144, 58],
+            [208, 140, 68],
+            [240, 142, 62],
+            [266, 150, 44],
+          ],
+        },
+        /* the legs folded under, with white hocks */
+        {
+          grain: 0.03,
+          pts: [
+            [160, 166, 16],
+            [182, 172, 12],
+            [204, 172, 6],
+          ],
+        },
+        {
+          grain: 0.03,
+          pts: [
+            [246, 166, 12],
+            [264, 172, 10],
+            [280, 171, 6],
+          ],
+        },
+        {
+          color: 'paper',
+          dry: 0.1,
+          grain: 0,
+          rough: 0.7,
+          pts: [
+            [190, 171, 7],
+            [198, 172, 7.5],
+            [205, 172, 4],
+          ],
+        },
+        {
+          color: 'paper',
+          dry: 0.1,
+          grain: 0,
+          rough: 0.7,
+          pts: [
+            [268, 171, 6],
+            [276, 171, 6],
+            [281, 171, 3],
+          ],
+        },
+        /* a white patch on the flank, so the body stays light */
+        {
+          color: 'clear',
+          dry: 0.2,
+          rough: 1,
+          grain: 0,
+          pts: [
+            [180, 128, 5],
+            [196, 128, 17],
+            [216, 132, 14],
+            [230, 142, 2],
+          ],
+        },
+      ],
+    },
+    { id: 'bell', motions: [PILLOW_NOD], strokes: [blob(262, 122, 5, 5.4, 'accent')] },
+    {
+      id: 'head',
+      motions: [PILLOW_NOD],
+      strokes: [
+        /* the neck, reaching forward to the pillow */
+        {
+          grain: 0.02,
+          rough: 0.7,
+          pts: [
+            [246, 132, 40],
+            [266, 102, 30],
+          ],
+        },
+        /* two horns, curved back */
+        {
+          grain: 0.01,
+          rough: 0.3,
+          pace: 0.8,
+          pts: [
+            [278, 68, 7],
+            [270, 52, 6],
+            [258, 44, 3],
+            [250, 47, 1],
+          ],
+        },
+        {
+          grain: 0.01,
+          rough: 0.3,
+          pace: 0.8,
+          pts: [
+            [288, 65, 7],
+            [284, 48, 6],
+            [272, 38, 3],
+            [264, 39, 1],
+          ],
+        },
+        /* a round head and a short muzzle that rests on the croissant */
+        roundBlob(284, 80, 24, 22),
+        {
+          grain: 0.01,
+          rough: 0.25,
+          pts: [
+            [288, 84, 30],
+            [302, 90, 24],
+            [314, 94, 17],
+          ],
+        },
+        /* a white stripe down the nose */
+        {
+          color: 'paper',
+          grain: 0,
+          rough: 0.5,
+          pts: [
+            [290, 66, 3],
+            [297, 78, 6.5],
+            [306, 88, 11],
+            [312, 92, 7],
+          ],
+        },
+        blob(316, 90, 3.6, 3.2),
+        /* one shut eye */
+        {
+          color: 'clear',
+          grain: 0,
+          rough: 0.2,
+          pts: [
+            [275, 79, 1.2],
+            [281, 83, 2.8],
+            [288, 80, 1.2],
+          ],
+        },
+      ],
+    },
+    {
+      id: 'ear',
+      motions: [PILLOW_NOD, { kind: 'sway', amount: '3deg', seconds: 3.7, origin: [272, 74] }],
+      strokes: [
+        /* a thin pale edge lifts the ear off the dark neck */
+        {
+          color: 'paper',
+          grain: 0,
+          rough: 0.5,
+          pts: [
+            [274, 72, 9],
+            [258, 82, 16],
+            [246, 102, 11],
+            [244, 116, 5],
+          ],
+        },
+        {
+          grain: 0.01,
+          rough: 0.4,
+          pts: [
+            [274, 72, 7],
+            [258, 82, 13.5],
+            [246, 102, 8.5],
+            [244, 114, 2],
+          ],
+        },
+      ],
+    },
+    sleepZ('z-small', 326, 62, 7, 0),
+    sleepZ('z-middle', 334, 48, 9, -1.5),
+    sleepZ('z-large', 332, 32, 11, -3),
   ],
 };

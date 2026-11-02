@@ -4,7 +4,7 @@
    tail breaks up as real brush ink does. No two page loads draw the same marks.
    A stroke draws in slices, so a frame only pays for the new marks. */
 
-export type InkColor = 'ink' | 'accent' | 'gold' | 'clear';
+export type InkColor = 'ink' | 'accent' | 'gold' | 'paper' | 'clear';
 
 /* scene x, scene y, brush width at that point */
 export type InkPoint = readonly [number, number, number];
@@ -26,6 +26,7 @@ const COLORS: Record<InkColor, string> = {
   ink: '#0c0b0a',
   accent: '#e4572e',
   gold: '#d98f24',
+  paper: '#f9f7f2',
   clear: '#000000',
 };
 

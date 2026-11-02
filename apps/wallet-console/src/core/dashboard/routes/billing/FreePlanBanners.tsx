@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp } from 'lucide-react';
+import { ArrowRight, Building2, Sprout, TrendingUp } from 'lucide-react';
 import { GrainField } from '@seams-internal/grain-field';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import { clearPendingDashboardPlanIntent, DEFAULT_PLAN_ORGANIZATION_NAME } from './planIntent';
@@ -91,6 +91,71 @@ function planSummary(plan: DashboardBillingPlan): string {
   const signatureLimit =
     plan.plan === 'free' ? ` of ${usage.limits.productionSignatures.toLocaleString('en-US')}` : '';
   return `${name} plan, ${card}. Production this month: ${usage.productionActiveUsers.toLocaleString('en-US')}${userLimit} monthly active users, ${usage.productionSignatures.toLocaleString('en-US')}${signatureLimit} signatures.`;
+}
+
+function freeSummaryMessage(plan: DashboardBillingPlan): string {
+  if (plan.card.kind === 'usable') {
+    return '$0 a month. Your card is verified. Growth starts at $99 a month if you exceed a Free limit.';
+  }
+  // The card_due banner below the summary already gives this date.
+  if (plan.banners.some((banner) => banner.kind === 'card_due')) return '$0 a month.';
+  return plan.cardDeadlineAt
+    ? `$0 a month. Add a card by ${utcDate(plan.cardDeadlineAt)} to keep production running. We do not charge it inside the Free limits.`
+    : '$0 a month. Add a card to keep production running after the first 30 days.';
+}
+
+function cardName(card: DashboardBillingPlan['card']): string {
+  if (card.kind === 'none') return 'No card on file';
+  const name = `${card.brand.charAt(0).toUpperCase()}${card.brand.slice(1)} ending ${card.last4}`;
+  return card.kind === 'usable' ? name : `${name} (${card.kind})`;
+}
+
+function PlanUsageStat(props: {
+  readonly label: string;
+  readonly used: number;
+  readonly limit: number;
+}): React.ReactElement {
+  return (
+    <div>
+      <dt>{props.label}</dt>
+      <dd>
+        {props.used.toLocaleString('en-US')}
+        <span> of {props.limit.toLocaleString('en-US')}</span>
+      </dd>
+      <meter
+        className="dashboard-plan-meter"
+        min={0}
+        max={props.limit}
+        value={Math.min(props.used, props.limit)}
+        aria-label={props.label}
+      />
+    </div>
+  );
+}
+
+function AddCardButton(props: {
+  readonly className?: string;
+  readonly starting: boolean;
+  readonly onAddCard: () => Promise<void>;
+}): React.ReactElement {
+  return (
+    <button
+      type="button"
+      className={[
+        'dashboard-pagination-button',
+        'dashboard-pagination-button--primary',
+        props.className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      disabled={props.starting}
+      onClick={() => {
+        void props.onAddCard();
+      }}
+    >
+      {props.starting ? 'Opening Stripe...' : 'Add a card'}
+    </button>
+  );
 }
 
 /**
@@ -192,10 +257,11 @@ export function FreePlanBanners(props: {
   const quickstartLink = linkProps('/docs/getting-started/');
   const accountLink = linkProps('/dashboard/account-settings');
   const banners = (plan?.banners ?? []).filter((banner) => !isDismissed(banner));
+  const showFreeSummary = props.showOverviewSummary && plan?.plan === 'free';
   const showAddCard =
     props.canManageBilling &&
-    (banners.some(needsCard) || (props.variant === 'billing' && plan?.card.kind !== 'usable'));
-  const showFreeSummary = props.showOverviewSummary && plan?.plan === 'free';
+    (banners.some(needsCard) ||
+      ((props.variant === 'billing' || showFreeSummary) && plan?.card.kind !== 'usable'));
   const showRename =
     props.showOverviewSummary &&
     props.organizationName === DEFAULT_PLAN_ORGANIZATION_NAME &&
@@ -209,39 +275,56 @@ export function FreePlanBanners(props: {
   )
     return null;
   return (
-    <section className="dashboard-view__section" aria-label="Plan notices">
+    <section className="dashboard-view__section dashboard-plan-notices" aria-label="Plan notices">
       {showFreeSummary && plan ? (
         <section className="dashboard-plan-current" aria-label="Free plan summary">
-          <h2 className="dashboard-plan-current__name">Free plan</h2>
-          <p className="dashboard-plan-current__summary">
-            $0 a month. Includes {plan.usage.limits.productionActiveUsers.toLocaleString('en-US')}{' '}
-            production monthly active users and{' '}
-            {plan.usage.limits.productionSignatures.toLocaleString('en-US')} production signatures
-            each month.
-          </p>
-          <p className="dashboard-plan-current__summary">
-            {plan.card.kind === 'usable'
-              ? 'Your card is verified. Growth starts at $99 a month if you exceed a Free limit.'
-              : plan.cardDeadlineAt
-                ? `Add a card by ${utcDate(plan.cardDeadlineAt)} to keep production running. Your card is not charged within the Free limits.`
-                : 'Add a card to keep production running after the first 30 days.'}
-          </p>
-          <p className="dashboard-plan-current__summary">
-            {plan.usage.productionActiveUsers.toLocaleString('en-US')} active users and{' '}
-            {plan.usage.productionSignatures.toLocaleString('en-US')} signatures used in{' '}
-            {plan.usage.monthUtc} (UTC).
-          </p>
-          <p className="dashboard-plan-current__summary">
-            <a {...billingLink}>Manage plan and card</a>
-            {' · '}
-            <a {...quickstartLink}>Integration quick start</a>
-          </p>
+          <div className="dashboard-plan-current__head">
+            <span className="dashboard-plan-icon" aria-hidden="true">
+              <GrainField field="onyx-black" playing={false} />
+              <Sprout size={20} />
+            </span>
+            <div className="dashboard-plan-current__copy">
+              <span className="dashboard-plan-current__eyebrow">Current plan</span>
+              <h2 className="dashboard-plan-current__name">Free</h2>
+              <p className="dashboard-plan-current__summary">{freeSummaryMessage(plan)}</p>
+            </div>
+            <div className="dashboard-plan-current__actions">
+              <a
+                className="dashboard-pagination-button dashboard-plan-current__cta"
+                {...billingLink}
+              >
+                Manage plan
+              </a>
+              {showAddCard ? (
+                <AddCardButton
+                  className="dashboard-plan-current__cta"
+                  starting={starting}
+                  onAddCard={onAddCard}
+                />
+              ) : null}
+            </div>
+          </div>
+          <dl className="dashboard-plan-current__stats">
+            <PlanUsageStat
+              label="Active users this month"
+              used={plan.usage.productionActiveUsers}
+              limit={plan.usage.limits.productionActiveUsers}
+            />
+            <PlanUsageStat
+              label="Signatures this month"
+              used={plan.usage.productionSignatures}
+              limit={plan.usage.limits.productionSignatures}
+            />
+            <div>
+              <dt>Card</dt>
+              <dd>{cardName(plan.card)}</dd>
+            </div>
+          </dl>
+          <a className="dashboard-plan-current__link" {...quickstartLink}>
+            Integration quick start
+            <ArrowRight size={14} aria-hidden />
+          </a>
         </section>
-      ) : null}
-      {showRename ? (
-        <p className="dashboard-pagination-note">
-          <a {...accountLink}>Name your organization</a> in account settings.
-        </p>
       ) : null}
       {banners.map((banner) =>
         banner.kind === 'growth_move' ? (
@@ -298,21 +381,27 @@ export function FreePlanBanners(props: {
           </div>
         ),
       )}
+      {showRename ? (
+        <div className="dashboard-plan-banner">
+          <span className="dashboard-plan-icon" aria-hidden="true">
+            <GrainField field="onyx-black" playing={false} />
+            <Building2 size={20} />
+          </span>
+          <div className="dashboard-plan-banner__body">
+            <p className="dashboard-plan-banner__title">Name your organization</p>
+            <p>It still has the default name, “{DEFAULT_PLAN_ORGANIZATION_NAME}”.</p>
+          </div>
+          <a className="dashboard-pagination-button dashboard-plan-banner__link" {...accountLink}>
+            Rename
+          </a>
+        </div>
+      ) : null}
       {props.variant === 'billing' && plan ? (
         <p className="dashboard-pagination-note">{planSummary(plan)}</p>
       ) : null}
       {message ? <p className="dashboard-info-banner">{message}</p> : null}
-      {showAddCard ? (
-        <button
-          type="button"
-          className="dashboard-pagination-button dashboard-pagination-button--primary"
-          disabled={starting}
-          onClick={() => {
-            void onAddCard();
-          }}
-        >
-          {starting ? 'Opening Stripe...' : 'Add a card'}
-        </button>
+      {showAddCard && !showFreeSummary ? (
+        <AddCardButton starting={starting} onAddCard={onAddCard} />
       ) : null}
     </section>
   );

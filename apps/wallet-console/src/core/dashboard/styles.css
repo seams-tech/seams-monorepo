@@ -9756,7 +9756,8 @@ select.dashboard-input {
   color: var(--dashboard-ash);
 }
 
-.dashboard-plan-current__name {
+/* The section heading rules outrank a single class and add a bottom margin. */
+.dashboard-plan-current__copy .dashboard-plan-current__name {
   margin: 0;
   font-size: var(--dashboard-text-heading);
   font-weight: 600;
@@ -9767,6 +9768,14 @@ select.dashboard-input {
   margin: 0;
   font-size: var(--dashboard-text-compact);
   color: var(--dashboard-ink-soft);
+  text-wrap: pretty;
+}
+
+.dashboard-plan-current__actions {
+  display: flex;
+  flex-wrap: wrap;
+  flex: none;
+  gap: 8px;
 }
 
 .dashboard-plan-current__cta {
@@ -9776,6 +9785,45 @@ select.dashboard-input {
   min-height: 40px;
   padding: 0 18px;
   text-decoration: none;
+}
+
+.dashboard-plan-current__link {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  font-size: var(--dashboard-text-compact);
+  font-weight: 500;
+  color: var(--dashboard-ink);
+  text-decoration: none;
+}
+
+.dashboard-plan-current__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dashboard-plan-notices {
+  display: grid;
+  gap: 12px;
+}
+
+.dashboard-plan-notices > button {
+  justify-self: start;
+}
+
+/* Rows under the Free plan card share its edge, radius, and flat surface. */
+.dashboard-plan-notices .dashboard-plan-banner {
+  padding: 14px 20px;
+  border-radius: var(--dashboard-radius-2xl);
+  box-shadow: none;
+}
+
+/* On a phone the summary wraps to several lines, so the icon stays at its top. */
+@media (max-width: 640px) {
+  .dashboard-plan-current__head {
+    align-items: flex-start;
+  }
 }
 
 .dashboard-plan-current__stats {

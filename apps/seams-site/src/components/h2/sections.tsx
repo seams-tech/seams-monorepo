@@ -23,8 +23,6 @@ import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
-import { InkDrawing } from '@/components/h2/ink/InkScene';
-import { keyScene, wireScene, type InkScene } from '@/components/h2/ink/scenes';
 import { EcosystemAccessList } from '@/components/h2/EcosystemAccessList';
 import { PortalShot, type PortalShotName } from '@/components/h2/SceneHero';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
@@ -346,7 +344,7 @@ function BannerSection({
   id,
   anchor,
   field,
-  scene,
+  drawing,
   title,
   sub,
   children,
@@ -355,8 +353,9 @@ function BannerSection({
   /* the fragment that links to this band, e.g. /ecommerce#kitchen */
   anchor?: string;
   field: GrainFieldName;
-  /* a drawing on paper in place of the gradient field: the home page banners */
-  scene?: InkScene;
+  /* a drawing on paper in place of the gradient field: the home page brings it,
+     so the ink code and styles stay out of the pages that share these sections */
+  drawing?: React.ReactNode;
   title: string;
   sub?: string;
   children?: React.ReactNode;
@@ -375,9 +374,9 @@ function BannerSection({
 
   return (
     <section id={anchor} className="h2-section h2-section--banner h2-rule" aria-labelledby={id}>
-      {scene ? (
+      {drawing ? (
         <div className="h2-banner h2-banner--ink">
-          <InkDrawing scene={scene} className="h2-ink--banner" />
+          {drawing}
           {content}
         </div>
       ) : (
@@ -389,7 +388,7 @@ function BannerSection({
 
 /* ---------- ecosystem (integrations access list) ---------- */
 
-export function H2Ecosystem(): React.JSX.Element {
+export function H2Ecosystem({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const satyrProps = linkProps('/ecommerce');
 
@@ -399,7 +398,7 @@ export function H2Ecosystem(): React.JSX.Element {
         id="h2-eco-title"
         anchor="integrations"
         field="teal-peach"
-        scene={wireScene}
+        drawing={drawing}
         title="Connects to the tools a café already uses"
         sub="Slack, Gmail, Shopify, Square, Stripe and your files. Each connection has its own access, and you can disconnect it at any time."
       >
@@ -605,8 +604,8 @@ const pillars: Pillar[] = [
 
 export function H2Pillars({
   link = true,
-  scene,
-}: { link?: boolean; scene?: InkScene } = {}): React.JSX.Element {
+  drawing,
+}: { link?: boolean; drawing?: React.ReactNode } = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const satyrProps = linkProps('/ecommerce');
   const [active, setActive] = React.useState(0);
@@ -618,7 +617,7 @@ export function H2Pillars({
         id="h2-pillars-title"
         anchor="suite"
         field="azure-coral"
-        scene={scene}
+        drawing={drawing}
         title="One suite for the whole business"
         sub="The online shop, the inbox and the kitchen work from the same orders."
       >
@@ -971,7 +970,7 @@ export function H2Production(): React.JSX.Element {
 
 /* ---------- Seams Wallet (the other product, one band) ---------- */
 
-export function H2WalletBand(): React.JSX.Element {
+export function H2WalletBand({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const walletProps = linkProps('/wallet');
 
@@ -979,7 +978,7 @@ export function H2WalletBand(): React.JSX.Element {
     <BannerSection
       id="h2-wallet-title"
       field="teal-peach"
-      scene={keyScene}
+      drawing={drawing}
       title="Also from Seams: Seams Wallet"
       sub="A stablecoin wallet that opens with a passkey. Keys are split between the device and the server, so neither side can sign alone."
     >
@@ -2051,10 +2050,10 @@ const ctaCopy = {
 
 export function H2Cta({
   audience,
-  scene,
+  drawing,
 }: {
   audience: keyof typeof ctaCopy;
-  scene?: InkScene;
+  drawing?: React.ReactNode;
 }): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const copy = ctaCopy[audience];
@@ -2065,7 +2064,7 @@ export function H2Cta({
     <BannerSection
       id="h2-cta-title"
       field={copy.field}
-      scene={scene}
+      drawing={drawing}
       title={copy.title}
       sub={copy.sub}
     >

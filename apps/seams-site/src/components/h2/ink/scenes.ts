@@ -239,7 +239,7 @@ function bezierAt(a: Pt, b: Pt, c: Pt, t: number): [number, number, number, numb
 }
 
 /* one stalk: a dry stem, then an ear of loaded dabs with long whiskers */
-function wheat(
+export function wheat(
   id: string,
   base: Pt,
   bend: Pt,

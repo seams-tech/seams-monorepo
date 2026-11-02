@@ -2784,12 +2784,12 @@ body:has(.h2-page) {
   }
 }
 
-/* integrations kites: the ink drawing with logos and gold dots on top of it */
-.h2-kites {
+/* integrations field: the ink drawing with logos and gold grains on top of it */
+.h2-field {
   position: relative;
 }
 
-.h2-kites__layer {
+.h2-field__layer {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2798,28 +2798,28 @@ body:has(.h2-page) {
   pointer-events: none;
 }
 
-.h2-kites.is-resting .h2-ink__move {
+.h2-field.is-resting .h2-ink__move {
   animation-play-state: paused;
 }
 
-/* each logo appears after the brush has drawn its kite */
-.h2-kites__logo {
+/* each logo appears after the brush has drawn its stalk */
+.h2-field__logo {
   opacity: 0;
 }
 
-.h2-kites.is-awake .h2-kites__logo {
-  animation: h2-kites-logo 420ms ease-out forwards;
+.h2-field.is-awake .h2-field__logo {
+  animation: h2-field-logo 420ms ease-out forwards;
 }
 
-@keyframes h2-kites-logo {
+@keyframes h2-field-logo {
   to {
     opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .h2-kites__logo,
-  .h2-kites.is-awake .h2-kites__logo {
+  .h2-field__logo,
+  .h2-field.is-awake .h2-field__logo {
     opacity: 1;
     animation: none;
   }

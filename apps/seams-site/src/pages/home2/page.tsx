@@ -1,7 +1,7 @@
 import React from 'react';
 import { Activity, ChevronLeft, ChevronRight, Croissant, Inbox, Slack, Store } from 'lucide-react';
 import { type GrainFieldName } from '@seams-internal/grain-field';
-import { EcosystemKites } from '@/components/h2/EcosystemKites';
+import { EcosystemField } from '@/components/h2/EcosystemField';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
 import { carryScene, goatScene, keyScene, stalkScene, wireScene } from '@/components/h2/ink/scenes';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
@@ -105,7 +105,7 @@ function HomeHeroCurrent(): React.JSX.Element {
         aria-labelledby="h2-home-title"
       >
         <div className="h2-shell">
-          <InkDrawing scene={goatScene} className="h2-ink--hero" />
+          <InkDrawing scene={goatScene} className="h2-ink--hero" drawn />
           <div className="h2-hero-simple__copy">
             <h1 id="h2-home-title" className="h2-display h2-hero-simple__title">
               <span>Ecommerce on autopilot.</span>{' '}
@@ -228,7 +228,7 @@ export function HomePage(): React.JSX.Element {
         <H2Duo />
         <H2Ecosystem
           drawing={<InkDrawing scene={wireScene} className="h2-ink--banner" />}
-          tools={<EcosystemKites />}
+          tools={<EcosystemField />}
         />
         <H2Pillars drawing={<InkDrawing scene={stalkScene} className="h2-ink--banner" />} />
         <H2WalletBand drawing={<InkDrawing scene={keyScene} className="h2-ink--banner" />} />

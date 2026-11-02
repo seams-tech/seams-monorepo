@@ -1,9 +1,9 @@
-/* Tool logo marks for the integrations kites: the tools Satyr
+/* Tool logo marks for the integrations field: the tools Satyr
    connects. Slack, Gmail, Shopify and Stripe are from Simple Icons
    (https://simpleicons.org, CC0), 24x24 viewBox, with Slack split into its
    four arms. Square, Notion, Google Drive, Dropbox, Airtable and 1Password
    are the Satyr Portal's provider tile marks. Fills are the brand colors; the
-   kites draw them in ink. Generated data: edit visuals in EcosystemKites.tsx. */
+   field draws them in ink. Generated data: edit visuals in EcosystemField.tsx. */
 
 export type EcosystemMarkGlyph = { d: string; fill: string; fillRule?: 'evenodd' };
 

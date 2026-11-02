@@ -146,16 +146,20 @@ function PartLayer({
 export function InkDrawing({
   scene,
   className,
+  drawn = false,
 }: {
   scene: InkSceneData;
   className?: string;
+  /* already painted and moving on load, with no brush strokes to watch */
+  drawn?: boolean;
 }): React.JSX.Element {
   const rootRef = React.useRef<HTMLDivElement>(null);
   const stageRef = React.useRef<HTMLDivElement>(null);
   const canvases = React.useRef<(HTMLCanvasElement | null)[]>([]);
-  const [resting, setResting] = React.useState(true);
+  const [resting, setResting] = React.useState(!drawn);
 
-  React.useEffect(() => {
+  /* before the first frame, so that a drawn scene never shows empty */
+  React.useLayoutEffect(() => {
     const root = rootRef.current;
     const stage = stageRef.current;
     if (!root || !stage) return undefined;
@@ -168,7 +172,7 @@ export function InkDrawing({
     const resize = new ResizeObserver(fit);
     resize.observe(root);
 
-    let stopPaint: (() => void) | null = null;
+    let stopPaint: (() => void) | null = drawn ? paint(scene, canvases.current, true) : null;
     const watch = new IntersectionObserver(
       ([entry]) => {
         setResting(!entry.isIntersecting);
@@ -185,7 +189,7 @@ export function InkDrawing({
       watch.disconnect();
       stopPaint?.();
     };
-  }, [scene]);
+  }, [scene, drawn]);
 
   return (
     <div

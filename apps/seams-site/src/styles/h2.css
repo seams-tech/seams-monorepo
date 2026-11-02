@@ -2784,209 +2784,44 @@ body:has(.h2-page) {
   }
 }
 
-/* integrations access list: one row per tool, with what Satyr can do, what it
-   asks about first, and a switch. On phones each row stacks and shows its
-   column labels. */
-.h2-access {
-  --h2-access-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) minmax(0, 1.2fr) 34px;
-  border: 1px solid var(--h2-stone);
-  border-radius: var(--h2-radius-card);
-  background: var(--h2-bg);
-  overflow: hidden;
-}
-
-.h2-access__head,
-.h2-access__row {
-  display: grid;
-  grid-template-columns: var(--h2-access-columns);
-  gap: 20px;
-  align-items: center;
-  padding: 0 24px;
-}
-
-.h2-access__head {
-  min-height: 44px;
-  font-size: var(--h2-text-base);
-  color: var(--h2-smoke);
-  background: var(--h2-taupe);
-}
-
-.h2-access__rows {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.h2-access__row {
-  min-height: 60px;
-  border-top: 1px solid var(--h2-line);
-  font-size: var(--h2-text-body);
-  color: var(--h2-ink);
-}
-
-.h2-access__tool {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 500;
-}
-
-.h2-access__mark {
-  flex: none;
-  display: block;
-  width: 22px;
-  height: 22px;
-}
-
-.h2-access__cell--asks {
-  color: var(--h2-graphite);
-}
-
-/* the column head names these on wide screens; the rows stack on phones and
-   show them there */
-.h2-access__label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.h2-access__off {
-  grid-column: span 2;
-  color: var(--h2-smoke);
-}
-
-.h2-access__row.is-off .h2-access__tool {
-  color: var(--h2-smoke);
-}
-
-.h2-access__row.is-off .h2-access__mark {
-  filter: grayscale(1);
-  opacity: 0.45;
-}
-
-.h2-access__switch {
+/* integrations kites: the ink drawing with logos and gold dots on top of it */
+.h2-kites {
   position: relative;
-  justify-self: end;
-  width: 34px;
-  height: 20px;
-  padding: 0;
-  appearance: none;
-  border: 0;
-  border-radius: 999px;
-  background: var(--h2-evergreen);
-  cursor: pointer;
-  transition: background-color 160ms ease;
 }
 
-/* a 44px touch target around the small track */
-.h2-access__switch::after {
-  content: '';
+.h2-kites__layer {
   position: absolute;
-  inset: -12px -5px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
 }
 
-.h2-access__switch > span {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--h2-bg);
-  transform: translateX(14px);
-  transition: transform 160ms ease;
+.h2-kites.is-resting .h2-ink__move {
+  animation-play-state: paused;
 }
 
-.h2-access__switch[aria-checked='false'] {
-  background: var(--h2-ash);
+/* each logo appears after the brush has drawn its kite */
+.h2-kites__logo {
+  opacity: 0;
 }
 
-.h2-access__switch[aria-checked='false'] > span {
-  transform: none;
+.h2-kites.is-awake .h2-kites__logo {
+  animation: h2-kites-logo 420ms ease-out forwards;
 }
 
-.h2-access__switch:focus-visible {
-  outline: 2px solid var(--h2-ink);
-  outline-offset: 2px;
-}
-
-.h2-access__more {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 20px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--h2-line);
-  font-size: var(--h2-text-lg);
-  color: var(--h2-smoke);
-}
-
-.h2-access__moretool {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--h2-graphite);
-}
-
-.h2-access__moretool .h2-access__mark {
-  width: 15px;
-  height: 15px;
+@keyframes h2-kites-logo {
+  to {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .h2-access__switch,
-  .h2-access__switch > span {
-    transition: none;
-  }
-}
-
-@media (max-width: 720px) {
-  .h2-access__head {
-    display: none;
-  }
-
-  .h2-access__row {
-    grid-template-columns: minmax(0, 1fr) 34px;
-    gap: 10px 16px;
-    padding: 16px 18px;
-  }
-
-  .h2-access__rows > .h2-access__row:first-child {
-    border-top: 0;
-  }
-
-  .h2-access__tool {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .h2-access__switch {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .h2-access__cell,
-  .h2-access__off {
-    grid-column: 1 / -1;
-  }
-
-  .h2-access__label {
-    position: static;
-    display: block;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip-path: none;
-    margin-bottom: 2px;
-    font-size: var(--h2-text-sm);
-    color: var(--h2-smoke);
-  }
-
-  .h2-access__more {
-    padding: 16px 18px;
+  .h2-kites__logo,
+  .h2-kites.is-awake .h2-kites__logo {
+    opacity: 1;
+    animation: none;
   }
 }
 

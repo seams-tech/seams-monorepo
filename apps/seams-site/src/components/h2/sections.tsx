@@ -23,7 +23,6 @@ import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
-import { EcosystemAccessList } from '@/components/h2/EcosystemAccessList';
 import { PortalShot, type PortalShotName } from '@/components/h2/SceneHero';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
@@ -386,9 +385,12 @@ function BannerSection({
   );
 }
 
-/* ---------- ecosystem (integrations access list) ---------- */
+/* ---------- ecosystem (integrations) ---------- */
 
-export function H2Ecosystem({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
+export function H2Ecosystem({
+  drawing,
+  tools,
+}: { drawing?: React.ReactNode; tools?: React.ReactNode } = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const satyrProps = linkProps('/ecommerce');
 
@@ -407,9 +409,12 @@ export function H2Ecosystem({ drawing }: { drawing?: React.ReactNode } = {}): Re
           <ArrowRightAnim size={12} />
         </a>
       </BannerSection>
-      <section className="h2-section h2-section--band h2-rule" aria-labelledby="h2-eco-title">
+      <section
+        className="h2-section h2-section--band h2-section--flush-bottom h2-rule"
+        aria-labelledby="h2-eco-title"
+      >
         <div className="h2-shell">
-          <EcosystemAccessList />
+          {tools}
         </div>
       </section>
     </>

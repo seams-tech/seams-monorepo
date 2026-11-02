@@ -1,6 +1,7 @@
 import React from 'react';
 import { Activity, ChevronLeft, ChevronRight, Croissant, Inbox, Slack, Store } from 'lucide-react';
 import { type GrainFieldName } from '@seams-internal/grain-field';
+import { EcosystemKites } from '@/components/h2/EcosystemKites';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
 import { carryScene, goatScene, keyScene, stalkScene, wireScene } from '@/components/h2/ink/scenes';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
@@ -225,7 +226,10 @@ export function HomePage(): React.JSX.Element {
       <div className="h2-col">
         <HomeHeroCurrent />
         <H2Duo />
-        <H2Ecosystem drawing={<InkDrawing scene={wireScene} className="h2-ink--banner" />} />
+        <H2Ecosystem
+          drawing={<InkDrawing scene={wireScene} className="h2-ink--banner" />}
+          tools={<EcosystemKites />}
+        />
         <H2Pillars drawing={<InkDrawing scene={stalkScene} className="h2-ink--banner" />} />
         <H2WalletBand drawing={<InkDrawing scene={keyScene} className="h2-ink--banner" />} />
         <H2Cta

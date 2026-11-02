@@ -1,13 +1,7 @@
 import React from 'react';
 import { ECOSYSTEM_LOGO_MARKS } from './ecosystemLogoTiles';
 import { InkDrawing } from './ink/InkScene';
-import {
-  KITE_SWAY,
-  narrowKites,
-  wideKites,
-  type KiteLayout,
-  type ToolKite,
-} from './ink/kiteLinesScene';
+import { narrowKites, wideKites, type KiteLayout, type ToolKite } from './ink/kiteLinesScene';
 
 /* The ink drawing paints the goat, the lines and the kites. This layer adds what
    the brush cannot draw: a logo on each kite. The logos use the same sway as
@@ -47,14 +41,14 @@ function KiteLogo({
       style={
         {
           transformOrigin: `${hold[0]}px ${hold[1]}px`,
-          '--ink-a': KITE_SWAY,
+          '--ink-a': kite.swayAmount,
           animationDuration: `${kite.swaySeconds}s`,
         } as React.CSSProperties
       }
     >
       <g className="h2-ink-tools__logo" style={{ animationDelay: `${0.9 + order * 0.3}s` }}>
         <g
-          transform={`translate(${kite.x} ${kite.y + 4}) scale(${k}) translate(${-vx - vw / 2} ${-vy - vh / 2})`}
+          transform={`translate(${kite.x} ${kite.y}) scale(${k}) translate(${-vx - vw / 2} ${-vy - vh / 2})`}
           filter="url(#h2-kites-rough)"
         >
           {mark.glyphs.map((glyph, index) => (

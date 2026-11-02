@@ -1,23 +1,15 @@
-/* Tool logo marks for the isometric ecosystem plane: the tools Satyr
+/* Tool logo marks for the integrations access list: the tools Satyr
    connects. Slack, Gmail, Shopify and Stripe are from Simple Icons
    (https://simpleicons.org, CC0), 24x24 viewBox, with Slack split into its
    four arms. Square, Notion, Google Drive, Dropbox, Airtable and 1Password
-   are the Satyr Portal's provider tile marks. Fills are the brand colors, but
-   the plane renders everything monochrome via CSS (currentColor) - drop that
-   rule to get colored marks back. Generated data: edit placement here,
-   visuals in EcosystemLattice.tsx / h2.css. */
+   are the Satyr Portal's provider tile marks. Fills are the brand colors.
+   Generated data: edit visuals in EcosystemAccessList.tsx / h2.css. */
 
 export type EcosystemMarkGlyph = { d: string; fill: string; fillRule?: 'evenodd' };
 
 export type EcosystemLogoMark = {
   id: string;
   label: string;
-  /* cell coordinates on the tilted plane's grid */
-  col: number;
-  row: number;
-  /* square glyph edge in px; defaults to the stylesheet size, bump for
-     wide flat wordmarks */
-  glyphSize?: number;
   /* the glyph's own viewBox when it is not 24x24 */
   viewBox?: string;
   glyphs: EcosystemMarkGlyph[];
@@ -27,8 +19,6 @@ export const ECOSYSTEM_LOGO_MARKS: EcosystemLogoMark[] = [
   {
     id: 'slack',
     label: 'Slack',
-    col: 5,
-    row: 4,
     glyphs: [
       {
         d: 'M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52z',
@@ -67,8 +57,6 @@ export const ECOSYSTEM_LOGO_MARKS: EcosystemLogoMark[] = [
   {
     id: 'gmail',
     label: 'Gmail',
-    col: 3,
-    row: 6,
     glyphs: [
       {
         d: 'M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z',
@@ -79,8 +67,6 @@ export const ECOSYSTEM_LOGO_MARKS: EcosystemLogoMark[] = [
   {
     id: 'shopify',
     label: 'Shopify',
-    col: 7,
-    row: 4,
     glyphs: [
       {
         d: 'M15.337 23.979l7.216-1.561s-2.604-17.613-2.625-17.73c-.018-.116-.114-.192-.211-.192s-1.929-.136-1.929-.136-1.275-1.274-1.439-1.411c-.045-.037-.075-.057-.121-.074l-.914 21.104h.023zM11.71 11.305s-.81-.424-1.774-.424c-1.447 0-1.504.906-1.504 1.141 0 1.232 3.24 1.715 3.24 4.629 0 2.295-1.44 3.76-3.406 3.76-2.354 0-3.54-1.465-3.54-1.465l.646-2.086s1.245 1.066 2.28 1.066c.675 0 .975-.545.975-.932 0-1.619-2.654-1.694-2.654-4.359-.034-2.237 1.571-4.416 4.827-4.416 1.257 0 1.875.361 1.875.361l-.945 2.715-.02.01zM11.17.83c.136 0 .271.038.405.135-.984.465-2.064 1.639-2.508 3.992-.656.213-1.293.405-1.889.578C7.697 3.75 8.951.84 11.17.84V.83zm1.235 2.949v.135c-.754.232-1.583.484-2.394.736.466-1.777 1.333-2.645 2.085-2.971.193.501.309 1.176.309 2.1zm.539-2.234c.694.074 1.141.867 1.429 1.755-.349.114-.735.231-1.158.366v-.252c0-.752-.096-1.371-.271-1.871v.002zm2.992 1.289c-.02 0-.06.021-.078.021s-.289.075-.714.21c-.423-1.233-1.176-2.37-2.508-2.37h-.115C12.135.209 11.669 0 11.265 0 8.159 0 6.675 3.877 6.21 5.846c-1.194.365-2.063.636-2.16.674-.675.213-.694.232-.772.87-.075.462-1.83 14.063-1.83 14.063L15.009 24l.927-21.166z',
@@ -91,8 +77,6 @@ export const ECOSYSTEM_LOGO_MARKS: EcosystemLogoMark[] = [
   {
     id: 'stripe',
     label: 'Stripe',
-    col: 10,
-    row: 6,
     glyphs: [
       {
         d: 'M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z',
@@ -103,8 +87,6 @@ export const ECOSYSTEM_LOGO_MARKS: EcosystemLogoMark[] = [
   {
     id: 'square',
     label: 'Square',
-    col: 8,
-    row: 4,
     glyphs: [
       {
         d: 'M4.36 0h15.28A4.36 4.36 0 0 1 24 4.36v15.28A4.36 4.36 0 0 1 19.64 24H4.36A4.36 4.36 0 0 1 0 19.64V4.36A4.36 4.36 0 0 1 4.36 0Zm1.46 4.36a1.46 1.46 0 0 0-1.46 1.46v12.36a1.46 1.46 0 0 0 1.46 1.46h12.36a1.46 1.46 0 0 0 1.46-1.46V5.82a1.46 1.46 0 0 0-1.46-1.46Z',
@@ -120,8 +102,6 @@ export const ECOSYSTEM_LOGO_MARKS: EcosystemLogoMark[] = [
   {
     id: 'notion',
     label: 'Notion',
-    col: 4,
-    row: 7,
     glyphs: [
       {
         d: 'M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514c-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233l4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632',
@@ -132,8 +112,6 @@ export const ECOSYSTEM_LOGO_MARKS: EcosystemLogoMark[] = [
   {
     id: 'googledrive',
     label: 'Google Drive',
-    col: 7,
-    row: 7,
     glyphs: [
       {
         d: 'M8.1 2h7.8l6.6 11.4h-7.8z',
@@ -152,8 +130,6 @@ export const ECOSYSTEM_LOGO_MARKS: EcosystemLogoMark[] = [
   {
     id: 'dropbox',
     label: 'Dropbox',
-    col: 5,
-    row: 9,
     glyphs: [
       {
         d: 'm6.2 3.5l5.8 3.7l-5.8 3.7L.4 7.2zm11.6 0l5.8 3.7l-5.8 3.7L12 7.2zM6.2 11.7l5.8 3.7l-5.8 3.7l-5.8-3.7zm11.6 0l5.8 3.7l-5.8 3.7l-5.8-3.7zM12 16.2l5.8 3.7L12 23.5l-5.8-3.6z',
@@ -164,8 +140,6 @@ export const ECOSYSTEM_LOGO_MARKS: EcosystemLogoMark[] = [
   {
     id: 'airtable',
     label: 'Airtable',
-    col: 9,
-    row: 9,
     viewBox: '0 -20 256 256',
     glyphs: [
       {
@@ -185,8 +159,6 @@ export const ECOSYSTEM_LOGO_MARKS: EcosystemLogoMark[] = [
   {
     id: 'onepassword',
     label: '1Password',
-    col: 7,
-    row: 9,
     glyphs: [
       {
         d: 'M12 1.5a10.5 10.5 0 1 1 0 21a10.5 10.5 0 0 1 0-21Zm0 2.25a8.25 8.25 0 1 0 0 16.5a8.25 8.25 0 0 0 0-16.5ZM13.25 6.5v4.1l-1 .9l1 .9v5.1h-2.5v-4.1l1-.9l-1-.9V6.5Z',

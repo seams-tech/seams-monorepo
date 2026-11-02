@@ -23,7 +23,7 @@ import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
-import { EcosystemLattice } from '@/components/h2/EcosystemLattice';
+import { EcosystemAccessList } from '@/components/h2/EcosystemAccessList';
 import { PortalShot, type PortalShotName } from '@/components/h2/SceneHero';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
@@ -371,7 +371,7 @@ function BannerSection({
   );
 }
 
-/* ---------- ecosystem (commerce-stack lattice) ---------- */
+/* ---------- ecosystem (integrations access list) ---------- */
 
 export function H2Ecosystem(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
@@ -393,7 +393,7 @@ export function H2Ecosystem(): React.JSX.Element {
       </BannerSection>
       <section className="h2-section h2-section--band h2-rule" aria-labelledby="h2-eco-title">
         <div className="h2-shell">
-          <EcosystemLattice />
+          <EcosystemAccessList />
         </div>
       </section>
     </>

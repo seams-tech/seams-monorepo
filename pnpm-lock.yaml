@@ -175,9 +175,15 @@ importers:
       clsx:
         specifier: 2.1.1
         version: 2.1.1
+      jsqr:
+        specifier: 1.4.0
+        version: 1.4.0
       lucide-react:
         specifier: 0.542.0
         version: 0.542.0(react@19.1.1)
+      qrcode:
+        specifier: 1.5.4
+        version: 1.5.4
       react:
         specifier: 19.1.1
         version: 19.1.1

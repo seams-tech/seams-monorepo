@@ -1,5 +1,4 @@
 import React from 'react';
-import { IntegrationsWindow } from '@/components/h2/SceneHero';
 import { InkTile } from '@/components/h2/sections';
 import type { TileSign } from '@/components/h2/ink/tileSignScenes';
 import '@/styles/h2-tour.css';
@@ -14,6 +13,7 @@ const SHOTS = {
   'tour-inbox': [2400, 1500],
   'tour-activity': [2400, 1500],
   'tour-orders': [2400, 1500],
+  'tour-orders-drawer': [2400, 1500],
   'tour-kitchen-timeline': [2400, 1500],
   'tour-kitchen-details': [2400, 1500],
   'tour-kitchen-plan': [2400, 1500],
@@ -25,9 +25,8 @@ type Mark = { x: number; y: number; w: number; h: number };
 /** A region in pixels of a shot. */
 type Crop = { x: number; y: number; w: number; h: number };
 type Place = 'left' | 'right' | 'bottom';
-type Overlap =
-  | { kind: 'crop'; shot: Shot; crop: Crop; place: Place; width?: number }
-  | { kind: 'slack'; place: Place };
+/** A zoomed card of a region of a shot, laid over the main screen. */
+type Overlap = { kind: 'crop'; shot: Shot; crop: Crop; place: Place; width?: number };
 
 type Feature = {
   id: string;
@@ -78,13 +77,19 @@ const TABS: Tab[] = [
         },
       },
       {
-        id: 'slack',
-        title: 'Approve from Slack',
-        body: 'An order that needs you reaches the café’s Slack thread, with the same checks as in the Portal.',
+        id: 'orders',
+        title: 'Orders that need you',
+        body: 'Agents check each order against your rules. When one fails, you see why, with an email ready to approve.',
         main: 'tour-orders',
         alt: 'The Orders page of the Satyr Portal with two orders that need a person',
-        mark: { x: 17.5, y: 36, w: 54.5, h: 20.5 },
-        overlap: { kind: 'slack', place: 'right' },
+        mark: { x: 17.2, y: 36, w: 55, h: 10.2 },
+        overlap: {
+          kind: 'crop',
+          shot: 'tour-orders-drawer',
+          crop: { x: 1745, y: 0, w: 655, h: 850 },
+          place: 'right',
+          width: 30,
+        },
       },
     ],
   },
@@ -174,6 +179,17 @@ function useTour(paused: boolean, reduced: boolean, hold: boolean, initialStep: 
     elapsed.current = 0;
     setProgress(reduced || hold ? 0.6 : 0);
   }, [step, reduced, hold]);
+
+  /* A paused view still shows its layers: the pointer or a click must not stop the
+     tour before the gold mark and the card appear. */
+  React.useEffect(() => {
+    if (!paused || reduced || hold) return;
+    const layered = OVERLAP_AT * DWELL_MS;
+    if (elapsed.current < layered) {
+      elapsed.current = layered;
+      setProgress(OVERLAP_AT);
+    }
+  }, [paused, reduced, hold, step]);
 
   React.useEffect(() => {
     if (paused || reduced || hold) return;
@@ -267,19 +283,11 @@ function Stage({ feature, progress }: { feature: Feature; progress: number }): R
         className={`h2-tour-overlap h2-tour-overlap--${place}${layered ? ' is-on' : ''}`}
         key={`overlap-${feature.id}`}
         style={
-          feature.overlap.kind === 'crop' && feature.overlap.width !== undefined
-            ? { width: `${feature.overlap.width}%` }
-            : undefined
+          feature.overlap.width !== undefined ? { width: `${feature.overlap.width}%` } : undefined
         }
         aria-hidden
       >
-        {feature.overlap.kind === 'crop' ? (
-          <CropCard shot={feature.overlap.shot} crop={feature.overlap.crop} />
-        ) : (
-          <div className="h2-tour-slack">
-            <IntegrationsWindow />
-          </div>
-        )}
+        <CropCard shot={feature.overlap.shot} crop={feature.overlap.crop} />
       </div>
     </div>
   );

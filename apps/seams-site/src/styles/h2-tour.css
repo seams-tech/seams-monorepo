@@ -207,15 +207,6 @@
   max-width: none;
 }
 
-.h2-tour-slack {
-  zoom: 0.8;
-}
-
-.h2-tour-slack .h2-window {
-  border-radius: 0;
-  box-shadow: none;
-}
-
 /* ---- features under the stage ---- */
 .h2-tour-features {
   display: grid;

@@ -234,10 +234,6 @@ function Stage({ feature, progress }: { feature: Feature; progress: number }): R
   const place = feature.overlap.place;
   return (
     <div className={`h2-tour-stage h2-tour-stage--${place}`}>
-      <span className="h2-tour-corner h2-tour-corner--tl" aria-hidden />
-      <span className="h2-tour-corner h2-tour-corner--tr" aria-hidden />
-      <span className="h2-tour-corner h2-tour-corner--bl" aria-hidden />
-      <span className="h2-tour-corner h2-tour-corner--br" aria-hidden />
       <div className="h2-tour-dots" aria-hidden />
 
       <div className="h2-tour-main" key={`main-${feature.id}`}>

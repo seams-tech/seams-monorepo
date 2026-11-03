@@ -4,7 +4,6 @@
   --h2-tour-gold: #d98f24;
   --h2-tour-ground: #f4f2ef;
   --h2-tour-dot: #cfc9c1;
-  --h2-tour-corner: #d9d4cd;
   --h2-tour-shadow: 0 1px 2px rgb(20 16 12 / 6%), 0 18px 48px -12px rgb(20 16 12 / 22%);
   position: relative;
   font-family: var(--h2-font);
@@ -95,30 +94,6 @@
     radial-gradient(60% 70% at 78% 30%, #000 0%, transparent 70%),
     radial-gradient(40% 50% at 12% 88%, #000 0%, transparent 70%);
   opacity: 0.8;
-}
-
-.h2-tour-corner {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  background: var(--h2-tour-corner);
-  z-index: 3;
-}
-.h2-tour-corner--tl {
-  top: 18px;
-  left: 18px;
-}
-.h2-tour-corner--tr {
-  top: 18px;
-  right: 18px;
-}
-.h2-tour-corner--bl {
-  bottom: 18px;
-  left: 18px;
-}
-.h2-tour-corner--br {
-  bottom: 18px;
-  right: 18px;
 }
 
 /* The main Portal screen. It sits away from the side where the card enters. */

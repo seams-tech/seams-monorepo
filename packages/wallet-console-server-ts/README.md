@@ -42,9 +42,10 @@ console and signer SQLite databases, restores them into fresh SQLite files,
 checks `PRAGMA integrity_check`, verifies expected table counts, and writes a
 manifest under `.wrangler/d1-local-restore-drills`. `d1:local:dev` starts the
 minimal local Worker from `wrangler.d1-local.toml` with persistent state under
-`.wrangler/state/seams-d1`. It loads local configuration from the repository
-root `.env.local`. Use `dev.vars` in this package for Wallet-system entries and
-`../console-server-ts/dev.vars` for Console-specific entries.
+`.wrangler/state/seams-d1`. It loads local secrets only from the repository
+root `.env.local`; it does not read `dev.vars`. To fund implicit NEAR accounts
+locally, set `RELAYER_PRIVATE_KEY` there to a key of the `RELAYER_ACCOUNT_ID`
+account in `wrangler.d1-local.toml`, then restart `pnpm router`.
 To enable GitHub dashboard sign-in, register a GitHub OAuth App with
 `https://localhost/dashboard/login` as its callback URL, then set
 `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET`, and

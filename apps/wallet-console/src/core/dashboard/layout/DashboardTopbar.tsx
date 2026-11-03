@@ -36,6 +36,7 @@ function MoonIcon({ size, ...rest }: { size?: number } & React.SVGProps<SVGSVGEl
   );
 }
 
+import { t } from '@core/i18n';
 import {
   DashboardMenu,
   DashboardMenuItem,
@@ -75,8 +76,8 @@ export type DashboardNetworkSwitch = {
 };
 
 const CONSOLE_NETWORKS: readonly { readonly value: ConsoleNetwork; readonly label: string }[] = [
-  { value: 'testnet', label: 'Testnet' },
-  { value: 'mainnet', label: 'Mainnet' },
+  { value: 'testnet', label: t('commonNetworkTestnet') },
+  { value: 'mainnet', label: t('commonNetworkMainnet') },
 ];
 
 export type DashboardTopbarProps = {
@@ -188,7 +189,7 @@ function TopbarCommandPalette({
         className="dashboard-command-palette"
         role="dialog"
         aria-modal="true"
-        aria-label="Search pages"
+        aria-label={t('commonTopbarSearchPages')}
         aria-describedby={shortcutDescriptionId}
       >
         <div className="dashboard-command-palette__search">
@@ -198,14 +199,14 @@ function TopbarCommandPalette({
             className="dashboard-command-palette__input"
             type="search"
             role="combobox"
-            aria-label="Search pages"
+            aria-label={t('commonTopbarSearchPages')}
             aria-controls={listboxId}
             aria-expanded="true"
             aria-autocomplete="list"
             aria-activedescendant={
               matches.length > 0 ? `${listboxId}-option-${activeIndex}` : undefined
             }
-            placeholder="Search pages..."
+            placeholder={t('commonTopbarSearchPagesPlaceholder')}
             value={query}
             onChange={updatePaletteQuery.bind(null, setQuery)}
             onKeyDown={(event) => {
@@ -233,7 +234,7 @@ function TopbarCommandPalette({
         </div>
         <div id={listboxId} className="dashboard-command-palette__list" role="listbox">
           {matches.length === 0 ? (
-            <p className="dashboard-command-palette__empty">No matching pages.</p>
+            <p className="dashboard-command-palette__empty">{t('commonTopbarNoMatches')}</p>
           ) : (
             matches.map((item, index) => {
               const ItemIcon = item.icon;
@@ -265,22 +266,22 @@ function TopbarCommandPalette({
         <div
           id={shortcutDescriptionId}
           className="dashboard-command-palette__footer"
-          aria-label="Keyboard shortcuts"
+          aria-label={t('commonTopbarShortcuts')}
         >
           <span className="dashboard-command-palette__shortcut">
             <span className="dashboard-command-palette__shortcut-keys" aria-hidden="true">
               <kbd>↑</kbd>
               <kbd>↓</kbd>
             </span>
-            <span>Navigate</span>
+            <span>{t('commonTopbarNavigate')}</span>
           </span>
           <span className="dashboard-command-palette__shortcut">
             <kbd aria-hidden="true">↵</kbd>
-            <span>Open</span>
+            <span>{t('commonTopbarOpen')}</span>
           </span>
           <span className="dashboard-command-palette__shortcut">
             <kbd aria-hidden="true">Esc</kbd>
-            <span>Close</span>
+            <span>{t('commonTopbarClose')}</span>
           </span>
         </div>
       </div>
@@ -342,7 +343,7 @@ export function DashboardTopbar({
      console route. */
   const docsLink = (
     <a className="dashboard-topbar__docs" href={getDocsOrigin()} target="_blank" rel="noreferrer">
-      Docs
+      {t('commonTopbarDocs')}
     </a>
   );
 
@@ -350,7 +351,7 @@ export function DashboardTopbar({
     <div
       className="dashboard-topbar__network"
       role="group"
-      aria-label="Network"
+      aria-label={t('commonNetworkLabel')}
       onPointerEnter={network.onIntent}
       onFocus={network.onIntent}
     >
@@ -377,7 +378,7 @@ export function DashboardTopbar({
         className="dashboard-account-menu__trigger"
         aria-haspopup="menu"
         aria-expanded={accountMenu.open}
-        aria-label={`Account menu for ${accountName}`}
+        aria-label={t('commonTopbarAccountMenuFor', { name: accountName })}
         onClick={accountMenu.toggle}
       >
         <span className="dashboard-account-menu__avatar" aria-hidden="true">
@@ -387,7 +388,7 @@ export function DashboardTopbar({
       <DashboardMenu
         menu={accountMenu}
         className="dashboard-context-menu dashboard-account-menu__list"
-        aria-label="Account options"
+        aria-label={t('commonTopbarAccountOptions')}
       >
         <div className="dashboard-account-menu__identity">
           <span>{accountName}</span>
@@ -437,9 +438,9 @@ export function DashboardTopbar({
       ref={topbarRef}
       className="dashboard-topbar"
       role="banner"
-      aria-label="Workspace context"
+      aria-label={t('commonTopbarWorkspaceContext')}
     >
-      <a className="dashboard-mobile-brand" {...homeProps} aria-label="Seams home">
+      <a className="dashboard-mobile-brand" {...homeProps} aria-label={t('loginAriaHome')}>
         <SeamsWordmark height={18} />
       </a>
       <div className="dashboard-topbar__lead">
@@ -447,7 +448,7 @@ export function DashboardTopbar({
           <button
             type="button"
             className="dashboard-sidebar-toggle"
-            aria-label="Expand sidebar"
+            aria-label={t('commonTopbarExpandSidebar')}
             aria-expanded="false"
             aria-controls="dashboard-sidebar-navigation"
             onClick={onToggleSidebar}
@@ -462,11 +463,13 @@ export function DashboardTopbar({
         <button
           type="button"
           className="dashboard-topbar__search"
-          aria-label="Search pages"
+          aria-label={t('commonTopbarSearchPages')}
           onClick={openPalette}
         >
           <span className="dashboard-search-icon" aria-hidden="true" />
-          <span className="dashboard-topbar__search-placeholder">Search everything...</span>
+          <span className="dashboard-topbar__search-placeholder">
+            {t('commonTopbarSearchEverything')}
+          </span>
           <span className="dashboard-topbar__search-keys" aria-hidden="true">
             <kbd>⌘</kbd>
             <kbd>K</kbd>
@@ -485,7 +488,7 @@ export function DashboardTopbar({
       <button
         type="button"
         className="dashboard-mobile-menu-button"
-        aria-label="Open navigation"
+        aria-label={t('commonTopbarOpenNavigation')}
         aria-haspopup="dialog"
         aria-controls="dashboard-mobile-navigation"
         onClick={openMobileNavigation}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { requireConsoleBaseUrl } from '@core/dashboard/consoleHttp';
 import { buildWalletAcceptHeaders, buildWalletJsonHeaders } from '../consoleWalletHttp';
 import { VerificationMethodChoice, type VerificationMethod } from './VerificationMethodChoice';
@@ -22,7 +23,7 @@ type State =
 const path = '/console/tenant-root/security/backup-access';
 function parseState(value: unknown): State {
   if (typeof value !== 'object' || value === null || !('state' in value))
-    throw new Error('Unable to read backup download request');
+    throw new Error(t('derivationBackupParseRead'));
   switch (value.state) {
     case 'approved':
       return { kind: 'approved' };
@@ -43,7 +44,7 @@ function parseState(value: unknown): State {
         !('recoverySetId' in value) ||
         typeof value.recoverySetId !== 'string'
       )
-        throw new Error('Invalid backup download request');
+        throw new Error(t('derivationBackupParseInvalid'));
       return {
         kind: 'pending',
         details: {
@@ -56,7 +57,7 @@ function parseState(value: unknown): State {
       };
     }
     default:
-      throw new Error('Invalid backup download state');
+      throw new Error(t('derivationBackupParseState'));
   }
 }
 async function loadBackup(
@@ -68,15 +69,12 @@ async function loadBackup(
       `${requireConsoleBaseUrl()}${path}/request?id=${encodeURIComponent(id)}`,
       { credentials: 'include', headers: buildWalletAcceptHeaders() },
     );
-    if (!response.ok)
-      throw new Error(
-        'Unable to read this request. Check that the correct organization and environment are selected.',
-      );
+    if (!response.ok) throw new Error(t('derivationUnableToReadThisRequest'));
     setState(parseState(await response.json()));
   } catch (error) {
     setState({
       kind: 'error',
-      message: error instanceof Error ? error.message : 'Unable to read request',
+      message: error instanceof Error ? error.message : t('derivationUnableToReadRequestFallback'),
     });
   }
 }
@@ -94,15 +92,12 @@ async function approveBackup(
       headers: buildWalletJsonHeaders(),
       body: JSON.stringify({ id: details.id }),
     });
-    if (!response.ok)
-      throw new Error(
-        'Approval failed. Close this dialog and reopen the link from Terminal to try again.',
-      );
+    if (!response.ok) throw new Error(t('derivationBackupApprovalFailed'));
     setState(parseState(await response.json()));
   } catch (error) {
     setState({
       kind: 'error',
-      message: error instanceof Error ? error.message : 'Approval failed',
+      message: error instanceof Error ? error.message : t('derivationApprovalFailedFallback'),
     });
   }
 }
@@ -124,11 +119,11 @@ export function CliBackupApproval({ id }: { id: string }) {
       onClose={dismissBackupApproval}
     >
       <div className="derivation-root-backup-header">
-        <h2 id={titleId}>Approve recovery download</h2>
+        <h2 id={titleId}>{t('derivationApproveRecoveryDownload')}</h2>
         <button
           type="button"
           className="dashboard-pagination-button derivation-root-backup-close"
-          aria-label="Close recovery download"
+          aria-label={t('derivationCloseRecoveryDownload')}
           onClick={closeBackupDialog.bind(null, dialogRef)}
         >
           <svg
@@ -146,35 +141,32 @@ export function CliBackupApproval({ id }: { id: string }) {
       </div>
       {state.kind === 'pending' || state.kind === 'submitting' ? (
         <>
-          <p>Compare this code with Terminal. Approve only if you requested this download.</p>
+          <p>{t('derivationBackupCompare')}</p>
           <div className="derivation-root-enrollment-details">
             <div className="derivation-root-enrollment-code">
-              <span>Confirmation code</span>
+              <span>{t('derivationConfirmationCode')}</span>
               <strong>
                 <code>{state.details.confirmationCode}</code>
               </strong>
             </div>
             <dl className="derivation-root-enrollment-fields derivation-root-backup-fields">
               <div>
-                <dt>Organization</dt>
+                <dt>{t('derivationOrganization')}</dt>
                 <dd>{state.details.organizationId}</dd>
               </div>
               <div>
-                <dt>Environment</dt>
+                <dt>{t('derivationEnvironment')}</dt>
                 <dd>{state.details.environmentId}</dd>
               </div>
               <div className="derivation-root-enrollment-field-wide">
-                <dt>Recovery set</dt>
+                <dt>{t('derivationRecoverySet')}</dt>
                 <dd>
                   <code>{state.details.recoverySetId}</code>
                 </dd>
               </div>
             </dl>
           </div>
-          <p>
-            The CLI downloads this backup. Your private wrapper keys and ZIP password stay in
-            Terminal.
-          </p>
+          <p>{t('derivationBackupCliDownloads')}</p>
         </>
       ) : (
         <p role="status">{approvalMessage(state)}</p>
@@ -187,8 +179,11 @@ export function CliBackupApproval({ id }: { id: string }) {
               onChange={setVerificationMethod}
               disabled={state.kind === 'submitting'}
               action={{
-                label: state.kind === 'submitting' ? 'Verifying…' : 'Approve download',
-                confirmLabel: 'Verify and approve',
+                label:
+                  state.kind === 'submitting'
+                    ? t('derivationVerifying')
+                    : t('derivationApproveDownload'),
+                confirmLabel: t('derivationVerifyAndApprove'),
                 onConfirm: approveBackup.bind(null, 'approve', state.details, setState),
               }}
             />
@@ -198,7 +193,7 @@ export function CliBackupApproval({ id }: { id: string }) {
               disabled={state.kind === 'submitting'}
               onClick={approveBackup.bind(null, 'deny', state.details, setState)}
             >
-              Deny
+              {t('derivationDeny')}
             </button>
           </div>
         ) : null}
@@ -226,14 +221,14 @@ function loadApprovalEffect(
 function approvalMessage(state: Exclude<State, { kind: 'pending' | 'submitting' }>): string {
   switch (state.kind) {
     case 'loading':
-      return 'Loading request…';
+      return t('derivationLoadingRequest');
     case 'error':
       return state.message;
     case 'approved':
-      return 'Approved. Return to Terminal to finish backup download.';
+      return t('derivationBackupApproved');
     case 'denied':
-      return 'Request denied.';
+      return t('derivationRequestDenied');
     case 'expired':
-      return 'Request expired. Run the recovery kit command again.';
+      return t('derivationBackupExpired');
   }
 }

@@ -7,6 +7,7 @@ import { VerificationMethodChoice, type VerificationMethod } from './Verificatio
 import { CreateDerivationRoot } from './CreateDerivationRoot';
 import type { DashboardDerivationRootStatus } from './consoleDerivationRootApi';
 import React from 'react';
+import { t } from '@core/i18n';
 import './derivationRootSecurity.css';
 import { toast } from 'sonner';
 import {
@@ -100,10 +101,10 @@ const DERIVER_HEALTH: Record<
   TenantRootSecurityStatusV1['operationalShares']['deriverAStatus'],
   { readonly label: string; readonly tone: DerivationRootStatusLine['tone'] }
 > = {
-  healthy: { label: 'Healthy', tone: 'success' },
-  degraded: { label: 'Degraded', tone: 'warning' },
-  unavailable: { label: 'Unavailable', tone: 'danger' },
-  unknown: { label: 'Unknown', tone: 'neutral' },
+  healthy: { label: t('derivationHealthy'), tone: 'success' },
+  degraded: { label: t('derivationDegraded'), tone: 'warning' },
+  unavailable: { label: t('derivationUnavailable'), tone: 'danger' },
+  unknown: { label: t('derivationUnknown'), tone: 'neutral' },
 };
 
 function DeriverHealthBadge({
@@ -144,15 +145,10 @@ async function loadRestoreAccess(
       !('destination' in body) ||
       typeof body.destination !== 'string'
     ) {
-      throw new Error(
-        'Recovery access has not been configured for this environment. Contact your deployment administrator to prepare a recovery destination. Your backup files are unchanged.',
-      );
+      throw new Error(t('derivationRecoveryAccessNotConfigured'));
     }
     const destination = parseRestoreDestination(body.destination);
-    if (destination === null)
-      throw new Error(
-        'The configured recovery destination is invalid. Contact your deployment administrator.',
-      );
+    if (destination === null) throw new Error(t('derivationRecoveryDestinationInvalid'));
     setDestination(destination);
     const restoration =
       'restoration' in body && (body.restoration === 'active' || body.restoration === 'pending')
@@ -163,10 +159,7 @@ async function loadRestoreAccess(
     if (!signal.aborted)
       setAccess({
         kind: 'unavailable',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Unable to check recovery access. Refresh this page to retry.',
+        message: error instanceof Error ? error.message : t('derivationRecoveryAccessCheckFailed'),
       });
   }
 }
@@ -237,9 +230,9 @@ function ShortId({
         text={value}
         size={14}
         className="dashboard-shortid__copy"
-        ariaLabel={`Copy ${label}`}
-        onCopy={toast.success.bind(null, `${label} copied`)}
-        onCopyError={toast.error.bind(null, `Could not copy ${label}. Try again.`)}
+        ariaLabel={t('derivationCopyLabel', { label })}
+        onCopy={toast.success.bind(null, t('derivationLabelCopied', { label }))}
+        onCopyError={toast.error.bind(null, t('derivationCouldNotCopyLabel', { label }))}
       />
     </span>
   );
@@ -247,9 +240,9 @@ function ShortId({
 
 function walletCliInstallCommand(): DerivationRootCliCommand {
   return {
-    label: 'Install the Seams wallet CLI',
+    label: t('derivationInstallCliLabel'),
     command: `npm install --global ${WALLET_CLI_PACKAGE}`,
-    note: 'Run once to install the CLI. Requires Node.js 22 or later.',
+    note: t('derivationInstallCliNote'),
   };
 }
 
@@ -309,9 +302,9 @@ function CommandList({ commands }: { commands: readonly DerivationRootCliCommand
               text={entry.command}
               size={14}
               className="dashboard-shortid__copy"
-              ariaLabel={`Copy ${entry.label} command`}
-              onCopy={toast.success.bind(null, 'Command copied')}
-              onCopyError={toast.error.bind(null, 'Could not copy command. Try again.')}
+              ariaLabel={t('derivationCopyCommandLabel', { label: entry.label })}
+              onCopy={toast.success.bind(null, t('derivationCommandCopied'))}
+              onCopyError={toast.error.bind(null, t('derivationCouldNotCopyCommand'))}
             />
           </div>
         </li>
@@ -347,7 +340,7 @@ function rotationOutcomeText(outcome: DashboardRotationOutcome | null): string {
   if (outcome === null) return '';
   switch (outcome.kind) {
     case 'complete':
-      return `Rotation completed. Activation receipt: ${outcome.receiptDigest}`;
+      return t('derivationRotationCompleted', { digest: outcome.receiptDigest });
     case 'retryable':
     case 'refused':
       return outcome.message;
@@ -398,7 +391,7 @@ async function refreshRotationPage(
   } catch (error: unknown) {
     setPageState({
       kind: 'error',
-      message: error instanceof Error ? error.message : 'Could not read derivation root state',
+      message: error instanceof Error ? error.message : t('derivationReadStateFailed'),
     });
   }
 }
@@ -431,18 +424,16 @@ async function submitRotation(input: {
     await input.refresh();
   } catch (error: unknown) {
     if (isPasskeyCancellation(error)) return;
-    input.setError(
-      error instanceof Error ? error.message : 'Could not start rotation. Retry to resume.',
-    );
+    input.setError(error instanceof Error ? error.message : t('derivationStartRotationFailed'));
   } finally {
     input.setPending(false);
   }
 }
 
 const SECURITY_TABS = [
-  { id: 'recovery', label: 'Recovery backup' },
-  { id: 'rotation', label: 'Rotate shares' },
-  { id: 'restore', label: 'Restore a deployment' },
+  { id: 'recovery', label: t('derivationRecoveryBackup') },
+  { id: 'rotation', label: t('derivationRotateShares') },
+  { id: 'restore', label: t('derivationRestoreDeployment') },
 ] as const;
 
 type SecurityTab = (typeof SECURITY_TABS)[number]['id'];
@@ -515,8 +506,8 @@ function RefreshStatusButton({
 }): React.JSX.Element {
   const [feedback, setFeedback] = React.useState<RefreshFeedback>('idle');
   let message = '';
-  if (feedback === 'refreshing') message = 'Checking the latest status…';
-  if (feedback === 'complete') message = 'Status refreshed. You’re viewing the latest results.';
+  if (feedback === 'refreshing') message = t('derivationCheckingLatestStatus');
+  if (feedback === 'complete') message = t('derivationStatusRefreshedLatest');
   return (
     <div className="derivation-root-refresh-status">
       <button
@@ -525,7 +516,7 @@ function RefreshStatusButton({
         disabled={feedback === 'refreshing'}
         onClick={refreshWithFeedback.bind(null, refresh, setFeedback)}
       >
-        {feedback === 'refreshing' ? 'Refreshing…' : label}
+        {feedback === 'refreshing' ? t('derivationRefreshing') : label}
       </button>
       <p role="status" aria-live="polite">
         {message}
@@ -593,12 +584,17 @@ function BackupProgress({
   }, [stage, startedAt]);
 
   return (
-    <div className="derivation-root-backup-progress" aria-label="Backup creation progress">
+    <div
+      className="derivation-root-backup-progress"
+      aria-label={t('derivationBackupProgressLabel')}
+    >
       {stage !== 'ready' && (
         <div className="derivation-root-progress-activity" role="status">
           <LoaderCircle className="derivation-root-spinner" size={24} aria-hidden="true" />
           <strong>
-            {stage === 'request' ? 'Creating your recovery backup…' : 'Checking your backup…'}
+            {stage === 'request'
+              ? t('derivationCreatingYourBackup')
+              : t('derivationCheckingYourBackup')}
           </strong>
         </div>
       )}
@@ -610,7 +606,7 @@ function BackupProgress({
           <span className="derivation-root-progress-pip" aria-hidden="true">
             {stage === 'request' ? '1' : '✓'}
           </span>
-          <span>Create backup</span>
+          <span>{t('derivationStepCreateBackup')}</span>
         </li>
         <li
           data-complete={stage === 'ready'}
@@ -619,25 +615,23 @@ function BackupProgress({
           <span className="derivation-root-progress-pip" aria-hidden="true">
             {stage === 'ready' ? '✓' : '2'}
           </span>
-          <span>Refresh status</span>
+          <span>{t('derivationStepRefreshStatus')}</span>
         </li>
         <li data-complete={stage === 'ready'} aria-current={stage === 'ready' ? 'step' : undefined}>
           <span className="derivation-root-progress-pip" aria-hidden="true">
             {stage === 'ready' ? '✓' : '3'}
           </span>
-          <span>Ready</span>
+          <span>{t('derivationStepReady')}</span>
         </li>
       </ol>
       <p role="status">
-        {stage === 'request' &&
-          'Creating your recovery backup. Complete any identity verification prompt. This can take 30 seconds or longer. Keep this page open.'}
-        {stage === 'refresh' &&
-          'Backup created. Checking the latest status before showing your downloads.'}
-        {stage === 'ready' && 'Your backup is ready. Download and verify the files in step 4.'}
+        {stage === 'request' && t('derivationBackupStageRequest')}
+        {stage === 'refresh' && t('derivationBackupStageRefresh')}
+        {stage === 'ready' && t('derivationBackupStageReady')}
       </p>
       {stage !== 'ready' && (
         <p className="derivation-root-progress-elapsed">
-          {elapsed}s elapsed · This page updates automatically.
+          {t('derivationBackupElapsed', { seconds: elapsed })}
         </p>
       )}
     </div>
@@ -755,6 +749,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
       action: CustodyAction,
       run: (idempotencyKey: string) => Promise<DashboardCustodyOutcome<T>>,
       accepted: string,
+      failed: string,
     ) => {
       if (custodyProgress.kind === 'saving' || recoveryMethod !== 'passkey') return;
       const idempotencyKey = pendingApprovals[action]?.idempotencyKey ?? crypto.randomUUID();
@@ -772,13 +767,13 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
             },
           }));
           setCustodyProgress({ kind: 'idle' });
-          toast.message(
-            `Waiting for a second owner to approve operation ${outcome.operationDigestB64u}. Retry the same action once they have.`,
-          );
+          toast.message(t('derivationWaitingToast', { digest: outcome.operationDigestB64u }));
           return;
         }
         setPendingApprovals((current) => ({ ...current, [action]: undefined }));
-        toast.success(outcome.replayed ? `${accepted} (already recorded)` : accepted);
+        toast.success(
+          outcome.replayed ? t('derivationAlreadyRecorded', { message: accepted }) : accepted,
+        );
         setCustodyProgress({ kind: 'saving', action, stage: 'refresh', startedAt });
         await refresh();
         if (action === 'recipients') setRestartEnvironment(null);
@@ -792,7 +787,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
         setCustodyProgress({
           kind: 'error',
           action,
-          message: error instanceof Error ? error.message : `${accepted} failed`,
+          message: error instanceof Error ? error.message : failed,
         });
       }
     },
@@ -804,7 +799,8 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
       runCustody(
         'governance',
         (idempotencyKey) => setRecoveryGovernance({ choice, idempotencyKey }),
-        'Recovery governance recorded',
+        t('derivationGovernanceRecorded'),
+        t('derivationGovernanceRecordedFailed'),
       ),
     [runCustody],
   );
@@ -813,7 +809,8 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
     null,
     'recipients',
     commitRecoveryKeysFromId,
-    'Wrapper keys committed',
+    t('derivationKeysCommitted'),
+    t('derivationKeysCommittedFailed'),
   );
 
   const createBackup = React.useCallback(
@@ -821,7 +818,8 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
       runCustody(
         'backup',
         (idempotencyKey) => createRecoveryBackup({ idempotencyKey }),
-        'Recovery backup created',
+        t('derivationBackupCreated'),
+        t('derivationBackupCreatedFailed'),
       ),
     [runCustody],
   );
@@ -839,15 +837,15 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
     return (
       <section className="dashboard-page derivation-root-page">
         <header className="derivation-root-header">
-          <h1>Threshold Keys</h1>
+          <h1>{t('navThresholdKeys')}</h1>
         </header>
         <section className="derivation-root-state-card" aria-labelledby="root-error-title">
           <span className="derivation-root-state-icon derivation-root-state-icon--error">
             <TriangleAlert size={22} aria-hidden="true" />
           </span>
           <div className="derivation-root-state-content">
-            <p className="derivation-root-state-eyebrow">Environment status</p>
-            <h2 id="root-error-title">Unable to load threshold keys</h2>
+            <p className="derivation-root-state-eyebrow">{t('derivationEnvironmentStatus')}</p>
+            <h2 id="root-error-title">{t('derivationUnableToLoad')}</h2>
             <p className="derivation-root-error" role="alert">
               {pageState.message}
             </p>
@@ -857,7 +855,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                 className="dashboard-pagination-button dashboard-pagination-button--primary"
                 onClick={refresh}
               >
-                Try again
+                {t('derivationTryAgain')}
               </button>
             </div>
           </div>
@@ -870,20 +868,17 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
     return (
       <section className="dashboard-page derivation-root-page">
         <header className="derivation-root-header">
-          <h1>Threshold Keys</h1>
-          <p>Manage the key infrastructure used for threshold signing and wallet recovery.</p>
+          <h1>{t('navThresholdKeys')}</h1>
+          <p>{t('derivationPageIntroEmpty')}</p>
         </header>
         <section className="derivation-root-state-card" aria-labelledby="root-empty-title">
           <span className="derivation-root-state-icon">
             <KeyRound size={22} aria-hidden="true" />
           </span>
           <div className="derivation-root-state-content">
-            <p className="derivation-root-state-eyebrow">Environment setup</p>
-            <h2 id="root-empty-title">Derivation root required</h2>
-            <p className="derivation-root-description">
-              Create a server-side derivation root for this environment to enable threshold signing
-              and recovery setup.
-            </p>
+            <p className="derivation-root-state-eyebrow">{t('derivationEnvironmentSetup')}</p>
+            <h2 id="root-empty-title">{t('derivationRootRequired')}</h2>
+            <p className="derivation-root-description">{t('derivationRootRequiredDescription')}</p>
             <CreateDerivationRoot refresh={refresh} />
           </div>
         </section>
@@ -895,7 +890,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
     return (
       <section className="dashboard-page derivation-root-page">
         <header className="derivation-root-header">
-          <h1>Threshold Keys</h1>
+          <h1>{t('navThresholdKeys')}</h1>
         </header>
         <section
           className="derivation-root-state-card"
@@ -906,9 +901,9 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
             <LoaderCircle className="derivation-root-spinner" size={22} aria-hidden="true" />
           </span>
           <div className="derivation-root-state-content">
-            <p className="derivation-root-state-eyebrow">Environment status</p>
-            <h2 id="root-loading-title">Loading threshold keys</h2>
-            <p className="derivation-root-description">Checking the server-side share status…</p>
+            <p className="derivation-root-state-eyebrow">{t('derivationEnvironmentStatus')}</p>
+            <h2 id="root-loading-title">{t('derivationLoadingKeys')}</h2>
+            <p className="derivation-root-description">{t('derivationCheckingShareStatus')}</p>
           </div>
         </section>
       </section>
@@ -959,20 +954,17 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
   return (
     <section className="dashboard-page derivation-root-page">
       <header className="derivation-root-header">
-        <h1>Threshold Keys</h1>
-        <p>
-          Manage the server-side root used to derive threshold signing shares. Rotate its shares and
-          prepare a recovery backup.
-        </p>
+        <h1>{t('navThresholdKeys')}</h1>
+        <p>{t('derivationPageIntro')}</p>
         <p className="derivation-root-environment">
-          <span className="derivation-root-environment-label">Environment</span>
-          <ShortId label="environment" value={status.identity.envId} full />
+          <span className="derivation-root-environment-label">{t('derivationEnvironment')}</span>
+          <ShortId label={t('derivationLabelEnvironment')} value={status.identity.envId} full />
         </p>
       </header>
       <div
         className="derivation-root-tabs"
         role="tablist"
-        aria-label="Threshold Keys workflows"
+        aria-label={t('derivationWorkflowsLabel')}
         onKeyDown={navigateSecurityTabs}
       >
         {SECURITY_TABS.map(renderSecurityTab.bind(null, activeTab, setActiveTab))}
@@ -994,18 +986,15 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
 
         <section
           className="derivation-root-panel derivation-root-recovery"
-          aria-label="Tenant-controlled recovery"
+          aria-label={t('derivationTenantRecoveryLabel')}
         >
           <h2 className="derivation-root-section-title">
             <span className="derivation-root-section-icon">
               <Archive size={18} aria-hidden="true" />
             </span>
-            Recovery backup
+            {t('derivationRecoveryBackup')}
           </h2>
-          <p>
-            Prepare a backup so you can restore this root if a deployment is lost. Follow the four
-            steps below.
-          </p>
+          <p>{t('derivationRecoveryIntro')}</p>
           {status.recoveryBackup.status === 'cleanup_incomplete' && downloadable !== null ? null : (
             <StatusLine
               line={
@@ -1014,28 +1003,23 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                 status.recoveryBackup.status === 'recipients_pending'
                   ? {
                       tone: 'success',
-                      label: 'Wrapper keys enrolled · commit required',
-                      detail:
-                        'Both holders have proved control of their keys. Commit the pair in step 2; no backup is ready yet.',
+                      label: t('derivationStatusEnrolledCommit'),
+                      detail: t('derivationStatusEnrolledCommitDetail'),
                     }
                   : pageState.kind === 'active' &&
                       pageState.recoveryEnrollment === 'committed' &&
                       status.recoveryBackup.status === 'recipients_pending'
                     ? {
                         tone: 'progress',
-                        label: 'Wrapper keys committed · backup not created',
-                        detail:
-                          'The enrolled pair is committed. Create a backup in step 3, then download and verify it in step 4.',
+                        label: t('derivationStatusCommittedNoBackup'),
+                        detail: t('derivationStatusCommittedNoBackupDetail'),
                       }
                     : recovery
               }
             />
           )}
           {shouldWarnBackupNeverDownloaded(status.recoveryBackup) ? (
-            <p role="alert">
-              Download all three files in step 4 and verify them in your terminal so you can use
-              this backup.
-            </p>
+            <p role="alert">{t('derivationWarnNeverDownloaded')}</p>
           ) : null}
           <details
             className="derivation-root-recovery-step"
@@ -1050,25 +1034,31 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                 01
               </span>
               <span className="derivation-root-step-label">
-                <h3 id="recovery-step-1">Choose who approves changes</h3>
-                <span>Set the approval policy for wrapper keys and backups.</span>
+                <h3 id="recovery-step-1">{t('derivationStep1Title')}</h3>
+                <span>{t('derivationStep1Subtitle')}</span>
               </span>
               {status.recoveryBackup.status !== 'not_configured' && (
-                <span className="derivation-root-step-state dashboard-status--success">Saved</span>
+                <span className="derivation-root-step-state dashboard-status--success">
+                  {t('derivationSaved')}
+                </span>
               )}
             </summary>
             <div className="derivation-root-step-body">
               <p>
                 {status.recoveryBackup.status === 'not_configured'
-                  ? 'Choose a policy, then save it to continue.'
-                  : 'Approval policy saved.'}
+                  ? t('derivationStep1Choose')
+                  : t('derivationApprovalPolicySavedPeriod')}
               </p>
               {governancePending && (
                 <p role="status">
-                  Waiting for a second owner to approve operation{' '}
-                  <ShortId label="operation digest" value={governancePending.operationDigestB64u} />{' '}
-                  before {formatDashboardTimestamp(governancePending.expiresAt)}. Retry the saved
-                  choice after approval.
+                  {t('derivationWaitingPrefix')}{' '}
+                  <ShortId
+                    label={t('derivationLabelOperationDigest')}
+                    value={governancePending.operationDigestB64u}
+                  />{' '}
+                  {t('derivationWaitingGovernanceSuffix', {
+                    date: formatDashboardTimestamp(governancePending.expiresAt),
+                  })}
                 </p>
               )}
               <fieldset
@@ -1080,7 +1070,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                   !!governancePending
                 }
               >
-                <legend>Approval policy</legend>
+                <legend>{t('derivationApprovalPolicy')}</legend>
                 <label className="derivation-root-policy-choice">
                   <input
                     type="radio"
@@ -1093,15 +1083,13 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                     onChange={setPolicyChoice.bind(null, 'two_person_v1')}
                   />
                   <span>
-                    <strong>Two owners</strong>
-                    <span>A second organization owner must approve recovery changes.</span>
+                    <strong>{t('derivationTwoOwners')}</strong>
+                    <span>{t('derivationTwoOwnersDescription')}</span>
                     {!twoOwnersAvailable && (
                       <small id="recovery-owner-requirement">
-                        {ownerEligibility.kind === 'loading' && 'Checking organization owners…'}
-                        {ownerEligibility.kind === 'error' &&
-                          'Unable to check organization owners. Refocus this window to retry.'}
-                        {ownerEligibility.kind === 'ready' &&
-                          'Requires at least two active organization owners. Add another owner in Team members to enable this option.'}
+                        {ownerEligibility.kind === 'loading' && t('derivationCheckingOwners')}
+                        {ownerEligibility.kind === 'error' && t('derivationCheckOwnersFailed')}
+                        {ownerEligibility.kind === 'ready' && t('derivationRequiresTwoOwners')}
                       </small>
                     )}
                   </span>
@@ -1114,8 +1102,8 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                     onChange={setPolicyChoice.bind(null, 'single_owner_v1')}
                   />
                   <span>
-                    <strong>One owner</strong>
-                    <span>One organization owner can change wrapper keys and backups.</span>
+                    <strong>{t('derivationOneOwner')}</strong>
+                    <span>{t('derivationOneOwnerDescription')}</span>
                   </span>
                 </label>
                 {policyChoice === 'single_owner_v1' && (
@@ -1126,7 +1114,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                         checked={singleOwnerAcknowledged}
                         onChange={(event) => setSingleOwnerAcknowledged(event.target.checked)}
                       />{' '}
-                      I understand that one owner alone can replace wrapper keys and backups.
+                      {t('derivationOneOwnerAcknowledge')}
                     </label>
                   </p>
                 )}
@@ -1142,15 +1130,15 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                   (policyChoice === 'single_owner_v1' && !singleOwnerAcknowledged)
                 }
                 action={{
-                  confirmLabel: 'Verify and save policy',
+                  confirmLabel: t('derivationVerifyAndSavePolicy'),
                   label:
                     custodyProgress.kind === 'saving' && custodyProgress.action === 'governance'
-                      ? 'Verifying and saving…'
+                      ? t('derivationVerifyingAndSaving')
                       : governancePending
-                        ? 'Check policy approval'
+                        ? t('derivationCheckPolicyApproval')
                         : policyUnchanged
-                          ? 'Approval policy saved'
-                          : 'Save approval policy',
+                          ? t('derivationApprovalPolicySaved')
+                          : t('derivationSaveApprovalPolicy'),
                   onConfirm: chooseGovernance.bind(
                     null,
                     policyChoice === 'two_person_v1'
@@ -1180,8 +1168,8 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                 02
               </span>
               <span className="derivation-root-step-label">
-                <h3 id="recovery-step-2">Enroll public wrapper keys</h3>
-                <span>Generate wrapper keypairs to encrypt and decrypt the recovery packages.</span>
+                <h3 id="recovery-step-2">{t('derivationStep2Title')}</h3>
+                <span>{t('derivationStep2Subtitle')}</span>
               </span>
               {pageState.kind === 'active' && (
                 <span
@@ -1192,21 +1180,17 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                   }`}
                 >
                   {pageState.recoveryEnrollment === 'committed' && !restartingKeys
-                    ? 'Committed'
+                    ? t('derivationCommitted')
                     : pageState.recoveryEnrollment === 'ready_to_commit'
-                      ? 'Enrolled · not committed'
-                      : 'Set up'}
+                      ? t('derivationEnrolledNotCommitted')
+                      : t('derivationSetUp')}
                 </span>
               )}
             </summary>
             <div className="derivation-root-step-body">
-              <p>
-                Generate wrapper keypairs to encrypt the server recovery material in step 3. The
-                private wrapper keys stay on the holders’ devices and decrypt those packages during
-                restoration.
-              </p>
+              <p>{t('derivationStep2Body')}</p>
               {status.recoveryBackup.status === 'not_configured' && (
-                <p>Save an approval policy to enroll public wrapper keys.</p>
+                <p>{t('derivationStep2NeedPolicy')}</p>
               )}
               {pageState.kind === 'active' &&
               pageState.recoveryEnrollment === 'committed' &&
@@ -1215,9 +1199,8 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                   <StatusLine
                     line={{
                       tone: 'success',
-                      label:
-                        'Both public wrapper keys are registered and approved for this backup.',
-                      detail: 'Create your backup in step 3, then save the recovery ZIP in step 4.',
+                      label: t('derivationStep2DoneLabel'),
+                      detail: t('derivationStep2DoneDetail'),
                     }}
                   />
                 </div>
@@ -1225,14 +1208,8 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                 pageState.recoveryEnrollment === 'ready_to_commit' ? null : enrolCommands.length ===
                 0 ? null : (
                 <>
-                  <p>
-                    Start in a new, empty folder on each holder’s device. Each command creates the
-                    named wrapper key file there. Keep that file for step 4.
-                  </p>
-                  <p>
-                    Approve the matching code in this dashboard. In step 4, the CLI includes these
-                    key files in your recovery ZIP and prompts for an optional ZIP password.
-                  </p>
+                  <p>{t('derivationStep2Folder')}</p>
+                  <p>{t('derivationStep2Approve')}</p>
                 </>
               )}
 
@@ -1248,7 +1225,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                       disabled={!actions.canEnrolRecipients || custodyProgress.kind === 'saving'}
                       onClick={setRestartEnvironment.bind(null, status.identity.envId)}
                     >
-                      Restart from step 2
+                      {t('derivationRestartStep2')}
                     </button>
                   </div>
                 )}
@@ -1256,10 +1233,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
               {pageState.kind === 'active' &&
                 pageState.recoveryEnrollment === 'ready_to_commit' && (
                   <>
-                    <p>
-                      Both public wrapper keys are enrolled: each holder has proved control of the
-                      matching private wrapper key. Commit this pair to authorize backup creation.
-                    </p>
+                    <p>{t('derivationStep2ReadyToCommit')}</p>
                     <button
                       type="button"
                       className="dashboard-pagination-button dashboard-pagination-button--primary derivation-root-commit-keys"
@@ -1267,13 +1241,14 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                       onClick={commitKeys}
                     >
                       {pendingApprovals.recipients
-                        ? 'Check key-pair approval'
-                        : 'Commit wrapper keys'}
+                        ? t('derivationCheckKeyPairApproval')
+                        : t('derivationCommitWrapperKeys')}
                     </button>
                     {pendingApprovals.recipients && (
                       <p role="status">
-                        Waiting for a second owner to approve operation{' '}
-                        {pendingApprovals.recipients.operationDigestB64u}.
+                        {t('derivationWaitingRecipients', {
+                          digest: pendingApprovals.recipients.operationDigestB64u,
+                        })}
                       </p>
                     )}
                   </>
@@ -1281,7 +1256,10 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
               {custodyProgress.kind === 'error' && custodyProgress.action === 'recipients' && (
                 <p role="alert">{custodyProgress.message}</p>
               )}
-              <RefreshStatusButton label="Refresh enrollment status" refresh={refresh} />
+              <RefreshStatusButton
+                label={t('derivationRefreshEnrollmentStatus')}
+                refresh={refresh}
+              />
             </div>
           </details>
           <details
@@ -1299,8 +1277,8 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                 03
               </span>
               <span className="derivation-root-step-label">
-                <h3 id="recovery-step-3">Create your backup</h3>
-                <span>Encrypt a recovery package for each key holder.</span>
+                <h3 id="recovery-step-3">{t('derivationStep3Title')}</h3>
+                <span>{t('derivationStep3Subtitle')}</span>
               </span>
               <span
                 className={`derivation-root-step-state ${
@@ -1312,16 +1290,16 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                 }`}
               >
                 {custodyProgress.kind === 'saving' && custodyProgress.action === 'backup'
-                  ? 'Creating'
+                  ? t('derivationCreating')
                   : downloadable !== null
                     ? status.recoveryBackup.status === 'failed_replacement'
-                      ? 'Replacement failed'
-                      : 'Packages generated'
+                      ? t('derivationReplacementFailed')
+                      : t('derivationPackagesGenerated')
                     : status.recoveryBackup.status === 'cleanup_incomplete'
-                      ? 'Blocked'
+                      ? t('derivationBlocked')
                       : status.recoveryBackup.status === 'preparing_initial'
-                        ? 'Creating'
-                        : 'Not ready'}
+                        ? t('derivationCreating')
+                        : t('derivationNotReady')}
               </span>
             </summary>
             <div className="derivation-root-step-body">
@@ -1331,39 +1309,30 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                 status.recoveryBackup.status !== 'cleanup_incomplete' &&
                 status.recoveryBackup.status !== 'preparing_initial' &&
                 !(custodyProgress.kind === 'saving' && custodyProgress.action === 'backup') && (
-                  <p>The wrapper key pair is committed. No backup is ready to download yet.</p>
+                  <p>{t('derivationStep3PairCommitted')}</p>
                 )}
-              {downloadable !== null && !canDownloadKit && (
-                <p>
-                  Your account does not have access to download a recovery package. Each designated
-                  holder must sign in to save their own kit.
-                </p>
-              )}
+              {downloadable !== null && !canDownloadKit && <p>{t('derivationStep3NoAccess')}</p>}
               {downloadable !== null &&
                 canDownloadKit &&
                 status.recoveryBackup.status !== 'failed_replacement' && (
-                  <p>
-                    The encrypted backup is ready. Download and verify the files in step 4 to
-                    confirm they are saved safely.
-                  </p>
+                  <p>{t('derivationStep3Ready')}</p>
                 )}
               {status.recoveryBackup.status === 'failed_replacement' && (
-                <p>
-                  The replacement failed. Step 4 still contains your previous backup and its
-                  original wrapper keys are required to open it.
-                </p>
+                <p>{t('derivationStep3ReplacementFailed')}</p>
               )}
               {pageState.kind === 'active' && pageState.recoveryEnrollment !== 'committed' && (
-                <p>
-                  Finish both enrollments, then select Commit wrapper keys in step 2 before creating
-                  the new backup.
-                </p>
+                <p>{t('derivationStep3FinishEnrollments')}</p>
               )}
               {backupPending ? (
                 <p role="status">
-                  Waiting for a second owner to approve operation{' '}
-                  <ShortId label="operation digest" value={backupPending.operationDigestB64u} />{' '}
-                  before {formatDashboardTimestamp(backupPending.expiresAt)}. Retry once they have.
+                  {t('derivationWaitingPrefix')}{' '}
+                  <ShortId
+                    label={t('derivationLabelOperationDigest')}
+                    value={backupPending.operationDigestB64u}
+                  />{' '}
+                  {t('derivationWaitingBackupSuffix', {
+                    date: formatDashboardTimestamp(backupPending.expiresAt),
+                  })}
                 </p>
               ) : null}
               <div className="dashboard-actions">
@@ -1387,15 +1356,12 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                   onClick={() => void createBackup()}
                 >
                   {custodyProgress.kind === 'saving' && custodyProgress.action === 'backup'
-                    ? 'Creating backup…'
-                    : 'Generate a new recovery backup'}
+                    ? t('derivationCreatingBackup')
+                    : t('derivationGenerateNewBackup')}
                 </button>
               </div>
               {status.recoveryBackup.status === 'cleanup_incomplete' && (
-                <p id="backup-cleanup-reason">
-                  Provider deletion of earlier recovery material is pending. You can create a new
-                  backup while cleanup continues to be tracked.
-                </p>
+                <p id="backup-cleanup-reason">{t('derivationStep3CleanupPending')}</p>
               )}
               {custodyProgress.kind === 'saving' && custodyProgress.action === 'backup' ? (
                 <BackupProgress
@@ -1410,7 +1376,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                   {custodyProgress.message}
                 </p>
               )}
-              <RefreshStatusButton label="Refresh backup status" refresh={refresh} />
+              <RefreshStatusButton label={t('derivationRefreshBackupStatus')} refresh={refresh} />
             </div>
           </details>
           <details className="derivation-root-recovery-step" open={downloadable !== null}>
@@ -1419,41 +1385,33 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                 04
               </span>
               <span className="derivation-root-step-label">
-                <h3 id="recovery-step-4">Save and verify the files</h3>
+                <h3 id="recovery-step-4">{t('derivationStep4Title')}</h3>
                 <span>
                   {splitRecoveryDownloads
-                    ? 'Download your package and check it in your terminal.'
-                    : 'Download both packages and check them in your terminal.'}
+                    ? t('derivationStep4SubtitleSplit')
+                    : t('derivationStep4SubtitleBoth')}
                 </span>
               </span>
             </summary>
             <div className="derivation-root-step-body">
-              {downloadable === null && (
-                <p>Generate a backup in step 3 to download the recovery ZIP.</p>
-              )}
+              {downloadable === null && <p>{t('derivationStep4NeedBackup')}</p>}
               {downloadable !== null && (
                 <>
                   <p>
                     {splitRecoveryDownloads
-                      ? 'Each holder saves a recovery kit containing the manifest, their encrypted package, their private wrapper key, and instructions.'
-                      : 'Save a recovery kit containing the manifest, both encrypted packages, both private wrapper keys, and instructions.'}
+                      ? t('derivationStep4KitSplit')
+                      : t('derivationStep4KitBoth')}
                   </p>
-                  <p>
-                    Run this command from the same Terminal folder you used for enrollment to create
-                    and save your recovery ZIP. Approve the matching code in your browser. The CLI
-                    downloads the encrypted recovery packages, verifies them with your local wrapper
-                    keys, and combines those files into a ZIP. Enter a ZIP password when prompted,
-                    or press Enter to skip encryption.
-                  </p>
+                  <p>{t('derivationStep4Run')}</p>
                   <CommandList
                     commands={[
                       {
-                        label: 'Save your recovery kit',
+                        label: t('derivationSaveKitLabel'),
                         command: `npx ${WALLET_CLI_PACKAGE} derivation-root backup kit --console-url ${shellQuote(consoleBaseUrl)} --environment ${shellQuote(status.identity.envId)} --recovery-set ${shellQuote(downloadable.recoverySetId)}${kitRole === null ? '' : ` --role ${kitRole}`}`,
                         note:
                           kitRole === null
-                            ? 'Your private wrapper keys and password stay in Terminal. The ZIP includes both wrapper keys, both encrypted recovery packages, the manifest and restore instructions.'
-                            : 'Your private wrapper key and password stay in Terminal. The ZIP includes your wrapper key, your encrypted recovery package, the manifest and restore instructions.',
+                            ? t('derivationSaveKitNoteBoth')
+                            : t('derivationSaveKitNoteOwn'),
                       },
                     ]}
                   />
@@ -1463,10 +1421,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
           </details>
           {actions.canReplaceBackup ? (
             <div className="derivation-root-recovery-notes">
-              <p role="note">
-                Replacing this recovery backup cannot revoke copies you previously downloaded.
-                Securely destroy old files and wrapper keys when you no longer need them.
-              </p>
+              <p role="note">{t('derivationReplaceWarning')}</p>
             </div>
           ) : null}
         </section>
@@ -1484,13 +1439,13 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
             <span className="derivation-root-section-icon">
               <RefreshCw size={18} aria-hidden="true" />
             </span>
-            Operational shares
+            {t('derivationOperationalShares')}
           </h2>
           <span className="derivation-root-epoch">
-            Share version {status.operationalShares.activeEpoch}
+            {t('derivationShareVersion', { epoch: status.operationalShares.activeEpoch })}
           </span>
         </div>
-        <p className="derivation-root-panel-intro">Two services each hold a share of this root.</p>
+        <p className="derivation-root-panel-intro">{t('derivationTwoServices')}</p>
         <dl className="derivation-root-derivers">
           <div>
             <dt>Deriver A</dt>
@@ -1509,10 +1464,10 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
         <RotationOutcome outcome={rotationOutcome} />
         <dl className="derivation-root-dates">
           <div>
-            <dt>Last rotation</dt>
+            <dt>{t('derivationLastRotation')}</dt>
             <dd>
               {status.operationalShares.lastCompletedRotationAt === null ? (
-                'Not rotated yet'
+                t('derivationNotRotatedYet')
               ) : (
                 <time dateTime={status.operationalShares.lastCompletedRotationAt}>
                   {formatDashboardTimestamp(status.operationalShares.lastCompletedRotationAt)}
@@ -1521,10 +1476,10 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
             </dd>
           </div>
           <div>
-            <dt>Next scheduled</dt>
+            <dt>{t('derivationNextScheduled')}</dt>
             <dd>
               {status.operationalShares.nextScheduledRotationAt === null ? (
-                'No scheduler is running; rotate manually'
+                t('derivationNoScheduler')
               ) : (
                 <time dateTime={status.operationalShares.nextScheduledRotationAt}>
                   {formatDashboardTimestamp(status.operationalShares.nextScheduledRotationAt)}
@@ -1533,10 +1488,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
             </dd>
           </div>
         </dl>
-        <p className="derivation-root-description">
-          Rotation refreshes both shares while keeping wallet keys, addresses, and client data the
-          same. Each service continues to hold only its own share.
-        </p>
+        <p className="derivation-root-description">{t('derivationRotationDescription')}</p>
         <button
           type="button"
           className="dashboard-pagination-button dashboard-pagination-button--primary derivation-root-rotate"
@@ -1544,14 +1496,14 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
           onClick={setConfirmingRotation.bind(null, true)}
         >
           <RefreshCw size={16} aria-hidden="true" />
-          {jobInFlight ? 'Rotation in progress' : 'Review share rotation'}
+          {jobInFlight ? t('derivationRotationInProgress') : t('derivationReviewShareRotation')}
         </button>
         {phase !== null ? (
           <ol className="dashboard-progress" aria-live="polite">
             {ROTATION_PHASES.map((label, index) => (
               <li key={label} aria-current={index === phase ? 'step' : undefined}>
                 {label}
-                {index < phase ? ' — done' : null}
+                {index < phase ? t('derivationPhaseDone') : null}
               </li>
             ))}
           </ol>
@@ -1560,7 +1512,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
           <StatusLine
             line={{
               tone: 'success',
-              label: 'Previous shares securely erased',
+              label: t('derivationPreviousSharesErased'),
               detail: retiredShareClaim(status),
             }}
           />
@@ -1578,12 +1530,12 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
           <span className="derivation-root-section-icon">
             <ShieldCheck size={18} aria-hidden="true" />
           </span>
-          Restore a deployment
+          {t('derivationRestoreDeployment')}
         </h2>
         {restoreAccess.kind === 'ready' && restoreAccess.restoration === 'active' ? (
           <div className="derivation-root-restore-success" role="status">
-            <strong>✓ Recovery completed successfully</strong>
-            <p>The restored root is active at {restoreAccess.destination}.</p>
+            <strong>✓ {t('derivationRecoveryCompleted')}</strong>
+            <p>{t('derivationRestoredRootActiveAt', { destination: restoreAccess.destination })}</p>
           </div>
         ) : status.restore?.status === 'active' ? (
           <>
@@ -1600,38 +1552,31 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
           className="derivation-root-instructions"
           aria-labelledby="restore-instructions-title"
         >
-          <h3 id="restore-instructions-title">How to restore</h3>
-          <p className="derivation-root-description">
-            You need the Seams wallet CLI and your complete recovery ZIP.
-          </p>
+          <h3 id="restore-instructions-title">{t('derivationHowToRestore')}</h3>
+          <p className="derivation-root-description">{t('derivationNeedCliAndZip')}</p>
           <CommandList commands={[walletCliInstallCommand()]} />
-          <p className="derivation-root-description">
-            Extract the ZIP and open Terminal in that folder. Keep all files together. If you
-            encrypted the ZIP, enter its password when extracting it.
-          </p>
-          <h3 className="derivation-root-restore-access-heading">Approve recovery access</h3>
-          <p className="derivation-root-description">
-            Each holder runs the commands below, then approves the matching Terminal code in this
-            dashboard. Use the organization and environment shown above. Your wrapper keys stay on
-            your device.
-          </p>
+          <p className="derivation-root-description">{t('derivationExtractZip')}</p>
+          <h3 className="derivation-root-restore-access-heading">
+            {t('derivationApproveRecoveryAccess')}
+          </h3>
+          <p className="derivation-root-description">{t('derivationApproveAccessBody')}</p>
           <CommandList
             commands={[
               {
-                label: 'Connect recovery trust',
+                label: t('derivationConnectTrustLabel'),
                 command: `seams-wallet derivation-root trust connect --console-url ${shellQuote(consoleBaseUrl)} --manifest ./manifest.json`,
-                note: 'Run once on each holder’s device from the extracted folder to verify the backup’s authority and save it for offline checks.',
+                note: t('derivationConnectTrustNote'),
               },
             ]}
           />
           <div className="derivation-root-destination">
-            <label htmlFor="restore-destination">Destination</label>
+            <label htmlFor="restore-destination">{t('derivationDestination')}</label>
             <input
               id="restore-destination"
               className="dashboard-input"
               type="url"
               disabled={restoreAccess.kind !== 'ready'}
-              placeholder="Waiting for a configured destination"
+              placeholder={t('derivationDestinationPlaceholder')}
               value={restoreDestination}
               onChange={changeRestoreDestination.bind(null, setRestoreDestination)}
               aria-describedby="restore-destination-help"
@@ -1641,36 +1586,32 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
             />
             <p id="restore-destination-help" className="derivation-root-description">
               {destination === null
-                ? 'Enter an HTTPS destination URL without a path, query, or credentials.'
-                : 'The commands below use this destination. It must be configured for recovery and have no active root.'}
+                ? t('derivationDestinationInvalid')
+                : t('derivationDestinationHelp')}
             </p>
           </div>
-          {restoreAccess.kind === 'loading' && <p role="status">Checking recovery access…</p>}
+          {restoreAccess.kind === 'loading' && (
+            <p role="status">{t('derivationCheckingRecoveryAccess')}</p>
+          )}
           {restoreAccess.kind === 'unavailable' && <p role="status">{restoreAccess.message}</p>}
           {restoreAccess.kind === 'ready' &&
             destination !== null &&
             destination !== restoreAccess.destination && (
               <p role="status">
-                This console can authorize restoration to {restoreAccess.destination}. Use that
-                destination, or ask your deployment administrator to update recovery access.
+                {t('derivationConsoleCanAuthorize', { destination: restoreAccess.destination })}
               </p>
             )}
           <CommandList commands={restoreCommands} />
           {restoreAccess.kind === 'ready' && destination === restoreAccess.destination && (
             <details className="derivation-root-offline-activation">
-              <summary>Activation asks for offline trust acknowledgement?</summary>
-              <p>
-                Your backup passed cryptographic verification, but its current revocation status
-                could not be checked. Continue only if you accept that this backup may have been
-                revoked since it was created. Both imported shares are saved; you do not need to
-                import them again.
-              </p>
+              <summary>{t('derivationOfflineSummary')}</summary>
+              <p>{t('derivationOfflineBody')}</p>
               <CommandList
                 commands={[
                   authorizeRestoreCommand(consoleBaseUrl, status.identity.envId, {
-                    label: 'Activate with offline verification',
+                    label: t('derivationOfflineActivateLabel'),
                     command: `seams-wallet derivation-root restore activate --destination ${shellQuote(destination)} --session-file ./restore-session.json --acknowledge-offline-trust`,
-                    note: 'If you accept offline verification, run this command from the same folder. Keep the existing restore-session.json file for retries.',
+                    note: t('derivationOfflineActivateNote'),
                   }),
                 ]}
               />
@@ -1681,17 +1622,13 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
 
       <DashboardInlineModal
         isOpen={confirmingRotation}
-        ariaLabel="Rotate operational shares?"
+        ariaLabel={t('derivationRotateSharesQuestion')}
         ariaDescribedBy="rotate-operational-shares-description"
         onRequestClose={setConfirmingRotation.bind(null, false)}
         className="derivation-root-modal"
       >
-        <h2>Rotate operational shares?</h2>
-        <p id="rotate-operational-shares-description">
-          Deriver A and Deriver B will replace their current shares while keeping the derivation
-          root unchanged. Normal signing will continue. New derivation ceremonies may pause briefly.
-          Verify your identity to authorize this rotation.
-        </p>
+        <h2>{t('derivationRotateSharesQuestion')}</h2>
+        <p id="rotate-operational-shares-description">{t('derivationRotateSharesDescription')}</p>
         <VerificationMethodChoice
           action={null}
           value={rotationMethod}
@@ -1710,7 +1647,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
             className="dashboard-pagination-button"
             onClick={setConfirmingRotation.bind(null, false)}
           >
-            Cancel
+            {t('derivationCancel')}
           </button>
           <button
             type="button"
@@ -1719,10 +1656,10 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
             onClick={startRotation}
           >
             {rotationPending
-              ? 'Verifying and rotating…'
+              ? t('derivationVerifyingAndRotating')
               : rotationOutcome?.kind === 'retryable'
-                ? 'Retry rotation'
-                : 'Rotate operational shares'}
+                ? t('derivationRetryRotation')
+                : t('derivationRotateSharesButton')}
           </button>
         </div>
       </DashboardInlineModal>

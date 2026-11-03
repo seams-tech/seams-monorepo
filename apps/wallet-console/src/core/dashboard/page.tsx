@@ -763,7 +763,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       setProjectResolution(unavailableDashboardProjects(claims, 'selection_unavailable'));
       return;
     }
-    switchOrganizationContext(organization.value, 'Unable to open the selected organization');
+    switchOrganizationContext(organization.value, t('commonShellSwitchOrgFailed'));
   }, [
     accountOrganizationsResolved,
     consoleSession.claims,
@@ -790,7 +790,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     const recoveryKey = recoveryAttemptKey;
     if (organizationRecoveryAttemptRef.current === recoveryKey) return;
     organizationRecoveryAttemptRef.current = recoveryKey;
-    switchOrganizationContext(preferredOrganizationId, 'Organization context recovery failed');
+    switchOrganizationContext(preferredOrganizationId, t('commonShellRecoverOrgFailed'));
   }, [
     accountOrganizationsResolved,
     consoleSession.claims,
@@ -1002,7 +1002,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
           onSelectContextRaw(menu, nextOrgId);
           return;
         }
-        switchOrganizationContext(nextOrgId, 'Organization switch failed');
+        switchOrganizationContext(nextOrgId, t('commonShellSwitchOrgError'));
         return;
       }
       if (menu === 'accountSettings' && value === DASHBOARD_ACCOUNT_SETTINGS_ACCOUNT_OPTION) {
@@ -1204,10 +1204,10 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
 
   if (sessionForbidden) {
     return (
-      <main className="dashboard-session-gate" aria-label="Dashboard access">
-        <h1>Unable to open your workspace</h1>
-        <p role="alert">Your current session does not have access to this organization.</p>
-        <a {...linkProps(DASHBOARD_LOGIN_ROUTE)}>Sign in again</a>
+      <main className="dashboard-session-gate" aria-label={t('commonShellAccessAria')}>
+        <h1>{t('commonShellNoWorkspaceTitle')}</h1>
+        <p role="alert">{t('commonShellNoWorkspaceBody')}</p>
+        <a {...linkProps(DASHBOARD_LOGIN_ROUTE)}>{t('commonShellSignInAgain')}</a>
       </main>
     );
   }
@@ -1219,16 +1219,18 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     !pendingOrganizationContextOrgId
   ) {
     return (
-      <main className="dashboard-session-gate" aria-label="Dashboard access">
-        <h1>Unable to open this project</h1>
+      <main className="dashboard-session-gate" aria-label={t('commonShellAccessAria')}>
+        <h1>{t('commonShellNoProjectTitle')}</h1>
         <p role="alert">
           {projectResolution.reason === 'selection_unavailable'
-            ? 'The selected account or project is unavailable. Choose a project in Platform Console.'
-            : 'Projects could not be loaded. Try again.'}
+            ? t('commonShellSelectionUnavailable')
+            : t('commonShellProjectsLoadFailed')}
         </p>
-        <a href={platformConsoleHref('/dashboard/account-settings')}>Open Platform Console</a>
+        <a href={platformConsoleHref('/dashboard/account-settings')}>
+          {t('commonShellOpenPlatformConsole')}
+        </a>
         <button type="button" onClick={consoleSession.refresh}>
-          Retry
+          {t('commonShellRetry')}
         </button>
       </main>
     );
@@ -1249,8 +1251,8 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
      here would expose the wizard before an existing workspace loads. */
   if (!consoleSession.claims && !consoleSession.loading) {
     return (
-      <main className="dashboard-session-gate" aria-label="Dashboard workspace" aria-busy>
-        <DashboardLoadingState title="Redirecting to sign in..." />
+      <main className="dashboard-session-gate" aria-label={t('commonShellWorkspaceAria')} aria-busy>
+        <DashboardLoadingState title={t('commonShellRedirectingToSignIn')} />
       </main>
     );
   }
@@ -1260,13 +1262,15 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         composition={composition}
         pathname={pathname}
         accountLabel={consoleSession.claims?.name || consoleSession.claims?.email}
-        title={consoleSession.claims ? 'Opening dashboard...' : 'Checking your session...'}
+        title={
+          consoleSession.claims ? t('commonShellOpeningDashboard') : t('commonShellCheckingSession')
+        }
       />
     );
   }
 
   return (
-    <main className={shellClassName} aria-label="Dashboard workspace">
+    <main className={shellClassName} aria-label={t('commonShellWorkspaceAria')}>
       <DashboardNavigation
         accountLabel={
           consoleSession.claims?.name || consoleSession.claims?.email || t('menuAccountFallback')
@@ -1416,7 +1420,7 @@ function DashboardPendingShell<ProductRoute extends string, ProductGroupKey exte
   return (
     <main
       className={`dashboard-shell dashboard-shell--route-${view.key}${isSidebarExpanded ? '' : ' dashboard-shell--sidebar-collapsed'}`}
-      aria-label="Dashboard workspace"
+      aria-label={t('commonShellWorkspaceAria')}
       aria-busy
     >
       <DashboardNavigation
@@ -1497,7 +1501,7 @@ function DashboardEntry<ProductRoute extends string, ProductGroupKey extends str
         <DashboardPendingShell
           composition={props.composition}
           pathname={props.pathname}
-          title="Opening dashboard..."
+          title={t('commonShellOpeningDashboard')}
         />
       );
     case 'onboarding':
@@ -1586,7 +1590,7 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
   const shellClassName = `dashboard-shell dashboard-shell--route-onboarding dashboard-shell--onboarding-focus${isSidebarExpanded ? '' : ' dashboard-shell--sidebar-collapsed'}`;
 
   return (
-    <main className={shellClassName} aria-label="Dashboard workspace">
+    <main className={shellClassName} aria-label={t('commonShellWorkspaceAria')}>
       <DashboardNavigation
         accountLabel={t('menuAccountFallback')}
         onSelectContext={selectTopbarContext}

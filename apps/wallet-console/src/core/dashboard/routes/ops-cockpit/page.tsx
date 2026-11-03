@@ -1,5 +1,6 @@
 import React from 'react';
 import { toast } from 'sonner';
+import { t } from '@core/i18n';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { formatDashboardTimestamp } from '../../utils/timestamps';
@@ -31,9 +32,9 @@ function formatApprovalLabel(value: string | null | undefined): string {
   const normalized = String(value || '')
     .trim()
     .toUpperCase();
-  if (normalized === 'KEY_EXPORT') return 'Key export';
-  if (normalized === 'POLICY_PUBLISH') return 'Policy publish';
-  if (!normalized) return 'Approval';
+  if (normalized === 'KEY_EXPORT') return t('overviewApprovalKeyExport');
+  if (normalized === 'POLICY_PUBLISH') return t('overviewApprovalPolicyPublish');
+  if (!normalized) return t('overviewApprovalDefault');
   return normalized
     .toLowerCase()
     .split('_')
@@ -44,7 +45,7 @@ function formatApprovalLabel(value: string | null | undefined): string {
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
-  return String(error || 'Unknown error');
+  return String(error || t('auditUnknownError'));
 }
 
 function isPlatformSupportAccessMessage(message: string): boolean {
@@ -57,14 +58,14 @@ function toSectionWarning(label: string, status: DashboardOpsCockpitSectionStatu
      re-surface the noise the hidden panel avoids. */
   if (status.state === 'not_configured') return null;
   const detail = status.message ? `: ${status.message}` : '';
-  if (status.state === 'forbidden') return `${label} is not available for this role${detail}`;
-  return `${label} failed${detail}`;
+  if (status.state === 'forbidden') return t('overviewWarningForbidden', { label, detail });
+  return t('overviewWarningFailed', { label, detail });
 }
 
 const CORE_OVERVIEW_HERO_ACTIONS: readonly OpsCockpitQuickAction[] = [
   {
-    title: 'API keys',
-    description: 'Manage credentials for this environment.',
+    title: t('overviewApiKeysTitle'),
+    description: t('overviewApiKeysDescription'),
     path: '/dashboard/api-keys',
     icon: KeyRoundIcon,
     field: 'azure-coral',
@@ -95,6 +96,22 @@ type OpsCockpitPageProps = {
   heroTitle: string;
   creditsDescription: string;
 };
+
+/* Fills `{name}` slots in a message with React nodes, so a sentence can carry
+   <strong> and <code> parts while each language keeps its own word order. */
+function renderMessage(
+  template: string,
+  slots: Readonly<Record<string, React.ReactNode>>,
+): React.ReactNode[] {
+  return template.split(/(\{\w+\})/g).map((part, index) => {
+    const name = /^\{(\w+)\}$/.exec(part)?.[1];
+    return name !== undefined && name in slots ? (
+      <React.Fragment key={index}>{slots[name]}</React.Fragment>
+    ) : (
+      part
+    );
+  });
+}
 
 function OpsCockpitQueuePanel(props: {
   ariaLabel: string;
@@ -143,7 +160,7 @@ export function OpsCockpitPage({
         summary: null,
         warnings: [],
       });
-      setErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setErrorMessage(session.errorMessage || t('auditSessionUnavailable'));
       return;
     }
 
@@ -154,15 +171,18 @@ export function OpsCockpitPage({
     (async () => {
       const summary = await getDashboardOpsCockpitSummary({ windowMinutes: 60 });
       const warnings = [
-        toSectionWarning('Approvals queue', summary.approvals.status),
-        toSectionWarning('Billing failure queue', summary.billing.status),
-        toSectionWarning('Webhook dead letters', summary.webhooks.status),
+        toSectionWarning(t('overviewQueueApprovals'), summary.approvals.status),
+        toSectionWarning(t('overviewQueueBillingFailures'), summary.billing.status),
+        toSectionWarning(t('overviewQueueWebhookDeadLetters'), summary.webhooks.status),
       ].filter(
         (entry): entry is string => Boolean(entry) && !isPlatformSupportAccessMessage(entry || ''),
       );
       if (summary.webhooks.endpointCount > summary.webhooks.scannedEndpointCount) {
         warnings.push(
-          `Webhook dead-letter scan capped at ${summary.webhooks.scannedEndpointCount} endpoints (total ${summary.webhooks.endpointCount}).`,
+          t('overviewWebhookScanCapped', {
+            scanned: summary.webhooks.scannedEndpointCount,
+            total: summary.webhooks.endpointCount,
+          }),
         );
       }
 
@@ -195,12 +215,12 @@ export function OpsCockpitPage({
   const onReplayDeadLetter = React.useCallback(
     async (entry: DashboardOpsCockpitDeadLetterEntry) => {
       if (!session.claims) {
-        setMutationErrorMessage(session.errorMessage || 'Console session is unavailable');
+        setMutationErrorMessage(session.errorMessage || t('auditSessionUnavailable'));
         return;
       }
       const deliveryId = String(entry.deadLetter.deliveryId || '').trim();
       if (!deliveryId) {
-        setMutationErrorMessage('Replay unavailable: delivery id is missing for this dead letter.');
+        setMutationErrorMessage(t('overviewReplayUnavailable'));
         return;
       }
       setReplayingDeadLetterId(entry.deadLetter.id);
@@ -210,7 +230,7 @@ export function OpsCockpitPage({
           endpointId: entry.endpointId,
           deliveryId,
         });
-        toast.success(`Replay queued for delivery ${deliveryId}.`);
+        toast.success(t('overviewReplayQueued', { id: deliveryId }));
         loadOpsCockpit();
       } catch (error: unknown) {
         setMutationErrorMessage(toErrorMessage(error));
@@ -224,30 +244,28 @@ export function OpsCockpitPage({
   const onApprovePendingApproval = React.useCallback(
     async (entry: DashboardOpsCockpitPendingApproval) => {
       if (!session.claims) {
-        setApprovalMutationErrorMessage(session.errorMessage || 'Console session is unavailable');
+        setApprovalMutationErrorMessage(session.errorMessage || t('auditSessionUnavailable'));
         return;
       }
       if (entry.requireMfa) {
-        setApprovalMutationErrorMessage(
-          'Approve unavailable in overview: this request requires MFA verification.',
-        );
+        setApprovalMutationErrorMessage(t('overviewApproveUnavailableMfa'));
         return;
       }
       const approvalId = String(entry.id || '').trim();
       if (!approvalId) {
-        setApprovalMutationErrorMessage('Approval id is required.');
+        setApprovalMutationErrorMessage(t('overviewApprovalIdRequired'));
         return;
       }
       setApprovingApprovalId(approvalId);
       setApprovalMutationErrorMessage('');
       try {
-        if (!approvalActions) throw new Error('Approval actions are unavailable.');
+        if (!approvalActions) throw new Error(t('overviewApprovalActionsUnavailable'));
         const updated = await approvalActions.approve({
           approvalId,
           reason: OPS_COCKPIT_APPROVE_REASON,
           mfaVerified: false,
         });
-        toast.success(`Approval request ${approvalId} is now ${updated.status}.`);
+        toast.success(t('overviewApprovalNowStatus', { id: approvalId, status: updated.status }));
         loadOpsCockpit();
       } catch (error: unknown) {
         setApprovalMutationErrorMessage(toErrorMessage(error));
@@ -261,23 +279,23 @@ export function OpsCockpitPage({
   const onRejectPendingApproval = React.useCallback(
     async (entry: DashboardOpsCockpitPendingApproval) => {
       if (!session.claims) {
-        setApprovalMutationErrorMessage(session.errorMessage || 'Console session is unavailable');
+        setApprovalMutationErrorMessage(session.errorMessage || t('auditSessionUnavailable'));
         return;
       }
       const approvalId = String(entry.id || '').trim();
       if (!approvalId) {
-        setApprovalMutationErrorMessage('Approval id is required.');
+        setApprovalMutationErrorMessage(t('overviewApprovalIdRequired'));
         return;
       }
       setRejectingApprovalId(approvalId);
       setApprovalMutationErrorMessage('');
       try {
-        if (!approvalActions) throw new Error('Approval actions are unavailable.');
+        if (!approvalActions) throw new Error(t('overviewApprovalActionsUnavailable'));
         const updated = await approvalActions.reject({
           approvalId,
           reason: OPS_COCKPIT_REJECT_REASON,
         });
-        toast.success(`Approval request ${approvalId} is now ${updated.status}.`);
+        toast.success(t('overviewApprovalNowStatus', { id: approvalId, status: updated.status }));
         loadOpsCockpit();
       } catch (error: unknown) {
         setApprovalMutationErrorMessage(toErrorMessage(error));
@@ -298,8 +316,8 @@ export function OpsCockpitPage({
   const visibleErrorMessage = isPlatformSupportAccessMessage(errorMessage) ? '' : errorMessage;
 
   return (
-    <div className="dashboard-view dashboard-ops-cockpit-view" aria-label="Ops cockpit page">
-      <section className="dashboard-hero" aria-label="Quick actions">
+    <div className="dashboard-view dashboard-ops-cockpit-view" aria-label={t('overviewPageLabel')}>
+      <section className="dashboard-hero" aria-label={t('overviewQuickActionsLabel')}>
         <div className="dashboard-hero__primary">
           <h2 className="dashboard-hero__title">{heroTitle}</h2>
           <div className="dashboard-hero__cards">
@@ -330,43 +348,56 @@ export function OpsCockpitPage({
           >
             <GrainField field="teal-peach" />
             <span className="dashboard-hero__promo-copy">
-              <span className="dashboard-hero__promo-title">Credits</span>
+              <span className="dashboard-hero__promo-title">{t('overviewCredits')}</span>
               <span className="dashboard-hero__promo-description">{creditsDescription}</span>
             </span>
             <span className="dashboard-pagination-button dashboard-pagination-button--primary">
-              Add credits
+              {t('overviewAddCredits')}
             </span>
           </a>
           <div className="dashboard-hero__status-grid">
-            <section className="dashboard-hero__status-card" aria-label="Pending approvals summary">
-              <h2>Pending approvals</h2>
+            <section
+              className="dashboard-hero__status-card"
+              aria-label={t('overviewPendingApprovalsLabel')}
+            >
+              <h2>{t('overviewPendingApprovals')}</h2>
               {approvalMutationErrorMessage ? (
                 <p className="dashboard-pagination-note">{approvalMutationErrorMessage}</p>
               ) : null}
               {pendingApprovals.length === 0 ? (
-                <p className="dashboard-pagination-note">No pending approvals.</p>
+                <p className="dashboard-pagination-note">{t('overviewNoPendingApprovals')}</p>
               ) : (
                 <ul className="dashboard-view-list">
                   {pendingApprovals.slice(0, 6).map((row) => (
                     <li key={row.id}>
                       <p>
-                        <strong>{formatApprovalLabel(row.operationType)}</strong> for{' '}
-                        {formatApprovalLabel(row.resourceType || 'resource').toLowerCase()}{' '}
-                        <code>{row.resourceId || row.id}</code> by{' '}
-                        <code>{row.requestedByUserId}</code> at {formatTimestamp(row.createdAt)}
+                        {renderMessage(t('overviewApprovalLine'), {
+                          operation: <strong>{formatApprovalLabel(row.operationType)}</strong>,
+                          resource: (row.resourceType
+                            ? formatApprovalLabel(row.resourceType)
+                            : t('overviewApprovalResource')
+                          ).toLowerCase(),
+                          resourceId: <code>{row.resourceId || row.id}</code>,
+                          user: <code>{row.requestedByUserId}</code>,
+                          time: formatTimestamp(row.createdAt),
+                        })}
                       </p>
                       {row.reason ? (
-                        <p className="dashboard-pagination-note">Requested reason: {row.reason}</p>
+                        <p className="dashboard-pagination-note">
+                          {t('overviewRequestedReason', { reason: row.reason })}
+                        </p>
                       ) : null}
                       <p className="dashboard-pagination-note">
                         {row.requiredApprovals === 1
-                          ? '1 approval required.'
-                          : `${row.requiredApprovals} approvals required.`}{' '}
-                        {row.requireMfa ? 'MFA verification is required to approve.' : ''}
+                          ? t('overviewApprovalsRequiredOne')
+                          : t('overviewApprovalsRequiredMany', {
+                              count: row.requiredApprovals,
+                            })}{' '}
+                        {row.requireMfa ? t('overviewMfaRequiredToApprove') : ''}
                       </p>
                       {row.requireMfa ? (
                         <p className="dashboard-pagination-note">
-                          Approve unavailable in overview: this request requires MFA verification.
+                          {t('overviewApproveUnavailableMfa')}
                         </p>
                       ) : null}
                       <p>
@@ -380,7 +411,9 @@ export function OpsCockpitPage({
                                 approvingApprovalId === row.id || rejectingApprovalId === row.id
                               }
                             >
-                              {approvingApprovalId === row.id ? 'Approving...' : 'Approve'}
+                              {approvingApprovalId === row.id
+                                ? t('overviewApproving')
+                                : t('overviewApprove')}
                             </button>{' '}
                           </>
                         ) : null}
@@ -392,7 +425,9 @@ export function OpsCockpitPage({
                             approvingApprovalId === row.id || rejectingApprovalId === row.id
                           }
                         >
-                          {rejectingApprovalId === row.id ? 'Rejecting...' : 'Reject'}
+                          {rejectingApprovalId === row.id
+                            ? t('overviewRejecting')
+                            : t('overviewReject')}
                         </button>
                       </p>
                     </li>
@@ -403,18 +438,21 @@ export function OpsCockpitPage({
 
             {showBillingQueue ? (
               <OpsCockpitQueuePanel
-                ariaLabel="Billing failure summary"
-                title="Failed or overdue invoices"
+                ariaLabel={t('overviewBillingSummaryLabel')}
+                title={t('overviewFailedInvoices')}
                 badge={`${failedInvoices.length}`}
               >
                 {failedInvoices.length === 0 ? (
-                  <p className="dashboard-pagination-note">No failed or overdue invoices.</p>
+                  <p className="dashboard-pagination-note">{t('overviewNoFailedInvoices')}</p>
                 ) : (
                   <ul className="dashboard-view-list">
                     {failedInvoices.slice(0, 6).map((row) => (
                       <li key={row.id}>
-                        Invoice <code>{row.id}</code> is <strong>{row.status}</strong> with due date{' '}
-                        {formatTimestamp(row.dueAt)}.
+                        {renderMessage(t('overviewInvoiceLine'), {
+                          id: <code>{row.id}</code>,
+                          status: <strong>{row.status}</strong>,
+                          date: formatTimestamp(row.dueAt),
+                        })}
                       </li>
                     ))}
                   </ul>
@@ -424,24 +462,28 @@ export function OpsCockpitPage({
 
             {showWebhookQueue ? (
               <OpsCockpitQueuePanel
-                ariaLabel="Failed webhook summary"
-                title="Failed webhooks (dead letters)"
+                ariaLabel={t('overviewWebhookSummaryLabel')}
+                title={t('overviewFailedWebhooks')}
                 badge={`${failedWebhooks.length}`}
               >
                 {mutationErrorMessage ? (
                   <p className="dashboard-pagination-note">{mutationErrorMessage}</p>
                 ) : null}
                 {failedWebhooks.length === 0 ? (
-                  <p className="dashboard-pagination-note">No unresolved webhook dead letters.</p>
+                  <p className="dashboard-pagination-note">{t('overviewNoDeadLetters')}</p>
                 ) : (
                   <ul className="dashboard-view-list">
                     {failedWebhooks.slice(0, 8).map((entry) => (
                       <li key={entry.deadLetter.id}>
-                        Endpoint <code>{entry.endpointId}</code> event{' '}
-                        <code>{entry.deadLetter.eventType || entry.deadLetter.eventId}</code> failed{' '}
-                        <strong>{entry.deadLetter.failedAttempts}</strong> attempts; last error:{' '}
-                        {entry.deadLetter.lastErrorMessage || 'n/a'} (
-                        {formatTimestamp(entry.deadLetter.movedToDlqAt)}){' '}
+                        {renderMessage(t('overviewDeadLetterLine'), {
+                          endpoint: <code>{entry.endpointId}</code>,
+                          event: (
+                            <code>{entry.deadLetter.eventType || entry.deadLetter.eventId}</code>
+                          ),
+                          attempts: <strong>{entry.deadLetter.failedAttempts}</strong>,
+                          error: entry.deadLetter.lastErrorMessage || t('overviewNotAvailable'),
+                          time: formatTimestamp(entry.deadLetter.movedToDlqAt),
+                        })}{' '}
                         <button
                           type="button"
                           className="dashboard-inline-link"
@@ -452,8 +494,8 @@ export function OpsCockpitPage({
                           }
                         >
                           {replayingDeadLetterId === entry.deadLetter.id
-                            ? 'Replaying...'
-                            : 'Replay'}
+                            ? t('overviewReplaying')
+                            : t('overviewReplay')}
                         </button>
                       </li>
                     ))}
@@ -468,10 +510,10 @@ export function OpsCockpitPage({
       {loading || visibleErrorMessage || summaryWarnings.length > 0 ? (
         <section
           className="dashboard-view__section dashboard-ops-cockpit-summary--plain"
-          aria-label="Ops cockpit summary"
+          aria-label={t('overviewSummaryLabel')}
         >
           {loading ? (
-            <p className="dashboard-pagination-note">Refreshing queue snapshot...</p>
+            <p className="dashboard-pagination-note">{t('overviewRefreshingQueues')}</p>
           ) : null}
           {visibleErrorMessage ? (
             <p className="dashboard-pagination-note">{visibleErrorMessage}</p>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { requireConsoleBaseUrl } from '@core/dashboard/consoleHttp';
 import { buildWalletAcceptHeaders, buildWalletJsonHeaders } from '../consoleWalletHttp';
 import { VerificationMethodChoice, type VerificationMethod } from './VerificationMethodChoice';
@@ -26,7 +27,7 @@ type State =
 const path = '/console/tenant-root/security/cli-enrollment';
 function parseState(value: unknown): State {
   if (typeof value !== 'object' || value === null || !('state' in value))
-    throw new Error('Unable to read enrollment request');
+    throw new Error(t('derivationEnrollParseRead'));
   switch (value.state) {
     case 'approved':
       return { kind: 'approved' };
@@ -55,7 +56,7 @@ function parseState(value: unknown): State {
         !('expiresAtMs' in value) ||
         typeof value.expiresAtMs !== 'number'
       )
-        throw new Error('Invalid enrollment request');
+        throw new Error(t('derivationEnrollParseInvalid'));
       return {
         kind: 'pending',
         details: {
@@ -71,7 +72,7 @@ function parseState(value: unknown): State {
       };
     }
     default:
-      throw new Error('Invalid enrollment state');
+      throw new Error(t('derivationEnrollParseState'));
   }
 }
 async function loadEnrollment(
@@ -83,15 +84,12 @@ async function loadEnrollment(
       `${requireConsoleBaseUrl()}${path}/request?id=${encodeURIComponent(id)}`,
       { credentials: 'include', headers: buildWalletAcceptHeaders() },
     );
-    if (!response.ok)
-      throw new Error(
-        'Unable to read this request. Check that the correct organization and environment are selected.',
-      );
+    if (!response.ok) throw new Error(t('derivationUnableToReadThisRequest'));
     setState(parseState(await response.json()));
   } catch (error) {
     setState({
       kind: 'error',
-      message: error instanceof Error ? error.message : 'Unable to read request',
+      message: error instanceof Error ? error.message : t('derivationUnableToReadRequestFallback'),
     });
   }
 }
@@ -109,12 +107,12 @@ async function approveEnrollment(
       headers: buildWalletJsonHeaders(),
       body: JSON.stringify({ id: details.id }),
     });
-    if (!response.ok) throw new Error('Approval failed. Refresh the request and try again.');
+    if (!response.ok) throw new Error(t('derivationEnrollApprovalFailed'));
     setState(parseState(await response.json()));
   } catch (error) {
     setState({
       kind: 'error',
-      message: error instanceof Error ? error.message : 'Approval failed',
+      message: error instanceof Error ? error.message : t('derivationApprovalFailedFallback'),
     });
   }
 }
@@ -129,50 +127,51 @@ export function CliEnrollmentApproval({ id }: { id: string }) {
   return (
     <section
       className={`derivation-root-panel derivation-root-enrollment${state.kind === 'completed' ? ' derivation-root-enrollment--complete' : ''}`}
-      aria-label="Approve terminal enrollment"
+      aria-label={t('derivationApproveTerminalEnrollment')}
     >
-      <h2>{state.kind === 'completed' ? 'Wrapper key connected' : 'Wrapper key enrollment'}</h2>
+      <h2>
+        {state.kind === 'completed'
+          ? t('derivationWrapperConnected')
+          : t('derivationWrapperEnrollment')}
+      </h2>
       {state.kind === 'pending' || state.kind === 'submitting' ? (
         <>
-          <p>Compare this code with Terminal. Approve only if you started this setup.</p>
+          <p>{t('derivationEnrollCompare')}</p>
           <div className="derivation-root-enrollment-details">
             <div className="derivation-root-enrollment-code">
-              <span>Confirmation code</span>
+              <span>{t('derivationConfirmationCode')}</span>
               <strong>
                 <code>{state.details.confirmationCode}</code>
               </strong>
             </div>
             <dl className="derivation-root-enrollment-fields">
               <div>
-                <dt>Organization</dt>
+                <dt>{t('derivationOrganization')}</dt>
                 <dd>{state.details.organizationId}</dd>
               </div>
               <div>
-                <dt>Environment</dt>
+                <dt>{t('derivationEnvironment')}</dt>
                 <dd>{state.details.environmentId}</dd>
               </div>
               <div>
-                <dt>Holder</dt>
+                <dt>{t('derivationHolder')}</dt>
                 <dd>{state.details.role === 'deriver_a' ? 'Deriver A' : 'Deriver B'}</dd>
               </div>
               <div className="derivation-root-enrollment-field-wide">
-                <dt>Key fingerprint</dt>
+                <dt>{t('derivationKeyFingerprint')}</dt>
                 <dd>
                   <code>{state.details.fingerprintB64u}</code>
                 </dd>
               </div>
               <div className="derivation-root-enrollment-field-wide">
-                <dt>Public wrapper key</dt>
+                <dt>{t('derivationPublicWrapperKey')}</dt>
                 <dd>
                   <code>{state.details.publicKeyB64u}</code>
                 </dd>
               </div>
             </dl>
           </div>
-          <p className="derivation-root-enrollment-help">
-            Your private wrapper key stays on your computer. Approval registers this public key
-            only.
-          </p>
+          <p className="derivation-root-enrollment-help">{t('derivationEnrollPrivateStays')}</p>
         </>
       ) : (
         <p role="status">{approvalMessage(state)}</p>
@@ -185,8 +184,11 @@ export function CliEnrollmentApproval({ id }: { id: string }) {
               onChange={setVerificationMethod}
               disabled={state.kind === 'submitting'}
               action={{
-                label: state.kind === 'submitting' ? 'Verifying…' : 'Approve enrollment',
-                confirmLabel: 'Verify and approve',
+                label:
+                  state.kind === 'submitting'
+                    ? t('derivationVerifying')
+                    : t('derivationApproveEnrollment'),
+                confirmLabel: t('derivationVerifyAndApprove'),
                 onConfirm: approveEnrollment.bind(null, 'approve', state.details, setState),
               }}
             />
@@ -196,7 +198,7 @@ export function CliEnrollmentApproval({ id }: { id: string }) {
               disabled={state.kind === 'submitting'}
               onClick={approveEnrollment.bind(null, 'deny', state.details, setState)}
             >
-              Deny
+              {t('derivationDeny')}
             </button>
           </div>
         ) : null}
@@ -206,7 +208,7 @@ export function CliEnrollmentApproval({ id }: { id: string }) {
           disabled={state.kind === 'submitting'}
           onClick={loadEnrollment.bind(null, id, setState)}
         >
-          Refresh request
+          {t('derivationRefreshRequest')}
         </button>
       </div>
     </section>
@@ -231,16 +233,16 @@ function pollApprovedEffect(
 function approvalMessage(state: Exclude<State, { kind: 'pending' | 'submitting' }>): string {
   switch (state.kind) {
     case 'loading':
-      return 'Loading request…';
+      return t('derivationLoadingRequest');
     case 'error':
       return state.message;
     case 'approved':
-      return 'Approved. Return to Terminal to finish enrollment.';
+      return t('derivationEnrollApproved');
     case 'denied':
-      return 'Request denied.';
+      return t('derivationRequestDenied');
     case 'expired':
-      return 'Request expired. Run setup again using your saved key.';
+      return t('derivationEnrollExpired');
     case 'completed':
-      return 'Wrapper key enrolled.';
+      return t('derivationWrapperEnrolled');
   }
 }

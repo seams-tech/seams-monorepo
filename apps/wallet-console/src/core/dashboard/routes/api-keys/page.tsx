@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { formatDashboardTimestamp } from '../../utils/timestamps';
 import { KeyRoundIcon } from '../../icons/SidebarIcons';
 import {
@@ -63,18 +64,18 @@ interface PublishableChoiceOption<TValue extends string> {
 const PAYMENT_POLICY_OPTIONS: readonly PublishableChoiceOption<PublishablePaymentPolicyValue>[] = [
   {
     value: 'disabled',
-    label: 'Stop when quota is exhausted',
-    description: 'Reject new managed registrations after the included quota is used up.',
+    label: t('apiKeysPaymentDisabledLabel'),
+    description: t('apiKeysPaymentDisabledDescription'),
   },
   {
     value: 'quota_then_x402',
-    label: 'Use paid overage after quota',
-    description: 'Use included quota first, then require x402 payment for extra registrations.',
+    label: t('apiKeysPaymentQuotaThenLabel'),
+    description: t('apiKeysPaymentQuotaThenDescription'),
   },
   {
     value: 'always_x402',
-    label: 'Always require x402',
-    description: 'Require x402 payment for every managed registration request.',
+    label: t('apiKeysPaymentAlwaysLabel'),
+    description: t('apiKeysPaymentAlwaysDescription'),
   },
 ] as const;
 
@@ -87,7 +88,7 @@ type PendingCredentialAction = {
 } | null;
 
 function formatNetworkLabel(network: ConsoleNetwork): string {
-  return network === 'mainnet' ? 'Mainnet' : 'Testnet';
+  return network === 'mainnet' ? t('apiKeysMainnet') : t('apiKeysTestnet');
 }
 
 function readBrowserOrigin(): string {
@@ -110,23 +111,25 @@ function CredentialScopeSummary({
   return (
     <section
       className={`dashboard-credential-scope dashboard-credential-scope--${variant}`}
-      aria-label="Credential scope"
+      aria-label={t('apiKeysScopeAria')}
     >
       <div className="dashboard-credential-scope__header">
-        <strong>{variant === 'dialog' ? 'Creating for' : 'Current credential scope'}</strong>
+        <strong>
+          {variant === 'dialog' ? t('apiKeysScopeCreatingFor') : t('apiKeysScopeCurrent')}
+        </strong>
         <span>{projectName}</span>
       </div>
       <dl className="dashboard-credential-scope__facts">
         <div>
-          <dt>Environment</dt>
+          <dt>{t('apiKeysEnvironment')}</dt>
           <dd>{environmentName}</dd>
         </div>
         <div>
-          <dt>Chain network</dt>
+          <dt>{t('apiKeysChainNetwork')}</dt>
           <dd>{formatNetworkLabel(network)}</dd>
         </div>
         <div className="dashboard-credential-scope__environment-id">
-          <dt>Environment ID</dt>
+          <dt>{t('apiKeysEnvironmentId')}</dt>
           <dd>
             <code>{environmentId}</code>
           </dd>
@@ -173,7 +176,7 @@ function parseApiCredentialScopeSelection(
   const out: ApiCredentialScope[] = [];
   for (const value of selections) {
     if (!scopeCatalog.isScope(value)) {
-      throw new Error(`Unsupported API credential scope: ${value}`);
+      throw new Error(t('apiKeysUnsupportedScope', { scope: value }));
     }
     out.push(value);
   }
@@ -208,9 +211,9 @@ function toPaymentPolicyObject(value: PublishablePaymentPolicyValue): Record<str
 }
 
 const PAYMENT_POLICY_CHIP_LABELS: Record<PublishablePaymentPolicyValue, string> = {
-  disabled: 'Quota only',
-  quota_then_x402: 'Paid overage',
-  always_x402: 'x402 required',
+  disabled: t('apiKeysPaymentChipDisabled'),
+  quota_then_x402: t('apiKeysPaymentChipQuotaThen'),
+  always_x402: t('apiKeysPaymentChipAlways'),
 };
 
 function describePublishablePaymentPolicyChip(
@@ -243,7 +246,7 @@ function parseOptionalDateTimeLocalValue(raw: string): string | null | undefined
   if (!value) return null;
   const parsedMs = Date.parse(value);
   if (!Number.isFinite(parsedMs)) {
-    throw new Error('Credential expiry must be a valid timestamp.');
+    throw new Error(t('apiKeysExpiryInvalid'));
   }
   return new Date(parsedMs).toISOString();
 }
@@ -306,15 +309,13 @@ function describeCredentialMode(kind: DashboardCredentialKind): {
 } {
   if (kind === 'publishable_key') {
     return {
-      title: 'Browser publishable_key',
-      summary:
-        'Browser-safe key for managed bootstrap flows. Direct relay calls with publishable_key are rejected.',
+      title: t('apiKeysModeBrowserTitle'),
+      summary: t('apiKeysModeBrowserSummary'),
     };
   }
   return {
-    title: 'Server secret_key',
-    summary:
-      'Server-only key for backend relay bootstrap calls. Keep it off the frontend and send it only from your backend.',
+    title: t('apiKeysModeServerTitle'),
+    summary: t('apiKeysModeServerSummary'),
   };
 }
 
@@ -328,13 +329,13 @@ function PublishablePaymentPolicyField(props: {
     PAYMENT_POLICY_OPTIONS.find((option) => option.value === value) || PAYMENT_POLICY_OPTIONS[0];
   return (
     <label className="dashboard-form-field">
-      <span>Overage behavior</span>
+      <span>{t('apiKeysOverageBehavior')}</span>
       <select
         className="dashboard-input dashboard-scope-picker__select"
         value={value}
         onChange={(event) => onChange(event.target.value as PublishablePaymentPolicyValue)}
         disabled={disabled}
-        aria-label="Overage behavior"
+        aria-label={t('apiKeysOverageBehavior')}
       >
         {PAYMENT_POLICY_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
@@ -357,7 +358,7 @@ function describeCredentialOverage(apiKey: DashboardConsoleApiKey): {
   title: string;
 } {
   if (apiKey.kind !== 'publishable_key') {
-    return { short: DASHBOARD_EMPTY_VALUE, title: 'Not applicable for secret_key' };
+    return { short: DASHBOARD_EMPTY_VALUE, title: t('apiKeysNotApplicableSecret') };
   }
   return {
     short: describePublishablePaymentPolicyChip(apiKey.paymentPolicy),
@@ -370,25 +371,27 @@ function describeCredentialOrigins(apiKey: DashboardConsoleApiKey): {
   title: string;
 } {
   if (apiKey.kind !== 'publishable_key') {
-    return { short: DASHBOARD_EMPTY_VALUE, title: 'Not applicable for secret_key' };
+    return { short: DASHBOARD_EMPTY_VALUE, title: t('apiKeysNotApplicableSecret') };
   }
   const count = apiKey.allowedOrigins.length;
-  if (count === 0) return { short: DASHBOARD_EMPTY_VALUE, title: 'No allowed origins' };
+  if (count === 0) return { short: DASHBOARD_EMPTY_VALUE, title: t('apiKeysNoAllowedOrigins') };
   /* Full URLs wrap badly in a narrow cell; show a count and put the list in
      the tooltip. */
   return {
-    short: count === 1 ? apiKey.allowedOrigins[0] : `${count} origins`,
+    short: count === 1 ? apiKey.allowedOrigins[0] : t('apiKeysOriginCount', { count }),
     title: apiKey.allowedOrigins.join(', '),
   };
 }
 
 function formatCredentialKindLabel(kind: DashboardCredentialKind): string {
-  return kind === 'publishable_key' ? 'Publishable Key' : 'Secret Key';
+  return kind === 'publishable_key'
+    ? t('apiKeysKindPublishableLabel')
+    : t('apiKeysKindSecretLabel');
 }
 
 /* Chip-sized: the row already says "key", so the chip only has to say which. */
 function formatCredentialKindChip(kind: DashboardCredentialKind): string {
-  return kind === 'publishable_key' ? 'Publishable' : 'Secret';
+  return kind === 'publishable_key' ? t('apiKeysKindPublishableChip') : t('apiKeysKindSecretChip');
 }
 
 function formatCredentialEnvironmentLabel(environmentId: string): string {
@@ -396,7 +399,7 @@ function formatCredentialEnvironmentLabel(environmentId: string): string {
 }
 
 function formatCredentialActionLabel(action: 'rotate' | 'revoke'): string {
-  return action === 'rotate' ? 'Rotate' : 'Revoke';
+  return action === 'rotate' ? t('apiKeysRotate') : t('apiKeysRevoke');
 }
 
 export function ApiKeyManagementPage({
@@ -460,7 +463,7 @@ export function ApiKeyManagementPage({
     if (!session.claims) {
       setLoading(false);
       setApiKeys([]);
-      setErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setErrorMessage(session.errorMessage || t('apiKeysSessionUnavailable'));
       return;
     }
     let cancelled = false;
@@ -507,8 +510,8 @@ export function ApiKeyManagementPage({
   );
   const apiKeysPagination = useDashboardTablePagination(visibleApiKeys, {
     disabled: session.loading || loading,
-    itemLabel: 'credential',
-    itemLabelPlural: 'credentials',
+    itemLabel: t('apiKeysItemSingular'),
+    itemLabelPlural: t('apiKeysItemPlural'),
   });
 
   const onOpenCreateModal = React.useCallback(() => {
@@ -571,17 +574,17 @@ export function ApiKeyManagementPage({
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (!session.claims) {
-        setMutationError(session.errorMessage || 'Console session is unavailable');
+        setMutationError(session.errorMessage || t('apiKeysSessionUnavailable'));
         return;
       }
       const name = String(nameInput || '').trim();
       const environmentId = selectedEnvironmentId;
       if (!name) {
-        setMutationError('Name is required.');
+        setMutationError(t('apiKeysNameRequired'));
         return;
       }
       if (!environmentId) {
-        setMutationError('Select an environment from the top bar before creating a credential.');
+        setMutationError(t('apiKeysSelectEnvironment'));
         return;
       }
 
@@ -590,7 +593,7 @@ export function ApiKeyManagementPage({
         if (credentialKindInput === 'publishable_key') {
           const allowedOrigins = parseEditableList(allowedOriginsInput);
           if (allowedOrigins.length === 0) {
-            setMutationError('Add at least one allowed origin.');
+            setMutationError(t('apiKeysOriginRequired'));
             return;
           }
           if (
@@ -600,7 +603,7 @@ export function ApiKeyManagementPage({
             )
           ) {
             setMutationError(
-              `Allowed origins must include the registration origin ${registrationOriginHint}.`,
+              t('apiKeysOriginMustIncludeRegistration', { origin: registrationOriginHint }),
             );
             return;
           }
@@ -618,7 +621,7 @@ export function ApiKeyManagementPage({
           const scopes = parseApiCredentialScopeSelection(scopesInput, scopeCatalog);
           const ipAllowlist = parseCsvValues(ipAllowlistInput);
           if (scopes.length === 0) {
-            setMutationError('At least one scope is required.');
+            setMutationError(t('apiKeysScopeRequired'));
             return;
           }
           payload = {
@@ -678,18 +681,18 @@ export function ApiKeyManagementPage({
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (!session.claims) {
-        setEditingError(session.errorMessage || 'Console session is unavailable');
+        setEditingError(session.errorMessage || t('apiKeysSessionUnavailable'));
         return;
       }
       if (!editingApiKey) {
-        setEditingError('Credential was not found.');
+        setEditingError(t('apiKeysNotFound'));
         return;
       }
 
       try {
         const name = String(editingNameInput || '').trim();
         if (!name) {
-          setEditingError('Name is required.');
+          setEditingError(t('apiKeysNameRequired'));
           return;
         }
         const expiresAt = parseOptionalDateTimeLocalValue(editingExpiresAtInput);
@@ -699,7 +702,7 @@ export function ApiKeyManagementPage({
         if (editingApiKey.kind === 'publishable_key') {
           const allowedOrigins = parseEditableList(editingAllowedOriginsInput);
           if (allowedOrigins.length === 0) {
-            setEditingError('Add at least one allowed origin.');
+            setEditingError(t('apiKeysOriginRequired'));
             return;
           }
           if (
@@ -709,7 +712,7 @@ export function ApiKeyManagementPage({
             )
           ) {
             setEditingError(
-              `Allowed origins must include the registration origin ${registrationOriginHint}.`,
+              t('apiKeysOriginMustIncludeRegistration', { origin: registrationOriginHint }),
             );
             return;
           }
@@ -730,7 +733,7 @@ export function ApiKeyManagementPage({
         } else {
           const scopes = parseApiCredentialScopeSelection(editingScopesInput, scopeCatalog);
           if (scopes.length === 0) {
-            setEditingError('At least one scope is required.');
+            setEditingError(t('apiKeysScopeRequired'));
             return;
           }
           await updateDashboardApiKey({
@@ -769,7 +772,7 @@ export function ApiKeyManagementPage({
   const onRotateApiKey = React.useCallback(
     async (apiKey: DashboardConsoleApiKey) => {
       if (!session.claims) {
-        setMutationError(session.errorMessage || 'Console session is unavailable');
+        setMutationError(session.errorMessage || t('apiKeysSessionUnavailable'));
         return;
       }
       setBusyApiKeyId(apiKey.id);
@@ -799,7 +802,7 @@ export function ApiKeyManagementPage({
   const onRevokeApiKey = React.useCallback(
     async (apiKey: DashboardConsoleApiKey) => {
       if (!session.claims) {
-        setMutationError(session.errorMessage || 'Console session is unavailable');
+        setMutationError(session.errorMessage || t('apiKeysSessionUnavailable'));
         return;
       }
       setBusyApiKeyId(apiKey.id);
@@ -820,18 +823,14 @@ export function ApiKeyManagementPage({
   const onDeleteRevokedApiKey = React.useCallback(
     async (apiKey: DashboardConsoleApiKey) => {
       if (!session.claims) {
-        setMutationError(session.errorMessage || 'Console session is unavailable');
+        setMutationError(session.errorMessage || t('apiKeysSessionUnavailable'));
         return;
       }
       if (apiKey.status !== 'REVOKED') {
-        setMutationError('Only revoked credentials can be deleted.');
+        setMutationError(t('apiKeysOnlyRevokedDeletable'));
         return;
       }
-      if (
-        !window.confirm(
-          `Delete revoked ${apiKey.kind} ${apiKey.id}? This permanently removes it from this environment.`,
-        )
-      ) {
+      if (!window.confirm(t('apiKeysDeleteConfirm', { kind: apiKey.kind, id: apiKey.id }))) {
         return;
       }
       setBusyApiKeyId(apiKey.id);
@@ -853,7 +852,7 @@ export function ApiKeyManagementPage({
   );
 
   return (
-    <div className="dashboard-view" aria-label="Credential management page">
+    <div className="dashboard-view" aria-label={t('apiKeysPageAria')}>
       <DashboardPageActions>
         <button
           type="button"
@@ -861,7 +860,7 @@ export function ApiKeyManagementPage({
           onClick={onOpenCreateModal}
           disabled={creating || !selectedEnvironmentId}
         >
-          Create credential
+          {t('apiKeysCreateCredential')}
         </button>
       </DashboardPageActions>
 
@@ -882,31 +881,40 @@ export function ApiKeyManagementPage({
       {revealedCredential ? (
         <div className="dashboard-secret-banner">
           <div className="dashboard-secret-banner__header">
-            <span className="dashboard-secret-banner__eyebrow">Shown once</span>
+            <span className="dashboard-secret-banner__eyebrow">{t('apiKeysShownOnce')}</span>
             <h3>
-              Save this{' '}
               {revealedCredential.apiKey.kind === 'publishable_key'
-                ? 'publishable key'
-                : 'secret key'}{' '}
-              now
+                ? t('apiKeysSaveThisPublishable')
+                : t('apiKeysSaveThisSecret')}
             </h3>
             <p>
-              This value is only returned when the credential is {revealedCredential.action}.{' '}
-              <code>{revealedCredential.apiKey.id}</code> is the credential ID used for management
-              and audit trails, not the key value your app should send.
+              {t('apiKeysReturnedOnlyWhen', {
+                action:
+                  revealedCredential.action === 'created'
+                    ? t('apiKeysActionCreated')
+                    : t('apiKeysActionRotated'),
+              })}{' '}
+              <code>{revealedCredential.apiKey.id}</code>
+              {t('apiKeysIdExplainerPost')}
             </p>
           </div>
           <div className="dashboard-secret-banner__facts">
             <div className="dashboard-secret-banner__fact">
-              <span className="dashboard-secret-banner__fact-label">Credential ID</span>
+              <span className="dashboard-secret-banner__fact-label">
+                {t('apiKeysCredentialId')}
+              </span>
               <code>{revealedCredential.apiKey.id}</code>
             </div>
             <div className="dashboard-secret-banner__fact">
-              <span className="dashboard-secret-banner__fact-label">Environment ID</span>
+              <span className="dashboard-secret-banner__fact-label">
+                {t('apiKeysEnvironmentId')}
+              </span>
               <code>{revealedCredential.apiKey.environmentId}</code>
             </div>
             <div className="dashboard-secret-banner__fact">
-              <span className="dashboard-secret-banner__fact-label">Credential value</span>
+              <span className="dashboard-secret-banner__fact-label">
+                {t('apiKeysCredentialValue')}
+              </span>
               <div className="dashboard-secret-banner__secret-row">
                 <code className="dashboard-secret-banner__secret-value">
                   {revealedCredential.credential}
@@ -914,25 +922,23 @@ export function ApiKeyManagementPage({
                 <div className="dashboard-secret-banner__copy-action">
                   <CopyButton
                     text={revealedCredential.credential}
-                    ariaLabel={`Copy ${revealedCredential.apiKey.kind} value`}
+                    ariaLabel={t('apiKeysCopyValueAria', { kind: revealedCredential.apiKey.kind })}
                     className="dashboard-context-copy dashboard-secret-banner__copy"
                     size={16}
                     onCopy={() =>
                       setCopyCredentialStatus(
-                        `${revealedCredential.apiKey.kind} copied to clipboard.`,
+                        t('apiKeysCopied', { kind: revealedCredential.apiKey.kind }),
                       )
                     }
-                    onCopyError={() =>
-                      setCopyCredentialStatus('Clipboard copy failed. Copy manually.')
-                    }
+                    onCopyError={() => setCopyCredentialStatus(t('apiKeysCopyFailed'))}
                   />
-                  <span>Copy value</span>
+                  <span>{t('apiKeysCopyValue')}</span>
                 </div>
               </div>
             </div>
           </div>
           <p className="dashboard-pagination-note dashboard-secret-banner__hint">
-            Store it in your password manager or secrets vault before leaving this page.
+            {t('apiKeysStoreSecurely')}
           </p>
           {copyCredentialStatus ? (
             <p className="dashboard-pagination-note dashboard-secret-banner__status" role="status">
@@ -943,16 +949,16 @@ export function ApiKeyManagementPage({
       ) : null}
 
       {revealedCredential ? (
-        <details className="dashboard-view__section" aria-label="Credential integration snippet">
+        <details className="dashboard-view__section" aria-label={t('apiKeysSnippetAria')}>
           <summary>
             {revealedCredential.apiKey.kind === 'publishable_key'
-              ? 'Browser registration snippet'
-              : 'Server bootstrap snippet'}
+              ? t('apiKeysSnippetBrowserTitle')
+              : t('apiKeysSnippetServerTitle')}
           </summary>
           <p>
             {revealedCredential.apiKey.kind === 'publishable_key'
-              ? 'Use this publishable_key in browser-safe SDK config. Registration setup validates its environment and allowed-origin binding directly.'
-              : 'Use this secret_key from your backend only. Do not store it in frontend config or browser bundles.'}
+              ? t('apiKeysSnippetBrowserDescription')
+              : t('apiKeysSnippetServerDescription')}
           </p>
           <pre className="dashboard-code-block">
             <code>
@@ -973,28 +979,32 @@ export function ApiKeyManagementPage({
       ) : null}
 
       <DashboardTable
-        ariaLabel="Credentials table"
+        ariaLabel={t('apiKeysTableAria')}
         className="dashboard-credential-table"
         columns={API_KEYS_TABLE_COLUMNS}
         pagination={apiKeysPagination.pagination}
       >
         <DashboardTableHeader>
-          <DashboardTableHeaderCell>Name</DashboardTableHeaderCell>
-          <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
-          <DashboardTableHeaderCell>Access</DashboardTableHeaderCell>
-          <DashboardTableHeaderCell>Last used</DashboardTableHeaderCell>
-          <DashboardTableHeaderCell>Actions</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('apiKeysColName')}</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('apiKeysColStatus')}</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('apiKeysColAccess')}</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('apiKeysColLastUsed')}</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('apiKeysColActions')}</DashboardTableHeaderCell>
         </DashboardTableHeader>
         {session.loading || loading ? (
-          <DashboardTableSkeletonRows label="Loading credentials" columns={5} />
+          <DashboardTableSkeletonRows label={t('apiKeysLoading')} columns={5} />
         ) : !session.claims ? (
           <DashboardTableState>
-            Credentials unavailable: {session.errorMessage || 'unauthorized'}.
+            {t('apiKeysUnavailableSession', {
+              reason: session.errorMessage || t('apiKeysUnauthorized'),
+            })}
           </DashboardTableState>
         ) : errorMessage ? (
-          <DashboardTableState>Credentials unavailable: {errorMessage}</DashboardTableState>
+          <DashboardTableState>
+            {t('apiKeysUnavailableError', { reason: errorMessage })}
+          </DashboardTableState>
         ) : visibleApiKeys.length === 0 ? (
-          <DashboardTableState>No credentials found for current scope.</DashboardTableState>
+          <DashboardTableState>{t('apiKeysEmpty')}</DashboardTableState>
         ) : (
           <>
             {apiKeysPagination.rows.map((apiKey) => {
@@ -1046,25 +1056,25 @@ export function ApiKeyManagementPage({
                         onClick={() => onOpenEditApiKey(apiKey)}
                         disabled={busyApiKeyId === apiKey.id}
                       >
-                        Edit
+                        {t('apiKeysEdit')}
                       </DashboardTableActionButton>
                       <DashboardTableActionMenu
-                        ariaLabel={`More actions for ${apiKey.name}`}
+                        ariaLabel={t('apiKeysMoreActionsFor', { name: apiKey.name })}
                         items={[
                           {
-                            label: 'Rotate',
+                            label: t('apiKeysRotate'),
                             onSelect: () => onOpenCredentialAction('rotate', apiKey),
                             disabled: busyApiKeyId === apiKey.id || apiKey.status === 'REVOKED',
                           },
                           apiKey.status === 'REVOKED'
                             ? {
-                                label: 'Delete',
+                                label: t('apiKeysDelete'),
                                 onSelect: () => onDeleteRevokedApiKey(apiKey),
                                 tone: 'danger' as const,
                                 disabled: busyApiKeyId === apiKey.id,
                               }
                             : {
-                                label: 'Revoke',
+                                label: t('apiKeysRevoke'),
                                 onSelect: () => onOpenCredentialAction('revoke', apiKey),
                                 tone: 'danger' as const,
                                 disabled: busyApiKeyId === apiKey.id,
@@ -1082,11 +1092,11 @@ export function ApiKeyManagementPage({
 
       <DashboardInlineModal
         isOpen={isCreateModalOpen}
-        ariaLabel="Create credential modal"
+        ariaLabel={t('apiKeysCreateModalAria')}
         onRequestClose={onCloseCreateModal}
         className="dashboard-modal--wide"
       >
-        <h2>Create credential</h2>
+        <h2>{t('apiKeysCreateCredential')}</h2>
 
         <CredentialScopeSummary
           environmentId={selectedEnvironmentId}
@@ -1096,7 +1106,7 @@ export function ApiKeyManagementPage({
           variant="dialog"
         />
 
-        <div className="dashboard-mode-toggle" aria-label="Credential kind">
+        <div className="dashboard-mode-toggle" aria-label={t('apiKeysKindAria')}>
           {(['secret_key', 'publishable_key'] as DashboardCredentialKind[]).map((kind) => {
             const mode = describeCredentialMode(kind);
             return (
@@ -1122,7 +1132,7 @@ export function ApiKeyManagementPage({
 
         <form className="dashboard-view-grid dashboard-view-grid--two" onSubmit={onCreateApiKey}>
           <label className="dashboard-form-field dashboard-form-field--full">
-            <span>Name</span>
+            <span>{t('apiKeysName')}</span>
             <input
               className="dashboard-input"
               value={nameInput}
@@ -1138,20 +1148,21 @@ export function ApiKeyManagementPage({
             <>
               <div className="dashboard-form-field dashboard-form-field--full">
                 <UriListEditor
-                  label="Allowed origins"
+                  label={t('apiKeysAllowedOrigins')}
                   description={
                     <>
-                      <p>Add the exact browser origin that calls the registration API.</p>
+                      <p>{t('apiKeysAddOriginExact')}</p>
                       <p>
-                        This browser is running at <code>{registrationOriginHint}</code>, so it is
-                        included by default.
+                        {t('apiKeysBrowserRunningAtPre')}
+                        <code>{registrationOriginHint}</code>
+                        {t('apiKeysBrowserRunningAtPost')}
                       </p>
                     </>
                   }
                   values={allowedOriginsInput}
                   onChange={setAllowedOriginsInput}
                   placeholder="https://app.example.com"
-                  addLabel="Add URI"
+                  addLabel={t('apiKeysAddUri')}
                   disabled={creating}
                 />
               </div>
@@ -1166,7 +1177,7 @@ export function ApiKeyManagementPage({
             <>
               <div className="dashboard-form-field dashboard-form-field--full">
                 <ScopePicker
-                  label="Scopes"
+                  label={t('apiKeysScopes')}
                   options={scopeCatalog.options}
                   values={scopesInput}
                   onChange={setScopesInput}
@@ -1176,7 +1187,7 @@ export function ApiKeyManagementPage({
               </div>
 
               <label className="dashboard-form-field">
-                <span>Whitelisted source IPs (optional)</span>
+                <span>{t('apiKeysSourceIps')}</span>
                 <input
                   className="dashboard-input"
                   value={ipAllowlistInput}
@@ -1185,8 +1196,9 @@ export function ApiKeyManagementPage({
                   disabled={creating}
                 />
                 <p className="dashboard-pagination-note">
-                  Only requests from these source IPs can use this <code>secret_key</code>. Use IP
-                  addresses or CIDR ranges, not domains.
+                  {t('apiKeysSourceIpsHelpPre')}
+                  <code>secret_key</code>
+                  {t('apiKeysSourceIpsHelpPost')}
                 </p>
               </label>
             </>
@@ -1201,10 +1213,12 @@ export function ApiKeyManagementPage({
               onClick={onCloseCreateModal}
               disabled={creating}
             >
-              Cancel
+              {t('apiKeysCancel')}
             </button>
             <button type="submit" className="dashboard-pagination-button" disabled={creating}>
-              {creating ? 'Creating...' : `Create ${credentialKindInput}`}
+              {creating
+                ? t('apiKeysCreatingProgress')
+                : t('apiKeysCreateKind', { kind: credentialKindInput })}
             </button>
           </div>
         </form>
@@ -1212,13 +1226,13 @@ export function ApiKeyManagementPage({
 
       <DashboardInlineModal
         isOpen={editingApiKey !== null}
-        ariaLabel="Edit credential modal"
+        ariaLabel={t('apiKeysEditModalAria')}
         onRequestClose={onCloseEditApiKey}
         className="dashboard-modal--wide"
       >
         {editingApiKey ? (
           <>
-            <h2>Edit credential</h2>
+            <h2>{t('apiKeysEditCredential')}</h2>
             <p className="dashboard-pagination-note">
               <code>{editingApiKey.kind}</code> {editingApiKey.id}
             </p>
@@ -1227,7 +1241,7 @@ export function ApiKeyManagementPage({
               onSubmit={onSaveApiKeyEdits}
             >
               <label className="dashboard-form-field">
-                <span>Name</span>
+                <span>{t('apiKeysName')}</span>
                 <input
                   className="dashboard-input"
                   value={editingNameInput}
@@ -1238,7 +1252,7 @@ export function ApiKeyManagementPage({
               </label>
 
               <label className="dashboard-form-field">
-                <span>Expires at (optional)</span>
+                <span>{t('apiKeysExpiresAt')}</span>
                 <input
                   className="dashboard-input"
                   type="datetime-local"
@@ -1252,21 +1266,23 @@ export function ApiKeyManagementPage({
                 <>
                   <div className="dashboard-form-field dashboard-form-field--full">
                     <UriListEditor
-                      label="Allowed origins"
+                      label={t('apiKeysAllowedOrigins')}
                       description={
                         <>
                           <p className="dashboard-pagination-note">
-                            These origins are stored on this specific <code>publishable_key</code>.
+                            {t('apiKeysOriginsStoredPre')}
+                            <code>publishable_key</code>
+                            {t('apiKeysOriginsStoredPost')}
                           </p>
                           <p className="dashboard-pagination-note">
-                            Use exact browser origins only.
+                            {t('apiKeysExactOriginsOnly')}
                           </p>
                         </>
                       }
                       values={editingAllowedOriginsInput}
                       onChange={setEditingAllowedOriginsInput}
                       placeholder="https://app.example.com"
-                      addLabel="Add URI"
+                      addLabel={t('apiKeysAddUri')}
                       disabled={editingBusy}
                     />
                   </div>
@@ -1281,7 +1297,7 @@ export function ApiKeyManagementPage({
                 <>
                   <div className="dashboard-form-field dashboard-form-field--full">
                     <ScopePicker
-                      label="Scopes"
+                      label={t('apiKeysScopes')}
                       options={scopeCatalog.options}
                       values={editingScopesInput}
                       onChange={setEditingScopesInput}
@@ -1291,7 +1307,7 @@ export function ApiKeyManagementPage({
                   </div>
 
                   <label className="dashboard-form-field">
-                    <span>Whitelisted source IPs (optional)</span>
+                    <span>{t('apiKeysSourceIps')}</span>
                     <input
                       className="dashboard-input"
                       value={editingIpAllowlistInput}
@@ -1300,8 +1316,9 @@ export function ApiKeyManagementPage({
                       disabled={editingBusy}
                     />
                     <p className="dashboard-pagination-note">
-                      Only requests from these source IPs can use this <code>secret_key</code>. Use
-                      IP addresses or CIDR ranges, not domains.
+                      {t('apiKeysSourceIpsHelpPre')}
+                      <code>secret_key</code>
+                      {t('apiKeysSourceIpsHelpPost')}
                     </p>
                   </label>
                 </>
@@ -1316,14 +1333,14 @@ export function ApiKeyManagementPage({
                   onClick={onCloseEditApiKey}
                   disabled={editingBusy}
                 >
-                  Cancel
+                  {t('apiKeysCancel')}
                 </button>
                 <button
                   type="submit"
                   className="dashboard-pagination-button"
                   disabled={editingBusy}
                 >
-                  {editingBusy ? 'Saving...' : 'Save changes'}
+                  {editingBusy ? t('apiKeysSavingProgress') : t('apiKeysSaveChanges')}
                 </button>
               </div>
             </form>
@@ -1333,20 +1350,20 @@ export function ApiKeyManagementPage({
 
       <DashboardInlineModal
         isOpen={pendingAction !== null}
-        ariaLabel="Credential action confirmation modal"
+        ariaLabel={t('apiKeysConfirmModalAria')}
         onRequestClose={onClosePendingAction}
       >
         {pendingAction ? (
           <>
-            <h2>Are you sure?</h2>
+            <h2>{t('apiKeysConfirmTitle')}</h2>
             <p className="dashboard-pagination-note">
               {pendingAction.type === 'rotate'
-                ? 'Rotating this credential will replace the current key value immediately. Update any systems using it after the new key is shown.'
-                : 'Revoking this credential blocks any further use immediately. This cannot be undone.'}
+                ? t('apiKeysConfirmRotate')
+                : t('apiKeysConfirmRevoke')}
             </p>
             <div className="dashboard-view-grid">
               <div className="dashboard-form-field">
-                <span>Credential</span>
+                <span>{t('apiKeysCredential')}</span>
                 <strong>{pendingAction.apiKey.name}</strong>
                 <p className="dashboard-pagination-note">
                   {formatCredentialKindLabel(pendingAction.apiKey.kind)} ·{' '}
@@ -1367,7 +1384,7 @@ export function ApiKeyManagementPage({
                 onClick={onClosePendingAction}
                 disabled={busyApiKeyId === pendingAction.apiKey.id}
               >
-                Cancel
+                {t('apiKeysCancel')}
               </button>
               <button
                 type="button"
@@ -1385,7 +1402,7 @@ export function ApiKeyManagementPage({
                 disabled={busyApiKeyId === pendingAction.apiKey.id}
               >
                 {busyApiKeyId === pendingAction.apiKey.id
-                  ? `${formatCredentialActionLabel(pendingAction.type)}...`
+                  ? t(pendingAction.type === 'rotate' ? 'apiKeysRotating' : 'apiKeysRevoking')
                   : formatCredentialActionLabel(pendingAction.type)}
               </button>
             </div>

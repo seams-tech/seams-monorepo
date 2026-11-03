@@ -1,3 +1,4 @@
+import { t } from '@core/i18n';
 import React from 'react';
 
 interface UriListEditorProps {
@@ -17,7 +18,7 @@ export function UriListEditor(props: UriListEditorProps): React.JSX.Element {
     values,
     onChange,
     placeholder = 'https://app.example.com',
-    addLabel = 'Add URI',
+    addLabel = t('commonUriAdd'),
     disabled = false,
   } = props;
 
@@ -36,7 +37,7 @@ export function UriListEditor(props: UriListEditorProps): React.JSX.Element {
         {rows.map((value, index) => (
           <div className="dashboard-uri-list-editor__row" key={`uri-row-${index}`}>
             <label className="dashboard-form-field dashboard-uri-list-editor__field">
-              <span>{`URIs ${index + 1} *`}</span>
+              <span>{t('commonUriRowLabel', { number: index + 1 })}</span>
               <input
                 className="dashboard-input"
                 value={value}
@@ -47,7 +48,7 @@ export function UriListEditor(props: UriListEditorProps): React.JSX.Element {
                 }}
                 placeholder={placeholder}
                 disabled={disabled}
-                aria-label={`${label} URI ${index + 1}`}
+                aria-label={t('commonUriRowAria', { label, number: index + 1 })}
               />
             </label>
             <div className="dashboard-uri-list-editor__actions">
@@ -58,9 +59,9 @@ export function UriListEditor(props: UriListEditorProps): React.JSX.Element {
                   onChange(rows.filter((_, rowIndex) => rowIndex !== index));
                 }}
                 disabled={disabled}
-                aria-label={`Delete URI ${index + 1}`}
+                aria-label={t('commonUriDeleteAria', { number: index + 1 })}
               >
-                Delete
+                {t('commonUriDelete')}
               </button>
             </div>
           </div>

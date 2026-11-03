@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { formatDashboardTimestamp } from '../../utils/timestamps';
 import { toast } from 'sonner';
 import { useSiteRouter } from '@core/router/useSiteRouter';
@@ -48,7 +49,7 @@ function formatTimestamp(value: string): string {
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
-  return String(error || 'Unknown error');
+  return String(error || t('accountUnknownError'));
 }
 
 const ACCOUNT_ORGANIZATIONS_TABLE_COLUMNS = dashboardTableColumns(1.4, 0.95, 1.05, 0.9, 0.9);
@@ -102,7 +103,7 @@ export function AccountSettingsPage(props: {
         if (!session.claims) {
           setProfile(null);
           setOrganizations([]);
-          setErrorMessage(session.errorMessage || 'Console session is unavailable');
+          setErrorMessage(session.errorMessage || t('accountConsoleSessionUnavailable'));
           return;
         }
         setLoading(true);
@@ -167,7 +168,7 @@ export function AccountSettingsPage(props: {
       });
       setProfile(nextProfile);
       setProfileModalOpen(false);
-      toast.success('Profile updated.');
+      toast.success(t('accountProfileUpdated'));
     } catch (error: unknown) {
       setProfileModalErrorMessage(toErrorMessage(error));
     } finally {
@@ -199,7 +200,7 @@ export function AccountSettingsPage(props: {
       });
       setProfile(nextProfile);
       setNewBackupEmail('');
-      toast.success('Backup email added.');
+      toast.success(t('accountBackupEmailAdded'));
     } catch (error: unknown) {
       setProfileModalErrorMessage(toErrorMessage(error));
     } finally {
@@ -215,7 +216,7 @@ export function AccountSettingsPage(props: {
         removeBackupEmail: email,
       });
       setProfile(nextProfile);
-      toast.success('Backup email removed.');
+      toast.success(t('accountBackupEmailRemoved'));
     } catch (error: unknown) {
       setProfileModalErrorMessage(toErrorMessage(error));
     } finally {
@@ -239,7 +240,7 @@ export function AccountSettingsPage(props: {
         });
         await reloadAccountSettings();
         setRenameModalOrganizationId('');
-        toast.success(`Updated ${organization.name}.`);
+        toast.success(t('accountOrganizationUpdated', { name: organization.name }));
       } catch (error: unknown) {
         setActionErrorMessage(toErrorMessage(error));
       } finally {
@@ -267,7 +268,9 @@ export function AccountSettingsPage(props: {
     async (organization: DashboardAccountOrganization) => {
       if (typeof window !== 'undefined') {
         const confirmed = window.confirm(
-          `Leave ${organization.name}? Owners can leave only when another owner remains.`,
+          t('accountLeaveOrganizationConfirm', {
+            name: organization.name,
+          }),
         );
         if (!confirmed) return;
       }
@@ -327,7 +330,9 @@ export function AccountSettingsPage(props: {
     async (organization: DashboardAccountOrganization) => {
       if (typeof window !== 'undefined') {
         const confirmed = window.confirm(
-          `Delete ${organization.name}? This permanently removes the organization and its projects if no other members, wallets, or retained history exist. Deleting your current organization signs you out.`,
+          t('accountDeleteOrganizationConfirm', {
+            name: organization.name,
+          }),
         );
         if (!confirmed) return;
       }
@@ -342,7 +347,7 @@ export function AccountSettingsPage(props: {
           return;
         }
         await reloadAccountSettings();
-        toast.success(`Deleted ${organization.name}.`);
+        toast.success(t('accountOrganizationDeleted', { name: organization.name }));
       } catch (error: unknown) {
         setActionErrorMessage(toErrorMessage(error));
       } finally {
@@ -354,15 +359,20 @@ export function AccountSettingsPage(props: {
 
   if (loading) {
     return (
-      <section className="dashboard-account-settings" aria-label="Account settings loading state">
-        <DashboardPageSkeleton label="Loading account settings" metrics={2} rows={2} columns={4} />
+      <section className="dashboard-account-settings" aria-label={t('accountSettingsLoadingAria')}>
+        <DashboardPageSkeleton
+          label={t('accountSettingsLoadingLabel')}
+          metrics={2}
+          rows={2}
+          columns={4}
+        />
       </section>
     );
   }
 
   if (errorMessage) {
     return (
-      <section className="dashboard-account-settings" aria-label="Account settings error state">
+      <section className="dashboard-account-settings" aria-label={t('accountSettingsErrorAria')}>
         <p className="dashboard-form-alert" role="alert">
           {errorMessage}
         </p>
@@ -374,10 +384,10 @@ export function AccountSettingsPage(props: {
     renameOrganization !== null ? (
       <DashboardInlineModal
         isOpen
-        ariaLabel="Rename organization modal"
+        ariaLabel={t('accountRenameModalAria')}
         onRequestClose={onCloseRenameModal}
       >
-        <h2>Rename organization</h2>
+        <h2>{t('accountRenameOrganizationTitle')}</h2>
         <p className="dashboard-pagination-note">
           {renameOrganization.slug || renameOrganization.id}
         </p>
@@ -389,7 +399,7 @@ export function AccountSettingsPage(props: {
           }}
         >
           <label className="dashboard-form-field">
-            <span>Organization name</span>
+            <span>{t('accountOrganizationName')}</span>
             <input
               className="dashboard-input"
               value={renameDrafts[renameOrganization.id] || ''}
@@ -400,7 +410,7 @@ export function AccountSettingsPage(props: {
                 }))
               }
               disabled={renamingOrganizationId === renameOrganization.id}
-              placeholder="Organization name"
+              placeholder={t('accountOrganizationName')}
               autoFocus
             />
           </label>
@@ -416,7 +426,7 @@ export function AccountSettingsPage(props: {
               onClick={onCloseRenameModal}
               disabled={renamingOrganizationId === renameOrganization.id}
             >
-              Cancel
+              {t('accountCancel')}
             </button>
             <button
               type="submit"
@@ -426,7 +436,9 @@ export function AccountSettingsPage(props: {
                 !String(renameDrafts[renameOrganization.id] || '').trim()
               }
             >
-              {renamingOrganizationId === renameOrganization.id ? 'Saving...' : 'Rename'}
+              {renamingOrganizationId === renameOrganization.id
+                ? t('accountSaving')
+                : t('accountRename')}
             </button>
           </div>
         </form>
@@ -436,11 +448,11 @@ export function AccountSettingsPage(props: {
   const profileModal = profileModalOpen ? (
     <DashboardInlineModal
       isOpen
-      ariaLabel="Edit profile modal"
+      ariaLabel={t('accountEditProfileModalAria')}
       onRequestClose={onCloseProfileModal}
       className="dashboard-account-profile-modal"
     >
-      <h2>Edit profile</h2>
+      <h2>{t('accountEditProfileTitle')}</h2>
       <form
         className="dashboard-view-grid"
         onSubmit={(event) => {
@@ -450,20 +462,20 @@ export function AccountSettingsPage(props: {
       >
         <div className="dashboard-view-grid dashboard-view-grid--two dashboard-account-grid">
           <label className="dashboard-form-field">
-            <span>Display name</span>
+            <span>{t('accountDisplayName')}</span>
             <input
               className="dashboard-input"
               value={displayNameDraft}
               onChange={(event) => setDisplayNameDraft(event.target.value)}
-              placeholder="Display name"
+              placeholder={t('accountDisplayName')}
               autoFocus
             />
           </label>
           <label className="dashboard-form-field">
             <span>
               {profile?.canEditPrimaryEmail === false
-                ? 'Primary email (read-only)'
-                : 'Primary email'}
+                ? t('accountPrimaryEmailReadOnly')
+                : t('accountPrimaryEmail')}
             </span>
             <input
               className="dashboard-input"
@@ -473,16 +485,14 @@ export function AccountSettingsPage(props: {
               placeholder="name@example.com"
             />
             {profile?.canEditPrimaryEmail === false ? (
-              <span className="dashboard-pagination-note">
-                Primary email is managed by your identity provider.
-              </span>
+              <span className="dashboard-pagination-note">{t('accountPrimaryEmailManaged')}</span>
             ) : null}
           </label>
         </div>
         <div className="dashboard-account-subsection dashboard-account-subsection--compact">
           <div className="dashboard-section-toolbar dashboard-account-subsection-header">
             <div className="dashboard-section-toolbar__copy">
-              <h3>Backup Emails</h3>
+              <h3>{t('accountBackupEmailsHeading')}</h3>
             </div>
           </div>
           {profile?.backupEmails.length ? (
@@ -492,7 +502,10 @@ export function AccountSettingsPage(props: {
                   <div className="dashboard-account-backup-item__content">
                     <strong>{backupEmail.email}</strong>
                     <p className="dashboard-pagination-note">
-                      {backupEmail.status} • added {formatTimestamp(backupEmail.createdAt)}
+                      {t('accountBackupEmailMeta', {
+                        status: backupEmail.status,
+                        date: formatTimestamp(backupEmail.createdAt),
+                      })}
                     </p>
                   </div>
                   <button
@@ -501,7 +514,9 @@ export function AccountSettingsPage(props: {
                     onClick={() => void onRemoveBackupEmail(backupEmail.email)}
                     disabled={removingBackupEmail === backupEmail.email}
                   >
-                    {removingBackupEmail === backupEmail.email ? 'Removing...' : 'Remove'}
+                    {removingBackupEmail === backupEmail.email
+                      ? t('accountRemoving')
+                      : t('accountRemove')}
                   </button>
                 </article>
               ))}
@@ -509,7 +524,7 @@ export function AccountSettingsPage(props: {
           ) : null}
           <div className="dashboard-account-inline-form">
             <label className="dashboard-form-field">
-              <span className="dashboard-visually-hidden">Backup email</span>
+              <span className="dashboard-visually-hidden">{t('accountBackupEmail')}</span>
               <input
                 className="dashboard-input"
                 value={newBackupEmail}
@@ -523,7 +538,7 @@ export function AccountSettingsPage(props: {
               onClick={() => void onAddBackupEmail()}
               disabled={addingBackupEmail}
             >
-              {addingBackupEmail ? 'Adding...' : 'Add'}
+              {addingBackupEmail ? t('accountAdding') : t('accountAdd')}
             </button>
           </div>
         </div>
@@ -539,10 +554,10 @@ export function AccountSettingsPage(props: {
             onClick={onCloseProfileModal}
             disabled={savingProfile || addingBackupEmail || Boolean(removingBackupEmail)}
           >
-            Cancel
+            {t('accountCancel')}
           </button>
           <button type="submit" className="dashboard-pagination-button" disabled={savingProfile}>
-            {savingProfile ? 'Saving...' : 'Save'}
+            {savingProfile ? t('accountSaving') : t('accountSave')}
           </button>
         </div>
       </form>
@@ -550,7 +565,7 @@ export function AccountSettingsPage(props: {
   ) : null;
 
   return (
-    <div className="dashboard-account-settings" aria-label="Account settings page">
+    <div className="dashboard-account-settings" aria-label={t('accountSettingsPageAria')}>
       {actionErrorMessage ? (
         <p className="dashboard-form-alert" role="alert">
           {actionErrorMessage}
@@ -561,38 +576,36 @@ export function AccountSettingsPage(props: {
         <div className="dashboard-account-profile-card">
           <div className="dashboard-section-toolbar dashboard-account-section-header">
             <div className="dashboard-section-toolbar__copy">
-              <h2>Profile</h2>
+              <h2>{t('accountProfile')}</h2>
             </div>
             <button
               type="button"
               className="dashboard-pagination-button"
               onClick={onOpenProfileModal}
             >
-              Edit
+              {t('accountEdit')}
             </button>
           </div>
           <div className="dashboard-view-grid dashboard-view-grid--two dashboard-account-grid">
             <div className="dashboard-account-static-field">
-              <span>Display name</span>
+              <span>{t('accountDisplayName')}</span>
               <div className="dashboard-account-static-value">
-                {profile?.displayName || 'Not set'}
+                {profile?.displayName || t('accountNotSet')}
               </div>
             </div>
             <div className="dashboard-account-static-field">
-              <span>Primary email</span>
+              <span>{t('accountPrimaryEmail')}</span>
               <div className="dashboard-account-static-value">
-                {profile?.primaryEmail || 'Not set'}
+                {profile?.primaryEmail || t('accountNotSet')}
               </div>
               {profile?.canEditPrimaryEmail === false ? (
-                <p className="dashboard-pagination-note">
-                  Primary email is managed by your identity provider.
-                </p>
+                <p className="dashboard-pagination-note">{t('accountPrimaryEmailManaged')}</p>
               ) : null}
             </div>
           </div>
           {signInLabel ? (
             <div className="dashboard-account-static-field">
-              <span>Sign-in method</span>
+              <span>{t('accountSignInMethod')}</span>
               <div className="dashboard-account-static-value">
                 <span className="dashboard-sign-in-method">
                   <ProviderMark provider={session.claims?.provider ?? null} />
@@ -602,13 +615,13 @@ export function AccountSettingsPage(props: {
             </div>
           ) : null}
           <div className="dashboard-account-static-field">
-            <span>Backup emails</span>
+            <span>{t('accountBackupEmailsLabel')}</span>
             <div className="dashboard-account-static-value">
               {profile?.backupEmails.length
-                ? `${profile.backupEmails.length} configured`
-                : 'None configured'}
+                ? t('accountBackupEmailsConfigured', { count: profile.backupEmails.length })
+                : t('accountNoneConfigured')}
             </div>
-            <p className="dashboard-pagination-note">Manage backup emails via Edit.</p>
+            <p className="dashboard-pagination-note">{t('accountManageBackupEmails')}</p>
           </div>
         </div>
       </section>
@@ -620,32 +633,29 @@ export function AccountSettingsPage(props: {
       <section className="dashboard-account-panel dashboard-account-panel--organizations">
         <div className="dashboard-section-toolbar dashboard-account-section-header dashboard-account-section-header--actions-left">
           <div className="dashboard-section-toolbar__copy">
-            <h2>My Organizations</h2>
-            <p className="dashboard-pagination-note">
-              Create organizations, rename the ones you manage, or leave the current organization.
-              Manage owners and administrators from Team.
-            </p>
+            <h2>{t('accountMyOrganizations')}</h2>
+            <p className="dashboard-pagination-note">{t('accountOrganizationsHelp')}</p>
           </div>
           <button
             type="button"
             className="dashboard-pagination-button dashboard-pagination-button--primary"
             onClick={onCreateOrganization}
           >
-            Create an organization
+            {t('accountCreateOrganization')}
           </button>
         </div>
 
         <DashboardTable
-          ariaLabel="Organizations"
+          ariaLabel={t('accountOrganizationsAria')}
           columns={ACCOUNT_ORGANIZATIONS_TABLE_COLUMNS}
           className="dashboard-account-org-table"
         >
           <DashboardTableHeader>
-            <DashboardTableHeaderCell>Organization</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Updated</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Scope</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Actions</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('accountColOrganization')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('accountColUpdated')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('accountColScope')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('accountColStatus')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('accountColActions')}</DashboardTableHeaderCell>
           </DashboardTableHeader>
           {organizations.length ? (
             organizations.map((organization) => {
@@ -657,7 +667,7 @@ export function AccountSettingsPage(props: {
                 ...(canRename
                   ? [
                       {
-                        label: 'Rename…',
+                        label: t('accountRenameMenu'),
                         onSelect: () => onOpenRenameModal(organization),
                         disabled: renamingOrganizationId === organization.id,
                       },
@@ -666,7 +676,10 @@ export function AccountSettingsPage(props: {
                 ...(organization.role === 'OWNER'
                   ? [
                       {
-                        label: deletingOrganizationId === organization.id ? 'Deleting…' : 'Delete',
+                        label:
+                          deletingOrganizationId === organization.id
+                            ? t('accountDeleting')
+                            : t('accountDelete'),
                         onSelect: () => void onDeleteOrganization(organization),
                         tone: 'danger' as const,
                         disabled: deletingOrganizationId === organization.id,
@@ -678,14 +691,14 @@ export function AccountSettingsPage(props: {
                       {
                         label:
                           leavingOrganizationId === organization.id
-                            ? 'Leaving…'
-                            : 'Leave organization',
+                            ? t('accountLeaving')
+                            : t('accountLeaveOrganization'),
                         onSelect: () => void onLeaveOrganization(organization),
                         tone: 'danger' as const,
                         disabled: leavingOrganizationId === organization.id,
                         title:
                           organization.role === 'OWNER'
-                            ? 'At least one other owner must remain.'
+                            ? t('accountLastOwnerMustRemain')
                             : undefined,
                       },
                     ]
@@ -714,11 +727,15 @@ export function AccountSettingsPage(props: {
                   </DashboardTableCell>
                   <DashboardTableCell>
                     {!organization.onboardingComplete ? (
-                      <DashboardTableBadge tone="warning">Needs onboarding</DashboardTableBadge>
+                      <DashboardTableBadge tone="warning">
+                        {t('accountBadgeNeedsOnboarding')}
+                      </DashboardTableBadge>
                     ) : organization.isCurrentOrg ? (
-                      <DashboardTableBadge>Current</DashboardTableBadge>
+                      <DashboardTableBadge>{t('accountBadgeCurrent')}</DashboardTableBadge>
                     ) : (
-                      <DashboardTableBadge tone="success">Ready</DashboardTableBadge>
+                      <DashboardTableBadge tone="success">
+                        {t('accountBadgeReady')}
+                      </DashboardTableBadge>
                     )}
                   </DashboardTableCell>
                   <DashboardTableCell>
@@ -727,10 +744,12 @@ export function AccountSettingsPage(props: {
                         onClick={() => void onOpenOrganization(organization)}
                         disabled={switchingOrganizationId === organization.id}
                       >
-                        {switchingOrganizationId === organization.id ? 'Opening...' : 'Open'}
+                        {switchingOrganizationId === organization.id
+                          ? t('accountOpening')
+                          : t('accountOpen')}
                       </DashboardTableActionButton>
                       <DashboardTableActionMenu
-                        ariaLabel={`More actions for ${organization.name}`}
+                        ariaLabel={t('accountMoreActionsFor', { name: organization.name })}
                         items={menuItems}
                       />
                     </DashboardTableActionGroup>
@@ -739,7 +758,7 @@ export function AccountSettingsPage(props: {
               );
             })
           ) : (
-            <DashboardTableState>No organizations created by this account yet.</DashboardTableState>
+            <DashboardTableState>{t('accountNoOrganizations')}</DashboardTableState>
           )}
         </DashboardTable>
       </section>

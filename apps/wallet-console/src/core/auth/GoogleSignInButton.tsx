@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import React from 'react';
 import { ProviderMark } from './ProviderMark';
 import {
@@ -81,7 +82,7 @@ class GoogleButtonMount {
     if (this.state.kind === 'disposed' || this.callbacks.current.disabled) return;
     const token = readGoogleIdToken(response);
     if (!token) {
-      this.callbacks.current.onError('Google did not return a sign-in credential. Retry sign-in.');
+      this.callbacks.current.onError(t('commonGoogleNoCredential'));
       return;
     }
     this.callbacks.current.onCredential(token);
@@ -168,7 +169,7 @@ export function GoogleSignInButton(props: GoogleSignInButtonProps): React.JSX.El
   const showButton = status === 'ready' && !props.disabled;
   const canRetry = status === 'failed' && !props.disabled;
   let label = props.label;
-  if (!props.disabled) label = canRetry ? 'Retry Google sign-in' : 'Loading Google sign-in...';
+  if (!props.disabled) label = canRetry ? t('commonGoogleRetry') : t('commonGoogleLoading');
   return (
     <div className="dashboard-login__google-sign-in">
       {/* Google's button cannot take the site's style, so the visitor sees this

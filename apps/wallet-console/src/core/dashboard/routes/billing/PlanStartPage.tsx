@@ -1,5 +1,6 @@
 import { BillingRulesSection } from './BillingRulesSection';
 import React from 'react';
+import { consoleLocale, t } from '@core/i18n';
 import { Check, CheckCircle2, Rocket, Sprout, TrendingUp, type LucideIcon } from 'lucide-react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { walletConsoleOverviewHref } from '../../consoleNavigation';
@@ -22,6 +23,7 @@ import {
   type DashboardBillingPlan,
   type DashboardSelfServePlan,
 } from './freePlanApi';
+import { describeCardEnding, describeCardState } from './FreePlanBanners';
 import {
   clearPendingDashboardPlanIntent,
   isDashboardPlanChoice,
@@ -56,9 +58,12 @@ function PlanOrganizationChoice(): React.JSX.Element {
       .catch(reportOrganizationError.bind(null, setError));
   }, []);
   return (
-    <section className="dashboard-plan-current" aria-label="Choose organization">
-      <h2>Choose the organization for this plan</h2>
-      <p>The plan applies to the organization you select.</p>
+    <section
+      className="dashboard-plan-current"
+      aria-label={t('platformBillingChooseOrganizationAria')}
+    >
+      <h2>{t('platformBillingChooseOrganizationTitle')}</h2>
+      <p>{t('platformBillingChooseOrganizationNote')}</p>
       {organizations.map(renderPlanOrganization.bind(null, setError))}
       {error ? <p role="alert">{error}</p> : null}
     </section>
@@ -66,7 +71,9 @@ function PlanOrganizationChoice(): React.JSX.Element {
 }
 
 function reportOrganizationError(setError: (message: string) => void, error: unknown): void {
-  setError(error instanceof Error ? error.message : 'Organization selection failed. Try again.');
+  setError(
+    error instanceof Error ? error.message : t('platformBillingOrganizationSelectionFailed'),
+  );
 }
 
 function renderPlanOrganization(
@@ -117,9 +124,9 @@ const PLAN_OFFERS: readonly {
     price: '$0',
     includedUsers: 300,
     features: [
-      'Up to 300 monthly active users',
-      '30,000 signatures a month',
-      'Card required after 30 days',
+      t('platformBillingFeatureFreeUsers'),
+      t('platformBillingFeatureFreeSignatures'),
+      t('platformBillingFeatureFreeCard'),
     ],
   },
   {
@@ -128,9 +135,9 @@ const PLAN_OFFERS: readonly {
     price: '$99',
     includedUsers: 5_000,
     features: [
-      '5,000 monthly active users included',
-      '$0.004 per active user above 5,000',
-      '300 signatures per user, pooled',
+      t('platformBillingFeatureGrowthUsers'),
+      t('platformBillingFeatureGrowthOver'),
+      t('platformBillingFeaturePooled'),
     ],
   },
   {
@@ -139,14 +146,14 @@ const PLAN_OFFERS: readonly {
     price: '$399',
     includedUsers: 100_000,
     features: [
-      '100,000 monthly active users included',
-      '$0.0035 per active user above 100,000',
-      'Uptime SLA and priority support',
+      t('platformBillingFeatureProUsers'),
+      t('platformBillingFeatureProOver'),
+      t('platformBillingFeatureProSupport'),
     ],
   },
 ];
 
-const count = new Intl.NumberFormat('en-US');
+const count = new Intl.NumberFormat(consoleLocale);
 
 type FreeRequestState =
   | { readonly kind: 'idle' | 'pending' | 'requested'; readonly message?: never }
@@ -160,7 +167,7 @@ async function requestFree(setState: (state: FreeRequestState) => void): Promise
   } catch (error: unknown) {
     setState({
       kind: 'error',
-      message: error instanceof Error ? error.message : 'Free request failed.',
+      message: error instanceof Error ? error.message : t('platformBillingFreeRequestFailed'),
     });
   }
 }
@@ -175,13 +182,11 @@ function FreePlanRequest(): React.JSX.Element {
         disabled={state.kind === 'pending' || state.kind === 'requested'}
         onClick={requestFree.bind(null, setState)}
       >
-        {state.kind === 'pending' ? 'Requesting Free…' : 'Request Free next month'}
+        {state.kind === 'pending'
+          ? t('platformBillingRequestingFree')
+          : t('platformBillingRequestFreeNextMonth')}
       </button>
-      {state.kind === 'requested' ? (
-        <p role="status">
-          Free is requested for the next eligible UTC month. Current charges remain due.
-        </p>
-      ) : null}
+      {state.kind === 'requested' ? <p role="status">{t('platformBillingFreeRequested')}</p> : null}
       {state.kind === 'error' ? <p role="alert">{state.message}</p> : null}
     </>
   );
@@ -189,11 +194,14 @@ function FreePlanRequest(): React.JSX.Element {
 
 /* Stripe names brands in lower case, such as "visa". */
 function cardLabel(card: { readonly brand: string; readonly last4: string }): string {
-  return `${card.brand.charAt(0).toUpperCase()}${card.brand.slice(1)} ending ${card.last4}`;
+  return t('platformBillingCardEnding', {
+    brand: `${card.brand.charAt(0).toUpperCase()}${card.brand.slice(1)}`,
+    last4: card.last4,
+  });
 }
 
 function utcDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
+  return new Date(iso).toLocaleDateString(consoleLocale, {
     timeZone: 'UTC',
     year: 'numeric',
     month: 'long',
@@ -202,18 +210,26 @@ function utcDate(iso: string): string {
 }
 
 function startedMessage(plan: DashboardBillingPlan): string {
-  const since = plan.planStartedAt ? ` on ${utcDate(plan.planStartedAt)}` : '';
-  return `${dashboardPlanName(plan.plan)} started${since}. We charge your card after each month.`;
+  return plan.planStartedAt
+    ? t('platformBillingPlanStartedOn', {
+        plan: dashboardPlanName(plan.plan),
+        date: utcDate(plan.planStartedAt),
+      })
+    : t('platformBillingPlanStarted', { plan: dashboardPlanName(plan.plan) });
 }
 
 function currentPlanSummary(plan: DashboardBillingPlan): string {
   if (plan.plan === 'free') {
     return plan.card.kind !== 'usable' && plan.cardDeadlineAt
-      ? `Your organization is on the Free plan. Add a card by ${utcDate(plan.cardDeadlineAt)} to keep production running.`
-      : 'Your organization is on the Free plan.';
+      ? t('platformBillingOnFreeDeadline', { date: utcDate(plan.cardDeadlineAt) })
+      : t('platformBillingOnFree');
   }
-  const since = plan.planStartedAt ? ` since ${utcDate(plan.planStartedAt)}` : '';
-  return `Your organization is on ${dashboardPlanName(plan.plan)}${since}.`;
+  return plan.planStartedAt
+    ? t('platformBillingOnPlanSince', {
+        plan: dashboardPlanName(plan.plan),
+        date: utcDate(plan.planStartedAt),
+      })
+    : t('platformBillingOnPlan', { plan: dashboardPlanName(plan.plan) });
 }
 
 /**
@@ -236,7 +252,7 @@ export function PlanStartPage(): React.JSX.Element {
   const [loaded, setLoaded] = React.useState(false);
   const [message, setMessage] = React.useState('');
   const [errorMessage, setErrorMessage] = React.useState(
-    params.has('setup_failed') ? 'Card setup did not start. Try again, or continue on Free.' : '',
+    params.has('setup_failed') ? t('platformBillingSetupFailedTryAgain') : '',
   );
   const [starting, setStarting] = React.useState<DashboardSelfServePlan | null>(null);
   const reconciledRef = React.useRef('');
@@ -273,35 +289,37 @@ export function PlanStartPage(): React.JSX.Element {
 
   React.useEffect(() => {
     if (cardSetupStatus === 'cancel') {
-      setMessage('Card setup was canceled. No card was added, and your plan did not change.');
+      setMessage(t('platformBillingCardSetupCanceledPlan'));
       if (intent) void recordDashboardFunnelStep('card_setup_canceled', intent);
       return;
     }
     if (cardSetupStatus !== 'success' || !checkoutSessionId) return;
     if (reconciledRef.current === checkoutSessionId) return;
     reconciledRef.current = checkoutSessionId;
-    setMessage('Verifying your card...');
+    setMessage(t('platformBillingVerifyingCard'));
     void reconcileDashboardCardSetup(checkoutSessionId)
       .then(async (result) => {
         if (result.plan) setPlan(result.plan);
         if (!result.verified) {
-          setMessage('Stripe has not confirmed the card yet. Refresh in a moment.');
+          setMessage(t('platformBillingStripeNotConfirmed'));
           return;
         }
         clearPendingDashboardPlanIntent();
         if (!result.plan || result.plan.plan === 'free') {
-          setMessage('Your card is verified.');
+          setMessage(t('platformBillingCardVerified'));
           return;
         }
         // A visitor from the pricing page ends the funnel on the dashboard.
         if (intent) {
-          setMessage(`${startedMessage(result.plan)} Opening your dashboard...`);
+          setMessage(
+            t('platformBillingOpeningDashboard', { message: startedMessage(result.plan) }),
+          );
           window.location.assign((await readDashboardOverviewHref()) ?? overviewHrefRef.current);
           return;
         }
         setMessage(startedMessage(result.plan));
       })
-      .catch(() => setMessage('Card verification is still pending. Refresh in a moment.'));
+      .catch(() => setMessage(t('platformBillingVerificationPending')));
   }, [cardSetupStatus, checkoutSessionId, intent]);
 
   const startPlan = React.useCallback(
@@ -362,17 +380,18 @@ export function PlanStartPage(): React.JSX.Element {
   if (!session.loading && !canManageBilling)
     return (
       <div className="dashboard-view">
-        <p>
-          Ask an owner or a billing administrator to start {chosen === 'pro' ? 'Pro' : 'Growth'}.
-        </p>
+        <p>{t('platformBillingAskToStart', { plan: chosen === 'pro' ? 'Pro' : 'Growth' })}</p>
         <a href={overviewHref} onClick={clearPendingDashboardPlanIntent}>
-          Open the Wallet Console
+          {t('platformBillingOpenWalletConsole')}
         </a>
       </div>
     );
 
   return (
-    <div className="dashboard-view dashboard-plan-view" aria-label="Plan page">
+    <div
+      className="dashboard-view dashboard-plan-view"
+      aria-label={t('platformBillingPlanPageAria')}
+    >
       {message ? (
         <p className="dashboard-plan-notice" role="status">
           <CheckCircle2 size={18} aria-hidden />
@@ -385,14 +404,12 @@ export function PlanStartPage(): React.JSX.Element {
         </div>
       ) : null}
       {!loaded || session.loading ? (
-        <p className="dashboard-pagination-note">Loading your plan...</p>
+        <p className="dashboard-pagination-note">{t('platformBillingLoadingPlan')}</p>
       ) : !plan ? (
-        <p className="dashboard-pagination-note">
-          Your organization has no billing account yet. Create a project first.
-        </p>
+        <p className="dashboard-pagination-note">{t('platformBillingNoBillingAccount')}</p>
       ) : (
         <>
-          <section className="dashboard-plan-current" aria-label="Current plan">
+          <section className="dashboard-plan-current" aria-label={t('platformBillingCurrentPlan')}>
             <div className="dashboard-plan-current__head">
               {currentOffer ? (
                 <span className="dashboard-plan-icon" aria-hidden="true">
@@ -401,7 +418,9 @@ export function PlanStartPage(): React.JSX.Element {
                 </span>
               ) : null}
               <div className="dashboard-plan-current__copy">
-                <span className="dashboard-plan-current__eyebrow">Current plan</span>
+                <span className="dashboard-plan-current__eyebrow">
+                  {t('platformBillingCurrentPlan')}
+                </span>
                 <h2 className="dashboard-plan-current__name">{dashboardPlanName(plan.plan)}</h2>
                 <p className="dashboard-plan-current__summary">{currentPlanSummary(plan)}</p>
               </div>
@@ -413,17 +432,22 @@ export function PlanStartPage(): React.JSX.Element {
                 }
               >
                 {plan.plan === 'free' && chosen && chosen !== 'free'
-                  ? 'Continue on Free'
-                  : 'Open the Wallet Console'}
+                  ? t('platformBillingContinueOnFree')
+                  : t('platformBillingOpenWalletConsole')}
               </a>
             </div>
             <dl className="dashboard-plan-current__stats">
               <div>
-                <dt>Active users this month</dt>
+                <dt>{t('platformBillingActiveUsersThisMonth')}</dt>
                 <dd>
                   {count.format(plan.usage.productionActiveUsers)}
                   {currentOffer ? (
-                    <span> of {count.format(currentOffer.includedUsers)} included</span>
+                    <span>
+                      {' '}
+                      {t('platformBillingIncludedOf', {
+                        limit: count.format(currentOffer.includedUsers),
+                      })}
+                    </span>
                   ) : null}
                 </dd>
                 {currentOffer ? (
@@ -432,16 +456,21 @@ export function PlanStartPage(): React.JSX.Element {
                     min={0}
                     max={currentOffer.includedUsers}
                     value={Math.min(plan.usage.productionActiveUsers, currentOffer.includedUsers)}
-                    aria-label="Active users this month"
+                    aria-label={t('platformBillingActiveUsersThisMonth')}
                   />
                 ) : null}
               </div>
               <div>
-                <dt>Signatures this month</dt>
+                <dt>{t('platformBillingSignaturesThisMonth')}</dt>
                 <dd>
                   {count.format(plan.usage.productionSignatures)}
                   {plan.plan === 'free' ? (
-                    <span> of {count.format(plan.usage.limits.productionSignatures)}</span>
+                    <span>
+                      {' '}
+                      {t('platformBillingOfLimit', {
+                        limit: count.format(plan.usage.limits.productionSignatures),
+                      })}
+                    </span>
                   ) : null}
                 </dd>
                 {plan.plan === 'free' ? (
@@ -453,16 +482,21 @@ export function PlanStartPage(): React.JSX.Element {
                       plan.usage.productionSignatures,
                       plan.usage.limits.productionSignatures,
                     )}
-                    aria-label="Signatures this month"
+                    aria-label={t('platformBillingSignaturesThisMonth')}
                   />
                 ) : null}
               </div>
               <div>
-                <dt>Card</dt>
+                <dt>{t('platformBillingCard')}</dt>
                 <dd>
-                  {plan.card.kind === 'none' ? 'No card on file' : cardLabel(plan.card)}
+                  {plan.card.kind === 'none' ? t('platformBillingNoCard') : cardLabel(plan.card)}
                   {plan.card.kind === 'expired' || plan.card.kind === 'removed' ? (
-                    <span> ({plan.card.kind})</span>
+                    <span>
+                      {' '}
+                      {t('platformBillingCardStateParens', {
+                        state: describeCardState(plan.card.kind),
+                      })}
+                    </span>
                   ) : null}
                 </dd>
               </div>
@@ -481,7 +515,11 @@ export function PlanStartPage(): React.JSX.Element {
                 .filter(Boolean)
                 .join(' ');
               return (
-                <article key={offer.plan} className={className} aria-label={`${name} plan`}>
+                <article
+                  key={offer.plan}
+                  className={className}
+                  aria-label={t('platformBillingPlanAria', { name })}
+                >
                   <span className="dashboard-plan-icon" aria-hidden="true">
                     <GrainField field={PLAN_FIELD} playing={false} />
                     <offer.icon size={20} />
@@ -489,7 +527,7 @@ export function PlanStartPage(): React.JSX.Element {
                   <h3 className="dashboard-plan-card__name">{name}</h3>
                   <p className="dashboard-plan-card__price">
                     <strong>{offer.price}</strong>
-                    <span>per month</span>
+                    <span>{t('platformBillingPerMonth')}</span>
                   </p>
                   <ul className="dashboard-plan-card__features">
                     {offer.features.map((feature) => (
@@ -503,17 +541,19 @@ export function PlanStartPage(): React.JSX.Element {
                     {current ? (
                       <span className="dashboard-plan-card__badge">
                         <CheckCircle2 size={16} aria-hidden />
-                        Current plan
+                        {t('platformBillingCurrentPlan')}
                       </span>
                     ) : offer.plan === 'free' ? (
                       canManageBilling && (plan.plan === 'growth' || plan.plan === 'pro') ? (
                         <FreePlanRequest />
                       ) : null
                     ) : plan.plan !== 'free' ? (
-                      <p className="dashboard-plan-card__note">Contact us to change plans.</p>
+                      <p className="dashboard-plan-card__note">
+                        {t('platformBillingContactToChange')}
+                      </p>
                     ) : !canManageBilling ? (
                       <p className="dashboard-plan-card__note">
-                        Ask an owner or a billing administrator to start {name}.
+                        {t('platformBillingAskToStart', { plan: name })}
                       </p>
                     ) : (
                       <>
@@ -527,14 +567,17 @@ export function PlanStartPage(): React.JSX.Element {
                         >
                           {starting === offer.plan
                             ? plan.card.kind === 'usable'
-                              ? `Starting ${name}...`
-                              : 'Opening Stripe...'
-                            : `Start ${name}`}
+                              ? t('platformBillingStartingPlan', { name })
+                              : t('platformBillingOpeningStripe')
+                            : t('platformBillingStartPlan', { name })}
                         </button>
                         <p className="dashboard-plan-card__note">
                           {plan.card.kind === 'usable'
-                            ? `${offer.price} a month from today, on the ${cardLabel(plan.card)}.`
-                            : 'Add a card in Stripe. The plan starts when Stripe confirms it.'}
+                            ? t('platformBillingMonthlyFromToday', {
+                                price: offer.price,
+                                card: cardLabel(plan.card),
+                              })
+                            : t('platformBillingAddCardInStripe')}
                         </p>
                       </>
                     )}
@@ -549,10 +592,10 @@ export function PlanStartPage(): React.JSX.Element {
             <span className="dashboard-plan-enterprise__copy">
               <span className="dashboard-plan-enterprise__title">Enterprise</span>
               <span className="dashboard-plan-enterprise__description">
-                Committed volume, custom terms, and rollout planning with our team.
+                {t('platformBillingEnterpriseDescription')}
               </span>
             </span>
-            <span className="dashboard-pagination-button">Contact sales</span>
+            <span className="dashboard-pagination-button">{t('platformBillingContactSales')}</span>
           </a>
         </>
       )}

@@ -1,3 +1,4 @@
+import { t } from '@core/i18n';
 import { blinkMenuItem } from '@seams-internal/site-navbar';
 import React from 'react';
 import { toast } from 'sonner';
@@ -38,6 +39,7 @@ import {
   PlatformRefundDialog,
   describePlatformAdjustmentReason,
   describePlatformLiveAccess,
+  describePlatformRefundStatus,
   formatBalanceUsdMinor,
   formatSignedUsdMinor,
   readPlatformBillingReversedEntryId,
@@ -58,14 +60,14 @@ const PLATFORM_BILLING_EVENT_TYPE_OPTIONS: Array<{
   value: 'all' | DashboardBillingAccountActivityEventType;
   label: string;
 }> = [
-  { value: 'all', label: 'All events' },
-  { value: 'CREDIT_PURCHASE', label: 'Credit purchases' },
-  { value: 'USAGE_DEBIT', label: 'Usage debits' },
-  { value: 'PRODUCT_EXECUTION_DEBIT', label: 'Sponsored execution debits' },
-  { value: 'MANUAL_ADJUSTMENT', label: 'Manual adjustments' },
-  { value: 'REFUND', label: 'Refunds' },
-  { value: 'DISPUTE_OPENED', label: 'Disputes opened' },
-  { value: 'DISPUTE_WON', label: 'Disputes won' },
+  { value: 'all', label: t('platformBillingEventAll') },
+  { value: 'CREDIT_PURCHASE', label: t('platformBillingCreditPurchases') },
+  { value: 'USAGE_DEBIT', label: t('platformBillingEventUsageDebit') },
+  { value: 'PRODUCT_EXECUTION_DEBIT', label: t('platformBillingEventSponsoredDebit') },
+  { value: 'MANUAL_ADJUSTMENT', label: t('platformBillingEventManual') },
+  { value: 'REFUND', label: t('platformBillingRefunds') },
+  { value: 'DISPUTE_OPENED', label: t('platformBillingEventDisputeOpened') },
+  { value: 'DISPUTE_WON', label: t('platformBillingEventDisputeWon') },
 ];
 const PLATFORM_ACTIVITY_TABLE_COLUMNS = dashboardTableColumns(
   '1fr',
@@ -180,9 +182,12 @@ function describeOrganizationTitle(organization: DashboardPlatformBillingOrganiz
 }
 
 function describeOwners(ownerEmails: readonly string[]): string {
-  if (ownerEmails.length === 0) return 'no active owner';
-  if (ownerEmails.length === 1) return `owner ${ownerEmails[0]}`;
-  return `owners ${ownerEmails[0]} +${ownerEmails.length - 1}`;
+  if (ownerEmails.length === 0) return t('platformBillingNoOwner');
+  if (ownerEmails.length === 1) return t('platformBillingOwnerOne', { email: ownerEmails[0] });
+  return t('platformBillingOwnerMany', {
+    email: ownerEmails[0],
+    more: ownerEmails.length - 1,
+  });
 }
 
 function readLookupBalance(
@@ -241,7 +246,11 @@ function PlatformLiveAccessPill(props: { balance: DashboardPlatformBillingBalanc
   const access = describePlatformLiveAccess(resolvePlatformLiveAccessState(props.balance));
   return (
     <DashboardTableStatus tone={access.tone}>
-      {access.tone === 'danger' ? 'Blocked' : access.tone === 'warning' ? 'Low' : 'Enabled'}
+      {access.tone === 'danger'
+        ? t('platformBillingBlocked')
+        : access.tone === 'warning'
+          ? t('platformBillingLow')
+          : t('platformBillingEnabled')}
     </DashboardTableStatus>
   );
 }
@@ -281,8 +290,8 @@ function PlatformActivityTable(props: {
   const { entries, controls, onReverse } = props;
   const pagination = useDashboardTablePagination(entries, {
     initialRowsPerPage: 10,
-    itemLabel: 'event',
-    itemLabelPlural: 'events',
+    itemLabel: t('platformBillingItemEvent'),
+    itemLabelPlural: t('platformBillingItemEvents'),
   });
   const reversedEntryIds = React.useMemo(
     () =>
@@ -295,7 +304,7 @@ function PlatformActivityTable(props: {
   );
   return (
     <DashboardTable
-      ariaLabel="Account activity"
+      ariaLabel={t('platformBillingActivityAria')}
       className="dashboard-billing-activity-table dashboard-platform-account__table"
       columns={PLATFORM_ACTIVITY_TABLE_COLUMNS}
       pagination={pagination.pagination}
@@ -304,24 +313,24 @@ function PlatformActivityTable(props: {
         {controls}
       </DashboardTableIntro>
       {entries.length === 0 ? (
-        <DashboardTableState>No ledger events match the filters.</DashboardTableState>
+        <DashboardTableState>{t('platformBillingNoLedgerEvents')}</DashboardTableState>
       ) : (
         <>
           <DashboardTableHeader>
-            <DashboardTableHeaderCell>When (UTC)</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Event</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('platformBillingColWhen')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('platformBillingColEvent')}</DashboardTableHeaderCell>
             <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
-              Amount
+              {t('platformBillingColAmount')}
             </DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Reason</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('platformBillingColReason')}</DashboardTableHeaderCell>
             <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
-              Action
+              {t('platformBillingColAction')}
             </DashboardTableHeaderCell>
           </DashboardTableHeader>
           {pagination.rows.map((entry) => {
             const reversedEntryId = readPlatformBillingReversedEntryId(entry.idempotencyKey);
             const detail = reversedEntryId
-              ? `Reverses ${reversedEntryId}`
+              ? t('platformBillingReverses', { id: reversedEntryId })
               : entry.note || entry.relatedPurchaseId || entry.relatedInvoiceId || null;
             const isManual = entry.type === 'MANUAL_ADJUSTMENT';
             return (
@@ -351,7 +360,7 @@ function PlatformActivityTable(props: {
                     </span>
                     {entry.actorUserId ? (
                       <span className="dashboard-data-table__subline dashboard-data-table__subline--muted">
-                        by {entry.actorUserId}
+                        {t('platformBillingBy', { actor: entry.actorUserId })}
                       </span>
                     ) : null}
                   </div>
@@ -360,10 +369,12 @@ function PlatformActivityTable(props: {
                   {!isManual || reversedEntryId ? (
                     '-'
                   ) : reversedEntryIds.has(entry.id) ? (
-                    <DashboardTableStatus tone="neutral">Reversed</DashboardTableStatus>
+                    <DashboardTableStatus tone="neutral">
+                      {t('platformBillingReversed')}
+                    </DashboardTableStatus>
                   ) : (
                     <DashboardTableActionButton onClick={() => onReverse(entry)}>
-                      Reverse
+                      {t('platformBillingReverse')}
                     </DashboardTableActionButton>
                   )}
                 </DashboardTableCell>
@@ -396,32 +407,36 @@ function PlatformPaymentsPanel(props: {
   return (
     <div className="dashboard-platform-account__payments">
       <DashboardTable
-        ariaLabel="Credit purchases"
+        ariaLabel={t('platformBillingCreditPurchases')}
         className="dashboard-platform-account__table"
         columns={PLATFORM_PAYMENTS_TABLE_COLUMNS}
       >
         <DashboardTableIntro className="dashboard-billing-table__intro">
-          <h3 className="dashboard-billing-table__title">Credit purchases</h3>
+          <h3 className="dashboard-billing-table__title">{t('platformBillingCreditPurchases')}</h3>
         </DashboardTableIntro>
         {!payments || payments.loading ? (
-          <DashboardTableSkeletonRows label="Loading purchases" columns={5} rows={2} />
+          <DashboardTableSkeletonRows
+            label={t('platformBillingLoadingPurchases')}
+            columns={5}
+            rows={2}
+          />
         ) : payments.error ? (
           <DashboardTableState>{payments.error}</DashboardTableState>
         ) : purchases.length === 0 ? (
-          <DashboardTableState>This account has no Stripe purchases.</DashboardTableState>
+          <DashboardTableState>{t('platformBillingNoStripePurchases')}</DashboardTableState>
         ) : (
           <>
             <DashboardTableHeader>
-              <DashboardTableHeaderCell>When (UTC)</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Purchase</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('platformBillingColWhen')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('platformBillingColPurchase')}</DashboardTableHeaderCell>
               <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
-                Paid
+                {t('platformBillingColPaid')}
               </DashboardTableHeaderCell>
               <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
-                Refunded
+                {t('platformBillingColRefunded')}
               </DashboardTableHeaderCell>
               <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
-                Action
+                {t('platformBillingColAction')}
               </DashboardTableHeaderCell>
             </DashboardTableHeader>
             {purchases.map((entry) => {
@@ -454,7 +469,7 @@ function PlatformPaymentsPanel(props: {
                         })
                       }
                     >
-                      Refund
+                      {t('platformBillingRefund')}
                     </DashboardTableActionButton>
                   </DashboardTableCell>
                 </DashboardTableRow>
@@ -464,26 +479,26 @@ function PlatformPaymentsPanel(props: {
         )}
       </DashboardTable>
       <DashboardTable
-        ariaLabel="Refunds"
+        ariaLabel={t('platformBillingRefunds')}
         className="dashboard-platform-account__table"
         columns={PLATFORM_REFUNDS_TABLE_COLUMNS}
       >
         <DashboardTableIntro className="dashboard-billing-table__intro">
-          <h3 className="dashboard-billing-table__title">Refunds</h3>
+          <h3 className="dashboard-billing-table__title">{t('platformBillingRefunds')}</h3>
         </DashboardTableIntro>
         {refunds.length === 0 ? (
-          <DashboardTableState>No refunds have been requested.</DashboardTableState>
+          <DashboardTableState>{t('platformBillingNoRefunds')}</DashboardTableState>
         ) : (
           <>
             <DashboardTableHeader>
-              <DashboardTableHeaderCell>Refund</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Purchase</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('platformBillingRefund')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('platformBillingColPurchase')}</DashboardTableHeaderCell>
               <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
-                Amount
+                {t('platformBillingColAmount')}
               </DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('platformBillingColStatus')}</DashboardTableHeaderCell>
               <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
-                Action
+                {t('platformBillingColAction')}
               </DashboardTableHeaderCell>
             </DashboardTableHeader>
             {refunds.map((refund) => (
@@ -514,7 +529,7 @@ function PlatformPaymentsPanel(props: {
                           : 'neutral'
                     }
                   >
-                    {refund.status.replace('_', ' ')}
+                    {describePlatformRefundStatus(refund.status)}
                   </DashboardTableStatus>
                 </DashboardTableCell>
                 <DashboardTableCell align="end">
@@ -523,7 +538,9 @@ function PlatformPaymentsPanel(props: {
                       disabled={Boolean(refundActionId)}
                       onClick={() => onReconcile(refund.id)}
                     >
-                      {refundActionId === refund.id ? 'Checking...' : 'Check status'}
+                      {refundActionId === refund.id
+                        ? t('platformBillingChecking')
+                        : t('platformBillingCheckStatus')}
                     </DashboardTableActionButton>
                   ) : (
                     '-'
@@ -957,13 +974,21 @@ export function PlatformBillingView(): React.JSX.Element {
       if (!result.created) {
         toast.message(
           readPlatformBillingReversedEntryId(submission.idempotencyKey)
-            ? `That entry was already reversed. ${name} has ${balanceLabel}.`
-            : `The ledger already holds this adjustment. ${name} has ${balanceLabel}.`,
+            ? t('platformBillingToastAlreadyReversed', { name, balance: balanceLabel })
+            : t('platformBillingToastAlreadyHeld', { name, balance: balanceLabel }),
         );
       } else if (submission.kind === 'support_credit') {
-        toast.success(`Added ${amountLabel} credit to ${name}. The balance is ${balanceLabel}.`);
+        toast.success(
+          t('platformBillingToastCreditAdded', {
+            amount: amountLabel,
+            name,
+            balance: balanceLabel,
+          }),
+        );
       } else {
-        toast.success(`Debited ${amountLabel} from ${name}. The balance is ${balanceLabel}.`);
+        toast.success(
+          t('platformBillingToastDebited', { amount: amountLabel, name, balance: balanceLabel }),
+        );
       }
       setAdjustmentDialog(null);
       await reloadAccount();
@@ -981,7 +1006,11 @@ export function PlatformBillingView(): React.JSX.Element {
           ...submission,
         });
         toast.success(
-          `Refund ${result.refund.id} is ${result.refund.status.replace('_', ' ')}. The balance is ${formatBalanceUsdMinor(result.creditBalanceMinor)}.`,
+          t('platformBillingToastRefundCreated', {
+            id: result.refund.id,
+            status: describePlatformRefundStatus(result.refund.status),
+            balance: formatBalanceUsdMinor(result.creditBalanceMinor),
+          }),
         );
         setRefundTarget(null);
         await reloadAccount();
@@ -1001,7 +1030,12 @@ export function PlatformBillingView(): React.JSX.Element {
           orgId: lookupResult.organization.id,
           refundId,
         });
-        toast.success(`Refund ${refundId} is ${result.refund.status.replace('_', ' ')}.`);
+        toast.success(
+          t('platformBillingToastRefundStatus', {
+            id: refundId,
+            status: describePlatformRefundStatus(result.refund.status),
+          }),
+        );
         await reloadAccount();
       } catch (error: unknown) {
         toast.error(error instanceof Error ? error.message : String(error));
@@ -1013,9 +1047,13 @@ export function PlatformBillingView(): React.JSX.Element {
   );
 
   const accountActivityControls = (
-    <div className="dashboard-billing-filters" role="group" aria-label="Activity filters">
+    <div
+      className="dashboard-billing-filters"
+      role="group"
+      aria-label={t('platformBillingFiltersAria')}
+    >
       <label className="dashboard-form-field">
-        <span>Period</span>
+        <span>{t('platformBillingPeriod')}</span>
         <input
           className="dashboard-input"
           type="month"
@@ -1024,7 +1062,7 @@ export function PlatformBillingView(): React.JSX.Element {
         />
       </label>
       <label className="dashboard-form-field">
-        <span>Event type</span>
+        <span>{t('platformBillingEventType')}</span>
         <select
           className="dashboard-input"
           value={eventTypeFilter}
@@ -1052,7 +1090,7 @@ export function PlatformBillingView(): React.JSX.Element {
           }}
           disabled={loading || !activeLookupRequest}
         >
-          {loading ? 'Applying...' : 'Apply filters'}
+          {loading ? t('platformBillingApplying') : t('platformBillingApplyFilters')}
         </button>
         <button
           type="button"
@@ -1060,7 +1098,7 @@ export function PlatformBillingView(): React.JSX.Element {
           onClick={onResetActivityFilters}
           disabled={loading || !activeLookupRequest}
         >
-          Reset
+          {t('platformBillingReset')}
         </button>
       </div>
     </div>
@@ -1093,7 +1131,7 @@ export function PlatformBillingView(): React.JSX.Element {
             onBlur={onSearchFieldBlur}
           >
             <label className="dashboard-form-field">
-              <span>Find an account</span>
+              <span>{t('platformBillingFindAccount')}</span>
               <input
                 className="dashboard-input"
                 type="search"
@@ -1109,7 +1147,7 @@ export function PlatformBillingView(): React.JSX.Element {
                 value={searchInput}
                 onChange={onSearchInputChange}
                 onKeyDown={onSearchInputKeyDown}
-                placeholder="Organization name, org_123 or member email"
+                placeholder={t('platformBillingSearchPlaceholder')}
                 autoComplete="off"
               />
             </label>
@@ -1118,21 +1156,25 @@ export function PlatformBillingView(): React.JSX.Element {
                 className="dashboard-platform-billing-search-dropdown"
                 id={searchListboxId}
                 role="listbox"
-                aria-label="Matching accounts"
+                aria-label={t('platformBillingMatchingAccounts')}
               >
                 {searchLoading ? (
-                  <p className="dashboard-platform-billing-search-dropdown__state">Searching...</p>
+                  <p className="dashboard-platform-billing-search-dropdown__state">
+                    {t('platformBillingSearching')}
+                  </p>
                 ) : searchError ? (
                   <p className="dashboard-platform-billing-search-dropdown__state">
-                    The search failed. Change the text and try again.
+                    {t('platformBillingSearchFailed')}
                   </p>
                 ) : searchResults.length === 0 ? (
                   <p className="dashboard-platform-billing-search-dropdown__state">
                     {searchResultsMode === 'recent' ? (
-                      'No organizations exist yet.'
+                      t('platformBillingNoOrganizations')
                     ) : (
                       <>
-                        No account matches <code>{normalizedSearchInput || '-'}</code>.
+                        {t('platformBillingNoMatchBefore')}
+                        <code>{normalizedSearchInput || '-'}</code>
+                        {t('platformBillingNoMatchAfter')}
                       </>
                     )}
                   </p>
@@ -1140,7 +1182,7 @@ export function PlatformBillingView(): React.JSX.Element {
                   <>
                     {searchResultsMode === 'recent' ? (
                       <p className="dashboard-platform-billing-search-dropdown__heading">
-                        Newest organizations
+                        {t('platformBillingNewestOrganizations')}
                       </p>
                     ) : null}
                     {searchResults.map((account, index) => {
@@ -1188,7 +1230,10 @@ export function PlatformBillingView(): React.JSX.Element {
       </section>
 
       {lookupResult && accountBalance && accountLiveAccess && accountOrganization ? (
-        <section className="dashboard-view-card dashboard-platform-account" aria-label="Account">
+        <section
+          className="dashboard-view-card dashboard-platform-account"
+          aria-label={t('platformBillingAccountAria')}
+        >
           <header className="dashboard-platform-account__header">
             <div className="dashboard-platform-account__identity">
               <h2>{accountOrganization.name}</h2>
@@ -1197,8 +1242,13 @@ export function PlatformBillingView(): React.JSX.Element {
                 {' · '}
                 {describeOwners(lookupResult.ownerEmails)}
                 {lookupResult.projects.length > 0
-                  ? ` · ${lookupResult.projects.length === 1 ? 'project' : 'projects'} ${lookupResult.projects.map((project) => project.name).join(', ')}`
-                  : ' · no projects'}
+                  ? ` · ${t(
+                      lookupResult.projects.length === 1
+                        ? 'platformBillingProjectOne'
+                        : 'platformBillingProjectMany',
+                      { names: lookupResult.projects.map((project) => project.name).join(', ') },
+                    )}`
+                  : ` · ${t('platformBillingNoProjects')}`}
               </p>
             </div>
             <div className="dashboard-platform-account__actions">
@@ -1207,13 +1257,13 @@ export function PlatformBillingView(): React.JSX.Element {
                 className="dashboard-pagination-button dashboard-pagination-button--primary dashboard-pagination-button--with-icon"
                 onClick={() => setAdjustmentDialog({ kind: 'support_credit', reversal: null })}
               >
-                <span aria-hidden="true">+</span> Add credit
+                <span aria-hidden="true">+</span> {t('platformBillingAddCredit')}
               </button>
               <DashboardTableActionMenu
-                ariaLabel="More account actions"
+                ariaLabel={t('platformBillingMoreActions')}
                 items={[
                   {
-                    label: 'Debit balance',
+                    label: t('platformBillingDebitBalance'),
                     tone: 'danger',
                     onSelect: () => setAdjustmentDialog({ kind: 'admin_debit', reversal: null }),
                   },
@@ -1224,7 +1274,7 @@ export function PlatformBillingView(): React.JSX.Element {
 
           <div className="dashboard-platform-account__metrics">
             <article className="dashboard-platform-account__metric">
-              <p className="dashboard-kpi-card__label">Balance</p>
+              <p className="dashboard-kpi-card__label">{t('platformBillingBalance')}</p>
               <p
                 className={`dashboard-platform-account__balance dashboard-kpi-card__value--${accountLiveAccess.tone}`}
               >
@@ -1232,12 +1282,17 @@ export function PlatformBillingView(): React.JSX.Element {
               </p>
               <p className="dashboard-kpi-card__hint">
                 {pendingMinor > 0
-                  ? `${formatBalanceUsdMinor(lookupResult.overview.availableBalanceMinor)} available; ${formatUsdMinor(pendingMinor)} is held`
-                  : `Low-balance warning at ${formatUsdMinor(accountBalance.lowBalanceThresholdMinor)}`}
+                  ? t('platformBillingAvailableHeld', {
+                      available: formatBalanceUsdMinor(lookupResult.overview.availableBalanceMinor),
+                      held: formatUsdMinor(pendingMinor),
+                    })
+                  : t('platformBillingLowBalanceWarning', {
+                      threshold: formatUsdMinor(accountBalance.lowBalanceThresholdMinor),
+                    })}
               </p>
             </article>
             <article className="dashboard-platform-account__metric">
-              <p className="dashboard-kpi-card__label">Live environments</p>
+              <p className="dashboard-kpi-card__label">{t('platformBillingLiveEnvironments')}</p>
               <p
                 className={`dashboard-platform-account__state dashboard-kpi-card__value--${accountLiveAccess.tone}`}
               >
@@ -1245,18 +1300,22 @@ export function PlatformBillingView(): React.JSX.Element {
               </p>
               <p className="dashboard-kpi-card__hint">
                 {accountLiveState === 'BLOCKED'
-                  ? 'Needs a balance above $0'
-                  : 'Projects can create staging and production environments'}
+                  ? t('platformBillingNeedsBalance')
+                  : t('platformBillingCanCreateEnvironments')}
               </p>
             </article>
             <article className="dashboard-platform-account__metric">
-              <p className="dashboard-kpi-card__label">This month</p>
+              <p className="dashboard-kpi-card__label">{t('platformBillingThisMonth')}</p>
               <p className="dashboard-platform-account__state">
-                {lookupResult.overview.monthlyActiveResources} active wallets
+                {t('platformBillingActiveWallets', {
+                  count: lookupResult.overview.monthlyActiveResources,
+                })}
               </p>
               <p className="dashboard-kpi-card__hint">
-                {formatUsdMinor(lookupResult.overview.recentUsageDebitMinor)} used ·{' '}
-                {formatUsdMinor(lookupResult.overview.recentCreditPurchasedMinor)} bought
+                {t('platformBillingUsedBought', {
+                  used: formatUsdMinor(lookupResult.overview.recentUsageDebitMinor),
+                  bought: formatUsdMinor(lookupResult.overview.recentCreditPurchasedMinor),
+                })}
               </p>
             </article>
           </div>
@@ -1264,12 +1323,12 @@ export function PlatformBillingView(): React.JSX.Element {
           <div
             className="dashboard-platform-account__tabs"
             role="tablist"
-            aria-label="Account records"
+            aria-label={t('platformBillingRecordsAria')}
           >
             {(
               [
-                ['activity', 'Activity'],
-                ['payments', 'Payments and refunds'],
+                ['activity', t('platformBillingTabActivity')],
+                ['payments', t('platformBillingTabPayments')],
               ] as const
             ).map(([tab, label]) => (
               <button

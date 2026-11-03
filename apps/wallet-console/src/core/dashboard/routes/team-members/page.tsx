@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { toast } from 'sonner';
 import {
   DashboardTable,
@@ -141,13 +142,13 @@ function projectAccessLevel(
 function permissionLabel(permission: DashboardOrganizationAdminPermission): string {
   switch (permission) {
     case 'members.manage':
-      return 'Manage members';
+      return t('teamPermManageMembers');
     case 'projects.manage':
-      return 'Manage projects';
+      return t('teamPermManageProjects');
     case 'billing.view':
-      return 'View billing';
+      return t('teamPermViewBilling');
     case 'billing.manage':
-      return 'Manage billing';
+      return t('teamPermManageBilling');
   }
 }
 
@@ -171,9 +172,17 @@ function projectAccessSummary(
   scope: ServiceScope | null,
 ): string {
   const count = scopedAccess(assignments, scope).length;
-  const noun = scope ? `${scope.label} project` : 'project';
-  if (count === 0) return `No ${noun} access`;
-  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+  if (!scope) {
+    if (count === 0) return t('teamNoProjectAccess');
+    return count === 1 ? t('teamProjectCountOne') : t('teamProjectCountMany', { count });
+  }
+  const label = scope.label;
+  if (count === 0) {
+    return t('teamNoScopedProjectAccess', { label });
+  }
+  return count === 1
+    ? t('teamScopedProjectCountOne', { label })
+    : t('teamScopedProjectCountMany', { count, label });
 }
 
 /** Owners and administrators reach every project, so every scope includes them. */
@@ -191,9 +200,9 @@ function roleSummary(
   membership: DashboardOrganizationMembership,
   scope: ServiceScope | null,
 ): string {
-  if (membership.role === 'OWNER') return 'Full organization access';
+  if (membership.role === 'OWNER') return t('teamFullOrganizationAccess');
   if (membership.role === 'ADMIN') {
-    if (membership.adminPermissions.length === 0) return 'Read-only administrator';
+    if (membership.adminPermissions.length === 0) return t('teamReadOnlyAdministrator');
     return membership.adminPermissions.map(permissionLabel).join(', ');
   }
   return projectAccessSummary(membership.projectAccess, scope);
@@ -203,11 +212,11 @@ function invitationSummary(
   invitation: DashboardOrganizationInvitation,
   scope: ServiceScope | null,
 ): string {
-  if (invitation.role === 'OWNER') return 'Full organization access';
+  if (invitation.role === 'OWNER') return t('teamFullOrganizationAccess');
   if (invitation.role === 'ADMIN') {
     return invitation.adminPermissions.length
       ? invitation.adminPermissions.map(permissionLabel).join(', ')
-      : 'Read-only administrator';
+      : t('teamReadOnlyAdministrator');
   }
   return projectAccessSummary(invitation.projectAccess, scope);
 }
@@ -251,29 +260,29 @@ function GrantEditor(props: GrantEditorProps): React.JSX.Element {
   return (
     <div className="dashboard-team-members-permission-editor dashboard-form-field--full">
       <label className="dashboard-form-field">
-        <span>Organization role</span>
+        <span>{t('teamOrganizationRole')}</span>
         <select
           className="dashboard-input"
           value={props.grant.role}
           onChange={onRoleChange}
           disabled={props.disabled}
         >
-          <option value="MEMBER">Member</option>
-          {props.allowPrivilegedRoles ? <option value="ADMIN">Administrator</option> : null}
-          {props.allowPrivilegedRoles ? <option value="OWNER">Owner</option> : null}
+          <option value="MEMBER">{t('teamRoleMember')}</option>
+          {props.allowPrivilegedRoles ? (
+            <option value="ADMIN">{t('teamRoleAdministrator')}</option>
+          ) : null}
+          {props.allowPrivilegedRoles ? <option value="OWNER">{t('teamRoleOwner')}</option> : null}
         </select>
       </label>
 
       {props.grant.role === 'OWNER' ? (
-        <p className="dashboard-pagination-note">
-          Owners have full organization, project, member, and billing access.
-        </p>
+        <p className="dashboard-pagination-note">{t('teamOwnersFullAccess')}</p>
       ) : null}
 
       {adminGrant ? (
         <section className="dashboard-team-members-permission-editor__section">
           <p className="dashboard-team-members-permission-editor__title">
-            Administrator permissions
+            {t('teamAdministratorPermissions')}
           </p>
           <div className="dashboard-team-members-permission-flags">
             {DASHBOARD_ORGANIZATION_ADMIN_PERMISSIONS.map((permission) => (
@@ -303,9 +312,11 @@ function GrantEditor(props: GrantEditorProps): React.JSX.Element {
 
       {memberGrant ? (
         <section className="dashboard-team-members-permission-editor__section">
-          <p className="dashboard-team-members-permission-editor__title">Project access</p>
+          <p className="dashboard-team-members-permission-editor__title">
+            {t('teamProjectAccess')}
+          </p>
           {props.projects.length === 0 ? (
-            <p className="dashboard-pagination-note">No active projects are available.</p>
+            <p className="dashboard-pagination-note">{t('teamNoActiveProjects')}</p>
           ) : (
             <div className="dashboard-team-members-access-list">
               {props.projects.map((project) => (
@@ -325,9 +336,9 @@ function GrantEditor(props: GrantEditorProps): React.JSX.Element {
                     }
                     disabled={props.disabled}
                   >
-                    <option value="none">No access</option>
-                    <option value="viewer">Viewer</option>
-                    <option value="editor">Editor</option>
+                    <option value="none">{t('teamAccessNone')}</option>
+                    <option value="viewer">{t('teamAccessViewer')}</option>
+                    <option value="editor">{t('teamAccessEditor')}</option>
                   </select>
                 </label>
               ))}
@@ -441,8 +452,8 @@ export function TeamMembersPage(props: {
   );
   const pagination = useDashboardTablePagination(activeMemberships, {
     disabled: loading || session.loading,
-    itemLabel: 'membership',
-    itemLabelPlural: 'memberships',
+    itemLabel: t('teamMembershipItem'),
+    itemLabelPlural: t('teamMembershipItemPlural'),
   });
   const ownerCount = memberships.filter(
     (membership) => membership.kind === 'active' && membership.role === 'OWNER',
@@ -483,7 +494,7 @@ export function TeamMembersPage(props: {
           email: inviteEmail,
           ...inviteGrant,
         });
-        toast.success(`Invitation sent to ${inviteEmail.trim().toLowerCase()}.`);
+        toast.success(t('teamInvitationSentTo', { email: inviteEmail.trim().toLowerCase() }));
         closeModal();
         reload();
       } catch (error: unknown) {
@@ -535,7 +546,7 @@ export function TeamMembersPage(props: {
             });
           }
         }
-        toast.success(`Updated ${editingMembership.email}.`);
+        toast.success(t('teamMembershipUpdated', { email: editingMembership.email }));
         closeModal();
         reload();
       } catch (error: unknown) {
@@ -552,11 +563,9 @@ export function TeamMembersPage(props: {
       membership: DashboardOrganizationMembership,
       action: 'suspend' | 'reactivate' | 'remove',
     ) => {
-      const pastTense =
-        action === 'suspend' ? 'suspended' : action === 'reactivate' ? 'reactivated' : 'removed';
       if (
         action === 'remove' &&
-        !window.confirm(`Remove ${membership.email} from this organization?`)
+        !window.confirm(t('teamRemoveMemberConfirm', { email: membership.email }))
       ) {
         return;
       }
@@ -570,7 +579,13 @@ export function TeamMembersPage(props: {
         } else {
           await removeDashboardOrganizationMembership(membership.id);
         }
-        toast.success(`${membership.email} was ${pastTense}.`);
+        const done =
+          action === 'suspend'
+            ? t('teamMemberSuspended', { email: membership.email })
+            : action === 'reactivate'
+              ? t('teamMemberReactivated', { email: membership.email })
+              : t('teamMemberRemoved', { email: membership.email });
+        toast.success(done);
         reload();
       } catch (error: unknown) {
         setMutationError(error instanceof Error ? error.message : String(error));
@@ -588,10 +603,10 @@ export function TeamMembersPage(props: {
       try {
         if (action === 'resend') {
           await resendDashboardOrganizationInvitation(invitation.id);
-          toast.success(`Invitation resent to ${invitation.email}.`);
+          toast.success(t('teamInvitationResent', { email: invitation.email }));
         } else {
           await revokeDashboardOrganizationInvitation(invitation.id);
-          toast.success(`Invitation to ${invitation.email} was revoked.`);
+          toast.success(t('teamInvitationRevoked', { email: invitation.email }));
         }
         reload();
       } catch (error: unknown) {
@@ -605,15 +620,11 @@ export function TeamMembersPage(props: {
 
   const inviteModal =
     modal === 'invite' ? (
-      <DashboardInlineModal
-        isOpen
-        ariaLabel="Invite organization member"
-        onRequestClose={closeModal}
-      >
-        <h2>Invite member</h2>
+      <DashboardInlineModal isOpen ariaLabel={t('teamInviteModalAria')} onRequestClose={closeModal}>
+        <h2>{t('teamInviteMember')}</h2>
         <form className="dashboard-view-grid" onSubmit={submitInvitation}>
           <label className="dashboard-form-field">
-            <span>Verified email</span>
+            <span>{t('teamVerifiedEmail')}</span>
             <input
               className="dashboard-input"
               type="email"
@@ -642,14 +653,14 @@ export function TeamMembersPage(props: {
               onClick={closeModal}
               disabled={busyId === 'invite'}
             >
-              Cancel
+              {t('teamCancel')}
             </button>
             <button
               type="submit"
               className="dashboard-pagination-button dashboard-pagination-button--primary"
               disabled={busyId === 'invite'}
             >
-              {busyId === 'invite' ? 'Sending…' : 'Send invitation'}
+              {busyId === 'invite' ? t('teamSending') : t('teamSendInvitation')}
             </button>
           </div>
         </form>
@@ -658,12 +669,8 @@ export function TeamMembersPage(props: {
 
   const editModal =
     modal === 'edit' && editingMembership ? (
-      <DashboardInlineModal
-        isOpen
-        ariaLabel="Edit organization membership"
-        onRequestClose={closeModal}
-      >
-        <h2>Edit membership</h2>
+      <DashboardInlineModal isOpen ariaLabel={t('teamEditModalAria')} onRequestClose={closeModal}>
+        <h2>{t('teamEditMembership')}</h2>
         <p className="dashboard-pagination-note">{editingMembership.email}</p>
         <form className="dashboard-view-grid" onSubmit={submitMembership}>
           <GrantEditor
@@ -676,9 +683,7 @@ export function TeamMembersPage(props: {
             onChange={setEditingGrant}
           />
           {editingMembership.userId === session.claims?.userId ? (
-            <p className="dashboard-pagination-note">
-              Use “Leave organization” in account settings to change your own membership.
-            </p>
+            <p className="dashboard-pagination-note">{t('teamUseLeaveOrganization')}</p>
           ) : null}
           {mutationError ? (
             <p className="dashboard-form-alert" role="alert">
@@ -691,7 +696,7 @@ export function TeamMembersPage(props: {
               className="dashboard-pagination-button dashboard-pagination-button--secondary"
               onClick={closeModal}
             >
-              Cancel
+              {t('teamCancel')}
             </button>
             <button
               type="submit"
@@ -701,7 +706,7 @@ export function TeamMembersPage(props: {
                 editingMembership.userId === session.claims?.userId
               }
             >
-              {busyId === editingMembership.id ? 'Saving…' : 'Save'}
+              {busyId === editingMembership.id ? t('teamSaving') : t('teamSave')}
             </button>
           </div>
         </form>
@@ -709,10 +714,7 @@ export function TeamMembersPage(props: {
     ) : null;
 
   return (
-    <div
-      className="dashboard-view dashboard-team-members-view"
-      aria-label="Organization team management page"
-    >
+    <div className="dashboard-view dashboard-team-members-view" aria-label={t('teamPageAria')}>
       <section className="dashboard-team-members-view__intro">
         <DashboardPageActions>
           <button
@@ -721,13 +723,12 @@ export function TeamMembersPage(props: {
             onClick={openInviteModal}
             disabled={!canManageMembers}
           >
-            Invite member
+            {t('teamInviteMember')}
           </button>
         </DashboardPageActions>
         {ownerCount < 2 ? (
           <p className="dashboard-form-alert dashboard-form-alert--notice" role="status">
-            Add a second owner to protect organization access if the current owner becomes
-            unavailable.
+            {t('teamAddSecondOwner')}
           </p>
         ) : null}
         {mutationError && !modal ? (
@@ -737,8 +738,7 @@ export function TeamMembersPage(props: {
         ) : null}
         {scope ? (
           <p className="dashboard-pagination-note">
-            Members with access to {scope.label} projects. Owners and administrators reach every
-            project. Roles and memberships are organization-wide.
+            {t('teamScopeNote', { label: scope.label })}
             {outsideScopeCount > 0 ? (
               <>
                 {' '}
@@ -748,8 +748,8 @@ export function TeamMembersPage(props: {
                   onClick={() => setShowOutsideScope((current) => !current)}
                 >
                   {showOutsideScope
-                    ? `Hide people without ${scope.label} access`
-                    : `Show ${outsideScopeCount} more without ${scope.label} access`}
+                    ? t('teamHideOutsideScope', { label: scope.label })
+                    : t('teamShowOutsideScope', { count: outsideScopeCount, label: scope.label })}
                 </button>
               </>
             ) : null}
@@ -758,9 +758,7 @@ export function TeamMembersPage(props: {
       </section>
 
       {!canOpenTeamPage && !session.loading ? (
-        <DashboardTableState>
-          Team administration requires owner access or an administrator permission.
-        </DashboardTableState>
+        <DashboardTableState>{t('teamAdminRequiresAccess')}</DashboardTableState>
       ) : (
         <>
           <section className="dashboard-team-members-view__members">
@@ -768,30 +766,30 @@ export function TeamMembersPage(props: {
               <span className="dashboard-search-icon" aria-hidden="true" />
               <input
                 type="search"
-                aria-label="Search memberships"
-                placeholder="Search members"
+                aria-label={t('teamSearchMembershipsAria')}
+                placeholder={t('teamSearchMembers')}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>
             <DashboardTable
-              ariaLabel="Organization memberships"
+              ariaLabel={t('teamMembershipsAria')}
               className="dashboard-team-members-table"
               columns={MEMBERSHIP_COLUMNS}
               pagination={pagination.pagination}
             >
               <DashboardTableHeader className="dashboard-team-members-table__row">
-                <DashboardTableHeaderCell>Member</DashboardTableHeaderCell>
-                <DashboardTableHeaderCell>Access</DashboardTableHeaderCell>
-                <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
-                <DashboardTableHeaderCell>Actions</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('teamColMember')}</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('teamColAccess')}</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('teamColStatus')}</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('teamColActions')}</DashboardTableHeaderCell>
               </DashboardTableHeader>
               {loading || session.loading ? (
-                <DashboardTableSkeletonRows label="Loading memberships" columns={4} />
+                <DashboardTableSkeletonRows label={t('teamLoadingMemberships')} columns={4} />
               ) : errorMessage ? (
                 <DashboardTableState>{errorMessage}</DashboardTableState>
               ) : pagination.rows.length === 0 ? (
-                <DashboardTableState>No memberships matched.</DashboardTableState>
+                <DashboardTableState>{t('teamNoMembershipsMatched')}</DashboardTableState>
               ) : (
                 pagination.rows.map((membership) => {
                   const self = membership.userId === session.claims?.userId;
@@ -843,20 +841,20 @@ export function TeamMembersPage(props: {
                             onClick={() => openEditModal(membership)}
                             disabled={!canEditTarget || membership.kind === 'removed'}
                           >
-                            Edit
+                            {t('teamEdit')}
                           </DashboardTableActionButton>
                           <DashboardTableActionMenu
-                            ariaLabel={`More actions for ${membership.email}`}
+                            ariaLabel={t('teamMoreActionsFor', { email: membership.email })}
                             items={[
                               membership.kind === 'suspended'
                                 ? {
-                                    label: 'Reactivate',
+                                    label: t('teamReactivate'),
                                     onSelect: () =>
                                       mutateMembershipLifecycle(membership, 'reactivate'),
                                     disabled: !canManageMembers || busyId === membership.id,
                                   }
                                 : {
-                                    label: 'Suspend',
+                                    label: t('teamSuspend'),
                                     onSelect: () =>
                                       mutateMembershipLifecycle(membership, 'suspend'),
                                     disabled:
@@ -867,7 +865,7 @@ export function TeamMembersPage(props: {
                                       busyId === membership.id,
                                   },
                               {
-                                label: 'Remove',
+                                label: t('teamRemove'),
                                 onSelect: () => mutateMembershipLifecycle(membership, 'remove'),
                                 tone: 'danger',
                                 disabled:
@@ -890,26 +888,28 @@ export function TeamMembersPage(props: {
 
           <section className="dashboard-team-members-view__invitations">
             <div className="dashboard-team-members-view__section-heading">
-              <h2>Pending invitations</h2>
-              <p className="dashboard-pagination-note">
-                Invitations expire after seven days and create membership only after acceptance.
-              </p>
+              <h2>{t('teamPendingInvitations')}</h2>
+              <p className="dashboard-pagination-note">{t('teamInvitationsExpire')}</p>
             </div>
             <DashboardTable
-              ariaLabel="Pending organization invitations"
+              ariaLabel={t('teamPendingInvitationsAria')}
               className="dashboard-team-members-table"
               columns={INVITATION_COLUMNS}
             >
               <DashboardTableHeader className="dashboard-team-members-table__row">
-                <DashboardTableHeaderCell>Invitee</DashboardTableHeaderCell>
-                <DashboardTableHeaderCell>Access</DashboardTableHeaderCell>
-                <DashboardTableHeaderCell>Expires</DashboardTableHeaderCell>
-                <DashboardTableHeaderCell>Actions</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('teamColInvitee')}</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('teamColAccess')}</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('teamColExpires')}</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('teamColActions')}</DashboardTableHeaderCell>
               </DashboardTableHeader>
               {loading ? (
-                <DashboardTableSkeletonRows label="Loading invitations" columns={4} rows={2} />
+                <DashboardTableSkeletonRows
+                  label={t('teamLoadingInvitations')}
+                  columns={4}
+                  rows={2}
+                />
               ) : visibleInvitations.length === 0 ? (
-                <DashboardTableState>No pending invitations.</DashboardTableState>
+                <DashboardTableState>{t('teamNoPendingInvitations')}</DashboardTableState>
               ) : (
                 visibleInvitations.map((invitation) => (
                   <DashboardTableRow
@@ -948,13 +948,13 @@ export function TeamMembersPage(props: {
                           onClick={() => mutateInvitation(invitation, 'resend')}
                           disabled={!canManageMembers || busyId === invitation.id}
                         >
-                          Resend
+                          {t('teamResend')}
                         </DashboardTableActionButton>
                         <DashboardTableActionMenu
-                          ariaLabel={`More actions for invitation ${invitation.email}`}
+                          ariaLabel={t('teamMoreActionsForInvitation', { email: invitation.email })}
                           items={[
                             {
-                              label: 'Revoke',
+                              label: t('teamRevoke'),
                               onSelect: () => mutateInvitation(invitation, 'revoke'),
                               tone: 'danger',
                               disabled: !canManageMembers || busyId === invitation.id,

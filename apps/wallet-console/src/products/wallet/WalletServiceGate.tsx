@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { useDashboardConsoleSession } from '@core/dashboard/consoleSession';
 import { DashboardLoadingState } from '@core/dashboard/components/DashboardLoadingState';
 import { requireConsoleBaseUrl } from '@core/dashboard/consoleHttp';
@@ -61,9 +62,7 @@ export function writeStoredOperation(key: string, operation: ServiceOperation): 
   try {
     window.sessionStorage.setItem(key, JSON.stringify(operation));
   } catch {
-    throw new Error(
-      'This browser could not save Wallet setup progress. Allow site storage and retry.',
-    );
+    throw new Error(t('walletGateStorageFailed'));
   }
 }
 
@@ -124,9 +123,7 @@ class WalletSetup {
       if (service.kind === 'provisioning') {
         this.polls += 1;
         if (this.polls >= 60) {
-          throw new Error(
-            'Wallet setup is taking longer than expected. Retry to check its progress.',
-          );
+          throw new Error(t('walletGateSlow'));
         }
         setState({ kind: 'enabling' });
         this.timer = window.setTimeout(this.load.bind(this, false), 1000);
@@ -140,7 +137,7 @@ class WalletSetup {
       if (this.cancellation.signal.aborted) return;
       setState({
         kind: 'failed',
-        message: error instanceof Error ? error.message : 'Wallet setup could not be completed.',
+        message: error instanceof Error ? error.message : t('walletGateIncomplete'),
       });
     }
   }
@@ -160,17 +157,17 @@ function nextAttempt(attempt: number): number {
 function setupDescription(service: ServiceStatus): string {
   switch (service.kind) {
     case 'absent':
-      return 'An organization owner or administrator with project management access must open this project to finish Wallet setup.';
+      return t('walletGateAbsent');
     case 'disabled':
-      return 'Wallet access is disabled for this project. Contact your organization administrator.';
+      return t('walletGateDisabled');
     case 'failed':
-      return 'Wallet setup failed. Retry to check its progress.';
+      return t('walletGateFailed');
     case 'archived':
-      return 'This Wallet instance is archived. Select another project to continue.';
+      return t('walletGateArchived');
     case 'active':
-      return 'Select a Wallet environment to continue.';
+      return t('walletGateSelectEnvironment');
     case 'provisioning':
-      return 'Wallet setup is in progress.';
+      return t('walletGateInProgress');
     default:
       return assertNever(service);
   }
@@ -197,28 +194,28 @@ function WalletProjectSetup({
   switch (state.kind) {
     case 'loading':
     case 'enabling':
-      return <DashboardLoadingState title="Preparing Wallet..." />;
+      return <DashboardLoadingState title={t('walletGatePreparing')} />;
     case 'failed':
       return (
         <section className="dashboard-view__section">
-          <h2>Wallet setup unavailable</h2>
+          <h2>{t('walletGateSetupUnavailable')}</h2>
           <p role="alert">{state.message}</p>
           <button type="button" className="dashboard-pagination-button" onClick={retry}>
-            Retry setup
+            {t('walletGateRetry')}
           </button>
         </section>
       );
     case 'ready':
       if (state.service.kind === 'active') {
         if (selected.environment) return <>{children}</>;
-        return <DashboardLoadingState title="Loading Wallet environments..." />;
+        return <DashboardLoadingState title={t('walletGateLoadingEnvironments')} />;
       }
       return (
         <section className="dashboard-view__section">
-          <h2>Wallet unavailable</h2>
+          <h2>{t('walletGateUnavailable')}</h2>
           <p>{setupDescription(state.service)}</p>
           <button type="button" className="dashboard-pagination-button" onClick={retry}>
-            Check again
+            {t('walletGateCheckAgain')}
           </button>
         </section>
       );
@@ -231,7 +228,7 @@ export function WalletServiceGate({ children }: { children: React.ReactNode }): 
   const { claims } = useDashboardConsoleSession();
   const selected = useDashboardSelectedContext();
   if (!claims || !selected.project) {
-    return <DashboardLoadingState title="Loading project..." />;
+    return <DashboardLoadingState title={t('walletGateLoadingProject')} />;
   }
   const canEnable =
     claims.role === 'OWNER' ||

@@ -3,6 +3,7 @@ import { LoaderCircle, RefreshCw } from 'lucide-react';
 import { useDashboardConsoleSession } from '@core/dashboard/consoleSession';
 import { useDashboardSelectedContext } from '@core/dashboard/selectedContext';
 import { requireConsoleBaseUrl } from '@core/dashboard/consoleHttp';
+import { t } from '@core/i18n';
 import { createDerivationRoot } from './consoleDerivationRootApi';
 
 type CreationState =
@@ -36,10 +37,7 @@ async function submitCreation(
     setState({
       kind: 'error',
       action: 'creation',
-      message:
-        error instanceof Error
-          ? error.message
-          : 'Creation could not be confirmed. Retry to resume.',
+      message: error instanceof Error ? error.message : t('derivationCreationUnconfirmed'),
     });
   } finally {
     busy.current = false;
@@ -61,7 +59,7 @@ async function submitRefresh(
     setState({
       kind: 'error',
       action: 'refresh',
-      message: error instanceof Error ? error.message : 'The latest status could not be loaded.',
+      message: error instanceof Error ? error.message : t('derivationStatusLoadFailed'),
     });
   } finally {
     busy.current = false;
@@ -91,10 +89,10 @@ function CreationButton({
             <LoaderCircle className="derivation-root-spinner" size={16} aria-hidden="true" />
           )}
           {state.kind === 'creating'
-            ? 'Creating derivation root…'
+            ? t('derivationCreatingRoot')
             : state.kind === 'error' && state.action === 'creation'
-              ? 'Retry creation'
-              : 'Create derivation root'}
+              ? t('derivationRetryCreation')
+              : t('derivationCreateRoot')}
         </button>
         <button
           type="button"
@@ -107,24 +105,24 @@ function CreationButton({
             size={16}
             aria-hidden="true"
           />
-          {state.kind === 'refreshing' ? 'Refreshing…' : 'Refresh'}
+          {state.kind === 'refreshing' ? t('derivationRefreshing') : t('derivationRefresh')}
         </button>
       </div>
       {state.kind === 'creating' && (
         <div className="derivation-root-create-feedback" role="status" aria-live="polite">
           <LoaderCircle className="derivation-root-spinner" size={17} aria-hidden="true" />
-          <p>Creating your derivation root. This may take a moment.</p>
+          <p>{t('derivationCreatingRootFeedback')}</p>
         </div>
       )}
       {state.kind === 'refreshing' && (
         <div className="derivation-root-create-feedback" role="status" aria-live="polite">
           <LoaderCircle className="derivation-root-spinner" size={17} aria-hidden="true" />
-          <p>Checking the latest root status…</p>
+          <p>{t('derivationCheckingRootStatus')}</p>
         </div>
       )}
       {state.kind === 'refreshed' && (
         <p className="derivation-root-create-note" role="status" aria-live="polite">
-          Status refreshed. No derivation root is active yet.
+          {t('derivationStatusRefreshedNoRoot')}
         </p>
       )}
       {state.kind === 'error' && (
@@ -147,20 +145,13 @@ export function CreateDerivationRoot({
   const selection = useDashboardSelectedContext();
   if (!claims || !selection.project || !selection.environment)
     return (
-      <p className="derivation-root-empty-guidance">
-        Select an environment to create its derivation root.
-      </p>
+      <p className="derivation-root-empty-guidance">{t('derivationSelectEnvironmentToCreate')}</p>
     );
   if (
     claims.role !== 'OWNER' &&
     !(claims.role === 'ADMIN' && claims.adminPermissions.includes('projects.manage'))
   ) {
-    return (
-      <p className="derivation-root-empty-guidance">
-        Ask an organization owner or an administrator with project management access to create this
-        root.
-      </p>
-    );
+    return <p className="derivation-root-empty-guidance">{t('derivationAskOwnerToCreate')}</p>;
   }
   const storageKey = `seams:tenant-root-creation:${JSON.stringify([requireConsoleBaseUrl(), claims.orgId, selection.project, selection.environment])}`;
   return <CreationButton key={storageKey} storageKey={storageKey} refresh={refresh} />;

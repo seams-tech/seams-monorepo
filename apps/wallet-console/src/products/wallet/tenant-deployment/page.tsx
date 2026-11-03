@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { CircleCheck, ShieldCheck } from 'lucide-react';
 import { decodeTenantDeploymentPublicProjectionV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import { useDashboardConsoleSession } from '@core/dashboard/consoleSession';
@@ -51,12 +52,12 @@ async function waitForWalletAccess(
       case 'disabled':
       case 'archived':
       case 'failed':
-        throw new Error('Wallet access could not be refreshed. Check the project service status.');
+        throw new Error(t('walletDeployAccessRefreshFailed'));
       default:
         return assertNeverStatus(service);
     }
   }
-  throw new Error('Wallet access is still being prepared. Retry to check its progress.');
+  throw new Error(t('walletDeployAccessPreparing'));
 }
 
 async function refreshLiveWalletAccess(
@@ -92,7 +93,7 @@ async function refreshLiveWalletAccess(
       case 'disabled':
       case 'archived':
       case 'failed':
-        throw new Error('Only an active Wallet service can refresh live access.');
+        throw new Error(t('walletDeployOnlyActiveService'));
       default:
         return assertNeverStatus(service);
     }
@@ -101,22 +102,17 @@ async function refreshLiveWalletAccess(
     const environments = await listDashboardEnvironments({ projectId });
     const production = environments.find(isProductionEnvironment);
     if (!production || production.status === 'ARCHIVED') {
-      throw new Error(
-        'The production environment is unavailable. Check the project service status.',
-      );
+      throw new Error(t('walletDeployProductionUnavailable'));
     }
     if (production.status !== 'ACTIVE') {
-      throw new Error(
-        'Live Wallet access requires prepaid credit. Add credits, then refresh access.',
-      );
+      throw new Error(t('walletDeployNeedsCredit'));
     }
     window.dispatchEvent(new Event(DASHBOARD_ENVIRONMENTS_UPDATED_EVENT));
     setState({ kind: 'ready' });
   } catch (error: unknown) {
     setState({
       kind: 'error',
-      message:
-        error instanceof Error ? error.message : 'Live Wallet access could not be refreshed.',
+      message: error instanceof Error ? error.message : t('walletDeployLiveRefreshFailed'),
     });
   }
 }
@@ -132,8 +128,8 @@ function LiveWalletAccessControl(props: {
   const [state, setState] = React.useState<LiveAccessState>({ kind: 'idle' });
   return (
     <section className="tenant-deployment-section" aria-labelledby="live-wallet-access-title">
-      <h2 id="live-wallet-access-title">Live Wallet access</h2>
-      <p>After you add prepaid credits, refresh access to enable production for this project.</p>
+      <h2 id="live-wallet-access-title">{t('walletDeployLiveTitle')}</h2>
+      <p>{t('walletDeployLiveDescription')}</p>
       <button
         type="button"
         className="dashboard-pagination-button"
@@ -145,9 +141,9 @@ function LiveWalletAccessControl(props: {
           setState,
         )}
       >
-        {state.kind === 'pending' ? 'Refreshing live access…' : 'Refresh live Wallet access'}
+        {state.kind === 'pending' ? t('walletDeployLiveRefreshing') : t('walletDeployLiveRefresh')}
       </button>
-      {state.kind === 'ready' ? <p role="status">Live Wallet access is enabled.</p> : null}
+      {state.kind === 'ready' ? <p role="status">{t('walletDeployLiveEnabled')}</p> : null}
       {state.kind === 'error' ? <p role="alert">{state.message}</p> : null}
     </section>
   );
@@ -198,10 +194,10 @@ async function loadDeploymentStatus(input: {
     return { kind: 'unavailable', environmentId: input.environmentId };
   }
   if (!projectionResponse.ok) {
-    throw new Error('The active deployment projection is unavailable.');
+    throw new Error(t('walletDeployProjectionUnavailable'));
   }
   const decoded = decodeTenantDeploymentPublicProjectionV1(raw);
-  if (!decoded.ok) throw new Error('The active deployment projection is invalid.');
+  if (!decoded.ok) throw new Error(t('walletDeployProjectionInvalid'));
   const projection = decoded.value;
   if (projection.environmentId !== input.environmentId) {
     return {
@@ -244,7 +240,7 @@ function StatusValue(props: { readonly label: string; readonly value: string }):
   return (
     <div className="tenant-deployment-status-value">
       <dt>{props.label}</dt>
-      <dd>{props.value || 'Unavailable'}</dd>
+      <dd>{props.value || t('walletDeployUnavailableValue')}</dd>
     </div>
   );
 }
@@ -260,33 +256,33 @@ function DeploymentStatusNotice({
 }): React.JSX.Element | null {
   switch (status.kind) {
     case 'loading':
-      return <p role="status">Loading deployment evidence…</p>;
+      return <p role="status">{t('walletDeployLoadingEvidence')}</p>;
     case 'error':
       return <p role="alert">{status.message}</p>;
     case 'unavailable':
       return (
-        <section className="tenant-deployment-section" aria-label="Deployment unavailable">
-          <h2>Deployment unavailable</h2>
-          <p>The gateway cannot serve a verified deployment.</p>
+        <section
+          className="tenant-deployment-section"
+          aria-label={t('walletDeployUnavailableTitle')}
+        >
+          <h2>{t('walletDeployUnavailableTitle')}</h2>
+          <p>{t('walletDeployUnavailableGateway')}</p>
           <p>
-            Selected environment: <code>{status.environmentId}</code>
+            {t('walletDeploySelectedEnvironment')} <code>{status.environmentId}</code>
           </p>
-          <p>Ask an operator to check activation, deployment data, and gateway configuration.</p>
+          <p>{t('walletDeployUnavailableAsk')}</p>
         </section>
       );
     case 'environment_mismatch':
       return (
-        <section className="tenant-deployment-section" aria-label="Gateway environment mismatch">
-          <h2>Gateway environment mismatch</h2>
+        <section className="tenant-deployment-section" aria-label={t('walletDeployMismatchTitle')}>
+          <h2>{t('walletDeployMismatchTitle')}</h2>
+          <p>{t('walletDeployMismatchBody')}</p>
           <p>
-            This gateway serves a different environment. Ask an operator to check the deployment
-            assignment.
+            {t('walletDeploySelectedEnvironment')} <code>{status.environmentId}</code>
           </p>
           <p>
-            Selected environment: <code>{status.environmentId}</code>
-          </p>
-          <p>
-            Active environment: <code>{status.activeEnvironmentId}</code>
+            {t('walletDeployActiveEnvironment')} <code>{status.activeEnvironmentId}</code>
           </p>
         </section>
       );
@@ -324,7 +320,7 @@ export function TenantDeploymentPage(): React.JSX.Element {
         if (!cancelled) {
           setStatus({
             kind: 'error',
-            message: error instanceof Error ? error.message : 'Deployment status is unavailable.',
+            message: error instanceof Error ? error.message : t('walletDeployStatusUnavailable'),
           });
         }
       });
@@ -336,8 +332,8 @@ export function TenantDeploymentPage(): React.JSX.Element {
   if (!session.claims || !isOwner) {
     return (
       <section className="dashboard-page tenant-deployment-page">
-        <h1>Deployment status</h1>
-        <p role="alert">Only organization owners can view deployment status and audit evidence.</p>
+        <h1>{t('walletDeployTitle')}</h1>
+        <p role="alert">{t('walletDeployOwnersOnly')}</p>
       </section>
     );
   }
@@ -345,11 +341,13 @@ export function TenantDeploymentPage(): React.JSX.Element {
   return (
     <section className="dashboard-page tenant-deployment-page">
       <header className="tenant-deployment-header">
-        <p className="tenant-deployment-eyebrow">Owner view</p>
-        <h1>Deployment status</h1>
+        <p className="tenant-deployment-eyebrow">{t('walletDeployOwnerView')}</p>
+        <h1>{t('walletDeployTitle')}</h1>
         <p>
-          Read-only evidence for {selectedContextDisplay.project} ·{' '}
-          {selectedContextDisplay.environment}. Cutovers run from the protected repository workflow.
+          {t('walletDeployReadOnly', {
+            project: selectedContextDisplay.project,
+            environment: selectedContextDisplay.environment,
+          })}
         </p>
       </header>
 
@@ -360,7 +358,7 @@ export function TenantDeploymentPage(): React.JSX.Element {
           onClick={refresh}
           disabled={status.kind === 'loading'}
         >
-          Refresh deployment status
+          {t('walletDeployRefresh')}
         </button>
       </DashboardPageActions>
       <LiveWalletAccessControl
@@ -376,7 +374,7 @@ export function TenantDeploymentPage(): React.JSX.Element {
               <CircleCheck size={20} aria-hidden="true" />
             </span>
             <div>
-              <strong>Active and verified</strong>
+              <strong>{t('walletDeployActiveVerified')}</strong>
               <span>{status.revision}</span>
             </div>
           </div>
@@ -386,26 +384,35 @@ export function TenantDeploymentPage(): React.JSX.Element {
                 <ShieldCheck size={18} aria-hidden="true" />
               </span>
               <div>
-                <h2 id="binding-status-title">Immutable binding</h2>
-                <p>The active tenant identity, origins, and canary receipt are audit-only here.</p>
+                <h2 id="binding-status-title">{t('walletDeployBindingTitle')}</h2>
+                <p>{t('walletDeployBindingDescription')}</p>
               </div>
             </div>
             <dl className="tenant-deployment-status-grid">
-              <StatusValue label="Environment ID" value={status.environmentId} />
-              <StatusValue label="Mode" value={status.mode} />
-              <StatusValue label="Application origin" value={status.applicationOrigin} />
-              <StatusValue label="Hosted wallet origin" value={status.hostedWalletOrigin} />
-              <StatusValue label="Gateway origin" value={status.gatewayOrigin} />
-              <StatusValue label="Passkey relying party" value={status.relyingPartyId} />
+              <StatusValue label={t('walletDeployEnvironmentId')} value={status.environmentId} />
+              <StatusValue label={t('walletDeployMode')} value={status.mode} />
               <StatusValue
-                label="Activation"
+                label={t('walletDeployApplicationOrigin')}
+                value={status.applicationOrigin}
+              />
+              <StatusValue
+                label={t('walletDeployHostedWalletOrigin')}
+                value={status.hostedWalletOrigin}
+              />
+              <StatusValue label={t('walletDeployGatewayOrigin')} value={status.gatewayOrigin} />
+              <StatusValue label={t('walletDeployRelyingParty')} value={status.relyingPartyId} />
+              <StatusValue
+                label={t('walletDeployActivation')}
                 value={
                   status.activatedAt && status.activationSequence
                     ? `#${status.activationSequence} · ${status.activatedAt}`
                     : ''
                 }
               />
-              <StatusValue label="Canary receipt digest" value={status.canaryDigest ?? ''} />
+              <StatusValue
+                label={t('walletDeployCanaryDigest')}
+                value={status.canaryDigest ?? ''}
+              />
             </dl>
           </section>
         </>

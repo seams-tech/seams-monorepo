@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { CopyButton } from '@core/components/CopyButton';
 import { DashboardInlineModal } from '../../components/DashboardInlineModal';
 
@@ -31,28 +32,30 @@ function WebhookSecretRevealBody(props: {
   return (
     <>
       <div className="dashboard-modal__header">
-        <h2 id={REVEAL_SECRET_TITLE_ID}>{created ? 'Endpoint added' : 'Signing secret rotated'}</h2>
+        <h2 id={REVEAL_SECRET_TITLE_ID}>
+          {created ? t('webhooksEndpointAdded') : t('webhooksSecretRotated')}
+        </h2>
       </div>
 
       <p className="dashboard-modal__lede">
-        Copy the signing secret for <code>{reveal.endpointUrl}</code> now. Seams stores it encrypted
-        and cannot show it again — if you lose it, rotate to mint a replacement.
+        {t('webhooksCopySecretPre')}
+        <code>{reveal.endpointUrl}</code>
+        {t('webhooksCopySecretPost')}
       </p>
 
       <div className="dashboard-webhook-secret">
         <span className="dashboard-webhook-secret__label">
-          Signing secret <span aria-hidden="true">·</span> v{reveal.secretVersion}
+          {t('webhooksSigningSecret')} <span aria-hidden="true">·</span> v{reveal.secretVersion}
         </span>
         <div className="dashboard-webhook-secret__value">
           <code>{reveal.signingSecret}</code>
-          <CopyButton text={reveal.signingSecret} ariaLabel="Copy webhook signing secret" />
+          <CopyButton text={reveal.signingSecret} ariaLabel={t('webhooksCopySecretAria')} />
         </div>
       </div>
 
       {!created ? (
         <p className="dashboard-form-alert" role="alert">
-          Deliveries are signed with the new secret from now on. Update your handler before the next
-          event, or its signature check will fail.
+          {t('webhooksRotatedWarning')}
         </p>
       ) : null}
 
@@ -62,7 +65,7 @@ function WebhookSecretRevealBody(props: {
           className="dashboard-pagination-button dashboard-pagination-button--primary"
           onClick={onRequestClose}
         >
-          I&rsquo;ve saved it
+          {t('webhooksSavedIt')}
         </button>
       </div>
     </>
@@ -74,7 +77,7 @@ export function WebhookSecretRevealModal(props: WebhookSecretRevealModalProps): 
   return (
     <DashboardInlineModal
       isOpen={Boolean(reveal)}
-      ariaLabel="Webhook signing secret"
+      ariaLabel={t('webhooksSecretAria')}
       ariaLabelledBy={REVEAL_SECRET_TITLE_ID}
       onRequestClose={onRequestClose}
     >

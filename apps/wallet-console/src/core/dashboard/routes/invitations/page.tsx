@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import SeamsWordmark from '@core/components/SeamsWordmark';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import {
@@ -41,12 +42,12 @@ function initialInvitationState(): InvitationPageState {
       ? { kind: 'checking', invitation }
       : {
           kind: 'invalid',
-          message: 'This invitation link is incomplete. Open the link from your email.',
+          message: t('invitationLinkIncomplete'),
         };
   } catch {
     return {
       kind: 'invalid',
-      message: 'Allow session storage in this browser, then open the invitation link again.',
+      message: t('invitationAllowSessionStorage'),
     };
   }
 }
@@ -76,8 +77,7 @@ async function resolveInvitationSession(
       setState({
         kind: 'failed',
         invitation,
-        message:
-          error instanceof Error ? error.message : 'Unable to check your sign-in. Try again.',
+        message: error instanceof Error ? error.message : t('invitationCheckSignInFailed'),
       });
     }
   }
@@ -122,7 +122,7 @@ async function useAnotherAccount(
     setState({
       kind: 'failed',
       invitation,
-      message: error instanceof Error ? error.message : 'Unable to sign out. Try again.',
+      message: error instanceof Error ? error.message : t('invitationSignOutFailed'),
     });
   }
 }
@@ -153,15 +153,15 @@ function InvitationActions({
         </p>
       );
     case 'checking':
-      return <p role="status">Checking your sign-in...</p>;
+      return <p role="status">{t('invitationCheckingSignIn')}</p>;
     case 'signed_out':
       return (
         <a className="dashboard-login__auth-button" href={consoleSessionHref('/dashboard/login')}>
-          Sign in to accept
+          {t('invitationSignInToAccept')}
         </a>
       );
     case 'accepting':
-      return <p role="status">Accepting invitation...</p>;
+      return <p role="status">{t('invitationAccepting')}</p>;
     case 'ready':
     case 'failed':
       return (
@@ -176,14 +176,14 @@ function InvitationActions({
             className="dashboard-login__auth-button"
             onClick={acceptInvitation.bind(null, state.invitation, setState, go)}
           >
-            Accept invitation
+            {t('invitationAccept')}
           </button>
           <button
             type="button"
             className="dashboard-pagination-button dashboard-pagination-button--secondary"
             onClick={useAnotherAccount.bind(null, state.invitation, setState, go)}
           >
-            Use another account
+            {t('invitationUseAnotherAccount')}
           </button>
         </>
       );
@@ -199,20 +199,22 @@ export function InvitationAcceptancePage(): React.JSX.Element {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- The bound function contains the full effect input.
   React.useEffect(checkInvitationSession.bind(null, invitation, setState), [invitation]);
   return (
-    <main className="dashboard-login dashboard-invitation" aria-label="Invitation acceptance page">
+    <main className="dashboard-login dashboard-invitation" aria-label={t('invitationPageAria')}>
       <section className="dashboard-login__panel">
-        <a className="dashboard-login__brand" href="https://seams.sh/" aria-label="Seams home">
+        <a
+          className="dashboard-login__brand"
+          href="https://seams.sh/"
+          aria-label={t('invitationSeamsHomeAria')}
+        >
           <SeamsWordmark height={24} />
           <span className="dashboard-login__brand-label">Console</span>
         </a>
         <div className="dashboard-login__body">
           <div className="dashboard-login__form">
             <div className="dashboard-login__form-header">
-              <h1>Join your team</h1>
+              <h1>{t('invitationJoinTeam')}</h1>
             </div>
-            <p className="dashboard-login__form-copy">
-              Sign in with the Google or GitHub account that received this invitation.
-            </p>
+            <p className="dashboard-login__form-copy">{t('invitationSignInWithAccount')}</p>
             <div className="dashboard-login__provider-buttons">
               <InvitationActions state={state} setState={setState} go={go} />
               <button
@@ -220,7 +222,7 @@ export function InvitationAcceptancePage(): React.JSX.Element {
                 className="dashboard-inline-link"
                 onClick={leaveInvitation.bind(null, go)}
               >
-                Go to console
+                {t('invitationGoToConsole')}
               </button>
             </div>
           </div>

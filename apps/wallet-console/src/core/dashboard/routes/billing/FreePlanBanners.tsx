@@ -1,4 +1,5 @@
 import React from 'react';
+import { consoleLocale, t } from '@core/i18n';
 import { ArrowRight, Building2, Sprout, TrendingUp } from 'lucide-react';
 import { GrainField } from '@seams-internal/grain-field';
 import { useSiteRouter } from '@core/router/useSiteRouter';
@@ -41,7 +42,7 @@ function removeCardSetupReturn(): void {
 }
 
 function utcDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
+  return new Date(iso).toLocaleDateString(consoleLocale, {
     timeZone: 'UTC',
     year: 'numeric',
     month: 'long',
@@ -51,22 +52,22 @@ function utcDate(iso: string): string {
 
 function limitLabel(limit: DashboardFreePlanLimit): string {
   return limit === 'active_users'
-    ? '300 production monthly active users'
-    : '30,000 production signatures';
+    ? t('platformBillingLimitUsers')
+    : t('platformBillingLimitSignatures');
 }
 
 function bannerMessage(banner: Exclude<DashboardFreePlanBanner, { kind: 'growth_move' }>): string {
   switch (banner.kind) {
     case 'card_due':
-      return `Add a card by ${utcDate(banner.deadlineAt)} to keep production running. We do not charge it while you stay inside the Free limits.`;
+      return t('platformBillingBannerCardDue', { date: utcDate(banner.deadlineAt) });
     case 'card_required':
-      return 'Production is paused until you add a card. Recovery and key export stay open. Development environments keep working.';
+      return t('platformBillingBannerCardRequired');
     case 'free_limit_warning':
       return banner.cardOnFile
-        ? `You used 80% of a Free limit (${limitLabel(banner.limit)}). You will move to Growth at the limit.`
-        : `You used 80% of a Free limit (${limitLabel(banner.limit)}). Add a card before the limit, or production sign-ups and signing stop.`;
+        ? t('platformBillingBannerWarningCard', { limit: limitLabel(banner.limit) })
+        : t('platformBillingBannerWarningNoCard', { limit: limitLabel(banner.limit) });
     case 'free_limit_reached':
-      return `Production sign-ups or signing are paused: you reached ${limitLabel(banner.limit)}. Review your card and billing eligibility to start Growth.`;
+      return t('platformBillingBannerLimitReached', { limit: limitLabel(banner.limit) });
   }
 }
 
@@ -79,35 +80,61 @@ function needsCard(banner: DashboardFreePlanBanner): boolean {
   );
 }
 
+/** The state of a card that is not usable, as people read it. */
+export function describeCardState(kind: 'expired' | 'removed'): string {
+  return kind === 'expired' ? t('platformBillingCardExpired') : t('platformBillingCardRemoved');
+}
+
+/** "Visa ending 4242", with the card state added for a card that is not usable. */
+export function describeCardEnding(
+  card: Exclude<DashboardBillingPlan['card'], { kind: 'none' }>,
+  brand: string,
+): string {
+  return card.kind === 'usable'
+    ? t('platformBillingCardEnding', { brand, last4: card.last4 })
+    : t('platformBillingCardEndingState', {
+        brand,
+        last4: card.last4,
+        state: describeCardState(card.kind),
+      });
+}
+
 function planSummary(plan: DashboardBillingPlan): string {
   const usage = plan.usage;
   const card =
     plan.card.kind === 'none'
-      ? 'no card on file'
-      : `${plan.card.brand} ending ${plan.card.last4}${plan.card.kind === 'usable' ? '' : ` (${plan.card.kind})`}`;
-  const name = dashboardPlanName(plan.plan);
-  const userLimit =
-    plan.plan === 'free' ? ` of ${usage.limits.productionActiveUsers.toLocaleString('en-US')}` : '';
-  const signatureLimit =
-    plan.plan === 'free' ? ` of ${usage.limits.productionSignatures.toLocaleString('en-US')}` : '';
-  return `${name} plan, ${card}. Production this month: ${usage.productionActiveUsers.toLocaleString('en-US')}${userLimit} monthly active users, ${usage.productionSignatures.toLocaleString('en-US')}${signatureLimit} signatures.`;
+      ? t('platformBillingNoCardLower')
+      : describeCardEnding(plan.card, plan.card.brand);
+  const params = {
+    plan: dashboardPlanName(plan.plan),
+    card,
+    users: usage.productionActiveUsers.toLocaleString(consoleLocale),
+    signatures: usage.productionSignatures.toLocaleString(consoleLocale),
+  };
+  return plan.plan === 'free'
+    ? t('platformBillingPlanSummaryFree', {
+        ...params,
+        userLimit: usage.limits.productionActiveUsers.toLocaleString(consoleLocale),
+        signatureLimit: usage.limits.productionSignatures.toLocaleString(consoleLocale),
+      })
+    : t('platformBillingPlanSummaryPaid', params);
 }
 
 function freeSummaryMessage(plan: DashboardBillingPlan): string {
   if (plan.card.kind === 'usable') {
-    return '$0 a month. Your card is verified. Growth starts at $99 a month if you exceed a Free limit.';
+    return t('platformBillingFreeSummaryVerified');
   }
   // The card_due banner below the summary already gives this date.
-  if (plan.banners.some((banner) => banner.kind === 'card_due')) return '$0 a month.';
+  if (plan.banners.some((banner) => banner.kind === 'card_due'))
+    return t('platformBillingFreeSummaryBase');
   return plan.cardDeadlineAt
-    ? `$0 a month. Add a card by ${utcDate(plan.cardDeadlineAt)} to keep production running. We do not charge it inside the Free limits.`
-    : '$0 a month. Add a card to keep production running after the first 30 days.';
+    ? t('platformBillingFreeSummaryDeadline', { date: utcDate(plan.cardDeadlineAt) })
+    : t('platformBillingFreeSummaryAddCard');
 }
 
 function cardName(card: DashboardBillingPlan['card']): string {
-  if (card.kind === 'none') return 'No card on file';
-  const name = `${card.brand.charAt(0).toUpperCase()}${card.brand.slice(1)} ending ${card.last4}`;
-  return card.kind === 'usable' ? name : `${name} (${card.kind})`;
+  if (card.kind === 'none') return t('platformBillingNoCard');
+  return describeCardEnding(card, `${card.brand.charAt(0).toUpperCase()}${card.brand.slice(1)}`);
 }
 
 function PlanUsageStat(props: {
@@ -119,8 +146,11 @@ function PlanUsageStat(props: {
     <div>
       <dt>{props.label}</dt>
       <dd>
-        {props.used.toLocaleString('en-US')}
-        <span> of {props.limit.toLocaleString('en-US')}</span>
+        {props.used.toLocaleString(consoleLocale)}
+        <span>
+          {' '}
+          {t('platformBillingOfLimit', { limit: props.limit.toLocaleString(consoleLocale) })}
+        </span>
       </dd>
       <meter
         className="dashboard-plan-meter"
@@ -153,7 +183,7 @@ function AddCardButton(props: {
         void props.onAddCard();
       }}
     >
-      {props.starting ? 'Opening Stripe...' : 'Add a card'}
+      {props.starting ? t('platformBillingOpeningStripe') : t('platformBillingAddCard')}
     </button>
   );
 }
@@ -201,18 +231,18 @@ export function FreePlanBanners(props: {
     const status = params.get('card_setup');
     const checkoutSessionId = String(params.get('checkout_session_id') || '').trim();
     if (status === 'cancel') {
-      setMessage('Card setup was canceled. No card was added.');
+      setMessage(t('platformBillingCardSetupCanceled'));
       return;
     }
     if (status !== 'success' || !checkoutSessionId) return;
     if (reconciledRef.current === checkoutSessionId) return;
     reconciledRef.current = checkoutSessionId;
-    setMessage('Verifying your card...');
+    setMessage(t('platformBillingVerifyingCard'));
     void reconcileDashboardCardSetup(checkoutSessionId)
       .then((result) => {
         if (result.plan) setPlan(result.plan);
         if (!result.verified) {
-          setMessage('Stripe has not confirmed the card yet. Refresh in a moment.');
+          setMessage(t('platformBillingStripeNotConfirmed'));
           return;
         }
         if (props.variant === 'dashboard') removeCardSetupReturn();
@@ -225,11 +255,11 @@ export function FreePlanBanners(props: {
         }
         setMessage(
           started
-            ? `${dashboardPlanName(started.plan)} started. We charge your card after each month.`
-            : 'Your card is verified. Production uses it from now on.',
+            ? t('platformBillingPlanStarted', { plan: dashboardPlanName(started.plan) })
+            : t('platformBillingCardVerifiedUse'),
         );
       })
-      .catch(() => setMessage('Card verification is still pending. Refresh in a moment.'));
+      .catch(() => setMessage(t('platformBillingVerificationPending')));
   }, [props.search, props.variant]);
 
   const onAddCard = React.useCallback(async () => {
@@ -237,7 +267,7 @@ export function FreePlanBanners(props: {
     try {
       window.location.assign(await startDashboardCardSetup());
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Card setup failed to start.');
+      setMessage(error instanceof Error ? error.message : t('platformBillingCardSetupFailed'));
       setStarting(false);
     }
   }, []);
@@ -275,16 +305,24 @@ export function FreePlanBanners(props: {
   )
     return null;
   return (
-    <section className="dashboard-view__section dashboard-plan-notices" aria-label="Plan notices">
+    <section
+      className="dashboard-view__section dashboard-plan-notices"
+      aria-label={t('platformBillingNoticesAria')}
+    >
       {showFreeSummary && plan ? (
-        <section className="dashboard-plan-current" aria-label="Free plan summary">
+        <section
+          className="dashboard-plan-current"
+          aria-label={t('platformBillingFreeSummaryAria')}
+        >
           <div className="dashboard-plan-current__head">
             <span className="dashboard-plan-icon" aria-hidden="true">
               <GrainField field="onyx-black" playing={false} />
               <Sprout size={20} />
             </span>
             <div className="dashboard-plan-current__copy">
-              <span className="dashboard-plan-current__eyebrow">Current plan</span>
+              <span className="dashboard-plan-current__eyebrow">
+                {t('platformBillingCurrentPlan')}
+              </span>
               <h2 className="dashboard-plan-current__name">Free</h2>
               <p className="dashboard-plan-current__summary">{freeSummaryMessage(plan)}</p>
             </div>
@@ -293,7 +331,7 @@ export function FreePlanBanners(props: {
                 className="dashboard-pagination-button dashboard-plan-current__cta"
                 {...billingLink}
               >
-                Manage plan
+                {t('platformBillingManagePlan')}
               </a>
               {showAddCard ? (
                 <AddCardButton
@@ -306,22 +344,22 @@ export function FreePlanBanners(props: {
           </div>
           <dl className="dashboard-plan-current__stats">
             <PlanUsageStat
-              label="Active users this month"
+              label={t('platformBillingActiveUsersThisMonth')}
               used={plan.usage.productionActiveUsers}
               limit={plan.usage.limits.productionActiveUsers}
             />
             <PlanUsageStat
-              label="Signatures this month"
+              label={t('platformBillingSignaturesThisMonth')}
               used={plan.usage.productionSignatures}
               limit={plan.usage.limits.productionSignatures}
             />
             <div>
-              <dt>Card</dt>
+              <dt>{t('platformBillingCard')}</dt>
               <dd>{cardName(plan.card)}</dd>
             </div>
           </dl>
           <a className="dashboard-plan-current__link" {...quickstartLink}>
-            Integration quick start
+            {t('platformBillingQuickStart')}
             <ArrowRight size={14} aria-hidden />
           </a>
         </section>
@@ -334,10 +372,12 @@ export function FreePlanBanners(props: {
               <TrendingUp size={20} />
             </span>
             <div className="dashboard-plan-banner__body">
-              <p className="dashboard-plan-banner__title">Your organization moved to Growth</p>
+              <p className="dashboard-plan-banner__title">{t('platformBillingMovedToGrowth')}</p>
               <p>
-                ${(banner.monthlyBaseMinor / 100).toFixed(0)} a month from{' '}
-                {utcDate(banner.startedAt)}.
+                {t('platformBillingGrowthFrom', {
+                  amount: `$${(banner.monthlyBaseMinor / 100).toFixed(0)}`,
+                  date: utcDate(banner.startedAt),
+                })}
               </p>
             </div>
             {dismissible ? (
@@ -346,14 +386,14 @@ export function FreePlanBanners(props: {
                 href={billingLink.href}
                 onClick={billingLink.onClick}
               >
-                View billing
+                {t('platformBillingViewBilling')}
               </a>
             ) : null}
             {dismissible ? (
               <button
                 type="button"
                 className="dashboard-plan-banner__close"
-                aria-label="Dismiss Growth notice"
+                aria-label={t('platformBillingDismissGrowth')}
                 onClick={() => dismiss(growthMoveDismissKey(props.orgId ?? '', banner.startedAt))}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
@@ -388,11 +428,11 @@ export function FreePlanBanners(props: {
             <Building2 size={20} />
           </span>
           <div className="dashboard-plan-banner__body">
-            <p className="dashboard-plan-banner__title">Name your organization</p>
-            <p>It still has the default name, “{DEFAULT_PLAN_ORGANIZATION_NAME}”.</p>
+            <p className="dashboard-plan-banner__title">{t('platformBillingNameOrganization')}</p>
+            <p>{t('platformBillingDefaultNameNotice', { name: DEFAULT_PLAN_ORGANIZATION_NAME })}</p>
           </div>
           <a className="dashboard-pagination-button dashboard-plan-banner__link" {...accountLink}>
-            Rename
+            {t('platformBillingRename')}
           </a>
         </div>
       ) : null}

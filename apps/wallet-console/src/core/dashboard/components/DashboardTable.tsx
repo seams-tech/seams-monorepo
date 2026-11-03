@@ -1,3 +1,4 @@
+import { t } from '@core/i18n';
 import React from 'react';
 import clsx from 'clsx';
 import { GrainField } from '@seams-internal/grain-field';
@@ -182,7 +183,7 @@ function buildPaginationJumpTargets(
     targets.push({ label: String(targetPage), page: targetPage });
   }
   if (!seen.has(totalPages)) {
-    targets.push({ label: 'Last', page: totalPages });
+    targets.push({ label: t('commonTableLast'), page: totalPages });
   }
   return targets;
 }
@@ -190,12 +191,15 @@ function buildPaginationJumpTargets(
 function buildPaginationSummary(config: DashboardTablePaginationConfig): string {
   const singular = config.itemLabel || 'row';
   const plural = config.itemLabelPlural || `${singular}s`;
-  if (config.totalRows <= 0) return `Showing 0 of 0 ${plural}`;
+  if (config.totalRows <= 0) return t('commonTableSummaryEmpty', { item: plural });
   const rangeStart = (config.page - 1) * config.rowsPerPage + 1;
   const rangeEnd = Math.min(config.totalRows, config.page * config.rowsPerPage);
-  return `Showing ${rangeStart}-${rangeEnd} of ${config.totalRows} ${
-    config.totalRows === 1 ? singular : plural
-  }`;
+  return t('commonTableSummary', {
+    start: rangeStart,
+    end: rangeEnd,
+    total: config.totalRows,
+    item: config.totalRows === 1 ? singular : plural,
+  });
 }
 
 function buildTableTemplate(columns: DashboardTableColumns): string {
@@ -487,13 +491,13 @@ export function DashboardTablePagination(props: {
             disabled={controlsDisabled || page <= 1}
             onClick={() => onPageChange(page - 1)}
           >
-            Previous
+            {t('commonTablePrevious')}
           </button>
           <span
             className="dashboard-data-table__pagination-page"
-            aria-label={`Current page ${page} of ${totalPages}`}
+            aria-label={t('commonTableCurrentPage', { page, total: totalPages })}
           >
-            Page {page} | {totalPages}
+            {t('commonTablePage', { page, total: totalPages })}
           </span>
           <button
             type="button"
@@ -501,12 +505,15 @@ export function DashboardTablePagination(props: {
             disabled={controlsDisabled || page >= totalPages}
             onClick={() => onPageChange(page + 1)}
           >
-            Next
+            {t('commonTableNext')}
           </button>
         </div>
         {jumpTargets.length > 0 ? (
-          <div className="dashboard-data-table__pagination-jumps" aria-label="Jump to page">
-            <span className="dashboard-pagination-note">Jump to</span>
+          <div
+            className="dashboard-data-table__pagination-jumps"
+            aria-label={t('commonTableJumpToPage')}
+          >
+            <span className="dashboard-pagination-note">{t('commonTableJumpTo')}</span>
             {jumpTargets.map((target) => (
               <button
                 key={`${target.label}-${target.page}`}
@@ -532,7 +539,7 @@ export function DashboardTablePagination(props: {
               }}
             >
               <label className="dashboard-data-table__pagination-jump-label">
-                <span className="dashboard-pagination-note">Jump to page</span>
+                <span className="dashboard-pagination-note">{t('commonTableJumpToPage')}</span>
                 <input
                   className="dashboard-input dashboard-data-table__pagination-jump-input"
                   type="number"
@@ -550,7 +557,7 @@ export function DashboardTablePagination(props: {
           ) : null}
           {onRowsPerPageChange ? (
             <label className="dashboard-data-table__pagination-size">
-              <span className="dashboard-pagination-note">Rows</span>
+              <span className="dashboard-pagination-note">{t('commonTableRows')}</span>
               <select
                 className="dashboard-input dashboard-data-table__pagination-select"
                 value={rowsPerPage}
@@ -636,7 +643,7 @@ export interface DashboardTableActionMenuProps {
 /* Kebab menu for secondary row actions: keeps one primary button visible and
    folds the rest here so action columns stay one row tall. */
 export function DashboardTableActionMenu(props: DashboardTableActionMenuProps): React.JSX.Element {
-  const { ariaLabel = 'More actions', className, items } = props;
+  const { ariaLabel = t('commonTableMoreActions'), className, items } = props;
   const menu = useDashboardMenu();
 
   if (items.length === 0) return <></>;

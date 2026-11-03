@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import type { PlatformServiceIdV1 } from '@seams-internal/console-shared/accountPlatform';
 import { assertNever } from '@seams-internal/console-shared/accountPlatform/boundary';
 import {
@@ -16,7 +17,7 @@ import {
   type DashboardBillingCostsState,
   type DashboardBillingUsageCharges,
 } from './consoleBillingApi';
-import { BillingMetricsGrid } from './billingShared';
+import { BillingMetricsGrid, textWithNodes } from './billingShared';
 import { DashboardPageSkeleton } from '../../components/DashboardSkeleton';
 import { platformConsoleHref } from '../../consoleNavigation';
 import { platformServiceLabel } from '../services/serviceProjects';
@@ -35,7 +36,7 @@ interface BillingCostBreakdown {
 }
 
 const COST_COLUMNS = dashboardTableColumns('2fr', '1fr');
-const HISTORICAL_LABEL = 'Historical unattributed organization charges';
+const HISTORICAL_LABEL = t('billingHistoricalCharges');
 
 function selectUsageCostMonth(event: React.ChangeEvent<HTMLInputElement>): void {
   const periodMonthUtc = event.currentTarget.value;
@@ -128,22 +129,39 @@ function renderCostGroup(group: BillingCostGroup): React.JSX.Element {
   );
 }
 
+function costDimensionLabel(dimension: 'project' | 'service' | 'meter'): string {
+  switch (dimension) {
+    case 'project':
+      return t('billingDimensionProject');
+    case 'service':
+      return t('billingDimensionService');
+    case 'meter':
+      return t('billingDimensionMeter');
+  }
+}
+
 function BillingCostTable(props: {
   readonly dimension: 'project' | 'service' | 'meter';
   readonly groups: readonly BillingCostGroup[];
 }): React.JSX.Element {
+  const dimensionLabel = costDimensionLabel(props.dimension);
   return (
-    <DashboardTable ariaLabel={`Usage cost by ${props.dimension}`} columns={COST_COLUMNS}>
+    <DashboardTable
+      ariaLabel={t('billingCostByDimensionLabel', { dimension: dimensionLabel })}
+      columns={COST_COLUMNS}
+    >
       <DashboardTableIntro>
-        <h3 className="dashboard-billing-table__title">By {props.dimension}</h3>
+        <h3 className="dashboard-billing-table__title">
+          {t('billingCostByDimension', { dimension: dimensionLabel })}
+        </h3>
       </DashboardTableIntro>
       {props.groups.length === 0 ? (
-        <DashboardTableState>No usage costs were posted in this period.</DashboardTableState>
+        <DashboardTableState>{t('billingNoUsageCosts')}</DashboardTableState>
       ) : (
         <>
           <DashboardTableHeader>
-            <DashboardTableHeaderCell>{props.dimension}</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Posted usage cost</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{dimensionLabel}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('billingPostedUsageCost')}</DashboardTableHeaderCell>
           </DashboardTableHeader>
           {props.groups.map(renderCostGroup)}
         </>
@@ -161,26 +179,29 @@ export function BillingUsageCostsSection(props: {
   const { state, organizationId, serviceId } = props;
   const serviceLabel = serviceId ? platformServiceLabel(serviceId) : null;
   if (state.kind === 'unavailable' || state.organizationId !== organizationId) {
-    return (
-      <p className="dashboard-pagination-note">
-        Usage costs are unavailable for this organization.
-      </p>
-    );
+    return <p className="dashboard-pagination-note">{t('billingUsageCostsUnavailableOrg')}</p>;
   }
   switch (state.kind) {
     case 'loading':
-      return <DashboardPageSkeleton label="Loading usage costs" metrics={0} rows={3} columns={4} />;
+      return (
+        <DashboardPageSkeleton
+          label={t('billingLoadingUsageCosts')}
+          metrics={0}
+          rows={3}
+          columns={4}
+        />
+      );
     case 'failed':
       return (
         <p className="dashboard-pagination-note" role="alert">
-          Usage costs unavailable: {state.message}
+          {t('billingUsageCostsUnavailable', { error: state.message })}
         </p>
       );
     case 'ready': {
       if (state.data.organizationId !== organizationId) {
         return (
           <p className="dashboard-pagination-note" role="alert">
-            Usage costs did not match this organization.
+            {t('billingUsageCostsMismatch')}
           </p>
         );
       }
@@ -189,11 +210,19 @@ export function BillingUsageCostsSection(props: {
         <section
           id="billing-usage-costs"
           className="dashboard-view__section dashboard-view__section--plain"
-          aria-label={serviceLabel ? `${serviceLabel} usage costs` : 'Organization usage costs'}
+          aria-label={
+            serviceLabel
+              ? t('billingServiceUsageCostsLabel', { service: serviceLabel })
+              : t('billingOrgUsageCostsLabel')
+          }
         >
-          <h2>{serviceLabel ? `${serviceLabel} usage costs` : 'Usage costs'}</h2>
+          <h2>
+            {serviceLabel
+              ? t('billingServiceUsageCostsLabel', { service: serviceLabel })
+              : t('billingUsageCostsLink')}
+          </h2>
           <label className="dashboard-form-field">
-            <span>Usage cost month (UTC)</span>
+            <span>{t('billingUsageCostMonth')}</span>
             <input
               type="month"
               className="dashboard-input"
@@ -202,30 +231,33 @@ export function BillingUsageCostsSection(props: {
             />
           </label>
           <p className="dashboard-pagination-note">
-            Posted service usage for {state.data.periodMonthUtc} (UTC). Payments, refunds, disputes,
-            and manual adjustments remain in account activity.
+            {t('billingPostedUsageIntro', { period: state.data.periodMonthUtc })}
           </p>
           <BillingMetricsGrid
-            ariaLabel="Posted usage total"
+            ariaLabel={t('billingPostedUsageTotalLabel')}
             metrics={[
               {
-                label: 'Posted usage cost',
+                label: t('billingPostedUsageCost'),
                 value: formatUsdMinor(costs.totalMinor),
-                hint: `${serviceLabel ?? 'Organization'} total for ${state.data.periodMonthUtc}`,
+                hint: t('billingCostTotalHint', {
+                  subject: serviceLabel ?? t('billingSubjectOrganization'),
+                  period: state.data.periodMonthUtc,
+                }),
               },
             ]}
           />
           {serviceLabel ? (
             <p className="dashboard-pagination-note">
-              Only {serviceLabel} usage is shown. Usage of other products and historical
-              organization charges are in{' '}
-              <a href={platformConsoleHref('/dashboard/billing/account')}>Platform Console</a>.
+              {textWithNodes(t('billingServiceOnlyNote', { service: serviceLabel }), {
+                platformLink: (
+                  <a href={platformConsoleHref('/dashboard/billing/account')}>
+                    {t('billingPlatformConsoleLink')}
+                  </a>
+                ),
+              })}
             </p>
           ) : (
-            <p className="dashboard-pagination-note">
-              Project, service, and meter IDs identify attributable costs. Historical charges
-              without source evidence remain organization charges.
-            </p>
+            <p className="dashboard-pagination-note">{t('billingIdsNote')}</p>
           )}
           <div className="dashboard-view-grid">
             <BillingCostTable dimension="project" groups={costs.projects} />

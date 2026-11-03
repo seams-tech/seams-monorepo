@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import type { BillingMetric } from './billingShared';
 import {
   DashboardTable,
@@ -44,15 +45,19 @@ export function formatTimestampUtcParts(value: string): {
 
 export function describeAccountActivityType(input: DashboardBillingAccountActivityEntry): string {
   if (input.type === 'MANUAL_ADJUSTMENT') {
-    return input.amountMinor >= 0 ? 'Manual support credit' : 'Manual admin debit';
+    return input.amountMinor >= 0
+      ? t('billingActivityManualCredit')
+      : t('billingActivityManualDebit');
   }
-  if (input.type === 'PLAN_BASE_CHARGE') return 'Plan base fee';
+  if (input.type === 'PLAN_BASE_CHARGE') return t('billingActivityPlanBase');
   if (input.type === 'PLAN_USAGE_CHARGE')
-    return input.amountMinor < 0 ? 'Plan usage charge' : 'Plan usage credit';
-  if (input.type === 'INVOICE_PAYMENT') return 'Monthly invoice payment';
-  if (input.type === 'CREDIT_PURCHASE') return 'Credit purchase settled';
-  if (input.type === 'USAGE_DEBIT') return 'Usage debit recorded';
-  if (input.type === 'PRODUCT_EXECUTION_DEBIT') return 'Sponsored execution debit recorded';
+    return input.amountMinor < 0
+      ? t('billingActivityPlanUsageCharge')
+      : t('billingActivityPlanUsageCredit');
+  if (input.type === 'INVOICE_PAYMENT') return t('billingActivityInvoicePayment');
+  if (input.type === 'CREDIT_PURCHASE') return t('billingActivityCreditPurchase');
+  if (input.type === 'USAGE_DEBIT') return t('billingActivityUsageDebit');
+  if (input.type === 'PRODUCT_EXECUTION_DEBIT') return t('billingActivityExecutionDebit');
   return input.type;
 }
 
@@ -77,10 +82,10 @@ function getAccountActivityDocument(entry: DashboardBillingAccountActivityEntry)
   label: string;
 } | null {
   if (entry.relatedInvoiceId) {
-    return { id: entry.relatedInvoiceId, label: 'Document' };
+    return { id: entry.relatedInvoiceId, label: t('billingActivityDocumentLabel') };
   }
   if (entry.relatedPurchaseId) {
-    return { id: entry.relatedPurchaseId, label: 'Purchase' };
+    return { id: entry.relatedPurchaseId, label: t('billingActivityPurchaseLabel') };
   }
   return null;
 }
@@ -88,9 +93,10 @@ function getAccountActivityDocument(entry: DashboardBillingAccountActivityEntry)
 function getAccountActivityReasonDetail(
   entry: DashboardBillingAccountActivityEntry,
 ): string | null {
-  if (entry.actorUserId) return `Actor ${entry.actorUserId}`;
-  if (entry.actorType && entry.actorType !== 'SYSTEM') return `Actor ${entry.actorType}`;
-  if (entry.sourceEventId) return `Event ${entry.sourceEventId}`;
+  if (entry.actorUserId) return t('billingActivityActorUser', { id: entry.actorUserId });
+  if (entry.actorType && entry.actorType !== 'SYSTEM')
+    return t('billingActivityActorUser', { id: entry.actorType });
+  if (entry.sourceEventId) return t('billingActivityEvent', { id: entry.sourceEventId });
   return null;
 }
 
@@ -134,15 +140,15 @@ export function BillingContextSummarySection(props: {
       </div>
       <dl className="dashboard-billing-overview__context">
         <div>
-          <dt>Organization</dt>
+          <dt>{t('billingContextOrganization')}</dt>
           <dd title={context.organization || '-'}>{context.organization || '-'}</dd>
         </div>
         <div>
-          <dt>Project</dt>
+          <dt>{t('billingContextProject')}</dt>
           <dd title={context.project || '-'}>{context.project || '-'}</dd>
         </div>
         <div>
-          <dt>{context.thirdLabel || 'Environment'}</dt>
+          <dt>{context.thirdLabel || t('billingContextEnvironment')}</dt>
           <dd title={context.thirdValue || '-'}>{context.thirdValue || '-'}</dd>
         </div>
       </dl>
@@ -170,21 +176,21 @@ export function BillingAccountActivitySection(props: {
   const { accountActivity, accountActivityError, controls, emptyStateText } = props;
   const activityPagination = useDashboardTablePagination(accountActivity, {
     initialRowsPerPage: 10,
-    itemLabel: 'event',
-    itemLabelPlural: 'events',
+    itemLabel: t('billingItemEvent'),
+    itemLabelPlural: t('billingItemEvents'),
   });
   return (
     <DashboardTable
-      ariaLabel="Customer account activity"
+      ariaLabel={t('billingCustomerActivityLabel')}
       className="dashboard-billing-activity-table"
       columns={BILLING_ACCOUNT_ACTIVITY_TABLE_COLUMNS}
       pagination={accountActivityError ? undefined : activityPagination.pagination}
     >
       <DashboardTableIntro className="dashboard-billing-table__intro">
         <div className="dashboard-billing-activity-table__heading">
-          <h3 className="dashboard-billing-table__title">Customer Account activity</h3>
+          <h3 className="dashboard-billing-table__title">{t('billingCustomerActivityTitle')}</h3>
           <p className="dashboard-billing-table__description">
-            Latest ledger events for the resolved billing account.
+            {t('billingCustomerActivityIntro')}
           </p>
         </div>
         {controls}
@@ -192,18 +198,16 @@ export function BillingAccountActivitySection(props: {
       {accountActivityError ? (
         <DashboardTableState>{accountActivityError}</DashboardTableState>
       ) : accountActivity.length === 0 ? (
-        <DashboardTableState>
-          {emptyStateText || 'No billing activity has been recorded yet.'}
-        </DashboardTableState>
+        <DashboardTableState>{emptyStateText || t('billingNoActivity')}</DashboardTableState>
       ) : (
         <>
           <DashboardTableHeader>
-            <DashboardTableHeaderCell>When (UTC)</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Type</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Amount</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Document</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Reason</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Summary</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('billingColWhenUtc')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('billingColType')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('billingColAmount')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('billingColDocument')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('billingColReason')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('billingColSummary')}</DashboardTableHeaderCell>
           </DashboardTableHeader>
           {activityPagination.rows.map((entry) => {
             const document = getAccountActivityDocument(entry);
@@ -225,7 +229,7 @@ export function BillingAccountActivitySection(props: {
                   </div>
                   {entry.monthUtc ? (
                     <span className="dashboard-data-table__subline dashboard-data-table__subline--muted">
-                      Period {entry.monthUtc}
+                      {t('billingActivityPeriod', { month: entry.monthUtc })}
                     </span>
                   ) : null}
                 </DashboardTableCell>

@@ -1,3 +1,4 @@
+import { t } from '@core/i18n';
 import type { DashboardExternalLink } from '../types';
 import React from 'react';
 import { DashboardMenu, DashboardMenuItem, useDashboardMenu } from '../components/DashboardMenu';
@@ -189,7 +190,7 @@ function RailMenuRow({
         {description ? <span className="dashboard-rail-menu__item-desc">{description}</span> : null}
       </span>
       {soon ? (
-        <span className="dashboard-rail-menu__soon">Soon</span>
+        <span className="dashboard-rail-menu__soon">{t('commonSidebarSoon')}</span>
       ) : active ? (
         <svg
           className="dashboard-rail-menu__check"
@@ -262,8 +263,10 @@ export function SidebarWorkspaceSwitcher(props: SidebarWorkspaceProps): React.JS
     null;
   /* Projects are the working scope; the organization label is only a fallback
      for accounts that have not created a project yet. */
-  const currentLabel = currentProject?.label || currentOrganization?.label || 'Workspace';
-  const currentEnvironmentLabel = currentEnvironment?.label || environmentValue || 'No environment';
+  const currentLabel =
+    currentProject?.label || currentOrganization?.label || t('commonSidebarWorkspace');
+  const currentEnvironmentLabel =
+    currentEnvironment?.label || environmentValue || t('commonNoEnvironment');
   const initial = (currentLabel.trim().charAt(0) || 'W').toUpperCase();
   const showOrganizations = organizationOptions.length > 1;
   const showSectionTitles = showOrganizations && projectGroups.length > 0;
@@ -297,9 +300,11 @@ export function SidebarWorkspaceSwitcher(props: SidebarWorkspaceProps): React.JS
         menu={menu}
         className="dashboard-context-menu dashboard-rail-menu"
         style={menuStyle}
-        aria-label="Workspace"
+        aria-label={t('commonSidebarWorkspace')}
       >
-        {showSectionTitles ? <p className="dashboard-rail-menu__section-title">Projects</p> : null}
+        {showSectionTitles ? (
+          <p className="dashboard-rail-menu__section-title">{t('commonSidebarProjects')}</p>
+        ) : null}
         {props.kind === 'account'
           ? projectGroups.map(renderAccountProject.bind(null, props, currentProject?.value || null))
           : projectGroups.map((group) => (
@@ -358,17 +363,19 @@ export function SidebarWorkspaceSwitcher(props: SidebarWorkspaceProps): React.JS
                     );
                   })}
                   {group.environments.length === 0 ? (
-                    <p className="dashboard-workspace-menu__empty">No environments</p>
+                    <p className="dashboard-workspace-menu__empty">
+                      {t('commonSidebarNoEnvironments')}
+                    </p>
                   ) : null}
                 </div>
               </div>
             ))}
         {projectGroups.length === 0 && !showOrganizations ? (
-          <p className="dashboard-rail-menu__empty">No projects yet</p>
+          <p className="dashboard-rail-menu__empty">{t('commonSidebarNoProjects')}</p>
         ) : null}
         {showOrganizations ? (
           <>
-            <p className="dashboard-rail-menu__section-title">Organizations</p>
+            <p className="dashboard-rail-menu__section-title">{t('commonSidebarOrganizations')}</p>
             {organizationOptions.map((option) => (
               <RailMenuRow
                 key={option.value}
@@ -420,7 +427,7 @@ function SidebarProductSwitcher({
         menu={menu}
         className="dashboard-context-menu dashboard-rail-menu"
         style={menuStyle}
-        aria-label="Products"
+        aria-label={t('commonSidebarProducts')}
       >
         {products.map((product) => (
           <RailMenuRow
@@ -542,7 +549,7 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
     <aside
       id="dashboard-sidebar-navigation"
       className="dashboard-sidebar"
-      aria-label="Primary dashboard navigation"
+      aria-label={t('commonSidebarPrimaryNavigation')}
     >
       {/* Pinned head: wordmark + product/org switchers stay fixed at the sidebar
           top (reference-app style) while the nav list scrolls beneath them. */}
@@ -554,7 +561,7 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
                 className="dashboard-home-link dashboard-sidebar__brand"
                 href={homeProps.href}
                 onClick={homeProps.onClick}
-                aria-label="Seams home"
+                aria-label={t('loginAriaHome')}
               >
                 <SeamsWordmark height={18} />
               </a>
@@ -563,7 +570,7 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
               <button
                 type="button"
                 className="dashboard-sidebar-toggle dashboard-sidebar-toggle--rail"
-                aria-label={mobile ? 'Close navigation' : 'Collapse sidebar'}
+                aria-label={mobile ? t('commonSidebarCloseNavigation') : t('commonSidebarCollapse')}
                 aria-expanded="true"
                 aria-controls={
                   mobile ? 'dashboard-mobile-navigation' : 'dashboard-sidebar-navigation'
@@ -578,7 +585,9 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
               </button>
             ) : null}
           </div>
-          {mobile ? <p className="dashboard-mobile-section-label">Project</p> : null}
+          {mobile ? (
+            <p className="dashboard-mobile-section-label">{t('commonSidebarProject')}</p>
+          ) : null}
           {mobile && workspace ? <SidebarWorkspaceSwitcher {...workspace} /> : null}
           {product ? <SidebarProductSwitcher {...product} /> : null}
           {!mobile && workspace ? <SidebarWorkspaceSwitcher {...workspace} /> : null}
@@ -641,7 +650,7 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
       {externalLinks.length > 0 ? (
         <section className="dashboard-sidebar-group">
           <p className="dashboard-sidebar-group__title">
-            {product?.currentId === 'platform' ? 'Products' : 'Platform'}
+            {product?.currentId === 'platform' ? t('commonSidebarProducts') : t('navPlatform')}
           </p>
           <ul className="dashboard-nav-list">{externalLinks.map(externalConsoleLink)}</ul>
         </section>
@@ -649,7 +658,7 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
       {mobile ? (
         <div className="dashboard-mobile-support">
           <a href={getDocsOrigin()} target="_blank" rel="noreferrer">
-            Documentation <span aria-hidden="true">↗</span>
+            {t('loginDocumentation')} <span aria-hidden="true">↗</span>
           </a>
           <details className="dashboard-mobile-account">
             <summary>
@@ -687,7 +696,7 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
     <dialog
       id="dashboard-mobile-navigation"
       className="dashboard-mobile-navigation"
-      aria-label="Navigation"
+      aria-label={t('commonSidebarNavigation')}
       onClick={dismissMobileNavigationLink}
     >
       {content}

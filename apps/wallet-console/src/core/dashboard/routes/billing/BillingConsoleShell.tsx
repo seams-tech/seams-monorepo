@@ -1,6 +1,7 @@
 import { PaymentAccountPanel } from './PaymentAccountPanel';
 import { BillingRulesSection } from './BillingRulesSection';
 import React from 'react';
+import { t } from '@core/i18n';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import { FreePlanBanners } from './FreePlanBanners';
 import { canDashboardManageBilling, useDashboardConsoleSession } from '../../consoleSession';
@@ -84,30 +85,38 @@ function buildAccountSummaryMetrics(overview: DashboardBillingOverview | null): 
   if (!overview) return [];
   return [
     {
-      label: 'Balance',
+      label: t('billingMetricBalance'),
       value: formatUsdMinor(overview.creditBalanceMinor),
-      hint: 'Posted organization balance',
+      hint: t('billingMetricBalanceHint'),
     },
     {
-      label: 'Available balance',
+      label: t('billingMetricAvailableBalance'),
       value: formatUsdMinor(overview.availableBalanceMinor),
-      hint: 'Balance after reserved funds and pending refunds',
+      hint: t('billingMetricAvailableBalanceHint'),
       tone: overview.availableBalanceMinor <= 0 ? 'danger' : 'success',
     },
     {
-      label: 'Reserved funds',
+      label: t('billingMetricReservedFunds'),
       value: formatUsdMinor(overview.reservedMinor),
-      hint: `${overview.activeReservationCount} unresolved reservation${overview.activeReservationCount === 1 ? '' : 's'}`,
+      hint: t(
+        overview.activeReservationCount === 1
+          ? 'billingReservationsOne'
+          : 'billingReservationsMany',
+        { count: overview.activeReservationCount },
+      ),
     },
     {
-      label: 'Pending refunds',
+      label: t('billingMetricPendingRefunds'),
       value: formatUsdMinor(overview.pendingRefundMinor),
-      hint: 'Funds held while refunds are processed',
+      hint: t('billingMetricPendingRefundsHint'),
     },
     {
-      label: 'Recent top-ups',
+      label: t('billingMetricRecentTopUps'),
       value: formatUsdMinor(overview.recentCreditPurchasedMinor),
-      hint: `${overview.documentCount} billing document${overview.documentCount === 1 ? '' : 's'}`,
+      hint: t(
+        overview.documentCount === 1 ? 'billingDocumentsCountOne' : 'billingDocumentsCountMany',
+        { count: overview.documentCount },
+      ),
     },
   ];
 }
@@ -263,7 +272,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
       setRefunds([]);
       setRefundsLoading(false);
       setRefundsError('');
-      setErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setErrorMessage(session.errorMessage || t('billingSessionUnavailable'));
       return;
     }
     setLoading(true);
@@ -406,7 +415,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
     const checkoutSessionId = String(params.get('checkout_session_id') || '').trim();
     if (checkout === 'cancel') {
       activeCheckoutReconcileRef.current = '';
-      setCheckoutReturnMessage('Top-up checkout was canceled before settlement.');
+      setCheckoutReturnMessage(t('billingCheckoutCanceled'));
       return;
     }
     if (checkout !== 'success') {
@@ -416,42 +425,34 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
     }
     if (!checkoutSessionId) {
       activeCheckoutReconcileRef.current = '';
-      setCheckoutReturnMessage(
-        'Top-up checkout completed. Balance updates after settlement confirmation.',
-      );
+      setCheckoutReturnMessage(t('billingCheckoutCompletedPending'));
       return;
     }
     if (!session.claims || subview.kind !== 'account') {
       activeCheckoutReconcileRef.current = '';
-      setCheckoutReturnMessage('Top-up checkout completed. Verifying settlement...');
+      setCheckoutReturnMessage(t('billingCheckoutVerifying'));
       return;
     }
     const reconcileKey = `${session.claims.orgId}:${session.claims.userId}:${checkoutSessionId}`;
     if (checkoutReconcileAttemptedRef.current.has(reconcileKey)) return;
     checkoutReconcileAttemptedRef.current.add(reconcileKey);
     activeCheckoutReconcileRef.current = reconcileKey;
-    setCheckoutReturnMessage('Top-up checkout completed. Verifying settlement...');
+    setCheckoutReturnMessage(t('billingCheckoutVerifying'));
     void (async () => {
       try {
         const result = await reconcileDashboardStripeCheckoutSession({ checkoutSessionId });
         if (activeCheckoutReconcileRef.current !== reconcileKey) return;
         if (result.settled) {
           setCheckoutReturnMessage(
-            result.settledNow
-              ? 'Top-up checkout completed. Balance updated.'
-              : 'Top-up checkout is already settled. Balance is up to date.',
+            result.settledNow ? t('billingCheckoutUpdated') : t('billingCheckoutAlreadySettled'),
           );
           await Promise.all([refreshBillingShellData(), loadInvoiceListPage()]);
           return;
         }
-        setCheckoutReturnMessage(
-          'Top-up checkout completed. Balance updates after settlement confirmation.',
-        );
+        setCheckoutReturnMessage(t('billingCheckoutCompletedPending'));
       } catch {
         if (activeCheckoutReconcileRef.current !== reconcileKey) return;
-        setCheckoutReturnMessage(
-          'Top-up checkout completed, but settlement verification is still pending. Refresh again in a moment.',
-        );
+        setCheckoutReturnMessage(t('billingCheckoutVerifyPending'));
       }
     })();
   }, [
@@ -471,15 +472,13 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
     }
     if (overview.creditBalanceMinor <= 0) {
       setBillingWarningDismissed(false);
-      setBillingWarningMessage('Prepaid balance is depleted. Add credits to fund service usage.');
+      setBillingWarningMessage(t('billingBalanceDepleted'));
       return;
     }
     if (overview.creditBalanceMinor <= overview.lowBalanceThresholdMinor) {
       setBillingWarningDismissed(false);
       setBillingWarningMessage(
-        `Prepaid balance is at or below the warning threshold (${formatUsdMinor(
-          overview.lowBalanceThresholdMinor,
-        )}). Add credits before service usage increases.`,
+        t('billingBalanceLow', { threshold: formatUsdMinor(overview.lowBalanceThresholdMinor) }),
       );
       return;
     }
@@ -569,28 +568,34 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
   const invoiceSummaryMetrics = React.useMemo<BillingMetric[]>(() => {
     return [
       {
-        label: 'Documents',
+        label: t('billingMetricDocuments'),
         value: String(filteredInvoiceSummary.totalCount),
-        hint: `${filteredInvoiceSummary.statementCount} statement${
-          filteredInvoiceSummary.statementCount === 1 ? '' : 's'
-        }`,
+        hint: t(
+          filteredInvoiceSummary.statementCount === 1
+            ? 'billingStatementsCountOne'
+            : 'billingStatementsCountMany',
+          { count: filteredInvoiceSummary.statementCount },
+        ),
       },
       {
-        label: 'Purchase receipts',
+        label: t('billingMetricPurchaseReceipts'),
         value: String(filteredInvoiceSummary.receiptCount),
-        hint: `${filteredInvoiceSummary.paidCount} paid document${
-          filteredInvoiceSummary.paidCount === 1 ? '' : 's'
-        }`,
+        hint: t(
+          filteredInvoiceSummary.paidCount === 1
+            ? 'billingPaidDocumentsOne'
+            : 'billingPaidDocumentsMany',
+          { count: filteredInvoiceSummary.paidCount },
+        ),
       },
       {
-        label: 'Outstanding',
+        label: t('billingMetricOutstanding'),
         value: formatUsdMinor(filteredInvoiceSummary.outstandingAmountMinor),
-        hint: `${filteredInvoiceSummary.openCount} open`,
+        hint: t('billingOpenCount', { count: filteredInvoiceSummary.openCount }),
       },
       {
-        label: 'Latest period',
+        label: t('billingMetricLatestPeriod'),
         value: filteredInvoiceSummary.latestPeriodMonthUtc || '-',
-        hint: 'Most recent billing month',
+        hint: t('billingMetricLatestPeriodHint'),
       },
     ];
   }, [filteredInvoiceSummary]);
@@ -612,7 +617,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
   const onStartStripeCheckout = React.useCallback(
     async ({ creditPackId }: Pick<DashboardStripeCheckoutSessionRequest, 'creditPackId'>) => {
       if (!session.claims) {
-        setCheckoutActionError(session.errorMessage || 'Console session is unavailable');
+        setCheckoutActionError(session.errorMessage || t('billingSessionUnavailable'));
         return;
       }
       setStartingCheckoutPackId(creditPackId);
@@ -643,7 +648,9 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
         const invoice = invoices.find((entry) => entry.id === normalizedInvoiceId) || null;
         const fallbackFilename = buildInvoicePdfFilename(invoice, normalizedInvoiceId);
         const message = error instanceof Error ? error.message : String(error);
-        setInvoiceDownloadError(`Failed to download ${fallbackFilename}: ${message}`);
+        setInvoiceDownloadError(
+          t('billingDownloadFailed', { filename: fallbackFilename, error: message }),
+        );
       } finally {
         setDownloadingInvoicePdfId('');
       }
@@ -652,7 +659,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
   );
 
   return (
-    <div className="dashboard-view" aria-label="Billing page">
+    <div className="dashboard-view" aria-label={t('billingPageLabel')}>
       {checkoutReturnMessage ? (
         <section className="dashboard-view__section">
           <p className="dashboard-info-banner">{checkoutReturnMessage}</p>
@@ -661,15 +668,19 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
 
       {session.loading || loading ? (
         <section className="dashboard-view__section">
-          <DashboardPageSkeleton label="Loading billing data" metrics={4} rows={5} columns={5} />
+          <DashboardPageSkeleton label={t('billingLoadingData')} metrics={4} rows={5} columns={5} />
         </section>
       ) : !session.claims ? (
         <section className="dashboard-view__section">
-          <p>Billing unavailable: {session.errorMessage || 'unauthorized'}.</p>
+          <p>
+            {t('billingUnavailable', {
+              reason: session.errorMessage || t('billingUnauthorized'),
+            })}
+          </p>
         </section>
       ) : errorMessage ? (
         <section className="dashboard-view__section">
-          <p>Billing data unavailable: {errorMessage}</p>
+          <p>{t('billingDataUnavailable', { error: errorMessage })}</p>
         </section>
       ) : subview.kind === 'account' ? (
         isPlatformBillingPage ? (
@@ -677,7 +688,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
             <PlatformBillingView />
           ) : (
             <section className="dashboard-view__section">
-              <p>Admin support is only available to platform support accounts.</p>
+              <p>{t('billingAdminOnly')}</p>
             </section>
           )
         ) : (
@@ -691,10 +702,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
               search={search}
             />
             {serviceLabel ? null : (
-              <p className="dashboard-pagination-note">
-                Billing is organization-scoped. All projects and services use the same billing
-                account.
-              </p>
+              <p className="dashboard-pagination-note">{t('billingOrgScoped')}</p>
             )}
             <PaymentAccountPanel
               key={selectedContext.organization || session.claims.orgId}
@@ -707,17 +715,17 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
                     <button
                       type="button"
                       className="dashboard-warning-banner__dismiss"
-                      aria-label="Dismiss billing warning"
+                      aria-label={t('billingDismissWarningLabel')}
                       onClick={() => setBillingWarningDismissed(true)}
                     >
-                      Dismiss
+                      {t('billingDismiss')}
                     </button>
                   </div>
                 </section>
               ) : null}
               <BillingMetricsGrid
                 metrics={summaryMetrics}
-                ariaLabel="Billing account summary metrics"
+                ariaLabel={t('billingSummaryMetricsLabel')}
               />
               <BillingUsageCostsSection
                 organizationId={selectedContext.organization || session.claims.orgId}

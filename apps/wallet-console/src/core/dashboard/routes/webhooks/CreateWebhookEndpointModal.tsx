@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import type {
   ConsoleWebhookEventCategory,
   WebhookEventCategoryOption,
@@ -10,15 +11,15 @@ const CREATE_WEBHOOK_EVENTS_LABEL_ID = 'dashboard-create-webhook-events';
 
 function describeUrlProblem(value: string): string {
   const url = value.trim();
-  if (!url) return 'Endpoint URL is required.';
+  if (!url) return t('webhooksUrlRequired');
   let parsed: URL;
   try {
     parsed = new URL(url);
   } catch {
-    return 'Enter an absolute URL, including the scheme.';
+    return t('webhooksUrlNeedsScheme');
   }
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-    return 'Endpoint URL must use https:// or http://.';
+    return t('webhooksUrlProtocol');
   }
   return '';
 }
@@ -73,11 +74,11 @@ function CreateWebhookEndpointForm(
   return (
     <>
       <div className="dashboard-modal__header">
-        <h2 id={CREATE_WEBHOOK_TITLE_ID}>Add endpoint</h2>
+        <h2 id={CREATE_WEBHOOK_TITLE_ID}>{t('webhooksAddEndpoint')}</h2>
         <button
           type="button"
           className="dashboard-modal__close"
-          aria-label="Close"
+          aria-label={t('webhooksClose')}
           onClick={onRequestClose}
           disabled={submitting}
         >
@@ -109,7 +110,7 @@ function CreateWebhookEndpointForm(
         }}
       >
         <label className="dashboard-form-field">
-          <span>Endpoint URL</span>
+          <span>{t('webhooksEndpointUrl')}</span>
           <input
             className="dashboard-input"
             type="url"
@@ -126,13 +127,9 @@ function CreateWebhookEndpointForm(
           {urlTouched && urlProblem ? (
             <p className="dashboard-form-hint dashboard-form-hint--error">{urlProblem}</p>
           ) : isPlainHttpUrl(url) ? (
-            <p className="dashboard-form-hint">
-              Plain http:// sends event payloads unencrypted. Use https:// outside local testing.
-            </p>
+            <p className="dashboard-form-hint">{t('webhooksPlainHttpWarning')}</p>
           ) : (
-            <p className="dashboard-form-hint">
-              Seams POSTs a JSON event envelope to this URL and records every attempt.
-            </p>
+            <p className="dashboard-form-hint">{t('webhooksUrlHint')}</p>
           )}
         </label>
 
@@ -145,7 +142,7 @@ function CreateWebhookEndpointForm(
           aria-labelledby={CREATE_WEBHOOK_EVENTS_LABEL_ID}
         >
           <span className="dashboard-webhook-events__legend" id={CREATE_WEBHOOK_EVENTS_LABEL_ID}>
-            Select events to listen to
+            {t('webhooksSelectEvents')}
           </span>
           <div className="dashboard-webhook-events__list">
             {eventCategoryOptions.map((option) => {
@@ -193,22 +190,24 @@ function CreateWebhookEndpointForm(
             onClick={onRequestClose}
             disabled={submitting}
           >
-            Cancel
+            {t('webhooksCancel')}
           </button>
           <button
             type="submit"
             className="dashboard-pagination-button dashboard-pagination-button--primary"
             disabled={!canSubmit}
           >
-            {submitting ? 'Adding...' : 'Add endpoint'}
+            {submitting ? t('webhooksAddingProgress') : t('webhooksAddEndpoint')}
           </button>
         </div>
       </form>
 
       <p className="dashboard-modal__footnote">
-        Every payload is signed with HMAC-SHA256 over <code>{'`${timestamp}.${rawBody}`'}</code>{' '}
-        using this endpoint&rsquo;s signing secret. Verify the{' '}
-        <code>X-Console-Webhook-Signature</code> header before you trust a delivery.
+        {t('webhooksFootnotePre')}
+        <code>{'`${timestamp}.${rawBody}`'}</code>
+        {t('webhooksFootnoteMid')}
+        <code>X-Console-Webhook-Signature</code>
+        {t('webhooksFootnotePost')}
       </p>
     </>
   );
@@ -221,7 +220,7 @@ export function CreateWebhookEndpointModal(
   return (
     <DashboardInlineModal
       isOpen={isOpen}
-      ariaLabel="Add webhook endpoint"
+      ariaLabel={t('webhooksAddEndpointAria')}
       ariaLabelledBy={CREATE_WEBHOOK_TITLE_ID}
       onRequestClose={formProps.onRequestClose}
     >

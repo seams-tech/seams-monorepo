@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+
 export type GithubOAuthOptions =
   | { configured: false }
   | { configured: true; clientId: string; callbackUrl: string };
@@ -123,9 +125,9 @@ export function consumeGithubOAuthCallback(): GithubOAuthCallback {
   const expectedState = String(sessionStorage.getItem(GITHUB_OAUTH_STATE_KEY) || '').trim();
   sessionStorage.removeItem(GITHUB_OAUTH_STATE_KEY);
   clearGithubCallbackQuery();
-  if (oauthError) return { kind: 'error', message: `GitHub sign-in failed: ${oauthError}` };
+  if (oauthError) return { kind: 'error', message: t('commonGithubFailed', { error: oauthError }) };
   if (!expectedState || !returnedState || expectedState !== returnedState) {
-    return { kind: 'error', message: 'GitHub sign-in state did not match. Please try again.' };
+    return { kind: 'error', message: t('commonGithubStateMismatch') };
   }
   return { kind: 'code', code };
 }

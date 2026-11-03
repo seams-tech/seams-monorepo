@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import type {
   DashboardBillingRefund,
   DashboardBillingCreditPackId,
@@ -7,23 +8,23 @@ import type {
 import { formatUsdMinor } from './consoleBillingApi';
 
 const PRESET_CREDIT_PACK_OPTIONS = [
-  { id: 'usd_10', label: '$10', detail: 'Quick prepaid top-up for test traffic.' },
-  { id: 'usd_25', label: '$25', detail: 'Starter prepaid balance for light production.' },
-  { id: 'usd_50', label: '$50', detail: 'Larger one-time top-up for ongoing usage.' },
+  { id: 'usd_10', label: '$10', detail: t('billingTopUpOption10') },
+  { id: 'usd_25', label: '$25', detail: t('billingTopUpOption25') },
+  { id: 'usd_50', label: '$50', detail: t('billingTopUpOption50') },
 ] as const;
 
 function formatRefundStatus(status: DashboardBillingRefund['status']): string {
   switch (status) {
     case 'requested':
-      return 'Requested';
+      return t('billingRefundRequested');
     case 'provider_pending':
-      return 'Processing';
+      return t('billingRefundProcessing');
     case 'succeeded':
-      return 'Refunded';
+      return t('billingRefundRefunded');
     case 'failed':
-      return 'Failed';
+      return t('billingRefundFailed');
     case 'canceled':
-      return 'Canceled';
+      return t('billingRefundCanceled');
   }
 }
 
@@ -65,21 +66,16 @@ export function BillingAccountView(props: BillingAccountViewProps): React.JSX.El
   const selectedPreset = PRESET_CREDIT_PACK_OPTIONS.find((pack) => pack.id === selectedPackId);
   const buyDisabled = !canManageBilling || Boolean(startingCheckoutPackId);
   const buyLabel = startingCheckoutPackId
-    ? 'Starting checkout...'
-    : `Buy ${selectedPreset?.label || ''}`;
+    ? t('billingStartingCheckout')
+    : t('billingBuyAmount', { amount: selectedPreset?.label || '' });
 
   return (
     <>
-      <section className="dashboard-view__section" aria-label="Prepaid top-up actions">
-        <h2>Top up credits</h2>
-        <p className="dashboard-pagination-note">
-          Start a one-time Stripe checkout to add prepaid balance. Settled purchases appear in
-          billing documents as purchase receipts.
-        </p>
+      <section className="dashboard-view__section" aria-label={t('billingTopUpActionsLabel')}>
+        <h2>{t('billingTopUpTitle')}</h2>
+        <p className="dashboard-pagination-note">{t('billingTopUpIntro')}</p>
         {!canManageBilling ? (
-          <p className="dashboard-pagination-note">
-            Organization billing management access is required to buy credits.
-          </p>
+          <p className="dashboard-pagination-note">{t('billingTopUpNeedsAccess')}</p>
         ) : null}
         {checkoutActionError ? (
           <p className="dashboard-pagination-note">{checkoutActionError}</p>
@@ -87,7 +83,7 @@ export function BillingAccountView(props: BillingAccountViewProps): React.JSX.El
         <div
           className="dashboard-policy-toggle-grid dashboard-billing-top-up-options"
           role="group"
-          aria-label="Top-up amount"
+          aria-label={t('billingTopUpAmountLabel')}
         >
           {PRESET_CREDIT_PACK_OPTIONS.map((pack) => (
             <button
@@ -119,32 +115,31 @@ export function BillingAccountView(props: BillingAccountViewProps): React.JSX.El
         </div>
       </section>
 
-      <section className="dashboard-table-wrapper" aria-label="Refund history">
+      <section className="dashboard-table-wrapper" aria-label={t('billingRefundHistory')}>
         <div className="dashboard-table-limit dashboard-billing-table__intro">
-          <h2 className="dashboard-billing-table__title">Refund history</h2>
-          <p className="dashboard-billing-table__description">
-            Refunds requested through support appear here as Stripe processes them.
-          </p>
+          <h2 className="dashboard-billing-table__title">{t('billingRefundHistory')}</h2>
+          <p className="dashboard-billing-table__description">{t('billingRefundHistoryIntro')}</p>
           {refundsError ? <p className="dashboard-pagination-note">{refundsError}</p> : null}
         </div>
         {refundsLoading ? (
-          <p className="dashboard-table-limit">Loading refund history...</p>
+          <p className="dashboard-table-limit">{t('billingRefundHistoryLoading')}</p>
         ) : refunds.length === 0 ? (
-          <p className="dashboard-table-limit">No refunds have been issued.</p>
+          <p className="dashboard-table-limit">{t('billingRefundHistoryEmpty')}</p>
         ) : (
           <div className="dashboard-billing-timeline">
             {refunds.map((refund) => (
               <article className="dashboard-billing-timeline__item" key={refund.id}>
                 <div className="dashboard-billing-timeline__header">
                   <p className="dashboard-billing-timeline__title">
-                    {formatUsdMinor(refund.amountMinor)} refund
+                    {t('billingRefundTitle', { amount: formatUsdMinor(refund.amountMinor) })}
                   </p>
                   <span className={refundStatusBadgeClassName(refund.status)}>
                     {formatRefundStatus(refund.status)}
                   </span>
                 </div>
                 <p className="dashboard-billing-timeline__meta">
-                  {new Date(refund.createdAt).toLocaleString()} • Purchase {refund.purchaseId}
+                  {new Date(refund.createdAt).toLocaleString()} •{' '}
+                  {t('billingRefundPurchase', { id: refund.purchaseId })}
                 </p>
                 <p className="dashboard-pagination-note">{refund.reason}</p>
               </article>

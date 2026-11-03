@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { requireConsoleBaseUrl } from '@core/dashboard/consoleHttp';
 import { buildWalletAcceptHeaders, buildWalletJsonHeaders } from '../consoleWalletHttp';
 import { verifyCustodyStepUp } from './consoleDerivationRootApi';
@@ -18,7 +19,7 @@ type State =
 const path = '/console/tenant-root/security/restore-access';
 function parseState(value: unknown): State {
   if (typeof value !== 'object' || value === null || !('state' in value))
-    throw new Error('Unable to read restore approval');
+    throw new Error(t('derivationRestoreParseRead'));
   switch (value.state) {
     case 'approved':
       return {
@@ -41,7 +42,7 @@ function parseState(value: unknown): State {
         !('destination' in value) ||
         typeof value.destination !== 'string'
       )
-        throw new Error('Invalid restore approval');
+        throw new Error(t('derivationRestoreParseInvalid'));
       return {
         kind: 'pending',
         details: {
@@ -54,7 +55,7 @@ function parseState(value: unknown): State {
       };
     }
     default:
-      throw new Error('Invalid restore approval state');
+      throw new Error(t('derivationRestoreParseState'));
   }
 }
 async function load(id: string, setState: React.Dispatch<React.SetStateAction<State>>) {
@@ -63,15 +64,12 @@ async function load(id: string, setState: React.Dispatch<React.SetStateAction<St
       `${requireConsoleBaseUrl()}${path}/request?id=${encodeURIComponent(id)}`,
       { credentials: 'include', headers: buildWalletAcceptHeaders() },
     );
-    if (!response.ok)
-      throw new Error(
-        'Select the organization and environment used in your terminal, then try again.',
-      );
+    if (!response.ok) throw new Error(t('derivationRestoreSelectOrgEnv'));
     setState(parseState(await response.json()));
   } catch (error) {
     setState({
       kind: 'error',
-      message: error instanceof Error ? error.message : 'Unable to read request',
+      message: error instanceof Error ? error.message : t('derivationUnableToReadRequestFallback'),
     });
   }
 }
@@ -97,7 +95,7 @@ async function decide(
   } catch (error) {
     setState({
       kind: 'error',
-      message: error instanceof Error ? error.message : 'Approval failed',
+      message: error instanceof Error ? error.message : t('derivationApprovalFailedFallback'),
     });
   }
 }
@@ -107,17 +105,17 @@ function begin(id: string, setState: React.Dispatch<React.SetStateAction<State>>
 function message(state: State): string {
   switch (state.kind) {
     case 'loading':
-      return 'Loading restore request…';
+      return t('derivationLoadingRestoreRequest');
     case 'error':
       return state.message;
     case 'active':
-      return 'Recovery completed successfully. The destination confirms your restored root is active.';
+      return t('derivationRestoreCompleted');
     case 'approved':
-      return 'Restore access approved. Return to your terminal to continue.';
+      return t('derivationRestoreApproved');
     case 'denied':
-      return 'Restore access denied.';
+      return t('derivationRestoreDenied');
     case 'expired':
-      return 'Request expired. Run the CLI command again.';
+      return t('derivationRestoreExpired');
     case 'pending':
     case 'submitting':
       return '';
@@ -142,11 +140,11 @@ export function CliRestoreApproval({ id }: { id: string }) {
       onClose={dismissRestoreApproval}
     >
       <div className="derivation-root-backup-header">
-        <h2 id={titleId}>Approve restore access</h2>
+        <h2 id={titleId}>{t('derivationApproveRestoreAccess')}</h2>
         <button
           type="button"
           className="dashboard-pagination-button derivation-root-backup-close"
-          aria-label="Close restore approval"
+          aria-label={t('derivationCloseRestoreApproval')}
           onClick={closeRestoreDialog.bind(null, dialogRef)}
         >
           <svg
@@ -164,37 +162,32 @@ export function CliRestoreApproval({ id }: { id: string }) {
       </div>
       {state.kind === 'pending' || state.kind === 'submitting' ? (
         <>
-          <p className="derivation-root-enrollment-help">
-            Compare this code with Terminal. Approve only if you started this restore.
-          </p>
+          <p className="derivation-root-enrollment-help">{t('derivationRestoreCompare')}</p>
           <div className="derivation-root-enrollment-details">
             <div className="derivation-root-enrollment-code">
-              <span>Confirmation code</span>
+              <span>{t('derivationConfirmationCode')}</span>
               <strong>
                 <code>{state.details.confirmationCode}</code>
               </strong>
             </div>
             <dl className="derivation-root-enrollment-fields derivation-root-backup-fields">
               <div>
-                <dt>Organization</dt>
+                <dt>{t('derivationOrganization')}</dt>
                 <dd>{state.details.organizationId}</dd>
               </div>
               <div>
-                <dt>Environment</dt>
+                <dt>{t('derivationEnvironment')}</dt>
                 <dd>{state.details.environmentId}</dd>
               </div>
               <div className="derivation-root-enrollment-field-wide">
-                <dt>Recovery destination</dt>
+                <dt>{t('derivationRecoveryDestination')}</dt>
                 <dd>
                   <code>{state.details.destination}</code>
                 </dd>
               </div>
             </dl>
           </div>
-          <p className="derivation-root-enrollment-help">
-            Grant temporary restore access with your passkey. Your private wrapper keys stay on your
-            device.
-          </p>
+          <p className="derivation-root-enrollment-help">{t('derivationRestoreGrantAccess')}</p>
           <div className="derivation-root-enrollment-footer">
             <div className="derivation-root-restore-approval-actions">
               <button
@@ -203,7 +196,7 @@ export function CliRestoreApproval({ id }: { id: string }) {
                 disabled={state.kind === 'submitting'}
                 onClick={decide.bind(null, 'deny', state.details, setState)}
               >
-                Deny
+                {t('derivationDeny')}
               </button>
               <button
                 type="button"
@@ -211,7 +204,9 @@ export function CliRestoreApproval({ id }: { id: string }) {
                 disabled={state.kind === 'submitting'}
                 onClick={decide.bind(null, 'approve', state.details, setState)}
               >
-                {state.kind === 'submitting' ? 'Verifying…' : 'Approve restore'}
+                {state.kind === 'submitting'
+                  ? t('derivationVerifying')
+                  : t('derivationApproveRestore')}
               </button>
             </div>
           </div>
@@ -231,7 +226,7 @@ export function CliRestoreApproval({ id }: { id: string }) {
           className="dashboard-pagination-button"
           onClick={load.bind(null, id, setState)}
         >
-          Try again
+          {t('derivationTryAgain')}
         </button>
       )}
     </dialog>
@@ -252,25 +247,30 @@ function dismissRestoreApproval(): void {
 
 function restoreApprovalError(value: unknown): string {
   if (typeof value !== 'object' || value === null || !('code' in value)) {
-    return 'Unable to approve restore access. Try again.';
+    return t('derivationRestoreUnableToApprove');
   }
   switch (value.code) {
     case 'restore_destination_connection_failed':
-      return 'The console could not connect securely to the recovery destination. Check that it is running and its HTTPS certificate is trusted, then try again. (restore_destination_connection_failed)';
+      return t('derivationRestoreErrConnection');
     case 'restore_destination_identity_mismatch':
-      return 'The destination belongs to a different environment. Check the configured recovery destination.';
+      return t('derivationRestoreErrIdentity');
     case 'restore_destination_redirect_refused':
-      return 'The recovery destination redirected the request. Configure its direct HTTPS address; restore credentials cannot be forwarded. (restore_destination_redirect_refused)';
+      return t('derivationRestoreErrRedirect');
     case 'restore_destination_credential_rejected':
-      return 'The destination rejected the console’s restore credential. Update the destination access configuration before retrying. (restore_destination_credential_rejected)';
+      return t('derivationRestoreErrCredential');
     case 'restore_destination_invalid_response':
-      return 'The destination returned an invalid restore session. Check that the destination runs the matching console version. (restore_destination_invalid_response)';
+      return t('derivationRestoreErrInvalidResponse');
     case 'restore_destination_unavailable':
-      return `The recovery destination returned HTTP ${'destinationStatus' in value && typeof value.destinationStatus === 'number' ? value.destinationStatus : 'error'}. Check the destination service before retrying. (restore_destination_unavailable)`;
+      return t('derivationRestoreErrUnavailable', {
+        status:
+          'destinationStatus' in value && typeof value.destinationStatus === 'number'
+            ? value.destinationStatus
+            : 'error',
+      });
     case 'step_up_required':
-      return 'Verify your identity again to approve this restore.';
+      return t('derivationRestoreStepUp');
     default:
-      return 'Unable to approve restore access. Try again.';
+      return t('derivationRestoreUnableToApprove');
   }
 }
 

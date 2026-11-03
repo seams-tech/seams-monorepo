@@ -1,4 +1,5 @@
 import React from 'react';
+import { t, type MessageKey } from '@core/i18n';
 import { formatDashboardTimestamp } from '@core/dashboard/utils/timestamps';
 import { toast } from 'sonner';
 import { useSiteRouter } from '@core/router/useSiteRouter';
@@ -125,6 +126,25 @@ function allPolicyChains(): string[] {
   return [...POLICY_CHAINS];
 }
 
+function walletCountLabel(count: number): string {
+  return t(count === 1 ? 'policyWalletCountOne' : 'policyWalletCountMany', { count });
+}
+
+/* Fills {name} tokens of a message with React nodes, so a sentence that wraps
+   one value in <strong> or <code> keeps its word order in every language. */
+function renderMessageWithNodes(
+  template: string,
+  nodes: Record<string, React.ReactNode>,
+): React.ReactNode[] {
+  return template.split(/(\{\w+\})/g).map((part, index) => {
+    const name = /^\{(\w+)\}$/.exec(part)?.[1];
+    if (name !== undefined && nodes[name] !== undefined) {
+      return <React.Fragment key={index}>{nodes[name]}</React.Fragment>;
+    }
+    return part;
+  });
+}
+
 const EMPTY_ASSIGNMENTS: Record<PolicyScopeType, DashboardConsolePolicyAssignment | null> = {
   ORG: null,
   PROJECT: null,
@@ -138,9 +158,21 @@ function formatTimestamp(value: string | null | undefined): string {
 
 /* Human labels for the raw policy action identifiers; the API values are
    snake_case and must not leak into the UI. */
+const POLICY_ACTION_MESSAGE_KEYS: Record<string, MessageKey> = {
+  transfer: 'policyActionTransfer',
+  contract_call: 'policyActionContractCall',
+  deploy_contract: 'policyActionDeployContract',
+  add_key: 'policyActionAddKey',
+  delete_key: 'policyActionDeleteKey',
+  sign_message: 'policyActionSignMessage',
+  export_key: 'policyActionExportKey',
+};
+
 function formatPolicyActionLabel(action: string): string {
   const normalized = String(action || '').trim();
   if (!normalized) return action;
+  const messageKey = POLICY_ACTION_MESSAGE_KEYS[normalized];
+  if (messageKey) return t(messageKey);
   const spaced = normalized.replaceAll('_', ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
@@ -148,11 +180,11 @@ function formatPolicyActionLabel(action: string): string {
 function formatPolicyStatusLabel(status: DashboardConsolePolicy['status']): string {
   switch (status) {
     case 'PUBLISHED':
-      return 'Published';
+      return t('policyStatusPublished');
     case 'DRAFT':
-      return 'Draft';
+      return t('policyStatusDraft');
     case 'ARCHIVED':
-      return 'Archived';
+      return t('policyStatusArchived');
     default:
       return status;
   }
@@ -204,7 +236,7 @@ function parseOptionalNonNegativeInt(raw: string, label: string): number | undef
   if (!trimmed) return undefined;
   const value = Number(trimmed);
   if (!Number.isInteger(value) || value < 0) {
-    throw new Error(`${label} must be a non-negative integer.`);
+    throw new Error(t('policyMustBeNonNegativeInteger', { label }));
   }
   return value;
 }
@@ -423,12 +455,23 @@ function rulesSummary(policy: DashboardConsolePolicy): string {
   const maxAmountMinor = readNumberRule(policy.rules.maxAmountMinor);
   const contractCalls = readContractCallRuleDrafts(policy.rules.allowedContractCalls);
   return [
-    chains.length > 0 ? `Chains: ${chains.join(', ')}` : 'Chains: all',
-    blockedActions.length > 0 ? `Blocked: ${blockedActions.join(', ')}` : 'Blocked: none',
+    chains.length > 0
+      ? t('policyRulesChains', { list: chains.join(', ') })
+      : t('policyRulesChainsAll'),
+    blockedActions.length > 0
+      ? t('policyRulesBlocked', { list: blockedActions.join(', ') })
+      : t('policyRulesBlockedNone'),
     contractCalls.length > 0
-      ? `Contract calls: ${contractCalls.length} contract${contractCalls.length === 1 ? '' : 's'}`
-      : 'Contract calls: all',
-    maxAmountMinor ? `Max amount: ${maxAmountMinor}` : 'Max amount: none',
+      ? t(
+          contractCalls.length === 1
+            ? 'policyRulesContractCallsOne'
+            : 'policyRulesContractCallsMany',
+          { count: contractCalls.length },
+        )
+      : t('policyRulesContractCallsAll'),
+    maxAmountMinor
+      ? t('policyRulesMaxAmount', { amount: maxAmountMinor })
+      : t('policyRulesMaxAmountNone'),
   ].join(' | ');
 }
 
@@ -438,15 +481,20 @@ function summarizeRuleList(values: string[], emptyLabel: string): string {
 
 function summarizeContractCallRules(raw: unknown): string {
   const rules = readContractCallRuleDrafts(raw);
-  if (rules.length === 0) return 'Allow all';
+  if (rules.length === 0) return t('policyAllowAll');
   return rules
     .map((rule) => {
       const contractAddress = normalizeDraftString(rule.contractAddress).toLowerCase();
       const functions = rule.functions.map((entry) => normalizeDraftString(entry)).filter(Boolean);
-      if (functions.length === 0) return `${contractAddress} (all functions)`;
+      if (functions.length === 0) {
+        return t('policyContractAllFunctions', { address: contractAddress });
+      }
       const preview = functions.slice(0, 2).join(', ');
-      const suffix = functions.length > 2 ? ` +${functions.length - 2} more` : '';
-      return `${contractAddress} (${preview}${suffix})`;
+      const more =
+        functions.length > 2
+          ? t('policyContractFunctionsMore', { count: functions.length - 2 })
+          : '';
+      return t('policyContractFunctions', { address: contractAddress, preview, more });
     })
     .join('; ');
 }
@@ -457,45 +505,45 @@ function buildPolicyRuleReviewRows(
 ): PolicyRuleReviewRow[] {
   const liveBlockedActions = summarizeRuleList(
     readStringRuleList(liveRules?.blockedActions),
-    'None',
+    t('policyNone'),
   );
   const nextBlockedActions = summarizeRuleList(
     readStringRuleList(nextRules.blockedActions),
-    'None',
+    t('policyNone'),
   );
   const liveAllowedChains = summarizeRuleList(
     readStringRuleList(liveRules?.allowedChains),
-    'All chains',
+    t('policyAllChains'),
   );
   const nextAllowedChains = summarizeRuleList(
     readStringRuleList(nextRules.allowedChains),
-    'All chains',
+    t('policyAllChains'),
   );
   const liveContractCalls = summarizeContractCallRules(liveRules?.allowedContractCalls);
   const nextContractCalls = summarizeContractCallRules(nextRules.allowedContractCalls);
-  const liveMaxAmountMinor = readNumberRule(liveRules?.maxAmountMinor) || 'No limit';
-  const nextMaxAmountMinor = readNumberRule(nextRules.maxAmountMinor) || 'No limit';
+  const liveMaxAmountMinor = readNumberRule(liveRules?.maxAmountMinor) || t('policyNoLimit');
+  const nextMaxAmountMinor = readNumberRule(nextRules.maxAmountMinor) || t('policyNoLimit');
   return [
     {
-      label: 'Blocked actions',
+      label: t('policyRuleBlockedActions'),
       live: liveBlockedActions,
       next: nextBlockedActions,
       changed: liveBlockedActions !== nextBlockedActions,
     },
     {
-      label: 'Allowed chains',
+      label: t('policyRuleAllowedChains'),
       live: liveAllowedChains,
       next: nextAllowedChains,
       changed: liveAllowedChains !== nextAllowedChains,
     },
     {
-      label: 'Contract calls',
+      label: t('policyRuleContractCalls'),
       live: liveContractCalls,
       next: nextContractCalls,
       changed: liveContractCalls !== nextContractCalls,
     },
     {
-      label: 'Max amount',
+      label: t('policyRuleMaxAmount'),
       live: liveMaxAmountMinor,
       next: nextMaxAmountMinor,
       changed: liveMaxAmountMinor !== nextMaxAmountMinor,
@@ -537,8 +585,8 @@ function PolicyRuleComparisonTable(props: {
       >
         <thead>
           <tr>
-            <th scope="col">Rule</th>
-            {props.showLiveColumn ? <th scope="col">Live now</th> : null}
+            <th scope="col">{t('policyColumnRule')}</th>
+            {props.showLiveColumn ? <th scope="col">{t('policyColumnLiveNow')}</th> : null}
             <th scope="col">{props.nextColumnLabel}</th>
           </tr>
         </thead>
@@ -552,7 +600,7 @@ function PolicyRuleComparisonTable(props: {
                 <div className="dashboard-policy-go-live__comparison-label">
                   <span>{entry.label}</span>
                   <DashboardTableBadge tone={entry.changed ? 'warning' : 'neutral'}>
-                    {entry.changed ? 'Changed' : 'Current'}
+                    {entry.changed ? t('policyBadgeChanged') : t('policyBadgeCurrent')}
                   </DashboardTableBadge>
                 </div>
               </th>
@@ -567,30 +615,41 @@ function PolicyRuleComparisonTable(props: {
 }
 
 function simulationSummary(result: DashboardConsolePolicySimulation): string {
-  const chainLabel = result.normalizedRequest.chain || 'any-chain';
+  const chainLabel = result.normalizedRequest.chain || t('policySimAnyChain');
   const amountLabel =
     result.normalizedRequest.amountMinor == null
-      ? 'no amount'
+      ? t('policySimNoAmount')
       : `${result.normalizedRequest.amountMinor}`;
   const contractLabel = result.normalizedRequest.contractAddress
-    ? ` for contract ${result.normalizedRequest.contractAddress}${
-        result.normalizedRequest.functionSelector
-          ? ` function ${result.normalizedRequest.functionSelector}`
-          : ''
-      }`
+    ? result.normalizedRequest.functionSelector
+      ? t('policySimContractFunction', {
+          address: result.normalizedRequest.contractAddress,
+          selector: result.normalizedRequest.functionSelector,
+        })
+      : t('policySimContract', { address: result.normalizedRequest.contractAddress })
     : '';
+  const summaryParams = {
+    action: result.normalizedRequest.action,
+    chain: chainLabel,
+    amount: amountLabel,
+    contract: contractLabel,
+  };
   if (result.decision === 'ALLOW') {
-    return `Allowed ${result.normalizedRequest.action} on ${chainLabel} with amount ${amountLabel}${contractLabel}.`;
+    return t('policySimAllowed', summaryParams);
   }
   const denySummary = result.denyReasons
     .map((entry) => `${entry.code}: ${entry.message}`)
     .join(' ');
-  return `Denied ${result.normalizedRequest.action} on ${chainLabel} with amount ${amountLabel}${contractLabel}. ${denySummary}`;
+  return t('policySimDenied', { ...summaryParams, reasons: denySummary });
 }
 
 function policyCoverageSummary(entry: DashboardPolicyCoverage['policies'][number] | null): string {
-  if (!entry) return 'Not currently covering wallets in this scope.';
-  return `${entry.walletCount} wallet${entry.walletCount === 1 ? '' : 's'}, total balance ${formatWalletBalanceMinor(entry.totalBalanceMinor)}, last activity ${formatTimestamp(entry.lastActivityAt)}`;
+  if (!entry) return t('policyCoverageNone');
+  return t('policyCoverageSummary', {
+    wallets: walletCountLabel(entry.walletCount),
+    balance: formatWalletBalanceMinor(entry.totalBalanceMinor),
+    time: formatTimestamp(entry.lastActivityAt),
+  });
 }
 
 function describePolicyDraftComparison(input: {
@@ -598,12 +657,12 @@ function describePolicyDraftComparison(input: {
   latestPublishedVersion: DashboardConsolePolicyVersion | null;
   changedRows: PolicyRuleReviewRow[];
 }): string {
-  if (input.policy.status === 'PUBLISHED') return 'This policy is already live.';
-  if (!input.latestPublishedVersion) return 'This draft has not been published yet.';
-  if (input.changedRows.length === 0) return 'This draft matches the current live rules.';
-  return `This draft changes ${input.changedRows.length} rule section${
-    input.changedRows.length === 1 ? '' : 's'
-  } from the live version.`;
+  if (input.policy.status === 'PUBLISHED') return t('policyDraftAlreadyLive');
+  if (!input.latestPublishedVersion) return t('policyDraftNotPublished');
+  if (input.changedRows.length === 0) return t('policyDraftMatchesLive');
+  return t(input.changedRows.length === 1 ? 'policyDraftChangesOne' : 'policyDraftChangesMany', {
+    count: input.changedRows.length,
+  });
 }
 
 function readPolicyEngineRouteSelection(): {
@@ -844,7 +903,7 @@ export function PolicyEnginePage(): React.JSX.Element {
     ].join(':');
     if (restoredDraftToastKeyRef.current === toastKey) return;
     restoredDraftToastKeyRef.current = toastKey;
-    toast('Restored unsaved draft.', {
+    toast(t('policyDraftRestored'), {
       id: `policy-engine-draft:${toastKey}`,
       description: null,
     });
@@ -892,7 +951,7 @@ export function PolicyEnginePage(): React.JSX.Element {
     if (!session.claims) {
       setPolicies([]);
       setPoliciesLoading(false);
-      setPoliciesErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setPoliciesErrorMessage(session.errorMessage || t('policySessionUnavailable'));
       return;
     }
     setPoliciesLoading(true);
@@ -943,7 +1002,7 @@ export function PolicyEnginePage(): React.JSX.Element {
     if (!session.claims) {
       setCoverage(null);
       setCoverageLoading(false);
-      setCoverageErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setCoverageErrorMessage(session.errorMessage || t('policySessionUnavailable'));
       return;
     }
     setCoverageLoading(true);
@@ -966,7 +1025,7 @@ export function PolicyEnginePage(): React.JSX.Element {
     if (!session.claims) {
       setWallets([]);
       setWalletsLoading(false);
-      setWalletsErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setWalletsErrorMessage(session.errorMessage || t('policySessionUnavailable'));
       return;
     }
     setWalletsLoading(true);
@@ -990,7 +1049,7 @@ export function PolicyEnginePage(): React.JSX.Element {
     if (!session.claims) {
       setApprovals([]);
       setApprovalsLoading(false);
-      setApprovalsErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setApprovalsErrorMessage(session.errorMessage || t('policySessionUnavailable'));
       return;
     }
     setApprovalsLoading(true);
@@ -1188,17 +1247,17 @@ export function PolicyEnginePage(): React.JSX.Element {
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (!session.claims) {
-        setMutationErrorMessage(session.errorMessage || 'Console session is unavailable');
+        setMutationErrorMessage(session.errorMessage || t('policySessionUnavailable'));
         return;
       }
       if (!canMutatePolicies) {
-        setMutationErrorMessage('Owner, administrator, or project editor access is required.');
+        setMutationErrorMessage(t('policyAccessRequired'));
         return;
       }
 
       const trimmedName = String(policyEditorForm.policyName || '').trim();
       if (!trimmedName) {
-        setMutationErrorMessage('Policy name is required.');
+        setMutationErrorMessage(t('policyNameRequired'));
         return;
       }
       if (
@@ -1206,7 +1265,7 @@ export function PolicyEnginePage(): React.JSX.Element {
         policyCreateMode === 'WALLET_OVERRIDE' &&
         !String(policyEditorForm.walletId || '').trim()
       ) {
-        setMutationErrorMessage('Select or enter a wallet before creating a wallet override.');
+        setMutationErrorMessage(t('policyWalletRequired'));
         return;
       }
 
@@ -1232,14 +1291,14 @@ export function PolicyEnginePage(): React.JSX.Element {
           policyEditorForm.contractCalls.mode === 'ALLOWLIST' &&
           nextContractCallRules.length === 0
         ) {
-          throw new Error('Add at least one contract before saving a contract-call allowlist.');
+          throw new Error(t('policyAllowlistNeedsContract'));
         }
         if (policyEditorForm.contractCalls.mode === 'ALLOWLIST') {
           nextRules.allowedContractCalls = nextContractCallRules;
         }
         const nextMaxAmountMinor = parseOptionalNonNegativeInt(
           policyEditorForm.maxAmountMinor,
-          'Max amount per transaction',
+          t('policyMaxAmountPerTransaction'),
         );
         if (nextMaxAmountMinor !== undefined) nextRules.maxAmountMinor = nextMaxAmountMinor;
 
@@ -1269,7 +1328,9 @@ export function PolicyEnginePage(): React.JSX.Element {
         setSelectedPolicyId(policy.id);
         clearPolicyEditorDraft();
         setActiveModal(null);
-        toast.success(`Saved policy ${policy.id} (${policy.status}, v${policy.version}).`);
+        toast.success(
+          t('policySaved', { id: policy.id, status: policy.status, version: policy.version }),
+        );
         await Promise.all([loadPolicies(), loadAssignments(), loadCoverage()]);
       } catch (error: unknown) {
         setMutationErrorMessage(error instanceof Error ? error.message : String(error));
@@ -1296,15 +1357,15 @@ export function PolicyEnginePage(): React.JSX.Element {
 
   const deleteSelectedPolicy = React.useCallback(async () => {
     if (!session.claims) {
-      setMutationErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setMutationErrorMessage(session.errorMessage || t('policySessionUnavailable'));
       return;
     }
     if (!canMutatePolicies) {
-      setMutationErrorMessage('Owner, administrator, or project editor access is required.');
+      setMutationErrorMessage(t('policyAccessRequired'));
       return;
     }
     if (!selectedPolicyId) {
-      setMutationErrorMessage('Select a policy before deleting it.');
+      setMutationErrorMessage(t('policySelectBeforeDelete'));
       return;
     }
     setMutationBusy('delete');
@@ -1312,7 +1373,7 @@ export function PolicyEnginePage(): React.JSX.Element {
     try {
       const deleted = await deleteDashboardPolicy({ policyId: selectedPolicyId });
       if (deleted.removed) {
-        toast.success(`Deleted policy ${selectedPolicyId}.`);
+        toast.success(t('policyDeleted', { id: selectedPolicyId }));
       }
       setSelectedPolicyId('');
       setActiveModal(null);
@@ -1334,15 +1395,15 @@ export function PolicyEnginePage(): React.JSX.Element {
 
   const publishSelectedPolicy = React.useCallback(async () => {
     if (!session.claims) {
-      setMutationErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setMutationErrorMessage(session.errorMessage || t('policySessionUnavailable'));
       return;
     }
     if (!canMutatePolicies) {
-      setMutationErrorMessage('Owner, administrator, or project editor access is required.');
+      setMutationErrorMessage(t('policyAccessRequired'));
       return;
     }
     if (!selectedPolicyId) {
-      setMutationErrorMessage('Select or save a policy before publishing.');
+      setMutationErrorMessage(t('policySelectBeforePublish'));
       return;
     }
 
@@ -1354,7 +1415,7 @@ export function PolicyEnginePage(): React.JSX.Element {
         ...(selectedApprovalId ? { approvalId: selectedApprovalId } : {}),
       });
       setActiveModal(null);
-      toast.success(`Published ${published.id} (v${published.version}).`);
+      toast.success(t('policyPublished', { id: published.id, version: published.version }));
       await Promise.all([loadPolicies(), loadApprovals()]);
     } catch (error: unknown) {
       setMutationErrorMessage(error instanceof Error ? error.message : String(error));
@@ -1373,20 +1434,20 @@ export function PolicyEnginePage(): React.JSX.Element {
 
   const createPublishApproval = React.useCallback(async () => {
     if (!session.claims) {
-      setMutationErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setMutationErrorMessage(session.errorMessage || t('policySessionUnavailable'));
       return;
     }
     if (!canMutatePolicies) {
-      setMutationErrorMessage('Owner, administrator, or project editor access is required.');
+      setMutationErrorMessage(t('policyAccessRequired'));
       return;
     }
     if (!selectedPolicyId) {
-      setMutationErrorMessage('Select a saved policy before requesting approval.');
+      setMutationErrorMessage(t('policySelectBeforeApproval'));
       return;
     }
     const reason = String(approvalCreateReason || '').trim();
     if (!reason) {
-      setMutationErrorMessage('Approval request reason is required.');
+      setMutationErrorMessage(t('policyApprovalReasonRequired'));
       return;
     }
 
@@ -1407,7 +1468,7 @@ export function PolicyEnginePage(): React.JSX.Element {
       });
       setApprovalCreateReason('Policy reviewed for publish.');
       setSelectedApprovalId(approval.status === 'APPROVED' ? approval.id : selectedApprovalId);
-      toast.success(`Created approval request ${approval.id} for ${selectedPolicyId}.`);
+      toast.success(t('policyApprovalCreated', { id: approval.id, policyId: selectedPolicyId }));
       await loadApprovals();
     } catch (error: unknown) {
       setMutationErrorMessage(error instanceof Error ? error.message : String(error));
@@ -1430,7 +1491,7 @@ export function PolicyEnginePage(): React.JSX.Element {
   const approveRequest = React.useCallback(
     async (approval: DashboardConsoleApprovalRequest) => {
       if (!canMutatePolicies) {
-        setMutationErrorMessage('Owner, administrator, or project editor access is required.');
+        setMutationErrorMessage(t('policyAccessRequired'));
         return;
       }
       setMutationBusy(`approve:${approval.id}`);
@@ -1441,7 +1502,7 @@ export function PolicyEnginePage(): React.JSX.Element {
           reason: String(approvalDecisionReason || '').trim() || 'Approved in policy engine.',
         });
         if (updated.status === 'APPROVED') setSelectedApprovalId(updated.id);
-        toast.success(`Approval request ${updated.id} is now ${updated.status}.`);
+        toast.success(t('policyApprovalStatusChanged', { id: updated.id, status: updated.status }));
         await loadApprovals();
       } catch (error: unknown) {
         setMutationErrorMessage(error instanceof Error ? error.message : String(error));
@@ -1455,7 +1516,7 @@ export function PolicyEnginePage(): React.JSX.Element {
   const rejectRequest = React.useCallback(
     async (approval: DashboardConsoleApprovalRequest) => {
       if (!canMutatePolicies) {
-        setMutationErrorMessage('Owner, administrator, or project editor access is required.');
+        setMutationErrorMessage(t('policyAccessRequired'));
         return;
       }
       setMutationBusy(`reject:${approval.id}`);
@@ -1466,7 +1527,7 @@ export function PolicyEnginePage(): React.JSX.Element {
           reason: String(approvalDecisionReason || '').trim() || 'Rejected in policy engine.',
         });
         if (selectedApprovalId === updated.id) setSelectedApprovalId('');
-        toast.success(`Approval request ${updated.id} is now ${updated.status}.`);
+        toast.success(t('policyApprovalStatusChanged', { id: updated.id, status: updated.status }));
         await loadApprovals();
       } catch (error: unknown) {
         setMutationErrorMessage(error instanceof Error ? error.message : String(error));
@@ -1479,7 +1540,7 @@ export function PolicyEnginePage(): React.JSX.Element {
 
   const runSimulation = React.useCallback(async () => {
     if (!selectedPolicyId) {
-      setSimulationErrorMessage('Save or select a policy before running simulation.');
+      setSimulationErrorMessage(t('policySaveBeforeSimulation'));
       setSimulationResult(null);
       return;
     }
@@ -1487,7 +1548,10 @@ export function PolicyEnginePage(): React.JSX.Element {
     setSimulationErrorMessage('');
     setSimulationResult(null);
     try {
-      const amountMinor = parseOptionalNonNegativeInt(simulationAmountMinor, 'Simulation amount');
+      const amountMinor = parseOptionalNonNegativeInt(
+        simulationAmountMinor,
+        t('policySimulationAmount'),
+      );
       const result = await simulateDashboardPolicy({
         policyId: selectedPolicyId,
         action: simulationAction,
@@ -1516,12 +1580,13 @@ export function PolicyEnginePage(): React.JSX.Element {
   const policyScopeUsageLabels = React.useCallback(
     (policy: DashboardConsolePolicy): string[] => {
       const labels: string[] = [];
-      if (assignmentsByScope.ORG?.policyId === policy.id) labels.push('org default');
-      if (assignmentsByScope.PROJECT?.policyId === policy.id) labels.push('project default');
+      if (assignmentsByScope.ORG?.policyId === policy.id) labels.push(t('policyScopeOrgDefault'));
+      if (assignmentsByScope.PROJECT?.policyId === policy.id)
+        labels.push(t('policyScopeProjectDefault'));
       if (assignmentsByScope.ENVIRONMENT?.policyId === policy.id)
-        labels.push('environment override');
+        labels.push(t('policyScopeEnvironmentOverride'));
       if (assignmentsByScope.WALLET?.policyId === policy.id)
-        labels.push('selected wallet override');
+        labels.push(t('policyScopeWalletOverride'));
       return labels;
     },
     [assignmentsByScope],
@@ -1530,8 +1595,8 @@ export function PolicyEnginePage(): React.JSX.Element {
   const policyScopeSummary = React.useCallback(
     (policy: DashboardConsolePolicy): string => {
       const labels = policyScopeUsageLabels(policy);
-      if (labels.length === 0) return 'Draft only';
-      const summary = labels.join(', ');
+      if (labels.length === 0) return t('policyScopeDraftOnly');
+      const summary = labels.join(t('policyListSeparator'));
       return `${summary.charAt(0).toUpperCase()}${summary.slice(1)}`;
     },
     [policyScopeUsageLabels],
@@ -1542,9 +1607,7 @@ export function PolicyEnginePage(): React.JSX.Element {
   const policyContextUsage = React.useCallback(
     (policy: DashboardConsolePolicy): string => {
       const coverageEntry = coverageByPolicyId.get(policy.id);
-      const walletCoverage = coverageEntry
-        ? `${coverageEntry.walletCount} wallet${coverageEntry.walletCount === 1 ? '' : 's'}`
-        : '0 wallets';
+      const walletCoverage = walletCountLabel(coverageEntry ? coverageEntry.walletCount : 0);
       return `${policyScopeSummary(policy)} ${walletCoverage}`;
     },
     [coverageByPolicyId, policyScopeSummary],
@@ -1579,8 +1642,8 @@ export function PolicyEnginePage(): React.JSX.Element {
     : null;
   const policiesPagination = useDashboardTablePagination(filteredPolicies, {
     disabled: policiesLoading,
-    itemLabel: 'policy',
-    itemLabelPlural: 'policies',
+    itemLabel: t('policyItemLabel'),
+    itemLabelPlural: t('policyItemLabelPlural'),
   });
   const latestPublishedVersion = React.useMemo(
     () => activePolicyVersions.find((entry) => entry.status === 'PUBLISHED') || null,
@@ -1626,7 +1689,7 @@ export function PolicyEnginePage(): React.JSX.Element {
       activeModalPolicy
         ? [
             {
-              label: 'Policy',
+              label: t('policyReviewRowPolicy'),
               value: (
                 <span className="dashboard-policy-go-live__value-stack">
                   <strong>{activeModalPolicy.name || activeModalPolicy.id}</strong>
@@ -1635,39 +1698,40 @@ export function PolicyEnginePage(): React.JSX.Element {
               ),
             },
             {
-              label: 'Current live version',
+              label: t('policyReviewRowCurrentLive'),
               value: policyVersionsLoading
-                ? 'Loading current live version...'
+                ? t('policyLoadingLiveVersion')
                 : policyVersionsErrorMessage
-                  ? `Unavailable: ${policyVersionsErrorMessage}`
+                  ? t('policyDetailsUnavailableValue', { message: policyVersionsErrorMessage })
                   : latestPublishedVersion
-                    ? `v${latestPublishedVersion.version} published ${formatTimestamp(
-                        latestPublishedVersion.publishedAt,
-                      )}`
-                    : 'Not live yet',
+                    ? t('policyVersionPublished', {
+                        version: latestPublishedVersion.version,
+                        time: formatTimestamp(latestPublishedVersion.publishedAt),
+                      })
+                    : t('policyNotLiveYet'),
             },
             {
-              label: 'Next live version',
+              label: t('policyReviewRowNextLive'),
               value: `v${nextLiveVersion}`,
             },
             {
-              label: 'Scope affected',
+              label: t('policyReviewRowScope'),
               value:
                 activeModalScopeUsageLabels.length > 0
-                  ? activeModalScopeUsageLabels.join(', ')
-                  : 'Not attached in the current org, project, and environment selection',
+                  ? activeModalScopeUsageLabels.join(t('policyListSeparator'))
+                  : t('policyNotAttached'),
             },
             {
-              label: 'Wallet impact',
+              label: t('policyReviewRowImpact'),
               value: coverageLoading
-                ? 'Loading current impact...'
+                ? t('policyLoadingImpact')
                 : coverageErrorMessage
-                  ? `Unavailable: ${coverageErrorMessage}`
+                  ? t('policyDetailsUnavailableValue', { message: coverageErrorMessage })
                   : activeModalCoverageEntry
-                    ? `${activeModalCoverageEntry.walletCount} wallet${
-                        activeModalCoverageEntry.walletCount === 1 ? '' : 's'
-                      } currently use this policy`
-                    : 'Unused in the current scope',
+                    ? t('policyWalletsUsing', {
+                        wallets: walletCountLabel(activeModalCoverageEntry.walletCount),
+                      })
+                    : t('policyUnusedInScope'),
             },
           ]
         : [],
@@ -1779,7 +1843,7 @@ export function PolicyEnginePage(): React.JSX.Element {
   ): React.JSX.Element => (
     <div className="dashboard-view-grid dashboard-view-grid--two dashboard-form-field dashboard-form-field--full">
       <label className="dashboard-form-field">
-        <span>Wallet override target</span>
+        <span>{t('policyWalletOverrideTarget')}</span>
         <input
           className="dashboard-input"
           list="policy-engine-wallets"
@@ -1796,21 +1860,21 @@ export function PolicyEnginePage(): React.JSX.Element {
         </datalist>
       </label>
       <div className="dashboard-form-field">
-        <span>Wallet preview</span>
+        <span>{t('policyWalletPreview')}</span>
         {walletsLoading ? (
-          <p className="dashboard-pagination-note">Loading wallets...</p>
+          <p className="dashboard-pagination-note">{t('policyWalletsLoading')}</p>
         ) : walletsErrorMessage ? (
           <p className="dashboard-pagination-note">{walletsErrorMessage}</p>
         ) : walletIdValue ? (
           <p className="dashboard-pagination-note">
             {(() => {
               const wallet = wallets.find((entry) => entry.id === walletIdValue) || null;
-              if (!wallet) return `Wallet ${walletIdValue}`;
+              if (!wallet) return t('policyWalletFallback', { id: walletIdValue });
               return `${wallet.id} (${wallet.chain}, ${wallet.address})`;
             })()}
           </p>
         ) : (
-          <p className="dashboard-pagination-note">Choose a wallet for the override target.</p>
+          <p className="dashboard-pagination-note">{t('policyWalletChoose')}</p>
         )}
       </div>
     </div>
@@ -1833,7 +1897,7 @@ export function PolicyEnginePage(): React.JSX.Element {
 
   const discardPolicyEditorDraft = React.useCallback(() => {
     if (policyEditorDraftDiffersFromInitial && typeof window !== 'undefined') {
-      const confirmed = window.confirm('Discard this unsaved draft?');
+      const confirmed = window.confirm(t('policyDiscardDraftConfirm'));
       if (!confirmed) return;
     }
     resetPolicyEditorDraftToInitial();
@@ -1841,8 +1905,11 @@ export function PolicyEnginePage(): React.JSX.Element {
   }, [closePolicyModal, policyEditorDraftDiffersFromInitial, resetPolicyEditorDraftToInitial]);
 
   return (
-    <div className="dashboard-view" aria-label="Policy engine page">
-      <section className="dashboard-policy-section--plain" aria-label="Policies table">
+    <div className="dashboard-view" aria-label={t('policyPageLabel')}>
+      <section
+        className="dashboard-policy-section--plain"
+        aria-label={t('policyTableSectionLabel')}
+      >
         <DashboardPageActions>
           <button
             type="button"
@@ -1850,7 +1917,7 @@ export function PolicyEnginePage(): React.JSX.Element {
             onClick={openCreateWalletOverrideModal}
             disabled={!canMutatePolicies}
           >
-            Create wallet override
+            {t('policyCreateWalletOverride')}
           </button>
           <button
             type="button"
@@ -1858,19 +1925,22 @@ export function PolicyEnginePage(): React.JSX.Element {
             onClick={openCreatePolicyModal}
             disabled={!canMutatePolicies}
           >
-            Create policy
+            {t('policyCreatePolicy')}
           </button>
         </DashboardPageActions>
         {!policyEditorModalOpen && mutationErrorMessage ? (
           <p className="dashboard-pagination-note">{mutationErrorMessage}</p>
         ) : null}
-        <div className="dashboard-filters dashboard-policy-filters" aria-label="Policy filters">
+        <div
+          className="dashboard-filters dashboard-policy-filters"
+          aria-label={t('policyFiltersLabel')}
+        >
           <label className="dashboard-search-control dashboard-search-control--compact">
             <span className="dashboard-search-icon" aria-hidden="true" />
             <input
               type="search"
-              aria-label="Search policies"
-              placeholder="Search policy name, ID, rules, or usage"
+              aria-label={t('policySearchLabel')}
+              placeholder={t('policySearchPlaceholder')}
               value={policyQuery}
               onChange={(event) => setPolicyQuery(event.target.value)}
             />
@@ -1878,25 +1948,25 @@ export function PolicyEnginePage(): React.JSX.Element {
           <label className="dashboard-form-field dashboard-policy-filter">
             <select
               className="dashboard-input"
-              aria-label="Filter policies by status"
+              aria-label={t('policyFilterStatusLabel')}
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as PolicyStatusFilter)}
             >
-              <option value="ALL">Status: All</option>
-              <option value="DRAFT">Status: Draft</option>
-              <option value="PUBLISHED">Status: Published</option>
+              <option value="ALL">{t('policyFilterStatusAll')}</option>
+              <option value="DRAFT">{t('policyFilterStatusDraft')}</option>
+              <option value="PUBLISHED">{t('policyFilterStatusPublished')}</option>
             </select>
           </label>
           <label className="dashboard-form-field dashboard-policy-filter">
             <select
               className="dashboard-input"
-              aria-label="Filter policies by impact"
+              aria-label={t('policyFilterImpactLabel')}
               value={impactFilter}
               onChange={(event) => setImpactFilter(event.target.value as PolicyImpactFilter)}
             >
-              <option value="ALL">Impact: All</option>
-              <option value="USED">Impact: Used by wallets</option>
-              <option value="UNUSED">Impact: Unused</option>
+              <option value="ALL">{t('policyFilterImpactAll')}</option>
+              <option value="USED">{t('policyFilterImpactUsed')}</option>
+              <option value="UNUSED">{t('policyFilterImpactUnused')}</option>
             </select>
           </label>
         </div>
@@ -1905,32 +1975,35 @@ export function PolicyEnginePage(): React.JSX.Element {
         coverage &&
         coverage.totals.unassignedWalletCount > 0 ? (
           <p className="dashboard-pagination-note">
-            {coverage.totals.unassignedWalletCount} wallet
-            {coverage.totals.unassignedWalletCount === 1 ? '' : 's'} unassigned in the current
-            scope.
+            {t(
+              coverage.totals.unassignedWalletCount === 1
+                ? 'policyUnassignedWalletsOne'
+                : 'policyUnassignedWalletsMany',
+              { count: coverage.totals.unassignedWalletCount },
+            )}
           </p>
         ) : null}
         <DashboardTable
-          ariaLabel="Policies rows"
+          ariaLabel={t('policyRowsLabel')}
           className="dashboard-policy-table"
           columns={POLICY_TABLE_COLUMNS}
           pagination={policiesPagination.pagination}
         >
           <DashboardTableHeader className="dashboard-policy-table__header">
-            <DashboardTableHeaderCell>Policy</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Current scope</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Used by</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Updated</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Actions</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('policyColumnPolicy')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('policyColumnCurrentScope')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('policyColumnUsedBy')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('policyColumnUpdated')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('policyColumnActions')}</DashboardTableHeaderCell>
           </DashboardTableHeader>
           {policiesLoading ? (
-            <DashboardTableState>Loading policies...</DashboardTableState>
+            <DashboardTableState>{t('policyLoading')}</DashboardTableState>
           ) : policiesErrorMessage ? (
-            <DashboardTableState>Policies unavailable: {policiesErrorMessage}</DashboardTableState>
-          ) : filteredPolicies.length === 0 ? (
             <DashboardTableState>
-              No policies matched the current search and filters.
+              {t('policyUnavailable', { message: policiesErrorMessage })}
             </DashboardTableState>
+          ) : filteredPolicies.length === 0 ? (
+            <DashboardTableState>{t('policyEmptyFiltered')}</DashboardTableState>
           ) : (
             <>
               {policiesPagination.rows.map((policy) => {
@@ -1970,10 +2043,8 @@ export function PolicyEnginePage(): React.JSX.Element {
                       </DashboardTableCell>
                       <DashboardTableCell>
                         {coverageEntry
-                          ? `${coverageEntry.walletCount} wallet${
-                              coverageEntry.walletCount === 1 ? '' : 's'
-                            }`
-                          : 'Unused'}
+                          ? walletCountLabel(coverageEntry.walletCount)
+                          : t('policyUnused')}
                       </DashboardTableCell>
                       <DashboardTableCell truncate>
                         {formatTimestamp(policy.updatedAt)}
@@ -1985,32 +2056,34 @@ export function PolicyEnginePage(): React.JSX.Element {
                             aria-haspopup="dialog"
                             onClick={() => setPolicyModalState('details', policy.id)}
                           >
-                            Details
+                            {t('policyDetails')}
                           </DashboardTableActionButton>
                           <DashboardTableActionMenu
-                            ariaLabel={`More actions for ${policy.name || policy.id}`}
+                            ariaLabel={t('policyMoreActionsFor', {
+                              name: policy.name || policy.id,
+                            })}
                             items={[
                               {
-                                label: 'Edit',
+                                label: t('policyMenuEdit'),
                                 onSelect: () => setPolicyModalState('edit', policy.id),
                                 disabled: !canMutatePolicies,
                               },
                               {
-                                label: 'Simulate',
+                                label: t('policyMenuSimulate'),
                                 onSelect: () => setPolicyModalState('simulate', policy.id),
                               },
                               {
-                                label: 'Go live',
+                                label: t('policyMenuGoLive'),
                                 onSelect: () => setPolicyModalState('publish', policy.id),
                                 disabled: !canMutatePolicies,
                               },
                               {
-                                label: 'Delete',
+                                label: t('policyMenuDelete'),
                                 onSelect: () => setPolicyModalState('delete', policy.id),
                                 tone: 'danger' as const,
                                 disabled: !canMutatePolicies || isDefaultPolicy,
                                 title: isDefaultPolicy
-                                  ? 'The organization default policy cannot be deleted.'
+                                  ? t('policyDefaultCannotBeDeleted')
                                   : undefined,
                               },
                             ]}
@@ -2033,16 +2106,16 @@ export function PolicyEnginePage(): React.JSX.Element {
           className="dashboard-modal--wide"
           ariaLabel={
             activeModal.kind === 'create'
-              ? 'Create policy modal'
+              ? t('policyModalCreateLabel')
               : activeModal.kind === 'details'
-                ? 'Policy details modal'
+                ? t('policyModalDetailsLabel')
                 : activeModal.kind === 'edit'
-                  ? 'Edit policy modal'
+                  ? t('policyModalEditLabel')
                   : activeModal.kind === 'delete'
-                    ? 'Delete policy modal'
+                    ? t('policyModalDeleteLabel')
                     : activeModal.kind === 'simulate'
-                      ? 'Simulate policy modal'
-                      : 'Schedule live policy change modal'
+                      ? t('policyModalSimulateLabel')
+                      : t('policyModalGoLiveLabel')
           }
         >
           {activeModal.kind === 'create' || activeModal.kind === 'edit' ? (
@@ -2050,14 +2123,14 @@ export function PolicyEnginePage(): React.JSX.Element {
               <h2>
                 {activeModal.kind === 'create'
                   ? policyCreateMode === 'WALLET_OVERRIDE'
-                    ? 'Create wallet override'
-                    : 'Create policy'
-                  : 'Edit policy'}
+                    ? t('policyCreateWalletOverride')
+                    : t('policyCreatePolicy')
+                  : t('policyEditTitle')}
               </h2>
               <p className="dashboard-pagination-note dashboard-policy-modal-intro">
                 {activeModal.kind === 'create' && policyCreateMode === 'WALLET_OVERRIDE'
-                  ? 'Create a wallet-specific draft for one wallet in the current dashboard context, then use Go live to publish it.'
-                  : 'Create a draft for the current dashboard context, then use Go live to publish it.'}
+                  ? t('policyIntroWalletOverride')
+                  : t('policyIntroStandard')}
               </p>
               {mutationErrorMessage ? (
                 <p className="dashboard-pagination-note">{mutationErrorMessage}</p>
@@ -2065,7 +2138,7 @@ export function PolicyEnginePage(): React.JSX.Element {
               <form className="dashboard-view-grid dashboard-view-grid--two" onSubmit={savePolicy}>
                 <div className="dashboard-policy-form-row dashboard-form-field dashboard-form-field--full">
                   <label className="dashboard-form-field dashboard-policy-form-row__field">
-                    <span>Policy name</span>
+                    <span>{t('policyFieldName')}</span>
                     <input
                       className="dashboard-input"
                       value={policyEditorForm.policyName}
@@ -2081,7 +2154,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                   </label>
 
                   <label className="dashboard-form-field dashboard-policy-form-row__field">
-                    <span>Max amount per transaction (minor units)</span>
+                    <span>{t('policyFieldMaxAmount')}</span>
                     <input
                       className="dashboard-input"
                       value={policyEditorForm.maxAmountMinor}
@@ -2105,8 +2178,8 @@ export function PolicyEnginePage(): React.JSX.Element {
 
                 <section className="dashboard-policy-rule-panel dashboard-policy-rule-panel--first dashboard-form-field dashboard-form-field--full">
                   <div className="dashboard-policy-rule-panel__header">
-                    <span>Blocked actions</span>
-                    <p className="dashboard-pagination-note">Deny high-risk operations entirely.</p>
+                    <span>{t('policyRuleBlockedActions')}</span>
+                    <p className="dashboard-pagination-note">{t('policyBlockedActionsHint')}</p>
                   </div>
                   <div className="dashboard-policy-toggle-grid">
                     {policyActionToggleOptions.map((action) => {
@@ -2141,10 +2214,8 @@ export function PolicyEnginePage(): React.JSX.Element {
 
                 <section className="dashboard-policy-rule-panel dashboard-form-field dashboard-form-field--full">
                   <div className="dashboard-policy-rule-panel__header">
-                    <span>Allowed chains</span>
-                    <p className="dashboard-pagination-note">
-                      Limit the policy to specific networks.
-                    </p>
+                    <span>{t('policyRuleAllowedChains')}</span>
+                    <p className="dashboard-pagination-note">{t('policyAllowedChainsHint')}</p>
                   </div>
                   <div className="dashboard-policy-toggle-grid">
                     {POLICY_CHAINS.map((chain) => {
@@ -2179,11 +2250,8 @@ export function PolicyEnginePage(): React.JSX.Element {
 
                 <section className="dashboard-policy-rule-panel dashboard-policy-rule-panel--contract-calls dashboard-form-field dashboard-form-field--full">
                   <div className="dashboard-policy-rule-panel__header">
-                    <span>Contract calls</span>
-                    <p className="dashboard-pagination-note">
-                      Choose whether contract calls stay open, or restrict them to an allowlist of
-                      contracts and functions.
-                    </p>
+                    <span>{t('policyRuleContractCalls')}</span>
+                    <p className="dashboard-pagination-note">{t('policyContractCallsHint')}</p>
                   </div>
                   <div className="dashboard-policy-contract-call-mode">
                     <button
@@ -2208,7 +2276,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                       }
                       disabled={!canMutatePolicies || mutationBusy === 'save'}
                     >
-                      Allow All
+                      {t('policyAllowAllButton')}
                     </button>
                     <button
                       type="button"
@@ -2232,32 +2300,30 @@ export function PolicyEnginePage(): React.JSX.Element {
                       }
                       disabled={!canMutatePolicies || mutationBusy === 'save'}
                     >
-                      Allowlist
+                      {t('policyAllowlistButton')}
                     </button>
                   </div>
 
                   {policyEditorForm.contractCalls.mode === 'ALLOWLIST' ? (
                     <div className="dashboard-policy-contract-calls">
                       {policyEditorForm.contractCalls.rules.length === 0 ? (
-                        <p className="dashboard-pagination-note">
-                          Add one or more contracts to define the contract-call allowlist.
-                        </p>
+                        <p className="dashboard-pagination-note">{t('policyAllowlistEmpty')}</p>
                       ) : null}
                       {policyEditorForm.contractCalls.rules.map((rule) => (
                         <div key={rule.id} className="dashboard-policy-contract-card">
                           <div className="dashboard-policy-contract-card__header">
-                            <strong>Allowed contract</strong>
+                            <strong>{t('policyAllowedContract')}</strong>
                             <button
                               type="button"
                               className="dashboard-inline-link dashboard-inline-link--danger"
                               onClick={() => removeContractCallRule(rule.id)}
                               disabled={!canMutatePolicies || mutationBusy === 'save'}
                             >
-                              Remove
+                              {t('policyRemove')}
                             </button>
                           </div>
                           <label className="dashboard-form-field">
-                            <span>Contract address</span>
+                            <span>{t('policyContractAddress')}</span>
                             <input
                               className="dashboard-input"
                               value={rule.contractAddress}
@@ -2275,14 +2341,18 @@ export function PolicyEnginePage(): React.JSX.Element {
                                 className="dashboard-uri-list-editor__row"
                               >
                                 <label className="dashboard-form-field dashboard-uri-list-editor__field">
-                                  <span>{index === 0 ? 'Allowed functions' : 'Function'}</span>
+                                  <span>
+                                    {index === 0
+                                      ? t('policyAllowedFunctions')
+                                      : t('policyFunction')}
+                                  </span>
                                   <input
                                     className="dashboard-input"
                                     value={functionEntry}
                                     onChange={(event) =>
                                       updateContractFunction(rule.id, index, event.target.value)
                                     }
-                                    placeholder="transfer(address,uint256) or 0xa9059cbb"
+                                    placeholder={t('policyFunctionPlaceholder')}
                                     disabled={!canMutatePolicies || mutationBusy === 'save'}
                                   />
                                 </label>
@@ -2293,7 +2363,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                                     onClick={() => removeContractFunction(rule.id, index)}
                                     disabled={!canMutatePolicies || mutationBusy === 'save'}
                                   >
-                                    Remove
+                                    {t('policyRemove')}
                                   </button>
                                 </div>
                               </div>
@@ -2305,7 +2375,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                             onClick={() => addContractFunction(rule.id)}
                             disabled={!canMutatePolicies || mutationBusy === 'save'}
                           >
-                            Add function
+                            {t('policyAddFunction')}
                           </button>
                         </div>
                       ))}
@@ -2315,13 +2385,11 @@ export function PolicyEnginePage(): React.JSX.Element {
                         onClick={addContractCallRule}
                         disabled={!canMutatePolicies || mutationBusy === 'save'}
                       >
-                        Add contract
+                        {t('policyAddContract')}
                       </button>
                     </div>
                   ) : (
-                    <p className="dashboard-pagination-note">
-                      Contract calls are allowed on any contract for the selected chains.
-                    </p>
+                    <p className="dashboard-pagination-note">{t('policyContractCallsOpen')}</p>
                   )}
                 </section>
 
@@ -2332,7 +2400,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                     onClick={discardPolicyEditorDraft}
                     disabled={mutationBusy === 'save'}
                   >
-                    Cancel
+                    {t('policyCancel')}
                   </button>
                   <button
                     type="submit"
@@ -2340,10 +2408,10 @@ export function PolicyEnginePage(): React.JSX.Element {
                     disabled={!canMutatePolicies || mutationBusy === 'save'}
                   >
                     {mutationBusy === 'save'
-                      ? 'Saving...'
+                      ? t('policySaving')
                       : activeModal.kind === 'create'
-                        ? 'Create draft'
-                        : 'Save draft'}
+                        ? t('policyCreateDraft')
+                        : t('policySaveDraft')}
                   </button>
                 </div>
               </form>
@@ -2353,20 +2421,18 @@ export function PolicyEnginePage(): React.JSX.Element {
           {activeModal.kind === 'details' ? (
             activeModalPolicy ? (
               <>
-                <h2>Policy details</h2>
-                <p className="dashboard-pagination-note">
-                  Review the current scope, live version, and rule behavior for this policy.
-                </p>
+                <h2>{t('policyDetailsTitle')}</h2>
+                <p className="dashboard-pagination-note">{t('policyDetailsIntro')}</p>
                 <div className="dashboard-policy-view">
                   <header className="dashboard-policy-view__hero">
                     <div className="dashboard-policy-view__hero-copy">
-                      <p className="dashboard-policy-view__eyebrow">Policy details</p>
+                      <p className="dashboard-policy-view__eyebrow">{t('policyDetailsTitle')}</p>
                       <h3>{activeModalPolicy.name || activeModalPolicy.id}</h3>
                       <p className="dashboard-pagination-note">
                         {activeModalPolicy.description
                           ? activeModalPolicy.description
                           : activeModalPolicy.isSystemDefault
-                            ? 'Default live policy for this organization.'
+                            ? t('policyDefaultLivePolicy')
                             : activeModalDraftComparisonSummary}
                       </p>
                     </div>
@@ -2378,48 +2444,53 @@ export function PolicyEnginePage(): React.JSX.Element {
                         v{activeModalPolicy.version}
                       </DashboardTableBadge>
                       {activeModalPolicy.isSystemDefault ? (
-                        <DashboardTableBadge tone="neutral">System default</DashboardTableBadge>
+                        <DashboardTableBadge tone="neutral">
+                          {t('policySystemDefault')}
+                        </DashboardTableBadge>
                       ) : null}
                     </div>
                   </header>
 
                   <DashboardTableDetailsGrid>
-                    <DashboardTableDetailsItem label="Policy ID">
+                    <DashboardTableDetailsItem label={t('policyDetailPolicyId')}>
                       <code>{activeModalPolicy.id}</code>
                     </DashboardTableDetailsItem>
-                    <DashboardTableDetailsItem label="Live version">
+                    <DashboardTableDetailsItem label={t('policyDetailLiveVersion')}>
                       <span>
                         {policyVersionsLoading
-                          ? 'Loading...'
+                          ? t('policyDetailsLoading')
                           : policyVersionsErrorMessage
-                            ? `Unavailable: ${policyVersionsErrorMessage}`
+                            ? t('policyDetailsUnavailableValue', {
+                                message: policyVersionsErrorMessage,
+                              })
                             : latestPublishedVersion
-                              ? `v${latestPublishedVersion.version} published ${formatTimestamp(
-                                  latestPublishedVersion.publishedAt,
-                                )}`
-                              : 'Not live yet'}
+                              ? t('policyVersionPublished', {
+                                  version: latestPublishedVersion.version,
+                                  time: formatTimestamp(latestPublishedVersion.publishedAt),
+                                })
+                              : t('policyNotLiveYet')}
                       </span>
                     </DashboardTableDetailsItem>
-                    <DashboardTableDetailsItem label="Current scope">
+                    <DashboardTableDetailsItem label={t('policyColumnCurrentScope')}>
                       <span>
                         {activeModalScopeUsageLabels.length > 0
-                          ? activeModalScopeUsageLabels.join(', ')
-                          : 'Draft only'}
+                          ? activeModalScopeUsageLabels.join(t('policyListSeparator'))
+                          : t('policyScopeDraftOnly')}
                       </span>
                     </DashboardTableDetailsItem>
-                    <DashboardTableDetailsItem label="Coverage">
+                    <DashboardTableDetailsItem label={t('policyDetailCoverage')}>
                       <span>
                         {coverageLoading
-                          ? 'Loading current impact...'
+                          ? t('policyLoadingImpact')
                           : coverageErrorMessage
-                            ? `Unavailable: ${coverageErrorMessage}`
+                            ? t('policyDetailsUnavailableValue', { message: coverageErrorMessage })
                             : policyCoverageSummary(activeModalCoverageEntry)}
                       </span>
                     </DashboardTableDetailsItem>
-                    <DashboardTableDetailsItem label="Published">
+                    <DashboardTableDetailsItem label={t('policyDetailPublished')}>
                       <span>{formatTimestamp(activeModalPolicy.publishedAt)}</span>
                     </DashboardTableDetailsItem>
-                    <DashboardTableDetailsItem label="Updated">
+                    <DashboardTableDetailsItem label={t('policyColumnUpdated')}>
                       <span>{formatTimestamp(activeModalPolicy.updatedAt)}</span>
                     </DashboardTableDetailsItem>
                   </DashboardTableDetailsGrid>
@@ -2427,10 +2498,8 @@ export function PolicyEnginePage(): React.JSX.Element {
                   <section className="dashboard-view-card dashboard-policy-view__section">
                     <div className="dashboard-policy-view__section-header">
                       <div>
-                        <h3>Rules</h3>
-                        <p className="dashboard-pagination-note">
-                          Current policy behavior by rule section.
-                        </p>
+                        <h3>{t('policyRulesHeading')}</h3>
+                        <p className="dashboard-pagination-note">{t('policyRulesHint')}</p>
                       </div>
                       <p className="dashboard-policy-view__summary">
                         {rulesSummary(activeModalPolicy)}
@@ -2447,13 +2516,13 @@ export function PolicyEnginePage(): React.JSX.Element {
                           <div className="dashboard-policy-view__rule-card-header">
                             <p className="dashboard-policy-view__rule-label">{entry.label}</p>
                             <DashboardTableBadge tone={entry.changed ? 'warning' : 'neutral'}>
-                              {entry.changed ? 'Changed' : 'Current'}
+                              {entry.changed ? t('policyBadgeChanged') : t('policyBadgeCurrent')}
                             </DashboardTableBadge>
                           </div>
                           <p className="dashboard-policy-view__rule-value">{entry.next}</p>
                           {activeModalPolicy.status !== 'PUBLISHED' && latestPublishedVersion ? (
                             <p className="dashboard-policy-view__rule-compare">
-                              Live: {entry.live}
+                              {t('policyLiveValue', { value: entry.live })}
                             </p>
                           ) : null}
                         </article>
@@ -2464,7 +2533,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                   <section className="dashboard-view-card dashboard-policy-view__section">
                     <div className="dashboard-policy-view__section-header">
                       <div>
-                        <h3>Change summary</h3>
+                        <h3>{t('policyChangeSummary')}</h3>
                         <p className="dashboard-pagination-note">
                           {activeModalDraftComparisonSummary}
                         </p>
@@ -2489,25 +2558,27 @@ export function PolicyEnginePage(): React.JSX.Element {
                     className="dashboard-pagination-button dashboard-pagination-button--secondary"
                     onClick={closePolicyModal}
                   >
-                    Close
+                    {t('policyClose')}
                   </button>
                 </div>
               </>
             ) : (
-              <p className="dashboard-pagination-note">Policy details are unavailable.</p>
+              <p className="dashboard-pagination-note">{t('policyDetailsUnavailable')}</p>
             )
           ) : null}
 
           {activeModal.kind === 'simulate' ? (
             activeModalPolicy ? (
               <>
-                <h2>Simulate policy</h2>
+                <h2>{t('policySimulateTitle')}</h2>
                 <p className="dashboard-pagination-note">
-                  Test {activeModalPolicy.name || activeModalPolicy.id} before publishing it.
+                  {t('policySimulateIntro', {
+                    name: activeModalPolicy.name || activeModalPolicy.id,
+                  })}
                 </p>
                 <div className="dashboard-view-grid dashboard-view-grid--two">
                   <label className="dashboard-form-field">
-                    <span>Action</span>
+                    <span>{t('policySimFieldAction')}</span>
                     <select
                       className="dashboard-input"
                       value={simulationAction}
@@ -2521,7 +2592,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                     </select>
                   </label>
                   <label className="dashboard-form-field">
-                    <span>Chain</span>
+                    <span>{t('policySimFieldChain')}</span>
                     <select
                       className="dashboard-input"
                       value={simulationChain}
@@ -2535,7 +2606,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                     </select>
                   </label>
                   <label className="dashboard-form-field">
-                    <span>Amount (minor units)</span>
+                    <span>{t('policySimFieldAmount')}</span>
                     <input
                       className="dashboard-input"
                       value={simulationAmountMinor}
@@ -2546,7 +2617,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                   {simulationAction === 'contract_call' ? (
                     <>
                       <label className="dashboard-form-field">
-                        <span>Contract address</span>
+                        <span>{t('policyContractAddress')}</span>
                         <input
                           className="dashboard-input"
                           value={simulationContractAddress}
@@ -2555,12 +2626,12 @@ export function PolicyEnginePage(): React.JSX.Element {
                         />
                       </label>
                       <label className="dashboard-form-field">
-                        <span>Function selector</span>
+                        <span>{t('policySimFieldSelector')}</span>
                         <input
                           className="dashboard-input"
                           value={simulationFunctionSelector}
                           onChange={(event) => setSimulationFunctionSelector(event.target.value)}
-                          placeholder="transfer(address,uint256) or 0xa9059cbb"
+                          placeholder={t('policyFunctionPlaceholder')}
                         />
                       </label>
                     </>
@@ -2573,7 +2644,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                     onClick={closePolicyModal}
                     disabled={simulationBusy}
                   >
-                    Close
+                    {t('policyClose')}
                   </button>
                   <button
                     type="button"
@@ -2581,7 +2652,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                     onClick={() => void runSimulation()}
                     disabled={simulationBusy || !selectedPolicyId}
                   >
-                    {simulationBusy ? 'Simulating...' : 'Run simulation'}
+                    {simulationBusy ? t('policySimRunning') : t('policySimRun')}
                   </button>
                 </div>
                 {simulationErrorMessage ? (
@@ -2589,28 +2660,31 @@ export function PolicyEnginePage(): React.JSX.Element {
                 ) : null}
                 {simulationResult ? (
                   <p className="dashboard-pagination-note">
-                    Decision {simulationResult.decision} on policy {simulationResult.policyId} v
-                    {simulationResult.policyVersion}. {simulationSummary(simulationResult)}
+                    {t('policySimDecision', {
+                      decision: simulationResult.decision,
+                      policyId: simulationResult.policyId,
+                      version: simulationResult.policyVersion,
+                      summary: simulationSummary(simulationResult),
+                    })}
                   </p>
                 ) : null}
               </>
             ) : (
-              <p className="dashboard-pagination-note">Select a policy before simulating it.</p>
+              <p className="dashboard-pagination-note">{t('policySimSelectPolicy')}</p>
             )
           ) : null}
 
           {activeModal.kind === 'delete' ? (
             activeModalPolicy ? (
               <>
-                <h2>Delete policy</h2>
+                <h2>{t('policyDeleteTitle')}</h2>
                 <p className="dashboard-pagination-note">
-                  Delete <strong>{activeModalPolicy.name || activeModalPolicy.id}</strong> and
-                  remove it from the registry. This does not delete wallet activity history.
+                  {renderMessageWithNodes(t('policyDeleteMessage'), {
+                    name: <strong>{activeModalPolicy.name || activeModalPolicy.id}</strong>,
+                  })}
                 </p>
                 {activeModalPolicy.isSystemDefault ? (
-                  <p className="dashboard-pagination-note">
-                    The organization default policy is protected and cannot be deleted.
-                  </p>
+                  <p className="dashboard-pagination-note">{t('policyDeleteProtected')}</p>
                 ) : null}
                 <div className="dashboard-form-actions">
                   <button
@@ -2619,7 +2693,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                     onClick={closePolicyModal}
                     disabled={mutationBusy === 'delete'}
                   >
-                    Cancel
+                    {t('policyCancel')}
                   </button>
                   <button
                     type="button"
@@ -2631,83 +2705,73 @@ export function PolicyEnginePage(): React.JSX.Element {
                       activeModalPolicy.isSystemDefault
                     }
                   >
-                    {mutationBusy === 'delete' ? 'Deleting...' : 'Delete policy'}
+                    {mutationBusy === 'delete' ? t('policyDeleting') : t('policyDeleteTitle')}
                   </button>
                 </div>
               </>
             ) : (
-              <p className="dashboard-pagination-note">Policy details are unavailable.</p>
+              <p className="dashboard-pagination-note">{t('policyDetailsUnavailable')}</p>
             )
           ) : null}
 
           {activeModal.kind === 'publish' ? (
             activeModalPolicy ? (
               <>
-                <h2>Go live review</h2>
-                <p className="dashboard-pagination-note">
-                  Review what will change for this policy in the current dashboard context before
-                  requesting approvals or publishing it live.
-                </p>
+                <h2>{t('policyGoLiveTitle')}</h2>
+                <p className="dashboard-pagination-note">{t('policyGoLiveIntro')}</p>
                 <section className="dashboard-policy-view__section dashboard-policy-go-live__section">
                   <div className="dashboard-policy-view__section-header">
                     <div>
-                      <h3>Release context</h3>
-                      <p className="dashboard-pagination-note">
-                        The policy, scope, and current live baseline for this publish.
-                      </p>
+                      <h3>{t('policyReleaseContext')}</h3>
+                      <p className="dashboard-pagination-note">{t('policyReleaseContextHint')}</p>
                     </div>
                   </div>
                   <PolicyReviewTable
-                    ariaLabel="Go live review context"
+                    ariaLabel={t('policyGoLiveContextLabel')}
                     rows={activeModalReviewRows}
                   />
                 </section>
                 <div className="dashboard-modal-divider">
                   <div className="dashboard-policy-view__section-header">
                     <div>
-                      <h3>Change summary</h3>
+                      <h3>{t('policyChangeSummary')}</h3>
                       <p className="dashboard-pagination-note">
                         {activeModalDraftComparisonSummary}
                       </p>
                     </div>
                   </div>
                   {policyVersionsLoading ? (
-                    <p className="dashboard-pagination-note">Loading live-rule comparison...</p>
+                    <p className="dashboard-pagination-note">{t('policyLoadingComparison')}</p>
                   ) : policyVersionsErrorMessage ? (
                     <p className="dashboard-pagination-note">
-                      Live-rule comparison unavailable: {policyVersionsErrorMessage}
+                      {t('policyComparisonUnavailable', { message: policyVersionsErrorMessage })}
                     </p>
                   ) : latestPublishedVersion ? (
                     changedActiveModalRuleReviewRows.length > 0 ? (
                       <PolicyRuleComparisonTable
-                        ariaLabel="Go live rule changes"
+                        ariaLabel={t('policyGoLiveChangesLabel')}
                         rows={changedActiveModalRuleReviewRows}
-                        nextColumnLabel="Go live"
+                        nextColumnLabel={t('policyGoLive')}
                         showLiveColumn
                       />
                     ) : (
-                      <p className="dashboard-pagination-note">
-                        This draft matches the current live rule set. Publishing again will not
-                        change the policy rules.
-                      </p>
+                      <p className="dashboard-pagination-note">{t('policyNoRuleChanges')}</p>
                     )
                   ) : (
                     <PolicyRuleComparisonTable
-                      ariaLabel="Initial live rule set"
+                      ariaLabel={t('policyInitialRuleSetLabel')}
                       rows={activeModalRuleReviewRows}
-                      nextColumnLabel="Go live"
+                      nextColumnLabel={t('policyGoLive')}
                       showLiveColumn={false}
                     />
                   )}
                 </div>
                 <div className="dashboard-modal-divider">
-                  <p className="dashboard-pagination-note">
-                    Queue approvals here before the change is allowed to go live.
-                  </p>
+                  <p className="dashboard-pagination-note">{t('policyQueueApprovals')}</p>
                 </div>
                 <div className="dashboard-view-grid dashboard-view-grid--two">
                   <label className="dashboard-form-field">
-                    <span>New approval request reason</span>
+                    <span>{t('policyApprovalReasonField')}</span>
                     <input
                       className="dashboard-input"
                       value={approvalCreateReason}
@@ -2717,7 +2781,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                     />
                   </label>
                   <label className="dashboard-form-field">
-                    <span>Approval decision reason</span>
+                    <span>{t('policyApprovalDecisionField')}</span>
                     <input
                       className="dashboard-input"
                       value={approvalDecisionReason}
@@ -2727,14 +2791,14 @@ export function PolicyEnginePage(): React.JSX.Element {
                     />
                   </label>
                   <label className="dashboard-form-field dashboard-form-field--full">
-                    <span>Approved request for live publish</span>
+                    <span>{t('policyApprovedRequestField')}</span>
                     <select
                       className="dashboard-input"
                       value={selectedApprovalId}
                       onChange={(event) => setSelectedApprovalId(event.target.value)}
                       disabled={approvalsLoading || approvedApprovals.length === 0}
                     >
-                      <option value="">No approved request selected</option>
+                      <option value="">{t('policyNoApprovedRequest')}</option>
                       {approvedApprovals.map((approval) => (
                         <option key={approval.id} value={approval.id}>
                           {approval.id} ({approval.status})
@@ -2751,7 +2815,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                     onClick={closePolicyModal}
                     disabled={mutationBusy === 'approval-create' || mutationBusy === 'publish'}
                   >
-                    Close
+                    {t('policyClose')}
                   </button>
                   <button
                     type="button"
@@ -2762,8 +2826,8 @@ export function PolicyEnginePage(): React.JSX.Element {
                     }
                   >
                     {mutationBusy === 'approval-create'
-                      ? 'Creating request...'
-                      : 'Create approval request'}
+                      ? t('policyCreatingRequest')
+                      : t('policyCreateApprovalRequest')}
                   </button>
                   <button
                     type="button"
@@ -2779,28 +2843,32 @@ export function PolicyEnginePage(): React.JSX.Element {
                         approvedApprovals.length === 0)
                     }
                   >
-                    {mutationBusy === 'publish' ? 'Publishing...' : 'Publish live'}
+                    {mutationBusy === 'publish' ? t('policyPublishing') : t('policyPublishLive')}
                   </button>
                 </div>
 
                 {approvalsLoading ? (
-                  <p className="dashboard-pagination-note">Loading live-change approvals...</p>
+                  <p className="dashboard-pagination-note">{t('policyApprovalsLoading')}</p>
                 ) : approvalsErrorMessage ? (
                   <p className="dashboard-pagination-note">
-                    Approvals unavailable: {approvalsErrorMessage}
+                    {t('policyApprovalsUnavailable', { message: approvalsErrorMessage })}
                   </p>
                 ) : relevantApprovals.length === 0 ? (
-                  <p className="dashboard-pagination-note">
-                    No approval requests are linked to this policy yet.
-                  </p>
+                  <p className="dashboard-pagination-note">{t('policyApprovalsNone')}</p>
                 ) : (
                   <ul className="dashboard-view-list">
                     {relevantApprovals.map((approval) => (
                       <li key={approval.id}>
-                        <strong>{approval.id}</strong> {approval.status} requested by{' '}
-                        <code>{approval.requestedByUserId}</code> at{' '}
-                        {formatTimestamp(approval.createdAt)}. {approval.reason}
-                        {approval.id === requestedApprovalId ? ' Opened from audit.' : ''}
+                        {renderMessageWithNodes(t('policyApprovalItem'), {
+                          id: <strong>{approval.id}</strong>,
+                          status: approval.status,
+                          user: <code>{approval.requestedByUserId}</code>,
+                          time: formatTimestamp(approval.createdAt),
+                        })}{' '}
+                        {approval.reason}
+                        {approval.id === requestedApprovalId
+                          ? ` ${t('policyOpenedFromAudit')}`
+                          : ''}
                         {approval.status === 'PENDING' ? (
                           <>
                             {' '}
@@ -2813,8 +2881,8 @@ export function PolicyEnginePage(): React.JSX.Element {
                               }
                             >
                               {mutationBusy === `approve:${approval.id}`
-                                ? 'Approving...'
-                                : 'Approve'}
+                                ? t('policyApproving')
+                                : t('policyApprove')}
                             </button>{' '}
                             <button
                               type="button"
@@ -2824,7 +2892,9 @@ export function PolicyEnginePage(): React.JSX.Element {
                                 !canMutatePolicies || mutationBusy === `reject:${approval.id}`
                               }
                             >
-                              {mutationBusy === `reject:${approval.id}` ? 'Rejecting...' : 'Reject'}
+                              {mutationBusy === `reject:${approval.id}`
+                                ? t('policyRejecting')
+                                : t('policyReject')}
                             </button>
                           </>
                         ) : null}
@@ -2834,9 +2904,7 @@ export function PolicyEnginePage(): React.JSX.Element {
                 )}
               </>
             ) : (
-              <p className="dashboard-pagination-note">
-                Select a policy before scheduling it live.
-              </p>
+              <p className="dashboard-pagination-note">{t('policySelectBeforeScheduling')}</p>
             )
           ) : null}
         </DashboardInlineModal>

@@ -18,7 +18,7 @@ import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
-import { PAPER_FIELDS, type PaperFieldName } from '@/components/h2/paperFields';
+import { PAPER_FIELDS, PAPER_FLOW, type PaperFieldName } from '@/components/h2/paperFields';
 import { tileSignScenes, type TileSign } from '@/components/h2/ink/tileSignScenes';
 import { PortalShot, type PortalShotName } from '@/components/h2/SceneHero';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
@@ -387,7 +387,7 @@ function BannerSection({
     <section id={anchor} className="h2-section h2-section--banner h2-rule" aria-labelledby={id}>
       {drawing ? (
         <div className="h2-banner h2-banner--ink">
-          <GrainField field={PAPER_FIELDS[paper]} flow={BANNER_FLOW} />
+          <GrainField field={PAPER_FIELDS[paper]} flow={PAPER_FLOW} />
           {drawing}
           {content}
         </div>

@@ -39,6 +39,9 @@ export type GeneratedField = {
   /* how much of each colour's distance from mid grey stays; 0.75 unless set,
      and 1 keeps pale tones pale */
   contrast?: number;
+  /* how far the soft variation bends the gradient line; 0.24 unless set, and
+     less gives a plainer, more gradual blend */
+  variation?: number;
 };
 
 export type GrainFieldSource = {
@@ -141,6 +144,7 @@ function generateGrid({
   light = LIGHT,
   dark = DARK,
   contrast = CONTRAST,
+  variation: bend = VARIATION,
 }: GeneratedField): Uint8Array {
   const size = GRAIN_FIELD_GRID_SIZE;
   const stops = [light, ...accents, dark].map((hex) =>
@@ -173,7 +177,7 @@ function generateGrid({
         fy,
       );
       const along = 0.5 + ((u - 0.5) * dx + (v - 0.5) * dy) / span;
-      const position = Math.min(Math.max(along + variation * VARIATION, 0), 1) * segments;
+      const position = Math.min(Math.max(along + variation * bend, 0), 1) * segments;
       const stop = Math.min(Math.floor(position), segments - 1);
       const blend = position - stop;
       for (let channel = 0; channel < 3; channel += 1) {

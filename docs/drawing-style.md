@@ -20,15 +20,16 @@ All paths are in `apps/seams-site/src/`.
 | `components/h2/ink/wheatFieldScene.ts`   | The integrations wheat field, which times its own stalks                         |
 | `components/h2/ink/bakeryRobotScenes.ts` | The oven arm and the rack runner                                                 |
 | `components/h2/ink/conceptScenes.ts`     | Spare drawings that no page uses yet                                             |
+| `components/h2/ink/suiteIconScenes.ts`   | The home hero's Satyr app tiles: torn ink squares with each sign cut out         |
 | `components/h2/EcosystemField.tsx`       | The SVG layer of tool logos and gold grains over the wheat field                 |
 | `styles/h2-ink.css`                      | The motion keyframes, the resting state and reduced motion                       |
 
-| Page                      | Drawings                                                                                               |
-| ------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Home (`pages/home2`)      | Hero `goatScene` (drawn on load), `wireScene`, the wheat field, `stalkScene`, `keyScene`, `carryScene` |
-| Satyr (`pages/ecommerce`) | `windScene`, `rackRunnerScene`, `cobotScene`, `ovenArmScene`, `pillowGoatScene`                        |
-| Company                   | `parcelSparrowScene`, `cupSparrowScene`                                                                |
-| Not found                 | `flourGoatScene`                                                                                       |
+| Page                      | Drawings                                                                                                                   |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Home (`pages/home2`)      | Hero `goatScene` and the suite tiles (drawn on load), `wireScene`, the wheat field, `stalkScene`, `keyScene`, `carryScene` |
+| Satyr (`pages/ecommerce`) | `windScene`, `rackRunnerScene`, `cobotScene`, `ovenArmScene`, `pillowGoatScene`                                            |
+| Company                   | `parcelSparrowScene`, `cupSparrowScene`                                                                                    |
+| Not found                 | `flourGoatScene`                                                                                                           |
 
 ## Aesthetics
 

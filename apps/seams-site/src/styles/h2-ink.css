@@ -151,13 +151,12 @@
 .h2-hero-simple--ink > .h2-shell {
   background-color: #faf8f3;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .28 0 0 0 0 .22 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23p)'/%3E%3C/svg%3E");
-  /* room over the card for the kite, and under it for the ground */
+  /* room over the copy for the kite, and under it for the ground */
   padding-top: 128px;
   padding-bottom: 84px;
 }
 
-.h2-hero-simple--ink .h2-hero-simple__copy,
-.h2-hero-simple--ink .h2-ops {
+.h2-hero-simple--ink .h2-hero-simple__copy {
   position: relative;
   z-index: 1;
 }
@@ -179,6 +178,72 @@
 
 .h2-hero-simple--ink .h2-btn--outline {
   border-color: rgba(10, 10, 10, 0.14);
+}
+
+/* with no card, the panel keeps the height of the whole drawing */
+.h2-hero-simple--ink > .h2-shell {
+  min-height: 600px;
+}
+
+/* the row of Satyr apps under the actions: ink tiles with their names */
+.h2-suite {
+  margin-top: 40px;
+}
+
+.h2-suite__label {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--h2-smoke);
+}
+
+/* four by two, so the row never reaches the wheat under the copy */
+.h2-suite__list {
+  display: grid;
+  grid-template-columns: repeat(4, 64px);
+  gap: 14px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.h2-suite__app {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--h2-graphite);
+  text-decoration: none;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.h2-suite__app:focus-visible {
+  outline: 2px solid var(--h2-ink);
+  outline-offset: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-suite__app:hover {
+    color: var(--h2-ink);
+    transform: translateY(-2px);
+  }
+}
+
+.h2-suite__tile {
+  width: 52px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h2-suite__app {
+    transition: none;
+  }
+
+  .h2-suite__app:hover {
+    transform: none;
+  }
 }
 
 .h2-ink--hero {
@@ -204,11 +269,8 @@
     margin: -24px 0 -8px auto;
   }
 
-  .h2-hero-simple--ink .h2-ops {
-    order: 3;
-  }
-
   .h2-hero-simple--ink > .h2-shell {
+    min-height: 0;
     padding-bottom: 28px;
   }
 }

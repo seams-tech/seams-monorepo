@@ -6,7 +6,7 @@ import { InkDrawing } from '@/components/h2/ink/InkScene';
 import { carryScene, goatScene, keyScene, stalkScene, wireScene } from '@/components/h2/ink/scenes';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { IntegrationsWindow, PortalShot } from '@/components/h2/SceneHero';
-import { ShopOpsFeed } from '@/components/h2/ShopOpsFeed';
+import { SuiteTiles } from '@/components/h2/SuiteTiles';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import {
   FieldTile,
@@ -20,8 +20,8 @@ import {
 import '@/styles/h2.css';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
-/* Umbrella front page, led by Satyr: a simple headline over a café's live
-   feed on paper, where a baby goat flies a croissant kite, then a paged two-panel scene band (Satyr's views at the left,
+/* Umbrella front page, led by Satyr: a simple headline and the row of Satyr
+   apps on paper, where a baby goat flies a croissant kite, then a paged two-panel scene band (Satyr's views at the left,
    Satyr Kitchen at the right), the shop-to-oven split, the suite, and one band
    for Seams Wallet. The Satyr and Satyr Kitchen scenes are real Portal screens;
    the Slack scene is an HTML mock. */
@@ -131,8 +131,8 @@ function HomeHeroCurrent(): React.JSX.Element {
                 Explore Satyr
               </a>
             </div>
+            <SuiteTiles />
           </div>
-          <ShopOpsFeed />
         </div>
       </header>
 

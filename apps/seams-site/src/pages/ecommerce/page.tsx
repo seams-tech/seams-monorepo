@@ -1,6 +1,9 @@
 import React from 'react';
 import { Activity, Croissant, Inbox, Slack, Store } from 'lucide-react';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
+import { ovenArmScene, rackRunnerScene } from '@/components/h2/ink/bakeryRobotScenes';
+import { InkDrawing } from '@/components/h2/ink/InkScene';
+import { cobotScene, pillowGoatScene, windScene } from '@/components/h2/ink/scenes';
 import {
   H2SceneHero,
   IntegrationsWindow,
@@ -21,7 +24,8 @@ import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* Satyr product page (ICP: café and pâtisserie owners), set like the wallet
    site: a split hero on a moving field, then banner-headed bands for the
-   suite, the workflows, Satyr Kitchen and the approvals. Each band has an anchor
+   suite, the workflows, Satyr Kitchen and the approvals, each with its own ink
+   drawing. Each band has an anchor
    (#suite, #workflows, #kitchen, #control) that the navbar and footer use. */
 
 const heroScenes: readonly HeroScene[] = [
@@ -92,11 +96,19 @@ export function EcommercePage(): React.JSX.Element {
           field="mauve-ember"
           scenes={heroScenes}
         />
-        <H2Pillars link={false} />
-        <H2Cases />
-        <H2Production />
-        <H2Bento />
-        <H2Cta audience="ecommerce" />
+        <H2Pillars
+          link={false}
+          drawing={<InkDrawing scene={windScene} className="h2-ink--banner" />}
+        />
+        <H2Cases drawing={<InkDrawing scene={rackRunnerScene} className="h2-ink--banner" />} />
+        <H2Production drawing={<InkDrawing scene={cobotScene} className="h2-ink--banner" />} />
+        <H2Bento drawing={<InkDrawing scene={ovenArmScene} className="h2-ink--banner" />} />
+        <H2Cta
+          audience="ecommerce"
+          drawing={
+            <InkDrawing scene={pillowGoatScene} className="h2-ink--banner h2-ink--beside-actions" />
+          }
+        />
         <H2Footer faq="ecommerce" />
       </div>
     </div>

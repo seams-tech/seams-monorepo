@@ -7,23 +7,18 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Croissant,
   KeyRound,
-  ListChecks,
-  Mail,
   MonitorSmartphone,
-  ScrollText,
   Server,
-  ShoppingBag,
   SlidersHorizontal,
   Smartphone,
-  Store,
 } from 'lucide-react';
 import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
-import { EcosystemLattice } from '@/components/h2/EcosystemLattice';
+import { InkDrawing } from '@/components/h2/ink/InkScene';
+import { tileSignScenes, type TileSign } from '@/components/h2/ink/tileSignScenes';
 import { PortalShot, type PortalShotName } from '@/components/h2/SceneHero';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
@@ -300,6 +295,18 @@ export function FieldTile({ field, icon: Icon }: { field: GrainFieldName; icon: 
   );
 }
 
+/* A tile painted in ink, with its sign cut out. A gold copy waits under it and
+   shows while the link, tab or card that holds it is under the pointer. */
+export function InkTile({ sign }: { sign: TileSign }): React.JSX.Element {
+  const scenes = tileSignScenes[sign];
+  return (
+    <span className="h2-inktile" aria-hidden>
+      <InkDrawing scene={scenes.gold} className="h2-inktile__gold" drawn />
+      <InkDrawing scene={scenes.ink} className="h2-inktile__ink" drawn />
+    </span>
+  );
+}
+
 /* A wide banner spreads each colour over its width, so the site's flow barely
    shows on it; this much more keeps its movement subtle but visible. */
 const BANNER_FLOW = 3;
@@ -344,6 +351,7 @@ function BannerSection({
   id,
   anchor,
   field,
+  drawing,
   title,
   sub,
   children,
@@ -352,28 +360,48 @@ function BannerSection({
   /* the fragment that links to this band, e.g. /ecommerce#kitchen */
   anchor?: string;
   field: GrainFieldName;
+  /* a drawing on paper in place of the gradient field: the home page brings it,
+     so the ink code and styles stay out of the pages that share these sections */
+  drawing?: React.ReactNode;
   title: string;
   sub?: string;
   children?: React.ReactNode;
 }): React.JSX.Element {
+  const content = (
+    <>
+      <div>
+        <h2 id={id} className="h2-display h2-banner__title">
+          {title}
+        </h2>
+        {sub ? <p className="h2-banner__sub">{sub}</p> : null}
+      </div>
+      {children ? <div className="h2-banner__actions">{children}</div> : null}
+    </>
+  );
+
   return (
     <section id={anchor} className="h2-section h2-section--banner h2-rule" aria-labelledby={id}>
-      <FieldBanner field={field}>
-        <div>
-          <h2 id={id} className="h2-display h2-banner__title">
-            {title}
-          </h2>
-          {sub ? <p className="h2-banner__sub">{sub}</p> : null}
+      {drawing ? (
+        <div className="h2-banner h2-banner--ink">
+          {drawing}
+          {content}
         </div>
-        {children ? <div className="h2-banner__actions">{children}</div> : null}
-      </FieldBanner>
+      ) : (
+        <FieldBanner field={field}>{content}</FieldBanner>
+      )}
     </section>
   );
 }
 
-/* ---------- ecosystem (commerce-stack lattice) ---------- */
+/* ---------- ecosystem (integrations) ---------- */
 
-export function H2Ecosystem(): React.JSX.Element {
+export function H2Ecosystem({
+  drawing,
+  tools,
+}: {
+  drawing?: React.ReactNode;
+  tools?: React.ReactNode;
+} = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const satyrProps = linkProps('/ecommerce');
 
@@ -383,6 +411,7 @@ export function H2Ecosystem(): React.JSX.Element {
         id="h2-eco-title"
         anchor="integrations"
         field="teal-peach"
+        drawing={drawing}
         title="Connects to the tools a café already uses"
         sub="Slack, Gmail, Shopify, Square, Stripe and your files. Each connection has its own access, and you can disconnect it at any time."
       >
@@ -391,10 +420,11 @@ export function H2Ecosystem(): React.JSX.Element {
           <ArrowRightAnim size={12} />
         </a>
       </BannerSection>
-      <section className="h2-section h2-section--band h2-rule" aria-labelledby="h2-eco-title">
-        <div className="h2-shell">
-          <EcosystemLattice />
-        </div>
+      <section
+        className="h2-section h2-section--band h2-section--flush-bottom h2-rule"
+        aria-labelledby="h2-eco-title"
+      >
+        <div className="h2-shell">{tools}</div>
       </section>
     </>
   );
@@ -480,8 +510,7 @@ export function SplitKeyVisual(): React.JSX.Element {
 type Pillar = {
   id: string;
   label: string;
-  icon: TileIcon;
-  field: GrainFieldName;
+  sign: TileSign;
   copy: React.ReactNode;
   mock: React.ReactNode;
 };
@@ -492,8 +521,7 @@ const pillars: Pillar[] = [
   {
     id: 'shop',
     label: 'Shop and menus',
-    icon: Store,
-    field: 'azure-coral',
+    sign: 'shop',
     copy: (
       <>
         <strong>Menus, products and the storefront.</strong> Agents draft menus and product
@@ -511,8 +539,7 @@ const pillars: Pillar[] = [
   {
     id: 'orders',
     label: 'Orders and payments',
-    icon: ShoppingBag,
-    field: 'slate-amber',
+    sign: 'bag',
     copy: (
       <>
         <strong>Orders, payments, refunds and gift cards.</strong> Card payments go to your own
@@ -530,8 +557,7 @@ const pillars: Pillar[] = [
   {
     id: 'inbox',
     label: 'Inbox',
-    icon: Mail,
-    field: 'sky-sand',
+    sign: 'inbox',
     copy: (
       <>
         <strong>Customer and supplier mail, answered.</strong> The inbox agent drafts each reply
@@ -549,8 +575,7 @@ const pillars: Pillar[] = [
   {
     id: 'production',
     label: 'Production',
-    icon: Croissant,
-    field: 'apricot-beam',
+    sign: 'croissant',
     copy: (
       <>
         <strong>Satyr Kitchen turns orders into a bake plan.</strong> One production run shows as a
@@ -568,8 +593,7 @@ const pillars: Pillar[] = [
   {
     id: 'vault',
     label: 'Vault',
-    icon: KeyRound,
-    field: 'mauve-ember',
+    sign: 'key',
     copy: (
       <>
         <strong>Logins and keys that agents use but never see.</strong> Keep them in the Satyr Vault
@@ -586,7 +610,10 @@ const pillars: Pillar[] = [
   },
 ];
 
-export function H2Pillars({ link = true }: { link?: boolean } = {}): React.JSX.Element {
+export function H2Pillars({
+  link = true,
+  drawing,
+}: { link?: boolean; drawing?: React.ReactNode } = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const satyrProps = linkProps('/ecommerce');
   const [active, setActive] = React.useState(0);
@@ -598,6 +625,7 @@ export function H2Pillars({ link = true }: { link?: boolean } = {}): React.JSX.E
         id="h2-pillars-title"
         anchor="suite"
         field="azure-coral"
+        drawing={drawing}
         title="One suite for the whole business"
         sub="The online shop, the inbox and the kitchen work from the same orders."
       >
@@ -621,7 +649,7 @@ export function H2Pillars({ link = true }: { link?: boolean } = {}): React.JSX.E
                   className={`h2-pillar${i === active ? ' is-active' : ''}`}
                   onClick={() => setActive(i)}
                 >
-                  <FieldTile field={p.field} icon={p.icon} />
+                  <InkTile sign={p.sign} />
                   {p.label}
                 </button>
               ))}
@@ -694,13 +722,14 @@ function MoneyGateMock(): React.JSX.Element {
   );
 }
 
-export function H2Bento(): React.JSX.Element {
+export function H2Bento({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
   return (
     <>
       <BannerSection
         id="h2-bento-title"
         anchor="control"
         field="mauve-ember"
+        drawing={drawing}
         title="Agents act inside your rules"
         sub="Agents prepare the work. People approve the changes that matter, and every action leaves a receipt."
       />
@@ -732,7 +761,7 @@ export function H2Bento(): React.JSX.Element {
               </div>
             </div>
             <div className="h2-bento__card h2-bento__card--sm">
-              <FieldTile field="azure-coral" icon={ListChecks} />
+              <InkTile sign="list" />
               <div>
                 <h3 className="h2-bento__title">Roles</h3>
                 <p className="h2-bento__copy">
@@ -741,7 +770,7 @@ export function H2Bento(): React.JSX.Element {
               </div>
             </div>
             <div className="h2-bento__card h2-bento__card--sm">
-              <FieldTile field="mauve-ember" icon={ScrollText} />
+              <InkTile sign="receipt" />
               <div>
                 <h3 className="h2-bento__title">Receipts</h3>
                 <p className="h2-bento__copy">
@@ -751,7 +780,7 @@ export function H2Bento(): React.JSX.Element {
               </div>
             </div>
             <div className="h2-bento__card h2-bento__card--sm">
-              <FieldTile field="aqua-evergreen" icon={KeyRound} />
+              <InkTile sign="key" />
               <div>
                 <h3 className="h2-bento__title">Secrets stay out</h3>
                 <p className="h2-bento__copy">
@@ -880,13 +909,14 @@ export function H2WorkflowCanvas(): React.JSX.Element {
   );
 }
 
-export function H2Cases(): React.JSX.Element {
+export function H2Cases({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
   return (
     <>
       <BannerSection
         id="h2-cases-title"
         anchor="workflows"
         field="mauve-ember"
+        drawing={drawing}
         title="Turn café work into agent workflows"
         sub="Agents watch the shop and the inbox, prepare the work, and act inside the limits that you set."
       />
@@ -926,13 +956,14 @@ const productionViews: readonly UseCase[] = [
   },
 ];
 
-export function H2Production(): React.JSX.Element {
+export function H2Production({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
   return (
     <>
       <BannerSection
         id="h2-production-title"
         anchor="kitchen"
         field="apricot-beam"
+        drawing={drawing}
         title="Satyr Kitchen: from orders to the oven"
         sub="Satyr Kitchen is the production workspace inside Satyr. It turns orders and preorders into production runs, and it shows one run in three views."
       />
@@ -950,7 +981,7 @@ export function H2Production(): React.JSX.Element {
 
 /* ---------- Seams Wallet (the other product, one band) ---------- */
 
-export function H2WalletBand(): React.JSX.Element {
+export function H2WalletBand({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const walletProps = linkProps('/wallet');
 
@@ -958,6 +989,7 @@ export function H2WalletBand(): React.JSX.Element {
     <BannerSection
       id="h2-wallet-title"
       field="teal-peach"
+      drawing={drawing}
       title="Also from Seams: Seams Wallet"
       sub="A stablecoin wallet that opens with a passkey. Keys are split between the device and the server, so neither side can sign alone."
     >
@@ -1579,14 +1611,14 @@ export function H2Duo(): React.JSX.Element {
             From the shop to the oven
           </h2>
           <p className="h2-duo__copy">
-            Satyr runs the sales side of the business, and Satyr Kitchen plans what you bake.
-            Both work from the same orders.
+            Satyr runs the sales side of the business, and Satyr Kitchen plans what you bake. Both
+            work from the same orders.
           </p>
         </div>
         <div className="h2-duo__grid">
           <a className="h2-duo__panel" href={satyrProps.href} onClick={satyrProps.onClick}>
             <h3 className="h2-duo__title">
-              <FieldTile field="azure-coral" icon={Store} />
+              <InkTile sign="shop" />
               Satyr
             </h3>
             <p className="h2-duo__panel-copy">
@@ -1611,7 +1643,7 @@ export function H2Duo(): React.JSX.Element {
           </a>
           <a className="h2-duo__panel" href={bakeryProps.href} onClick={bakeryProps.onClick}>
             <h3 className="h2-duo__title">
-              <FieldTile field="apricot-beam" icon={Croissant} />
+              <InkTile sign="croissant" />
               Satyr Kitchen
             </h3>
             <p className="h2-duo__panel-copy">
@@ -2027,14 +2059,26 @@ const ctaCopy = {
   }
 >;
 
-export function H2Cta({ audience }: { audience: keyof typeof ctaCopy }): React.JSX.Element {
+export function H2Cta({
+  audience,
+  drawing,
+}: {
+  audience: keyof typeof ctaCopy;
+  drawing?: React.ReactNode;
+}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const copy = ctaCopy[audience];
   const secondaryProps = linkProps(copy.secondary.to);
   const primaryProps = linkProps(copy.primary.to);
 
   return (
-    <BannerSection id="h2-cta-title" field={copy.field} title={copy.title} sub={copy.sub}>
+    <BannerSection
+      id="h2-cta-title"
+      field={copy.field}
+      drawing={drawing}
+      title={copy.title}
+      sub={copy.sub}
+    >
       <a
         className="h2-btn h2-btn--outline"
         href={secondaryProps.href}

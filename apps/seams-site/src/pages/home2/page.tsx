@@ -1,13 +1,15 @@
 import React from 'react';
-import { Activity, ChevronLeft, ChevronRight, Croissant, Inbox, Slack, Store } from 'lucide-react';
-import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { EcosystemField } from '@/components/h2/EcosystemField';
+import { InkDrawing } from '@/components/h2/ink/InkScene';
+import { carryScene, goatScene, keyScene, stalkScene, wireScene } from '@/components/h2/ink/scenes';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { IntegrationsWindow, PortalShot } from '@/components/h2/SceneHero';
-import { ShopOpsFeed } from '@/components/h2/ShopOpsFeed';
+import { type TileSign } from '@/components/h2/ink/tileSignScenes';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import {
-  FieldTile,
   H2Cta,
+  InkTile,
   H2Duo,
   H2Ecosystem,
   H2Footer,
@@ -17,28 +19,17 @@ import {
 import '@/styles/h2.css';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
-/* Umbrella front page, led by Satyr: a simple headline over a café's live
-   feed, then a paged two-panel scene band (Satyr's views at the left,
+/* Umbrella front page, led by Satyr: a simple headline on paper, where a baby
+   goat flies a croissant kite, then a paged two-panel scene band (Satyr's views at the left,
    Satyr Kitchen at the right), the shop-to-oven split, the suite, and one band
    for Seams Wallet. The Satyr and Satyr Kitchen scenes are real Portal screens;
    the Slack scene is an HTML mock. */
 
 /* ---------- hero: headline + paged scenes ---------- */
 
-/* The headline panel is teal-peach in a wisp shape: pink-peach wisps
-   cross cerulean on a diagonal above the headline, over a deeper blue at
-   the lower left. */
-const HOME_HERO_FIELD = 'teal-peach-wisp';
-
-/* half the site pace and flow, so the field stays calm behind the headline
-   and the wisps keep their shape */
-const HOME_HERO_FIELD_PACE = 0.5;
-const HOME_HERO_FIELD_FLOW = 0.5;
-
 type HeroScene = {
   id: string;
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
-  field: GrainFieldName;
+  sign: TileSign;
   title: string;
   sub: string;
   left: React.ReactNode;
@@ -49,8 +40,7 @@ type HeroScene = {
 const heroScenes: HeroScene[] = [
   {
     id: 'portal',
-    icon: Store,
-    field: 'azure-coral',
+    sign: 'shop',
     title: 'Satyr',
     sub: 'Agents run the shop, the orders and the inbox',
     left: (
@@ -63,8 +53,7 @@ const heroScenes: HeroScene[] = [
   },
   {
     id: 'activity',
-    icon: Activity,
-    field: 'teal-peach',
+    sign: 'activity',
     title: 'Satyr Activity',
     sub: 'Every Case of the day, and who holds it now',
     left: (
@@ -76,8 +65,7 @@ const heroScenes: HeroScene[] = [
   },
   {
     id: 'inbox',
-    icon: Inbox,
-    field: 'sky-sand',
+    sign: 'inbox',
     title: 'Satyr Inbox',
     sub: 'Replies wait for your approval before they are sent',
     left: (
@@ -89,8 +77,7 @@ const heroScenes: HeroScene[] = [
   },
   {
     id: 'slack',
-    icon: Slack,
-    field: 'mauve-ember',
+    sign: 'channel',
     title: 'Satyr in Slack',
     sub: 'Approvals land where your team already works',
     left: <IntegrationsWindow />,
@@ -107,21 +94,20 @@ function HomeHeroCurrent(): React.JSX.Element {
 
   return (
     <>
-      <header className="h2-hero-simple h2-hero-simple--panel" aria-labelledby="h2-home-title">
+      <header
+        className="h2-hero-simple h2-hero-simple--panel h2-hero-simple--ink"
+        aria-labelledby="h2-home-title"
+      >
         <div className="h2-shell">
-          <GrainField
-            field={HOME_HERO_FIELD}
-            flow={HOME_HERO_FIELD_FLOW}
-            pace={HOME_HERO_FIELD_PACE}
-          />
+          <InkDrawing scene={goatScene} className="h2-ink--hero" drawn />
           <div className="h2-hero-simple__copy">
             <h1 id="h2-home-title" className="h2-display h2-hero-simple__title">
               <span>Ecommerce on autopilot.</span>{' '}
               <span className="h2-hero-simple__title-muted">For cafés and pâtisseries.</span>
             </h1>
             <p className="h2-hero-simple__sub">
-              Satyr agents run the online shop, the inbox and the bake plan. They work with your
-              team in Slack, and each change that matters waits for your approval.
+              Satyr agents run your shop, inbox and bake plan. Changes that matter wait for your
+              approval.
             </p>
             <div className="h2-hero-simple__ctas">
               <a
@@ -140,7 +126,6 @@ function HomeHeroCurrent(): React.JSX.Element {
               </a>
             </div>
           </div>
-          <ShopOpsFeed />
         </div>
       </header>
 
@@ -154,7 +139,7 @@ function HomeHeroCurrent(): React.JSX.Element {
             aria-label="Explore Satyr"
           >
             <div className="h2-heroscene__intro h2-fadein" key={`intro-${scene.id}`}>
-              <FieldTile field={scene.field} icon={scene.icon} />
+              <InkTile sign={scene.sign} />
               <div>
                 <p className="h2-heroscene__intro-title">{scene.title}</p>
                 <p className="h2-heroscene__intro-sub">{scene.sub}</p>
@@ -175,7 +160,7 @@ function HomeHeroCurrent(): React.JSX.Element {
             aria-label="Explore Satyr Kitchen"
           >
             <div className="h2-heroscene__intro">
-              <FieldTile field="apricot-beam" icon={Croissant} />
+              <InkTile sign="croissant" />
               <div>
                 <p className="h2-heroscene__intro-title">Satyr Kitchen</p>
                 <p className="h2-heroscene__intro-sub">Orders become a bake plan for the kitchen</p>
@@ -234,10 +219,16 @@ export function HomePage(): React.JSX.Element {
       <div className="h2-col">
         <HomeHeroCurrent />
         <H2Duo />
-        <H2Ecosystem />
-        <H2Pillars />
-        <H2WalletBand />
-        <H2Cta audience="home" />
+        <H2Ecosystem
+          drawing={<InkDrawing scene={wireScene} className="h2-ink--banner" />}
+          tools={<EcosystemField />}
+        />
+        <H2Pillars drawing={<InkDrawing scene={stalkScene} className="h2-ink--banner" />} />
+        <H2WalletBand drawing={<InkDrawing scene={keyScene} className="h2-ink--banner" />} />
+        <H2Cta
+          audience="home"
+          drawing={<InkDrawing scene={carryScene} className="h2-ink--banner" />}
+        />
         <H2Footer faq="home" />
       </div>
     </div>

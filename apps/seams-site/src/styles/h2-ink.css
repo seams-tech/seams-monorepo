@@ -273,17 +273,6 @@
   opacity: 0.82;
 }
 
-.h2-swatch--double .h2-swatch__paint {
-  top: 10px;
-  bottom: auto;
-  height: calc(44% - 10px);
-}
-
-.h2-swatch--double .h2-swatch__paint--back {
-  top: auto;
-  bottom: 10px;
-}
-
 .h2-banner--ink > :not(.h2-ink, .h2-swatch) {
   position: relative;
   z-index: 1;
@@ -360,17 +349,6 @@
     left: -24px;
     width: auto;
     height: min(38vw, 150px);
-  }
-
-  .h2-swatch--double .h2-swatch__paint {
-    top: 0;
-    bottom: auto;
-    height: calc(min(38vw, 150px) * 0.44);
-  }
-
-  .h2-swatch--double .h2-swatch__paint--back {
-    top: auto;
-    bottom: 0;
   }
 
   .h2-banner--ink {

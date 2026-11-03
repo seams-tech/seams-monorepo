@@ -14,7 +14,7 @@ export type SwatchColour = keyof typeof SWATCH_COLOURS;
 type DryStroke = 1 | 2 | 3 | 4 | 5;
 type WetStroke = 1 | 2 | 3;
 type SwatchAngle = -2 | -1 | 0 | 1 | 2;
-type SwatchOffset = -12 | 0 | 12;
+type SwatchOffset = -28 | 0 | 28;
 
 export type SwatchPaint =
   | { finish: 'dry'; stroke: DryStroke }
@@ -101,14 +101,13 @@ function SwatchPaintLayer({
 /* A static painter's swatch. The image supplies the real bristle edge and
    partial paint coverage. CSS supplies the banner-specific pastel colour. */
 export function BrushSwatch({ colour, layers, mirrored }: BrushSwatchProps): React.JSX.Element {
-  const className = layers.kind === 'double' ? 'h2-swatch h2-swatch--double' : 'h2-swatch';
   const background =
     layers.kind === 'double' ? (
       <SwatchPaintLayer colour={colour} layer={layers.background} mirrored={mirrored} background />
     ) : null;
 
   return (
-    <div className={className} aria-hidden>
+    <div className="h2-swatch" aria-hidden>
       {background}
       <SwatchPaintLayer
         colour={colour}

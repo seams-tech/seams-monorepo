@@ -751,7 +751,7 @@ export function H2Bento({ drawing }: { drawing?: React.ReactNode } = {}): React.
         swatch="clay"
         layers={{
           kind: 'double',
-          background: { paint: { finish: 'wet', stroke: 1 }, angle: -2, offset: 0 },
+          background: { paint: { finish: 'wet', stroke: 1 }, angle: -2, offset: -28 },
           foreground: { paint: { finish: 'dry', stroke: 5 }, angle: 1, offset: 0 },
         }}
         mirrored={false}
@@ -2123,7 +2123,7 @@ export function H2Cta({
       swatch="peach"
       layers={{
         kind: 'double',
-        background: { paint: { finish: 'wet', stroke: 3 }, angle: 2, offset: 0 },
+        background: { paint: { finish: 'wet', stroke: 3 }, angle: 2, offset: -28 },
         foreground: { paint: { finish: 'dry', stroke: 4 }, angle: -1, offset: 0 },
       }}
       mirrored={false}

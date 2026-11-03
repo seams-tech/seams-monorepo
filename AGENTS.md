@@ -24,6 +24,9 @@ agent session. When working under `tests/`, also read `tests/AGENTS.md`.
 - Wallet Rust and pure SDK tests run in `seams-wallet`; keep Console and composed acceptance tests private.
 - Before changing tenant-root recovery trust or deploying its control plane, read
   `docs/recovery-trust-operations.md`. Preserve the latest signed revocation history.
+- Before adding, changing or reviewing an ink drawing on the Seams site
+  (`apps/seams-site/src/components/h2/ink/`) or its animation, read
+  `docs/drawing-style.md`. The `ink-drawing` skill applies it step by step.
 
 ## Custody vocabulary (each term names exactly one thing)
 

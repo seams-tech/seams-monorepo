@@ -42,6 +42,11 @@ of Platform and Wallet entry points and the reasons for that design.
 - [Local/provider runtime qualification](../deployment/celld/README.md): retain
   its qualification limits when describing private infrastructure.
 
+## Site
+
+- [Ink drawing style](drawing-style.md): how the site's brush drawings look and
+  move, the draw-in timing, and the checks for a new drawing.
+
 ## Historical feature records
 
 - [BYO authentication](refactor-201-BYO-auth.md): 0.28 and 0.29 implementation and release evidence.

@@ -9,6 +9,11 @@ export { languageToggleLabel, saveConsoleLocaleAndReload } from './locale';
 export const consoleLocale: ConsoleLocale = resolveConsoleLocale();
 if (typeof document !== 'undefined') document.documentElement.lang = consoleLocale;
 
-export function t(key: MessageKey): string {
-  return messages[key][consoleLocale];
+export type MessageParams = Readonly<Record<string, string | number>>;
+
+/** Looks up a message. `{name}` in the text is replaced by `params.name`. */
+export function t(key: MessageKey, params?: MessageParams): string {
+  const text: string = messages[key][consoleLocale];
+  if (!params) return text;
+  return text.replace(/\{(\w+)\}/g, (match, name: string) => String(params[name] ?? match));
 }

@@ -36,9 +36,16 @@ html[data-modal-backdrop='none'] dialog.seams-confirmation-modal::backdrop {
 }
 
 /* The confirmer normally floats over a host page; lift the card off the stage
-   without the overflow clipping its shadow. */
-.showcase-stage .seams-confirmation-modal {
+   without the overflow clipping its shadow. The hosted surface is a scroll
+   container as well: it would clip the card's ring and, as it stops scroll
+   chaining, stall the wheel over the card. Here the card keeps the overflow the
+   SDK gives it while pinned, so a tall card scrolls the frame's document and
+   the wheel then reaches the homepage. */
+.showcase-stage .seams-confirmation-modal,
+.showcase-stage .seams-confirmation-surface[data-seams-confirm-surface][data-seams-confirm-variant] {
+  max-block-size: none;
   overflow: visible;
+  overscroll-behavior: auto;
 }
 
 .showcase-stage .seams-confirmation-modal .modal-container-root {

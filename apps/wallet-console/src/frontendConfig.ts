@@ -1,4 +1,5 @@
 import type { SeamsConfigsInput } from '@seams/wallet/react';
+import { voiceIdAuthMethod } from '@seams/voiceid';
 import {
   decodeTenantDeploymentPublicProjectionV1,
   type TenantDeploymentPublicProjectionV1,
@@ -589,6 +590,7 @@ export function getFrontendDeployment(
 export function buildSeamsSdkConfig(deployment: FrontendDeployment): SeamsConfigsInput {
   return {
     chains: deployment.chains,
+    authMethods: [voiceIdAuthMethod()],
     iframeWallet: deployment.walletOrigin
       ? {
           walletOrigin: deployment.walletOrigin,

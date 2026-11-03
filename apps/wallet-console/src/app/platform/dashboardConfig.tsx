@@ -1,4 +1,5 @@
 import { AccountSettingsPage } from '@core/dashboard/routes/account-settings/page';
+import { t } from '@core/i18n';
 import { TeamMembersPage } from '@core/dashboard/routes/team-members/page';
 import { BillingAccountPage } from '@core/dashboard/routes/billing/page';
 import { PlanStartPage } from '@core/dashboard/routes/billing/PlanStartPage';
@@ -33,11 +34,11 @@ function PlatformTeamMembersPage(): React.JSX.Element {
 const groups: SidebarGroup[] = [
   {
     key: 'administration',
-    label: 'Account',
+    label: t('navAccount'),
     items: [
       {
         key: 'account-settings',
-        label: 'Account settings',
+        label: t('navAccountSettings'),
         path: '/dashboard/account-settings',
         icon: CogIcon,
         component: PlatformAccountSettingsPage,
@@ -45,7 +46,7 @@ const groups: SidebarGroup[] = [
       },
       {
         key: 'team-members',
-        label: 'Team members',
+        label: t('navTeamMembers'),
         path: '/dashboard/team-members',
         icon: UserCogIcon,
         component: PlatformTeamMembersPage,
@@ -55,11 +56,11 @@ const groups: SidebarGroup[] = [
   },
   {
     key: 'billing',
-    label: 'Billing',
+    label: t('navBilling'),
     items: [
       {
         key: 'billing-plan',
-        label: 'Plan',
+        label: t('navPlan'),
         path: '/dashboard/billing/plan',
         icon: WalletCardsIcon,
         component: PlanStartPage,
@@ -67,7 +68,7 @@ const groups: SidebarGroup[] = [
       },
       {
         key: 'billing-account',
-        label: 'Billing account',
+        label: t('navBillingAccount'),
         path: '/dashboard/billing/account',
         icon: CreditCardIcon,
         component: BillingAccountPage,
@@ -75,7 +76,7 @@ const groups: SidebarGroup[] = [
       },
       {
         key: 'invoices',
-        label: 'Invoices',
+        label: t('navInvoices'),
         path: '/dashboard/invoices',
         icon: FileTextIcon,
         component: InvoicesPage,
@@ -85,11 +86,11 @@ const groups: SidebarGroup[] = [
   },
   {
     key: 'platform',
-    label: 'Admin',
+    label: t('navAdmin'),
     items: [
       {
         key: 'platform-billing',
-        label: 'Admin support',
+        label: t('navAdminSupport'),
         path: '/platform/billing',
         icon: CreditCardIcon,
         component: PlatformBillingPage,
@@ -100,7 +101,7 @@ const groups: SidebarGroup[] = [
 ];
 const onboarding: SidebarItem = {
   key: 'onboarding',
-  label: 'Onboarding wizard',
+  label: t('navOnboardingWizard'),
   path: '/dashboard/onboarding',
   icon: LayoutDashboardIcon,
   component: DashboardOnboardingPage,
@@ -124,14 +125,14 @@ function getViewForRoute(route: DashboardRoute): SidebarItem {
 }
 
 export const DASHBOARD_COMPOSITION: DashboardComposition<DashboardRoute, SidebarGroupKey> = {
-  accountSettingsAccountOption: 'Account Settings',
-  accountSettingsSignOutOption: 'Sign out',
-  accountSettingsOptions: ['Account Settings', 'Sign out'],
+  accountSettingsAccountOption: t('menuAccountSettings'),
+  accountSettingsSignOutOption: t('menuSignOut'),
+  accountSettingsOptions: [t('menuAccountSettings'), t('menuSignOut')],
   products: [
     {
       id: 'platform',
       name: 'Platform',
-      description: 'Developer accounts and billing',
+      description: t('productPlatformDescription'),
       gradient: 'sky-sand',
       available: true,
     },

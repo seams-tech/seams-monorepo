@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { DashboardPage } from '@core/dashboard/page';
 import { DashboardLoginPage } from '@core/dashboard/login/page';
 import { InvitationAcceptancePage } from '@core/dashboard/routes/invitations/page';
@@ -40,7 +41,7 @@ export function ConsoleApp<Route extends string, Group extends string>({
       : null;
   // eslint-disable-next-line react-hooks/exhaustive-deps -- The bound redirect is the complete effect input.
   React.useEffect(redirectToAccount.bind(null, accountRedirect), [accountRedirect]);
-  if (accountRedirect) return <DashboardLoadingState title="Opening Platform Console..." />;
+  if (accountRedirect) return <DashboardLoadingState title={t('loadingOpeningPlatformConsole')} />;
   if (pathname === '/dashboard/invitations/accept') return <InvitationAcceptancePage />;
   if (pathname === '/dashboard/login') return <DashboardLoginPage />;
   return (

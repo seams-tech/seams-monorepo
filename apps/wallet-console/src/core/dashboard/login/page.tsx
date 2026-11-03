@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { BookOpen } from 'lucide-react';
 import { getActiveFrontendDeployment } from '@core/runtime';
 import { useSiteRouter } from '@core/router/useSiteRouter';
@@ -80,18 +81,16 @@ const PLAN_RETURN_PAGE = import.meta.env.MODE === 'wallet' ? 'dashboard' : 'plan
 /** The login text for a visitor who picked a plan on the pricing page. */
 const PLAN_LOGIN_TEXT: Record<DashboardPlanChoice, { title: string; description: string }> = {
   free: {
-    title: 'Start on the Free plan',
-    description: 'Sign in to create your account. The Free plan covers 300 active users.',
+    title: t('loginPlanFreeTitle'),
+    description: t('loginPlanFreeDescription'),
   },
   growth: {
-    title: 'Start Growth',
-    description:
-      'Growth is $99 a month from card confirmation, with 5,000 users included. We charge your card after each month.',
+    title: t('loginPlanGrowthTitle'),
+    description: t('loginPlanGrowthDescription'),
   },
   pro: {
-    title: 'Start Pro',
-    description:
-      'Pro is $399 a month from card confirmation, with 100,000 users included. We charge your card after each month.',
+    title: t('loginPlanProTitle'),
+    description: t('loginPlanProDescription'),
   },
 };
 
@@ -190,7 +189,7 @@ async function exchangeDashboardSession(
         status: response.status,
         message,
       });
-      throw new Error('Google sign-in could not be verified. Try again.');
+      throw new Error(t('loginGoogleNotVerified'));
     }
     throw new Error(message || `${providerLabel} session exchange failed (${response.status})`);
   }
@@ -212,11 +211,9 @@ function authConfigurationNote(input: {
 }): string {
   if (input.googleConfigured && input.githubConfigured) return '';
   if (!input.googleConfigured && !input.githubConfigured) {
-    return 'Configure Google OIDC or GitHub OAuth on the relay to enable dashboard sign-in.';
+    return t('loginConfigureBoth');
   }
-  return input.googleConfigured
-    ? 'Configure GitHub OAuth on the relay to enable GitHub sign-in.'
-    : 'Configure Google OIDC on the relay to enable Google sign-in.';
+  return input.googleConfigured ? t('loginConfigureGithub') : t('loginConfigureGoogle');
 }
 
 export function DashboardLoginPage(): React.JSX.Element {
@@ -532,14 +529,14 @@ export function DashboardLoginPage(): React.JSX.Element {
   );
 
   const googleLabel = initializing
-    ? 'Checking existing session...'
+    ? t('loginGoogleCheckingSession')
     : loadingProvider === 'google'
-      ? 'Signing in with Google...'
+      ? t('loginGoogleSigningIn')
       : !googleClientId
-        ? 'Google SSO unavailable'
+        ? t('loginGoogleUnavailable')
         : !googleConfigured
-          ? 'Google SSO not configured'
-          : 'Continue with Google';
+          ? t('loginGoogleNotConfigured')
+          : t('loginGoogleContinue');
 
   const onGithubSignIn = React.useCallback(() => {
     if (loadingProvider || !githubOptions.configured) return;
@@ -551,7 +548,7 @@ export function DashboardLoginPage(): React.JSX.Element {
     }
     const popup = openGithubOAuthPopup();
     if (!popup) {
-      setErrorMessage('Allow pop-ups for this page to continue with GitHub.');
+      setErrorMessage(t('loginGithubPopupBlocked'));
       return;
     }
     setLoadingProvider('github');
@@ -564,10 +561,10 @@ export function DashboardLoginPage(): React.JSX.Element {
 
   const githubLabel =
     loadingProvider === 'github'
-      ? 'Signing in with GitHub...'
+      ? t('loginGithubSigningIn')
       : githubOptions.configured
-        ? 'Continue with GitHub'
-        : 'GitHub sign-in unavailable';
+        ? t('loginGithubContinue')
+        : t('loginGithubUnavailable');
   const authBusy = initializing || preparingPlan !== null || loadingProvider !== null;
   const providers: readonly DashboardAuthProvider[] = [
     {
@@ -617,32 +614,32 @@ export function DashboardLoginPage(): React.JSX.Element {
       title={
         presentation === 'github_popup'
           ? githubPopupSignedIn
-            ? 'Signed in with GitHub'
-            : 'Continue with GitHub'
+            ? t('loginTitleGithubSignedIn')
+            : t('loginGithubContinue')
           : preparingPlan && !embedded
-            ? 'Setting up your account'
+            ? t('loginTitleSettingUp')
             : signedOut
-              ? 'Signed out'
+              ? t('loginTitleSignedOut')
               : planIntent
                 ? PLAN_LOGIN_TEXT[planIntent.plan].title
-                : 'Welcome back'
+                : t('loginTitleWelcomeBack')
       }
       description={
         presentation === 'github_popup'
           ? githubPopupSignedIn
-            ? 'You can close this window.'
-            : 'Opening GitHub...'
+            ? t('loginDescriptionCloseWindow')
+            : t('loginDescriptionOpeningGithub')
           : preparingPlan === 'stripe'
-            ? 'Opening Stripe to add your card...'
+            ? t('loginDescriptionOpeningStripe')
             : preparingPlan === 'dashboard'
-              ? 'Opening your dashboard...'
+              ? t('loginDescriptionOpeningDashboard')
               : preparingPlan === 'setup'
-                ? 'Creating your organization and first project...'
+                ? t('loginDescriptionCreatingProject')
                 : signedOut
-                  ? 'You have been signed out of the Seams console.'
+                  ? t('loginDescriptionSignedOut')
                   : planIntent
                     ? PLAN_LOGIN_TEXT[planIntent.plan].description
-                    : 'Sign in to the Seams console'
+                    : t('loginDescriptionSignIn')
       }
       providers={presentation === 'github_popup' ? [] : providers}
       note={
@@ -663,7 +660,7 @@ export function DashboardLoginPage(): React.JSX.Element {
             ? 'dashboard-login-embedded dashboard-login-embedded--popup'
             : 'dashboard-login-embedded'
         }
-        aria-label="Sign in to Seams"
+        aria-label={t('loginAriaSignIn')}
       >
         {/* The card fades in once; later states change only the status line. */}
         <div className="dashboard-login-embedded__state">{authCard}</div>
@@ -672,7 +669,7 @@ export function DashboardLoginPage(): React.JSX.Element {
   }
 
   return (
-    <main className="dashboard-login" aria-label="Dashboard login page">
+    <main className="dashboard-login" aria-label={t('loginAriaPage')}>
       {/* Split layout: the sign-in column carries the whole flow, the aside is
           static product framing that collapses away under 900px. */}
       <section className="dashboard-login__panel">
@@ -680,35 +677,32 @@ export function DashboardLoginPage(): React.JSX.Element {
           className="dashboard-login__brand"
           href={homeProps.href}
           onClick={homeProps.onClick}
-          aria-label="Seams home"
+          aria-label={t('loginAriaHome')}
         >
           <SeamsWordmark height={24} />
-          <span className="dashboard-login__brand-label">Console</span>
+          <span className="dashboard-login__brand-label">{t('loginBrandLabel')}</span>
         </a>
         <div className="dashboard-login__body">{authCard}</div>
         <p className="dashboard-login__legal">
-          Don&rsquo;t have console access?{' '}
+          {t('loginNoAccess')}{' '}
           <a href={contactProps.href} onClick={contactProps.onClick}>
-            Contact sales
+            {t('loginContactSales')}
           </a>
           .
         </p>
       </section>
-      <aside className="dashboard-login__aside" aria-label="About Seams">
+      <aside className="dashboard-login__aside" aria-label={t('loginAriaAbout')}>
         <a
           className="dashboard-login__aside-link"
           href={docsProps.href}
           onClick={docsProps.onClick}
         >
           <BookOpen size={16} aria-hidden />
-          <span>Documentation</span>
+          <span>{t('loginDocumentation')}</span>
         </a>
         <div className="dashboard-login__aside-body">
-          <p className="dashboard-login__statement">Wallets for people and AI agents</p>
-          <p className="dashboard-login__statement-sub">
-            Auth, wallets, credentials, and delegated access in one SDK. Policy checks every action
-            before it runs.
-          </p>
+          <p className="dashboard-login__statement">{t('loginStatement')}</p>
+          <p className="dashboard-login__statement-sub">{t('loginStatementSub')}</p>
           <span className="dashboard-login__aside-mark">
             <SeamsWordmark height={20} />
           </span>

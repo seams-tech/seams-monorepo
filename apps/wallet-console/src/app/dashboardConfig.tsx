@@ -1,4 +1,5 @@
 import { AccountSettingsPage } from '@core/dashboard/routes/account-settings/page';
+import { t } from '@core/i18n';
 import { ApiKeyManagementPage } from '@core/dashboard/routes/api-keys/page';
 import { BillingConsoleShell } from '@core/dashboard/routes/billing/BillingConsoleShell';
 import { PlanStartPage } from '@core/dashboard/routes/billing/PlanStartPage';
@@ -102,28 +103,28 @@ const walletWebhookEventCategoryCopy: Record<
   Omit<WebhookEventCategoryOption, 'value'>
 > = {
   wallet: {
-    label: 'Wallet activity',
-    description: 'Wallet provisioning, configuration, and state changes.',
+    label: t('webhookWalletLabel'),
+    description: t('webhookWalletDescription'),
   },
   policy: {
-    label: 'Policy changes',
-    description: 'Policy publish, assignment, and approval events.',
+    label: t('webhookPolicyLabel'),
+    description: t('webhookPolicyDescription'),
   },
   auth: {
-    label: 'Authentication',
-    description: 'Authentication and identity lifecycle events.',
+    label: t('webhookAuthLabel'),
+    description: t('webhookAuthDescription'),
   },
   tx: {
-    label: 'Transaction lifecycle',
-    description: 'Transaction creation, signing, submission, and status transitions.',
+    label: t('webhookTxLabel'),
+    description: t('webhookTxDescription'),
   },
   billing: {
-    label: 'Billing',
-    description: 'Invoices, usage, and payment lifecycle events.',
+    label: t('webhookBillingLabel'),
+    description: t('webhookBillingDescription'),
   },
   session: {
-    label: 'Session lifecycle',
-    description: 'Session creation, refresh, and teardown events.',
+    label: t('webhookSessionLabel'),
+    description: t('webhookSessionDescription'),
   },
 };
 
@@ -272,17 +273,17 @@ function WalletOpsCockpitPage(): React.JSX.Element {
 
 const gasSponsorshipItem: ComposedSidebarItem = {
   key: 'gas-sponsorship',
-  label: 'Gas sponsorship',
+  label: t('navGasSponsorship'),
   path: '/dashboard/gas-sponsorship',
   icon: FuelIcon,
   component: WalletGasSponsorshipPage,
   context: 'wallet',
-  createLabel: 'New gas sponsorship policy',
+  createLabel: t('createGasSponsorshipPolicy'),
 };
 
 const walletsListItem: ComposedSidebarItem = {
   key: 'wallets-list',
-  label: 'User wallets list',
+  label: t('navUserWalletsList'),
   path: '/dashboard/wallets-list',
   icon: WalletCardsIcon,
   component: WalletUserWalletsListPage,
@@ -291,7 +292,7 @@ const walletsListItem: ComposedSidebarItem = {
 
 const derivationRootItem: ComposedSidebarItem = {
   key: 'derivation-root',
-  label: 'Threshold Keys',
+  label: t('navThresholdKeys'),
   path: '/dashboard/derivation-root',
   icon: KeyRoundIcon,
   component: WalletDerivationRootSecurityPage,
@@ -301,19 +302,19 @@ const derivationRootItem: ComposedSidebarItem = {
 const securityControlItems: ComposedSidebarItem[] = [
   {
     key: 'policy-engine',
-    label: 'Policy engine',
+    label: t('navPolicyEngine'),
     path: '/dashboard/policy-engine',
     icon: ScaleIcon,
     component: WalletPolicyEnginePage,
     context: 'wallet',
-    createLabel: 'New policy',
+    createLabel: t('createPolicy'),
   },
   ...(derivationRootRoutesEnabled ? [derivationRootItem] : []),
 ];
 
 const auditLogsItem: ComposedSidebarItem = {
   key: 'audit',
-  label: 'Audit logs',
+  label: t('navAuditLogs'),
   path: '/dashboard/audit',
   icon: ScrollTextIcon,
   component: WalletAuditLogsPage,
@@ -322,7 +323,7 @@ const auditLogsItem: ComposedSidebarItem = {
 
 const observabilityItem: ComposedSidebarItem = {
   key: 'observability',
-  label: 'Observability',
+  label: t('navObservability'),
   path: '/dashboard/observability',
   icon: ActivityIcon,
   component: ObservabilityPage,
@@ -339,11 +340,11 @@ const operationsSecurityItems: ComposedSidebarItem[] = [
 const sidebarGroups: ComposedSidebarGroup[] = [
   {
     key: 'overview',
-    label: 'Overview',
+    label: t('navOverview'),
     items: [
       {
         key: 'overview',
-        label: 'Overview',
+        label: t('navOverview'),
         path: '/dashboard/overview',
         icon: LayoutDashboardIcon,
         component: WalletOpsCockpitPage,
@@ -354,11 +355,11 @@ const sidebarGroups: ComposedSidebarGroup[] = [
   },
   {
     key: 'administration',
-    label: 'Administration',
+    label: t('navAdministration'),
     items: [
       {
         key: 'api-keys',
-        label: 'API Keys',
+        label: t('navApiKeys'),
         path: '/dashboard/api-keys',
         icon: KeyRoundIcon,
         component: WalletApiKeyManagementPage,
@@ -366,7 +367,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
       },
       {
         key: 'deployment-status',
-        label: 'Deployment status',
+        label: t('navDeploymentStatus'),
         path: '/dashboard/deployment-status',
         icon: ServerIcon,
         component: WalletTenantDeploymentPage,
@@ -375,29 +376,29 @@ const sidebarGroups: ComposedSidebarGroup[] = [
       },
       {
         key: 'webhooks',
-        label: 'Webhooks',
+        label: t('navWebhooks'),
         path: '/dashboard/webhooks',
         icon: WebhookIcon,
         component: WalletWebhooksPage,
         context: 'wallet',
         access: 'owner',
-        createLabel: 'New webhook endpoint',
+        createLabel: t('createWebhookEndpoint'),
       },
     ],
   },
   {
     key: 'operationsSecurity',
-    label: 'Wallet operations',
+    label: t('navWalletOperations'),
     items: operationsSecurityItems,
   },
   {
     // 'platform' is the platform-admin group, which only support accounts see.
     key: 'account',
-    label: 'Platform',
+    label: t('navPlatform'),
     items: [
       {
         key: 'account-settings',
-        label: 'Account settings',
+        label: t('navAccountSettings'),
         path: '/dashboard/account-settings',
         icon: CogIcon,
         component: WalletAccountSettingsPage,
@@ -405,7 +406,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
       },
       {
         key: 'team-members',
-        label: 'Team members',
+        label: t('navTeamMembers'),
         path: '/dashboard/team-members',
         icon: UserCogIcon,
         component: WalletTeamMembersPage,
@@ -413,7 +414,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
       },
       {
         key: 'billing-account',
-        label: 'Billing account',
+        label: t('navBillingAccount'),
         path: '/dashboard/billing/account',
         icon: CreditCardIcon,
         component: WalletBillingAccountPage,
@@ -421,7 +422,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
       },
       {
         key: 'billing-plan',
-        label: 'Plan',
+        label: t('navPlan'),
         path: '/dashboard/billing/plan',
         icon: CreditCardIcon,
         component: PlanStartPage,
@@ -429,7 +430,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
       },
       {
         key: 'invoices',
-        label: 'Invoices',
+        label: t('navInvoices'),
         path: '/dashboard/invoices',
         icon: FileTextIcon,
         component: WalletInvoicesPage,
@@ -443,8 +444,8 @@ export const SIDEBAR_GROUPS: ComposedSidebarGroup[] = sidebarGroups.filter(
   (group) => group.items.length > 0,
 );
 
-export const DASHBOARD_ACCOUNT_SETTINGS_ACCOUNT_OPTION = 'Account Settings';
-export const DASHBOARD_ACCOUNT_SETTINGS_SIGN_OUT_OPTION = 'Sign out';
+export const DASHBOARD_ACCOUNT_SETTINGS_ACCOUNT_OPTION = t('menuAccountSettings');
+export const DASHBOARD_ACCOUNT_SETTINGS_SIGN_OUT_OPTION = t('menuSignOut');
 export const DASHBOARD_ACCOUNT_SETTINGS_OPTIONS = [
   DASHBOARD_ACCOUNT_SETTINGS_ACCOUNT_OPTION,
   DASHBOARD_ACCOUNT_SETTINGS_SIGN_OUT_OPTION,
@@ -476,7 +477,7 @@ export const DEFAULT_DASHBOARD_ROUTE: ComposedDashboardRoute =
 
 const onboarding: ComposedSidebarItem = {
   key: 'onboarding',
-  label: 'Onboarding',
+  label: t('navOnboarding'),
   path: '/dashboard/onboarding',
   icon: LayoutDashboardIcon,
   component: DashboardOnboardingPage,
@@ -514,7 +515,7 @@ export function getViewForRoute(route: ComposedDashboardRoute): ComposedSidebarI
   }
   return {
     key: 'overview',
-    label: 'Overview',
+    label: t('navOverview'),
     path: '/dashboard/overview',
     icon: LayoutDashboardIcon,
     component: WalletOpsCockpitPage,

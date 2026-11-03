@@ -1,9 +1,10 @@
-import type { InkColor, InkPoint, InkStroke } from './brush';
+import type { InkColor, InkPastel, InkPoint, InkStroke } from './brush';
 import { blob, croissant, type InkScene } from './scenes';
 
 /* Tiles painted in ink: a rounded square of ink with the sign cut out of it, so
-   the sign shows the page. Each sign is a few lines on a 64 by 64 square, and a
-   sharp corner is two lines. */
+   the sign shows the page. The hover copy is a pastel square with the sign in
+   ink, because a sign cut out of a pastel barely shows on the pale cards. Each
+   sign is a few lines on a 64 by 64 square, and a sharp corner is two lines. */
 
 type Pt = readonly [number, number];
 type Line = readonly Pt[];
@@ -164,28 +165,28 @@ function tile(color: InkColor): InkStroke[] {
   ];
 }
 
-function line(points: Line): InkStroke {
+function line(points: Line, color: InkColor): InkStroke {
   const last = points.length - 1;
   const pts = points.map(
     ([x, y], i): InkPoint => [x, y, WIDTH * (i === 0 || i === last ? 0.8 : 1.08)],
   );
   return {
-    color: 'clear',
+    color,
     pts:
       pts.length === 2
         ? [pts[0], [(pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2, WIDTH * 1.1], pts[1]]
         : pts,
     dry: 0.1,
     rough: 0.75,
-    grain: 0,
+    grain: color === 'clear' ? 0 : 0.02,
     keepLine: true,
   };
 }
 
-/* the croissant is cut out whole, then its layers are painted back in the
-   tile's colour */
-function croissantSign(color: InkColor): InkStroke[] {
-  const swap: Partial<Record<InkColor, InkColor>> = { gold: 'clear', clear: color };
+/* the croissant is painted whole in the sign's colour, then its layers are
+   painted back in the tile's colour */
+function croissantSign(color: InkColor, mark: InkColor): InkStroke[] {
+  const swap: Partial<Record<InkColor, InkColor>> = { gold: mark, clear: color };
   return croissant(32, 42, 18).map((stroke) => ({
     ...stroke,
     color: swap[stroke.color ?? 'ink'] ?? stroke.color,
@@ -193,25 +194,33 @@ function croissantSign(color: InkColor): InkStroke[] {
   }));
 }
 
-function signScene(sign: TileSign, color: InkColor): InkScene {
-  const cut = sign === 'croissant' ? croissantSign(color) : signs[sign].map(line);
-  return { width: SIZE, height: SIZE, parts: [{ id: sign, strokes: [...tile(color), ...cut] }] };
+function signScene(sign: TileSign, color: InkColor, mark: InkColor): InkScene {
+  const drawn =
+    sign === 'croissant'
+      ? croissantSign(color, mark)
+      : signs[sign].map((points) => line(points, mark));
+  return { width: SIZE, height: SIZE, parts: [{ id: sign, strokes: [...tile(color), ...drawn] }] };
 }
 
-const SIGNS: readonly TileSign[] = [
-  'shop',
-  'bag',
-  'key',
-  'list',
-  'receipt',
-  'activity',
-  'inbox',
-  'channel',
-  'croissant',
-];
+/* the hover pastel of each sign; the tiles that stand together on a page, such
+   as the hero tabs, the suite pillars or the approvals, all differ */
+const PASTELS: Record<TileSign, InkPastel> = {
+  shop: 'peach',
+  bag: 'sage',
+  key: 'lavender',
+  list: 'sage',
+  receipt: 'blush',
+  activity: 'blush',
+  inbox: 'sky',
+  channel: 'sage',
+  croissant: 'butter',
+};
 
-/* each sign in ink, and in gold for the hover; made once, so a render never
-   repaints a tile */
+/* each sign cut out of ink, and in ink on its pastel for the hover; made once,
+   so a render never repaints a tile */
 export const tileSignScenes = Object.fromEntries(
-  SIGNS.map((sign) => [sign, { ink: signScene(sign, 'ink'), gold: signScene(sign, 'gold') }]),
-) as Record<TileSign, { ink: InkScene; gold: InkScene }>;
+  (Object.keys(PASTELS) as TileSign[]).map((sign) => [
+    sign,
+    { ink: signScene(sign, 'ink', 'clear'), hover: signScene(sign, PASTELS[sign], 'ink') },
+  ]),
+) as Record<TileSign, { ink: InkScene; hover: InkScene }>;

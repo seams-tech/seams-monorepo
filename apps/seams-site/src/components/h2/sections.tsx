@@ -296,13 +296,14 @@ export function FieldTile({ field, icon: Icon }: { field: GrainFieldName; icon: 
   );
 }
 
-/* A tile painted in ink, with its sign cut out. A gold copy waits under it and
-   shows while the link, tab or card that holds it is under the pointer. */
+/* A tile painted in ink, with its sign cut out. A pastel copy with the sign in
+   ink waits under it and shows while the link, tab or card that holds it is
+   under the pointer. */
 export function InkTile({ sign }: { sign: TileSign }): React.JSX.Element {
   const scenes = tileSignScenes[sign];
   return (
     <span className="h2-inktile" aria-hidden>
-      <InkDrawing scene={scenes.gold} className="h2-inktile__gold" drawn />
+      <InkDrawing scene={scenes.hover} className="h2-inktile__hover" drawn />
       <InkDrawing scene={scenes.ink} className="h2-inktile__ink" drawn />
     </span>
   );

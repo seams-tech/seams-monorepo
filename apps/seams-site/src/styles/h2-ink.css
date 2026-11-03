@@ -375,8 +375,8 @@
   }
 }
 
-/* a tile painted in ink over a gold copy of itself; the gold shows while the
-   link, tab or card that holds the tile is under the pointer or has focus */
+/* a tile painted in ink over a pastel copy of itself; the pastel shows while
+   the link, tab or card that holds the tile is under the pointer or has focus */
 .h2-inktile {
   display: inline-grid;
   flex: none;
@@ -398,13 +398,13 @@
 }
 
 /* the two copies cross over: the brush paints each one a little differently,
-   so the gold must not show at the edges of the ink */
+   so the pastel must not show at the edges of the ink */
 .h2-inktile__ink,
-.h2-inktile__gold {
+.h2-inktile__hover {
   transition: opacity 220ms ease;
 }
 
-.h2-inktile__gold {
+.h2-inktile__hover {
   opacity: 0;
 }
 
@@ -412,7 +412,7 @@
   opacity: 0;
 }
 
-:is(a, button):focus-visible .h2-inktile__gold {
+:is(a, button):focus-visible .h2-inktile__hover {
   opacity: 1;
 }
 
@@ -421,14 +421,14 @@
     opacity: 0;
   }
 
-  :is(a, button, .h2-bento__card):hover .h2-inktile__gold {
+  :is(a, button, .h2-bento__card):hover .h2-inktile__hover {
     opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .h2-inktile__ink,
-  .h2-inktile__gold {
+  .h2-inktile__hover {
     transition: none;
   }
 }

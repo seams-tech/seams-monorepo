@@ -12,18 +12,18 @@ This file is the source of truth: when a rule changes, change it here first.
 
 All paths are in `apps/seams-site/src/`.
 
-| Path                                     | What it holds                                                                                              |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `components/h2/ink/brush.ts`             | The bristle brush: `InkStroke`, `prepareStroke` and the colors                                             |
-| `components/h2/ink/InkScene.tsx`         | `InkDrawing`: one canvas for each part, the draw-in timeline and the CSS motions                           |
-| `components/h2/ink/scenes.ts`            | The shared helpers and most scenes: the hero goat, the banners and the cobot                               |
-| `components/h2/ink/wheatFieldScene.ts`   | The integrations wheat field, which times its own stalks                                                   |
-| `components/h2/ink/bakeryRobotScenes.ts` | The oven arm and the rack runner                                                                           |
-| `components/h2/ink/butterflyScenes.ts`   | The butterflies: the palmier that flies out of the oven, and two spares, a still robot hand and a gift box |
-| `components/h2/ink/conceptScenes.ts`     | Spare drawings that no page uses yet                                                                       |
-| `components/h2/ink/tileSignScenes.ts`    | The ink tiles that stand over the gradient tiles on the front page: a rounded square with the sign cut out |
-| `components/h2/EcosystemField.tsx`       | The SVG layer of tool logos and gold grains over the wheat field                                           |
-| `styles/h2-ink.css`                      | The motion keyframes, the resting state and reduced motion                                                 |
+| Path                                     | What it holds                                                                                                      |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `components/h2/ink/brush.ts`             | The bristle brush: `InkStroke`, `prepareStroke` and the colors                                                     |
+| `components/h2/ink/InkScene.tsx`         | `InkDrawing`: one canvas for each part, the draw-in timeline and the CSS motions                                   |
+| `components/h2/ink/scenes.ts`            | The shared helpers and most scenes: the hero goat, the banners and the cobot                                       |
+| `components/h2/ink/wheatFieldScene.ts`   | The integrations wheat field, which times its own stalks                                                           |
+| `components/h2/ink/bakeryRobotScenes.ts` | The oven arm and the rack runner                                                                                   |
+| `components/h2/ink/butterflyScenes.ts`   | The butterflies: the palmier that flies out of the oven, and two spares, a still robot hand and a gift box         |
+| `components/h2/ink/conceptScenes.ts`     | Spare drawings that no page uses yet                                                                               |
+| `components/h2/ink/tileSignScenes.ts`    | The ink tiles: a rounded square of ink with the sign cut out, and a pastel copy with the sign in ink for the hover |
+| `components/h2/EcosystemField.tsx`       | The SVG layer of tool logos and gold grains over the wheat field                                                   |
+| `styles/h2-ink.css`                      | The motion keyframes, the resting state and reduced motion                                                         |
 
 | Page                      | Drawings                                                                                                     |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -48,13 +48,18 @@ All paths are in `apps/seams-site/src/`.
 
 ### Color
 
-| Color    | Value     | Use                                                                              |
-| -------- | --------- | -------------------------------------------------------------------------------- |
-| `ink`    | `#0c0b0a` | Almost everything                                                                |
-| `gold`   | `#d98f24` | The one warm accent: bread, croissants, a bell, a band on a machine base, a glow |
-| `clear`  | erases    | Cut-outs inside a mass of the same part                                          |
-| `paper`  | `#f9f7f2` | A pale mark painted over ink, such as a highlight on a wing                      |
-| `accent` | `#e4572e` | Almost never. One mark in the whole site uses it                                 |
+| Color    | Value      | Use                                                                              |
+| -------- | ---------- | -------------------------------------------------------------------------------- |
+| `ink`    | `#0c0b0a`  | Almost everything                                                                |
+| `gold`   | `#d98f24`  | The one warm accent: bread, croissants, a bell, a band on a machine base, a glow |
+| `clear`  | erases     | Cut-outs inside a mass of the same part                                          |
+| `paper`  | `#f9f7f2`  | A pale mark painted over ink, such as a highlight on a wing                      |
+| pastels  | `brush.ts` | Only the hover copy of an ink tile                                               |
+| `accent` | `#e4572e`  | Almost never. One mark in the whole site uses it                                 |
+
+Each tile sign has its own pastel: `peach`, `blush`, `butter`, `sage`, `sky` or
+`lavender`. The hover copy paints the sign in ink on its pastel, because a sign
+cut out of a pastel barely shows on the pale cards.
 
 Keep gold to a few marks in each drawing. Gold is what the eye finds first.
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { IntegrationsWindow } from '@/components/h2/SceneHero';
 import '@/styles/h2-tour.css';
 
@@ -43,7 +44,7 @@ type Tab = { id: string; label: string; features: Feature[] };
 const TABS: Tab[] = [
   {
     id: 'satyr',
-    label: 'Satyr',
+    label: 'Satyr Commerce Agents',
     features: [
       {
         id: 'inbox',
@@ -340,6 +341,36 @@ export function ProductTour({
         })}
       </div>
 
+      <div className="h2-tour-pager-line">
+        {/* Pager sits on the line between the tabs and the stage. */}
+        <div className="h2-pager" role="group" aria-label="Product views">
+          <button
+            type="button"
+            className="h2-pager__btn"
+            aria-label="Previous product view"
+            onClick={() => setStep((s) => (s - 1 + ORDER.length) % ORDER.length)}
+          >
+            <ChevronLeft aria-hidden />
+          </button>
+          <span className="h2-pager__dots">
+            {tab.features.map((item, i) => (
+              <span
+                key={item.id}
+                className={`h2-pager__dot${i === f ? ' is-active' : ''}`}
+                title={item.title}
+              />
+            ))}
+          </span>
+          <button
+            type="button"
+            className="h2-pager__btn"
+            aria-label="Next product view"
+            onClick={() => setStep((s) => (s + 1) % ORDER.length)}
+          >
+            <ChevronRight aria-hidden />
+          </button>
+        </div>
+      </div>
       {links?.[tab.id] ? (
         <a
           className="h2-tour-stage-link"

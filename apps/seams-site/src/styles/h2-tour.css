@@ -6,8 +6,7 @@
   --h2-tour-dot: #cfc9c1;
   --h2-tour-corner: #d9d4cd;
   --h2-tour-shadow: 0 1px 2px rgb(20 16 12 / 6%), 0 18px 48px -12px rgb(20 16 12 / 22%);
-  max-width: 1200px;
-  margin: 0 auto;
+  position: relative;
   font-family: var(--h2-font);
   color: var(--h2-ink, #0a0a0a);
 }
@@ -375,5 +374,72 @@
 
 /* On the home page the tour sits in its own band under the headline. */
 .h2-tour-band {
-  padding: 24px 16px 56px;
+  padding: 0;
+}
+
+/* The band's own rules frame the tour, so the tour draws only its inner dividers. */
+.h2-tour-tabs,
+.h2-tour-stage,
+.h2-tour-features {
+  border-left: 0 !important;
+  border-right: 0 !important;
+}
+
+.h2-tour-tabs {
+  border-top: 0;
+}
+
+.h2-tour-features {
+  border-bottom: 0;
+}
+
+/* The pager sits on the line between the tabs and the stage. */
+.h2-tour-pager-line {
+  position: relative;
+  height: 0;
+}
+
+.h2-tour-pager-line .h2-pager {
+  top: 0;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+}
+
+/* Each pane warms a little under the pointer, like the earlier band's panels. */
+.h2-tour-tab,
+.h2-tour-feature {
+  transition:
+    color 0.3s ease,
+    background-color 150ms ease;
+}
+
+.h2-tour-stage {
+  transition: background-color 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-tour-tab:hover,
+  .h2-tour-feature:hover {
+    background-color: color-mix(in srgb, var(--h2-taupe, #f5f3f1) 62%, transparent);
+  }
+
+  .h2-tour-stage-link:hover .h2-tour-stage {
+    background-color: color-mix(in srgb, var(--h2-stone, #ebe8e4) 70%, var(--h2-tour-ground));
+  }
+}
+
+/* The arrows match the dots pill, a little larger than elsewhere: 28 px high. */
+.h2-tour-pager-line .h2-pager__btn {
+  width: 28px;
+  height: 28px;
+}
+
+.h2-tour-pager-line .h2-pager__btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.h2-tour-pager-line .h2-pager__dots {
+  height: 28px;
+  padding: 0 12px;
 }

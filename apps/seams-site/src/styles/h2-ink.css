@@ -242,9 +242,8 @@
   background-color: #faf8f3;
 }
 
-/* Cream paper holds the drawing and paint inside the card outline. */
+/* Cream paper holds the drawing and paint. */
 .h2-banner--ink:has(> .h2-swatch) {
-  border: 1px solid var(--h2-stone);
   background-color: #faf8f3;
 }
 

@@ -27,6 +27,8 @@ export default [
     ignores: [
       '**/node_modules/**',
       '**/dist/**',
+      // Wallet and VoiceID assets that run_caddy.sh composes for the local wallet host.
+      'apps/seams-site/.wallet-public/**',
       'apps/wallet-console/dist-platform/**',
       'apps/wallet-console/dist-wallet/**',
       '**/.next/**',

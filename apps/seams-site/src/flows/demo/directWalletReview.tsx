@@ -19,6 +19,7 @@ function renderDirectWalletReview(controls: TransactionReviewControls): React.Re
 }
 
 function DirectWalletReview({ controls }: { controls: TransactionReviewControls }): null {
-  useLayoutEffect(controls.continueToWallet, [controls.continueToWallet]);
+  const { continueToWallet } = controls;
+  useLayoutEffect(() => continueToWallet(), [continueToWallet]);
   return null;
 }

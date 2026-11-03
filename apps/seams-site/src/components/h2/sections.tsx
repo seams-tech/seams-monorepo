@@ -21,6 +21,7 @@ import { InkDrawing } from '@/components/h2/ink/InkScene';
 import { BrushSwatch, type SwatchColour, type SwatchLayers } from '@/components/h2/ink/BrushSwatch';
 import { tileSignScenes, type TileSign } from '@/components/h2/ink/tileSignScenes';
 import { PortalShot, type PortalShotName } from '@/components/h2/SceneHero';
+import { KitchenTile, ShopTile } from '@/components/h2/DuoTiles';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
@@ -1673,15 +1674,7 @@ export function H2Duo(): React.JSX.Element {
               your approval in Slack or in the Portal.
             </p>
             <div className="h2-duo__visual">
-              <div className="h2-chat" style={{ maxWidth: 324 }}>
-                <div className="h2-chat__bubble">
-                  <small>Satyr · 09:14</small>
-                  Approval needed: autumn menu, 14 items, 3 new prices.
-                </div>
-                <div className="h2-chat__bubble h2-chat__bubble--reply">
-                  Approved ✓ the menu is live
-                </div>
-              </div>
+              <ShopTile />
             </div>
             <span className="h2-duo__cta">
               Explore Satyr
@@ -1698,13 +1691,7 @@ export function H2Duo(): React.JSX.Element {
               ovens and staff, and a 3D view of the bakery.
             </p>
             <div className="h2-duo__visual">
-              <div className="h2-chat" style={{ maxWidth: 324 }}>
-                <div className="h2-chat__bubble">
-                  <small>Satyr Kitchen · 06:02</small>
-                  Saturday plan ready: 6 runs from 212 preorders. Oven 1 starts at 07:10.
-                </div>
-                <div className="h2-chat__bubble h2-chat__bubble--reply">Looks good ✓</div>
-              </div>
+              <KitchenTile />
             </div>
             <span className="h2-duo__cta">
               Explore Satyr Kitchen

@@ -306,12 +306,7 @@ function buildFrontend(site, component, walletLanes) {
   }
   if (component === 'wallet-docs') {
     copyPublicDocsArtifact(WALLET_DOCS_OUTPUT);
-    if (site.id === 'staging') {
-      fs.appendFileSync(
-        WALLET_DOCS_OUTPUT + path.sep + '_headers',
-        '\n/*\n  X-Robots-Tag: noindex\n',
-      );
-    }
+    writeWalletDocsHeaders(site);
     assertFile(path.join(WALLET_DOCS_OUTPUT, 'index.html'), 'Wallet docs entry');
     assertFile(
       path.join(WALLET_DOCS_OUTPUT, 'guides', 'transaction-review.html'),
@@ -418,6 +413,12 @@ function writeWalletConsoleRedirects(site) {
   lines.push(`/dashboard ${consoleSite.walletConsoleOrigin}/dashboard 302`);
   lines.push(`/dashboard/* ${consoleSite.walletConsoleOrigin}/dashboard/:splat 302`);
   fs.writeFileSync(path.join(WALLET_SITE_OUTPUT, '_redirects'), `${lines.join('\n')}\n`);
+}
+
+function writeWalletDocsHeaders(site) {
+  const lines = ['/*', '  Cache-Control: public, max-age=0, must-revalidate, no-transform'];
+  if (site.id === 'staging') lines.push('  X-Robots-Tag: noindex');
+  fs.writeFileSync(path.join(WALLET_DOCS_OUTPUT, '_headers'), `${lines.join('\n')}\n`);
 }
 
 function writeLegacyDocsRedirects(site) {
@@ -715,6 +716,7 @@ async function walletMarketingIsReady(response) {
 async function walletDocsIsReady(response) {
   if (!response.ok) return false;
   if (!response.headers.get('content-type')?.includes('text/html')) return false;
+  if (!response.headers.get('cache-control')?.includes('no-transform')) return false;
   const html = await response.text();
   return html.includes('name="generator" content="VitePress');
 }

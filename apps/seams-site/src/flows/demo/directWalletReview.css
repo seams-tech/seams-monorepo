@@ -1,6 +1,0 @@
-/* The review continues to the wallet at once, so its own surface stays hidden. */
-.demo-direct-wallet-review {
-  visibility: hidden;
-  width: min(420px, calc(100vw - 32px));
-  min-height: 1px;
-}

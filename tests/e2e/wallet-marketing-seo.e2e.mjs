@@ -217,6 +217,7 @@ try {
   assert.ok(docsLink, 'Wallet footer must link to docs.wallet.seams.sh');
   const docs = await context.request.get(docsLink);
   assert.equal(docs.status(), 200);
+  assert.match(docs.headers()['cache-control'] || '', /no-transform/);
   assert.match(await docs.text(), /<meta name="generator" content="VitePress/);
   const receiptResponse = await context.request.get(
     `${docsOrigin}/seams-wallet-docs-artifact.json`,

@@ -251,6 +251,11 @@ function buildBasePlan(options, repository, values) {
     } else {
       appendMappedUpdates(plan.variables, options.release, values, GENERAL_VARIABLE_INPUTS);
       appendMappedUpdates(plan.secrets, options.release, values, CLOUDFLARE_SECRET_INPUTS);
+      appendMappedUpdates(plan.secrets, options.release, values, [
+        ['CF_PAGES_PROJECT_WALLET_SITE', 'CF_PAGES_PROJECT_WALLET_SITE'],
+        ['CF_PAGES_PROJECT_WALLET_DOCS', 'CF_PAGES_PROJECT_WALLET_DOCS'],
+        ['CF_PAGES_PROJECT_WALLET', 'CF_PAGES_PROJECT_WALLET'],
+      ]);
     }
   } else {
     appendWalletSystemCloudflareDeploymentUpdates(plan, options.environmentPrefix, values);
@@ -276,6 +281,8 @@ function appendProductionSiteUpdates(plan, values) {
   appendMappedUpdates(plan.secrets, plan.environmentPrefix, values, CLOUDFLARE_SECRET_INPUTS);
   appendMappedUpdates(plan.secrets, plan.environmentPrefix, values, [
     ['CF_PAGES_PROJECT_WALLET_SITE', 'CF_PAGES_PROJECT_WALLET_SITE'],
+    ['CF_PAGES_PROJECT_WALLET_DOCS', 'CF_PAGES_PROJECT_WALLET_DOCS'],
+    ['CF_PAGES_PROJECT_LEGACY_DOCS', 'CF_PAGES_PROJECT_LEGACY_DOCS'],
     ['CF_PAGES_PROJECT_WALLET_TESTNET', 'CF_PAGES_PROJECT_WALLET_TESTNET'],
     ['CF_PAGES_PROJECT_WALLET_MAINNET', 'CF_PAGES_PROJECT_WALLET_MAINNET'],
   ]);

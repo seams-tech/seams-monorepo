@@ -4,7 +4,7 @@ import { chromium, expect } from '@playwright/test';
 
 const site = process.env.SEAMS_SITE_ORIGIN || 'http://localhost:4001';
 const wallet = process.env.SEAMS_WALLET_SITE_ORIGIN || `${site}/wallet`;
-const docs = new URL(process.env.SEAMS_DOCS_ORIGIN || 'https://docs.localhost:4003/docs/');
+const docs = new URL(process.env.SEAMS_DOCS_ORIGIN || 'https://docs.localhost:4003/');
 const artifacts = 'output/playwright/site-documentation-links';
 const destinations = new Set();
 const results = [];

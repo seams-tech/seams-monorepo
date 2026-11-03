@@ -97,7 +97,7 @@ Run `node tests/e2e/site-documentation-links.e2e.mjs` to check documentation lin
 from the homepage, wallet, pricing, and company pages. It checks every linked docs
 destination, desktop navigation, mobile keyboard navigation, and refresh. Evidence
 goes to `output/playwright/site-documentation-links/`. `SEAMS_DOCS_ORIGIN` sets
-the docs base URL, including `/docs/`.
+the docs origin.
 
 ## Gates
 

@@ -60,8 +60,9 @@ Use the workflow filename from the table for another environment.
 After a failure, rerun the complete workflow with `gh run rerun <run-id>`.
 Build caches belong to a specific run and attempt; a fresh attempt rebuilds its payload.
 
-The deployed docs receipt is `/docs/seams-wallet-docs-artifact.json` on each Wallet site.
-Its revision must match the pinned SDK release's source commit.
+The deployed docs receipt is
+`https://docs.wallet.seams.sh/seams-wallet-docs-artifact.json`. Its revision
+must match the pinned SDK release's source commit.
 The wallet host exposes its SDK version at `/wallet-assets.manifest.json`.
 The Gateway exposes readiness at `/readyz` and the active environment at `/.well-known/seams-tenant-deployment.json`.
 

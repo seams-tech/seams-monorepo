@@ -2,8 +2,8 @@ import { pagePath, type Locale } from '@/i18n/locale';
 
 const DOCS_PREFIX = '/docs';
 const DOCS_ORIGIN = new URL(
-  DOCS_PREFIX,
-  String(import.meta.env.VITE_DOCS_ORIGIN || '').trim() || 'https://docs.localhost:4003/docs',
+  '/',
+  String(import.meta.env.VITE_DOCS_ORIGIN || '').trim() || 'https://docs.localhost:4003',
 ).href;
 
 function stripTrailingSlash(path: string): string {
@@ -17,7 +17,7 @@ export function getSiteBase(): string {
 }
 
 export function getDocsOrigin(): string {
-  return DOCS_ORIGIN;
+  return stripTrailingSlash(DOCS_ORIGIN);
 }
 
 export function isHttpUrl(value: string): boolean {

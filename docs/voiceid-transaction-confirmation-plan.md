@@ -3,7 +3,7 @@
 Historical record: this page retains the October 27–28, 2026 experiments,
 0.26.0 release evidence, and deferred transaction-phrase design.
 Model, threshold, and deployment statements below describe those records.
-Use the [public VoiceID guide](https://wallet.seams.sh/docs/concepts/auth-methods/voiceid)
+Use the [public VoiceID guide](https://docs.wallet.seams.sh/concepts/auth-methods/voiceid)
 for integration and the [current-state review](../../seams-wallet/docs/voiceid-current-state.md)
 for source behavior and its limits.
 

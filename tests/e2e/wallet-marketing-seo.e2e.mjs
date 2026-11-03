@@ -10,6 +10,7 @@ assert.ok(
   'Set SEAMS_SEO_TARGET to artifact-production, artifact-staging, production, or staging',
 );
 assert.ok(process.env.SEAMS_WALLET_SITE_ORIGIN, 'Set SEAMS_WALLET_SITE_ORIGIN');
+assert.ok(process.env.SEAMS_DOCS_ORIGIN, 'Set SEAMS_DOCS_ORIGIN');
 assert.match(
   process.env.SEAMS_WALLET_DOCS_REVISION || '',
   /^[0-9a-f]{40}$/,
@@ -17,6 +18,7 @@ assert.match(
 );
 const origin = new URL(process.env.SEAMS_WALLET_SITE_ORIGIN).origin;
 const canonicalOrigin = new URL(process.env.SEAMS_WALLET_CANONICAL_ORIGIN || origin).origin;
+const docsOrigin = new URL(process.env.SEAMS_DOCS_ORIGIN).origin;
 const noindex = target.endsWith('staging');
 const artifacts = fileURLToPath(
   new URL(`../../output/playwright/wallet-marketing-seo/${target}/`, import.meta.url),
@@ -81,7 +83,7 @@ async function inspectPage(page, path, sitemap) {
   assert.equal(data['@type'], 'WebPage');
   assert.equal(data.url, `${canonicalOrigin}${path}`);
   assert.equal(data.name, await page.title());
-  await expect(page.locator('footer a[href*="/docs/"]:visible').first()).toBeVisible();
+  await expect(page.locator(`footer a[href^="${docsOrigin}/"]:visible`).first()).toBeVisible();
 }
 
 function recordPageError(error) {
@@ -197,7 +199,6 @@ try {
   assert.equal(robotsResponse.status(), 200);
   assert.match(robotsResponse.headers()['content-type'] || '', /text\/plain/);
   assert.ok(robots.includes(`Sitemap: ${canonicalOrigin}/sitemap.xml`));
-  assert.ok(robots.includes(`Sitemap: ${canonicalOrigin}/docs/sitemap.xml`));
   assert.doesNotMatch(robots, /Disallow:\s*\//);
   for (const path of paths) {
     console.log('Inspect original HTML:', path);
@@ -210,25 +211,36 @@ try {
   await expect(page).toHaveURL(`${origin}/pricing/`);
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   const docsLink = await page
-    .locator('footer a[href*="/docs/"]:visible')
+    .locator(`footer a[href^="${docsOrigin}/"]:visible`)
     .first()
     .getAttribute('href');
-  const docs = await context.request.get(
-    new URL(docsLink, origin).pathname.startsWith('/docs/')
-      ? `${origin}${new URL(docsLink, origin).pathname}`
-      : `${origin}/docs/`,
-  );
+  assert.ok(docsLink, 'Wallet footer must link to docs.wallet.seams.sh');
+  const docs = await context.request.get(docsLink);
   assert.equal(docs.status(), 200);
-  assertIndexing(docs, noindex);
+  assert.match(await docs.text(), /<meta name="generator" content="VitePress"/);
   const receiptResponse = await context.request.get(
-    `${origin}/docs/seams-wallet-docs-artifact.json`,
+    `${docsOrigin}/seams-wallet-docs-artifact.json`,
   );
   const receipt = JSON.parse(await saveResponse(receiptResponse, 'docs-receipt'));
   assert.equal(receipt.repository, 'seams-tech/seams-wallet');
   assert.equal(receipt.revision, process.env.SEAMS_WALLET_DOCS_REVISION);
-  const docsSitemap = await context.request.get(`${origin}/docs/sitemap.xml`);
+  const docsSitemap = await context.request.get(`${docsOrigin}/sitemap.xml`);
   assert.equal(docsSitemap.status(), 200);
   assert.match(await docsSitemap.text(), /<urlset\b/);
+  const docsGuide = await context.request.get(`${docsOrigin}/guides/transaction-review`);
+  assert.equal(docsGuide.status(), 200);
+  assert.match(
+    await docsGuide.text(),
+    new RegExp(`https://docs\\.wallet\\.seams\\.sh/guides/transaction-review`),
+  );
+  const docsRedirect = await context.request.get(`${origin}/docs/guides/transaction-review`, {
+    maxRedirects: 0,
+  });
+  assert.equal(docsRedirect.status(), 301);
+  assert.equal(
+    new URL(docsRedirect.headers().location, origin).href,
+    `${docsOrigin}/guides/transaction-review`,
+  );
   const worker = await context.request.get(`${origin}/sdk/workers/near-signer.worker.js`);
   assert.equal(worker.status(), 200);
   assert.match(worker.headers()['content-type'] || '', /javascript/);
@@ -270,6 +282,7 @@ try {
         target,
         origin,
         canonicalOrigin,
+        docsOrigin,
         noindex,
         passed,
         failure,

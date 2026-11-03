@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       lane:
-        description: Backend lane to verify after publishing the Wallet site and docs
+        description: Backend lane to verify after publishing the selected frontend surface
         required: true
         type: choice
         default: production-mainnet
@@ -21,7 +21,9 @@ on:
           - wallet-console
           - platform-console
           - company
+          - wallet-docs
           - wallet-host
+          - legacy-docs-redirect
           - all
   workflow_call:
     inputs:
@@ -62,9 +64,10 @@ jobs:
       CF_PAGES_PROJECT_PLATFORM_CONSOLE: ${{ secrets.CF_PAGES_PROJECT_PLATFORM_CONSOLE }}
       CF_PAGES_PROJECT_WALLET_CONSOLE: ${{ secrets.CF_PAGES_PROJECT_WALLET_CONSOLE }}
       CF_PAGES_PROJECT_WALLET_SITE: ${{ secrets.CF_PAGES_PROJECT_WALLET_SITE }}
+      CF_PAGES_PROJECT_WALLET_DOCS: ${{ secrets.CF_PAGES_PROJECT_WALLET_DOCS }}
+      CF_PAGES_PROJECT_LEGACY_DOCS: ${{ secrets.CF_PAGES_PROJECT_LEGACY_DOCS }}
       CF_PAGES_PROJECT_WALLET_TESTNET: ${{ secrets.CF_PAGES_PROJECT_WALLET_TESTNET }}
       CF_PAGES_PROJECT_WALLET_MAINNET: ${{ secrets.CF_PAGES_PROJECT_WALLET_MAINNET }}
-      VITE_DOCS_ORIGIN: ${{ vars.VITE_DOCS_ORIGIN }}
       VITE_TESTNET_NEAR_NETWORK: ${{ vars.VITE_TESTNET_NEAR_NETWORK }}
       VITE_TESTNET_NEAR_RPC_URL: ${{ vars.VITE_TESTNET_NEAR_RPC_URL }}
       VITE_TESTNET_NEAR_EXPLORER: ${{ vars.VITE_TESTNET_NEAR_EXPLORER }}
@@ -142,7 +145,7 @@ jobs:
       - name: Build committed public Wallet docs
         run: |
           pnpm --dir .wallet-source install --frozen-lockfile
-          pnpm --dir .wallet-source run build:docs
+          VITE_DOCS_ORIGIN=https://docs.wallet.seams.sh pnpm --dir .wallet-source run build:docs
       - name: Stage committed public Wallet docs
         run: node scripts/prepare-wallet-docs-source.mjs --checkout .wallet-source --revision "$SEAMS_WALLET_REVISION" --output .artifacts/wallet-docs
       - name: Build, deploy and smoke selected frontend surfaces
@@ -165,6 +168,7 @@ jobs:
           SEAMS_WALLET_DOCS_REVISION: ${{ env.SEAMS_WALLET_REVISION }}
         run: |
           export SEAMS_WALLET_SITE_ORIGIN="$(node --input-type=module -e 'import { readFrontendSite } from "./scripts/deployment-targets.mjs"; console.log(readFrontendSite(process.env.DEPLOY_SITE).walletSiteOrigin)')"
+          export SEAMS_DOCS_ORIGIN="$(node --input-type=module -e 'import { readFrontendSite } from "./scripts/deployment-targets.mjs"; console.log(readFrontendSite(process.env.DEPLOY_SITE).docsOrigin)')"
           pnpm -C tests exec node e2e/wallet-marketing-seo.e2e.mjs
       - name: Retain Wallet marketing acceptance evidence
         if: always() && (env.DEPLOY_COMPONENT == 'wallet-site' || env.DEPLOY_COMPONENT == 'all')

@@ -31,7 +31,7 @@ protocol 16.0.0. Configure `VITE_WALLET_ORIGIN`, `VITE_RELAYER_URL`, and
 application origin and the hosted wallet origin. A key for another environment
 cannot authorize this environment's registration.
 
-Follow the [public quickstart](https://wallet.seams.sh/docs/) for the compiled
+Follow the [public quickstart](https://docs.wallet.seams.sh/) for the compiled
 provider and hosted-menu examples. `authMenu.prepare()` only downloads code.
 The hosted registration view prepares its wallet and passkey challenge.
 

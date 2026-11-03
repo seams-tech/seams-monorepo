@@ -3,7 +3,7 @@
 Historical record: this page retains the 0.28 and 0.29 implementation, validation,
 deployment evidence, and original design. Version and deployment statements below
 describe those releases. The original plan records requirements at that time.
-Use the [public application integration guide](https://wallet.seams.sh/docs/guides/application-auth)
+Use the [public application integration guide](https://docs.wallet.seams.sh/guides/application-auth)
 for current behavior and the [private Console guide](wallet-saas/console-docs/byo-auth.md)
 for environment configuration.
 

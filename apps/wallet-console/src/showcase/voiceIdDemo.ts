@@ -3,6 +3,11 @@ import './embeddedFocus';
 import '@wallet-ui/sdk/wallet-ui.css';
 import './showcase.css';
 import {
+  createCspStylesheetManager,
+  getDefaultCspNonce,
+} from '@wallet-ui/core/browser/walletIframe/csp-stylesheet';
+import { appearanceTokenCssRule } from '@wallet-ui/core/signingEngine/uiConfirm/ui/appearance-token-vars';
+import {
   mountConfirmationSurface,
   type ConfirmationSurfaceHandle,
   type ConfirmSurfaceModel,
@@ -23,12 +28,22 @@ import { configureModalBackdrop } from './modalBackdrop';
 
 configureModalBackdrop();
 
-type DemoOrder = 'review-first' | 'voice-first';
+const UNLOCK_CARD_ID = 'showcase-voiceid-unlock';
+// The unlocked card holds its success briefly before the trade review replaces it.
+const UNLOCKED_HOLD_MS = 1300;
+
+createCspStylesheetManager({
+  doc: document,
+  baseCss: appearanceTokenCssRule(UNLOCK_CARD_ID, showcaseAppearance(locale)),
+  nonce: getDefaultCspNonce,
+}).ensureBase();
+
 type DemoState =
   | { readonly kind: 'closed' }
-  | { readonly kind: 'review'; readonly next: 'voice' | 'sign' }
-  | { readonly kind: 'voice'; readonly prompt: VoicePrompt; readonly playback: VoicePlayback }
-  | { readonly kind: 'cancelled'; readonly prompt: VoicePrompt }
+  | { readonly kind: 'unlock'; readonly card: UnlockCard; readonly playback: VoicePlayback }
+  | { readonly kind: 'cancelled'; readonly card: UnlockCard }
+  | { readonly kind: 'unlocked'; readonly card: UnlockCard; readonly stopHold: () => void }
+  | { readonly kind: 'review' }
   | { readonly kind: 'receipt' };
 
 const trade = {
@@ -68,7 +83,11 @@ const transaction: TxDisplayModel = {
 };
 const explorer = 'https://nearblocks.io/';
 
-/** Both pages simulate capture and signing without microphone or API requests. */
+/**
+ * A VoiceID unlock opens a signing session, so the trade then signs with the
+ * ordinary confirm and no further voice check. The page simulates the capture
+ * and the signature without microphone or API requests.
+ */
 export class VoiceIdDemo {
   private readonly stage: HTMLElement;
   private handle: ConfirmationSurfaceHandle | null = null;
@@ -77,7 +96,7 @@ export class VoiceIdDemo {
   private view: TransactionReceiptView = 'expanded';
   private stopLifecycle: () => void = noPlayback;
 
-  constructor(private readonly order: DemoOrder) {
+  constructor() {
     const stage = document.getElementById('root');
     if (!stage) throw new Error('The VoiceID demo root is unavailable.');
     this.stage = stage;
@@ -85,12 +104,11 @@ export class VoiceIdDemo {
     this.start();
   }
 
-  private model(capture: HTMLElement | null): ConfirmSurfaceModel {
+  private model(): ConfirmSurfaceModel {
     return {
       appearance: showcaseAppearance(locale),
       content: {
         kind: 'transaction',
-        capture,
         review: {
           model: transaction,
           tree: buildDisplayTreeFromModel(transaction),
@@ -108,35 +126,26 @@ export class VoiceIdDemo {
           theme: showcasePreset.mode,
           explorers: { near: explorer },
           decision: { kind: 'ready', onConfirm: this.confirm },
-          confirmText: this.order === 'voice-first' ? t('confirmTrade') : t('confirmVoiceId'),
+          confirmText: t('confirmTrade'),
           cancelText: t('cancel'),
-          onCancel: this.cancel,
+          onCancel: this.lock,
         },
       },
     };
   }
 
-  private render(capture: HTMLElement | null): void {
-    if (this.handle) {
-      this.handle.update(this.model(capture));
-      return;
-    }
-    this.handle = mountConfirmationSurface({
-      parent: this.stage,
-      presentation: { variant: 'modal', context: 'wallet-iframe' },
-      model: this.model(capture),
-      onClosed: noPlayback,
-    });
-  }
-
-  private stopVoice(): void {
+  private closeUnlock(): void {
     switch (this.state.kind) {
-      case 'voice':
+      case 'unlock':
         this.state.playback.stop();
-        this.state.prompt.dispose();
+        this.state.card.dispose();
         return;
       case 'cancelled':
-        this.state.prompt.dispose();
+        this.state.card.dispose();
+        return;
+      case 'unlocked':
+        this.state.stopHold();
+        this.state.card.dispose();
         return;
       case 'closed':
       case 'review':
@@ -147,87 +156,68 @@ export class VoiceIdDemo {
     }
   }
 
+  /** Every run starts from a locked wallet. */
   private start = (): void => {
     this.stopLifecycle();
-    this.stopVoice();
+    this.closeUnlock();
     this.state = { kind: 'closed' };
     this.handle?.dispose();
     this.handle = null;
     this.view = 'expanded';
-    if (this.order === 'voice-first') this.listen();
-    else this.review('voice');
+    this.unlock();
   };
 
-  private review(next: 'voice' | 'sign'): void {
-    this.stopVoice();
-    this.state = { kind: 'review', next };
-    this.render(null);
-  }
+  private lock = (): void => {
+    if (this.state.kind === 'review') this.start();
+  };
+
+  private unlock = (): void => {
+    this.closeUnlock();
+    const card = new UnlockCard(this.stage, this.cancelUnlock);
+    this.state = { kind: 'unlock', card, playback: new VoicePlayback(card.prompt, this.unlocked) };
+  };
+
+  private cancelUnlock = (): void => {
+    if (this.state.kind !== 'unlock') return;
+    const { card, playback } = this.state;
+    playback.stop();
+    this.state = { kind: 'cancelled', card };
+    card.prompt.ready('');
+    card.prompt.record.textContent = t('tryAgain');
+    card.prompt.record.onclick = this.unlock;
+  };
+
+  private unlocked = (): void => {
+    if (this.state.kind !== 'unlock') return;
+    const { card } = this.state;
+    const state: DemoState = { kind: 'unlocked', card, stopHold: noPlayback };
+    this.state = state;
+    void card.prompt.succeed(t('signedIn'), t('walletUnlocked')).then(() => {
+      if (this.state !== state) return;
+      this.state = { ...state, stopHold: schedulePlayback(this.review, UNLOCKED_HOLD_MS) };
+    });
+  };
+
+  private review = (): void => {
+    if (this.state.kind !== 'unlocked') return;
+    this.closeUnlock();
+    this.state = { kind: 'review' };
+    this.handle = mountConfirmationSurface({
+      parent: this.stage,
+      presentation: { variant: 'modal', context: 'wallet-iframe' },
+      model: this.model(),
+      onClosed: noPlayback,
+    });
+  };
 
   private confirm = (): void => {
     if (this.state.kind !== 'review') return;
-    switch (this.state.next) {
-      case 'voice':
-        this.listen();
-        return;
-      case 'sign':
-        this.sign();
-        return;
-      default:
-        return assertNever(this.state.next);
-    }
-  };
-
-  private listen = (): void => {
-    this.stopVoice();
-    const prompt = new VoicePrompt(
-      document,
-      t('approveTradeVoiceId'),
-      'approve this transfer at once',
-      'segments',
-    );
-    prompt.record.hidden = true;
-    prompt.cancel.hidden = true;
-    const phrase = this.order === 'voice-first' ? 'Swap ten NEAR for USDC' : 'Swap ten NEAR';
-    prompt.title.textContent = t('voiceReadAloud');
-    prompt.phrase.textContent = `${phrase}.`;
-    prompt.phrase.dataset.voiceidPhrase = phrase.toLowerCase();
-    const playback = new VoicePlayback(prompt, this.verified);
-    this.state = { kind: 'voice', prompt, playback };
-    this.render(prompt.element);
-  };
-
-  private verified = (): void => {
-    if (this.state.kind !== 'voice') return;
-    if (this.order === 'voice-first') this.review('sign');
-    else this.sign();
-  };
-
-  private cancel = (): void => {
-    if (this.order === 'review-first') {
-      this.start();
-      return;
-    }
-    if (this.state.kind === 'voice') {
-      const { prompt, playback } = this.state;
-      playback.stop();
-      this.state = { kind: 'cancelled', prompt };
-      prompt.ready('');
-      prompt.record.textContent = t('tryAgain');
-      prompt.record.onclick = this.listen;
-    } else if (this.state.kind === 'review') {
-      this.listen();
-    }
-  };
-
-  private sign(): void {
-    this.stopVoice();
     this.state = { kind: 'receipt' };
     this.stopLifecycle = playReceiptLifecycle(
       this.showReceipt,
       '4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw',
     );
-  }
+  };
 
   private showReceipt = (state: TransactionReceiptState): void => {
     this.receipt = state;
@@ -245,6 +235,32 @@ export class VoiceIdDemo {
     this.view = next;
     transitionReceiptView(this.handle.element, next, this.showReceipt.bind(null, this.receipt));
   };
+}
+
+/** The wallet's VoiceID unlock card: it starts listening at once, like a menu unlock. */
+class UnlockCard {
+  readonly prompt: VoicePrompt;
+  private readonly element: HTMLElement;
+
+  constructor(stage: HTMLElement, onCancel: () => void) {
+    this.element = document.createElement('section');
+    this.element.id = UNLOCK_CARD_ID;
+    this.element.className =
+      'seams-wallet-ui seams-auth-method-activation-surface seams-voiceid-activation-surface';
+    this.element.setAttribute('role', 'dialog');
+    this.element.setAttribute('aria-label', t('unlockWithVoiceId'));
+    this.prompt = new VoicePrompt(document, t('unlockWithVoiceId'), 'the market is open');
+    this.prompt.title.textContent = t('voiceId');
+    this.prompt.record.hidden = true;
+    this.prompt.cancel.onclick = onCancel;
+    this.element.append(this.prompt.element);
+    stage.append(this.element);
+  }
+
+  dispose(): void {
+    this.prompt.dispose();
+    this.element.remove();
+  }
 }
 
 type VoicePlaybackState = 'listening' | 'checking' | 'settled' | 'cancelled';

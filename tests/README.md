@@ -56,9 +56,9 @@ snapshot alignment, interruption, mobile layouts, and reduced motion. Screenshot
 timing evidence in `result.json`, and `trace.zip` go to `.artifacts/wallet-receipt-transition/`.
 
 Run `node tests/e2e/wallet-voiceid-showcase.e2e.mjs` to check the front-page
-review-first flow and the separate `showcase/voiceid-reverse/` voice-first page.
-It checks one voice prompt per run, explicit trade confirmation, capture/checking
-cancellation, replay, pause/resume, four themes, receipts, and mobile layouts. Screenshots, `result.json`,
+VoiceID flow: a VoiceID unlock, then the trade's plain **Confirm trade** with no
+voice check. It checks capture/checking cancellation, replay, pause/resume, four
+themes, receipts, and mobile layouts. Screenshots, `result.json`,
 and `trace.zip` go to `.artifacts/wallet-voiceid-showcase/`.
 
 Authentication completion cards retain the selected theme for their surface, text,

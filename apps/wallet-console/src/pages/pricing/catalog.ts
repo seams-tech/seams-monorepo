@@ -20,7 +20,7 @@ export const messages = {
   freePrice: { en: '{zero}', ja: '{zero}' },
   growthPrice: { en: '{growthBase}', ja: '{growthBase}' },
   proPrice: { en: '{proBase}', ja: '{proBase}' },
-  perMonth: { en: 'per month', ja: '月額' },
+  perMonth: { en: 'per month', ja: '/月' },
   freeSummary: {
     en: 'For launches and small apps, in production.',
     ja: '新しいサービスや小規模アプリの本番運用に。',

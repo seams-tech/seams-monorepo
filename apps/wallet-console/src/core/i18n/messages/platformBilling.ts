@@ -14,8 +14,8 @@ export const platformBillingMessages = {
   },
   platformBillingEventManual: { en: 'Manual adjustments', ja: '手動調整' },
   platformBillingRefunds: { en: 'Refunds', ja: '返金' },
-  platformBillingEventDisputeOpened: { en: 'Disputes opened', ja: '不服申し立ての開始' },
-  platformBillingEventDisputeWon: { en: 'Disputes won', ja: '不服申し立てでの勝訴' },
+  platformBillingEventDisputeOpened: { en: 'Disputes opened', ja: '不審請求の申請' },
+  platformBillingEventDisputeWon: { en: 'Disputes won', ja: '不審請求での勝訴' },
 
   // Owners and projects
   platformBillingNoOwner: { en: 'no active owner', ja: 'アクティブなオーナーなし' },
@@ -488,7 +488,7 @@ export const platformBillingMessages = {
   platformBillingContinueOnFree: { en: 'Continue on Free', ja: 'Freeのまま続行' },
   platformBillingIncludedOf: { en: 'of {limit} included', ja: '/ {limit}（含まれる分）' },
   platformBillingPlanAria: { en: '{name} plan', ja: '{name}プラン' },
-  platformBillingPerMonth: { en: 'per month', ja: '月額' },
+  platformBillingPerMonth: { en: 'per month', ja: '/月' },
   platformBillingContactToChange: {
     en: 'Contact us to change plans.',
     ja: 'プランを変更するにはお問い合わせください。',

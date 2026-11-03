@@ -134,7 +134,7 @@ export const billingMessages = {
   billingStatusExpired: { en: 'Expired', ja: '期限切れ' },
   billingStatusUncollectible: { en: 'Uncollectible', ja: '回収不能' },
   billingStatusFailed: { en: 'Failed', ja: '失敗' },
-  billingStatusDisputed: { en: 'Disputed', ja: '異議申し立て中' },
+  billingStatusDisputed: { en: 'Disputed', ja: '不審請求中' },
   billingDocPurchaseReceipt: { en: 'Purchase receipt', ja: '購入領収書' },
   billingDocUsageStatement: { en: 'Usage statement', ja: '使用量明細書' },
   billingDocMonthlyInvoice: { en: 'Monthly invoice', ja: '月次請求書' },
@@ -363,7 +363,7 @@ export const billingMessages = {
   billingUsageCostMonth: { en: 'Usage cost month (UTC)', ja: '使用コストの月（UTC）' },
   billingPostedUsageIntro: {
     en: 'Posted service usage for {period} (UTC). Payments, refunds, disputes, and manual adjustments remain in account activity.',
-    ja: '{period}（UTC）に計上されたサービスの使用量です。支払い、返金、異議申し立て、手動調整はアカウントアクティビティに残ります。',
+    ja: '{period}（UTC）に計上されたサービスの使用量です。支払い、返金、不審請求、手動調整はアカウントアクティビティに残ります。',
   },
   billingPostedUsageTotalLabel: { en: 'Posted usage total', ja: '計上済みの使用量合計' },
   billingSubjectOrganization: { en: 'Organization', ja: '組織' },

@@ -233,6 +233,47 @@ body {
   z-index: 6;
 }
 
+/* The page's own button for the SDK settings drawer, which has no SDK button.
+   It copies the closed SDK dropdown button, so both layouts start from the
+   same control. */
+.demo-settings-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding: 8px 12px 8px 8px;
+  border: 1px solid var(--seams-colors-borderPrimary);
+  border-radius: 27px;
+  background: var(--seams-colors-colorBackground);
+  box-shadow:
+    0 2px 3px rgb(0 0 0 / 0.02),
+    0 16px 36px rgb(0 0 0 / 0.06);
+  color: var(--seams-colors-textPrimary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.demo-settings-trigger__avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--seams-colors-surface2);
+}
+
+/* without its label the button is the round avatar alone */
+.demo-settings-trigger:not(:has(> :nth-child(2))) {
+  padding: 8px;
+}
+
+.demo-settings-trigger:focus-visible {
+  outline: 2px solid var(--seams-colors-primary);
+  outline-offset: 2px;
+}
+
 /* Install panel (hero code block) */
 .install-panel {
   --install-panel-surface: color-mix(in srgb, var(--site-surface) 90%, #eef4f1 10%);

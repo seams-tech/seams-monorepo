@@ -2,7 +2,7 @@ import { locale, t } from '@/marketing/i18n/browser';
 import '@seams/wallet/react/styles';
 import type { MessageKey } from '@/marketing/i18n/catalog';
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, PanelRight, type LucideIcon } from 'lucide-react';
 import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
 import { FrontendRuntimeProvider, FrontendSdkProvider } from '@/context/frontendRuntime';
 import { SITE_APPEARANCE, SITE_THEME_TOKEN_OVERRIDES } from '@/context/siteThemeOverrides';
@@ -16,6 +16,7 @@ import {
 } from '@/context/app-themes';
 import { useDemoTheme } from '@/context/demoTheme';
 import { HeroDemoCell } from './WalletDemoSlot';
+import type { SettingsPresentation } from '@/components/SeamsProfileSettingsButton';
 
 function loadDemoPasskeyColumn() {
   return import('@/components/DemoPasskeyColumn').then(selectDemoPasskeyColumn);
@@ -32,6 +33,14 @@ const demoThemeLabels: Record<DemoThemeId, MessageKey> = {
   pastel: 'themePastel',
   'pastel-dark': 'themePastelDark',
 };
+const settingsPresentations: readonly {
+  id: SettingsPresentation;
+  label: MessageKey;
+  icon: LucideIcon;
+}[] = [
+  { id: 'dropdown', label: 'settingsDropdown', icon: ChevronDown },
+  { id: 'drawer', label: 'settingsDrawer', icon: PanelRight },
+];
 type WalletDemoProps = { authDefaultModeWhenNoDetectedAccount?: HostedAuthMenuMode };
 
 /* Grab-and-drag horizontal scrolling for a single-line chip row. Dragging only
@@ -105,6 +114,8 @@ function WalletDemoContent({
   const { seams, loginState } = useSeams();
   const [demoPage, setDemoPage] = React.useState(0);
   const { theme: demoTheme, setTheme: setDemoTheme } = useDemoTheme();
+  const [settingsPresentation, setSettingsPresentation] =
+    React.useState<SettingsPresentation>('dropdown');
   const themeTrackRef = useDragScroll<HTMLDivElement>();
   const activePreset = demoThemePreset(demoTheme);
   const activeWalletId = loginState?.isLoggedIn ? loginState.walletId || '' : '';
@@ -138,6 +149,7 @@ function WalletDemoContent({
                 currentPage={demoPage}
                 onCurrentPageChange={setDemoPage}
                 defaultModeWhenNoDetectedAccount={authDefaultModeWhenNoDetectedAccount}
+                settingsPresentation={settingsPresentation}
               />
             </React.Suspense>
           </div>
@@ -162,6 +174,27 @@ function WalletDemoContent({
               </button>
             ))}
           </div>
+          {/* the settings button exists only while the demo wallet is unlocked */}
+          {loginState?.isLoggedIn ? (
+            <div
+              className="h2-themeswitch__track"
+              role="group"
+              aria-label={t('settingsPresentation')}
+            >
+              {settingsPresentations.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`h2-themeswitch__btn${settingsPresentation === id ? ' is-active' : ''}`}
+                  aria-pressed={settingsPresentation === id}
+                  onClick={() => setSettingsPresentation(id)}
+                >
+                  <Icon className="h2-themeswitch__icon" size={14} strokeWidth={1.8} aria-hidden />
+                  {t(label)}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       </HeroDemoCell>
 

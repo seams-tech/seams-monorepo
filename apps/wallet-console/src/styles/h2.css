@@ -2144,6 +2144,11 @@ body:has(.h2-page) {
   outline-offset: 2px;
 }
 
+.h2-themeswitch__icon {
+  flex: none;
+  margin-inline-start: 2px;
+}
+
 .h2-themeswitch__swatch {
   width: 14px;
   height: 14px;

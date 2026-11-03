@@ -1,5 +1,6 @@
 import React from 'react';
 import NavbarProfileOverlay from './Navbar/NavbarProfileOverlay';
+import type { SettingsPresentation } from './SeamsProfileSettingsButton';
 import { useSeams, useTheme, type HostedAuthMenuMode } from '@seams/wallet/react';
 
 import { GlassBorder } from './GlassBorder';
@@ -89,12 +90,14 @@ export type DemoPasskeyColumnProps = {
   currentPage?: number;
   onCurrentPageChange?: (page: number) => void;
   defaultModeWhenNoDetectedAccount?: HostedAuthMenuMode;
+  settingsPresentation?: SettingsPresentation;
 };
 
 export function DemoPasskeyColumn({
   currentPage: controlledPage,
   onCurrentPageChange,
   defaultModeWhenNoDetectedAccount,
+  settingsPresentation,
 }: DemoPasskeyColumnProps = {}) {
   const { loginState } = useSeams();
   const walletSessionLifecycle = useDemoWalletSessionLifecycle();
@@ -185,7 +188,7 @@ export function DemoPasskeyColumn({
     <ProfileMenuControlProvider>
       <DemoToastThemeBridge />
       <div className={`passkey-demo${isDemoUnlocked ? ' passkey-demo--with-profile' : ''}`}>
-        {isDemoUnlocked ? <NavbarProfileOverlay /> : null}
+        {isDemoUnlocked ? <NavbarProfileOverlay presentation={settingsPresentation} /> : null}
         {/* Fixed-width so switching pages never resizes/re-centers the card;
             the external pager drives `index` (fully controlled). A host can
             set --h2-demo-card-width to give the card another fixed width. */}

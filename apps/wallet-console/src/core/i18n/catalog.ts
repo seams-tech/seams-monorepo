@@ -3,7 +3,9 @@ import { apiKeysWebhooksMessages } from './messages/apiKeysWebhooks';
 import { auditObservabilityMessages } from './messages/auditObservability';
 import { billingMessages } from './messages/billing';
 import { commonMessages } from './messages/common';
+import { derivationRootMessages } from './messages/derivationRoot';
 import { gasSponsorshipMessages } from './messages/gasSponsorship';
+import { platformBillingMessages } from './messages/platformBilling';
 import { policyEngineMessages } from './messages/policyEngine';
 import { shellMessages } from './messages/shell';
 import { walletProductMessages } from './messages/walletProduct';
@@ -17,7 +19,9 @@ export const messages = {
   ...apiKeysWebhooksMessages,
   ...auditObservabilityMessages,
   ...billingMessages,
+  ...derivationRootMessages,
   ...gasSponsorshipMessages,
+  ...platformBillingMessages,
   ...policyEngineMessages,
   ...walletProductMessages,
 };

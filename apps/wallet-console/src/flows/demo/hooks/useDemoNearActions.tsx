@@ -18,6 +18,7 @@ import type { ActionArgs, FunctionCallAction } from '@seams/wallet/react';
 import { FRONTEND_CONFIG } from '@/config';
 import { DEMO_CONTRACT_ID, NEAR_EXPLORER_BASE_URL } from '@/shared/types';
 import { friendlySigningErrorMessage, handleSigningToastEvent } from './signingToast';
+import { directWalletReview } from '../directWalletReview';
 
 const SET_GREETING_GAS = '10000000000000';
 
@@ -50,6 +51,9 @@ export function useDemoNearActions(args: UseDemoNearActionsArgs) {
     fetchGreeting,
   } = args;
 
+  const { wallet } = useSeams();
+  const nearSigner =
+    wallet?.access === 'wallet' && wallet.walletId === walletId ? wallet.near : null;
   const [greetingInput, setGreetingInput] = useState('Hello from Seams!');
   const [txLoading, setTxLoading] = useState(false);
   const [delegateLoading, setDelegateLoading] = useState(false);
@@ -91,7 +95,8 @@ export function useDemoNearActions(args: UseDemoNearActionsArgs) {
         canStartNearTransaction,
         walletId,
         nearAccountId,
-      )
+      ) ||
+      !nearSigner
     ) {
       return;
     }
@@ -101,15 +106,13 @@ export function useDemoNearActions(args: UseDemoNearActionsArgs) {
 
     setTxLoading(true);
     let signingFailureMessage: string | null = null;
+    let failureToastShown = false;
     try {
-      await seams.near.signAndSendTransaction({
-        walletSession: walletSessionRefFromSession({
-          walletId,
-          walletSessionUserId: walletId,
-        }),
-        nearAccount: nearAccountRefFromAccountId(nearAccountId!),
+      // A reviewed call, so a VoiceID session can approve it too.
+      await nearSigner.signAndSendTransaction({
         receiverId: DEMO_CONTRACT_ID,
         actions: [actionToExecute],
+        review: directWalletReview('Review greeting update'),
         options: {
           onEvent: (event: SigningFlowEvent) => {
             const result = handleSigningToastEvent(event, {
@@ -118,8 +121,8 @@ export function useDemoNearActions(args: UseDemoNearActionsArgs) {
               successMessage: 'Transaction complete',
             });
             if (result.status === 'failed' || result.status === 'cancelled') {
-              const message = result.message;
-              signingFailureMessage = message;
+              signingFailureMessage = result.message;
+              failureToastShown = true;
             }
           },
           onError: (error: unknown) => {
@@ -164,9 +167,11 @@ export function useDemoNearActions(args: UseDemoNearActionsArgs) {
         },
       });
     } catch (error: unknown) {
-      if (!signingFailureMessage) {
+      // onError only records its message, so it still needs a toast here.
+      if (!failureToastShown) {
         const fallbackMessage = friendlySigningErrorMessage(
-          String((error as { message?: unknown })?.message || error || 'Unknown error'),
+          signingFailureMessage ||
+            String((error as { message?: unknown })?.message || error || 'Unknown error'),
         );
         toast.error(`Greeting update failed: ${fallbackMessage}`);
       }
@@ -180,7 +185,7 @@ export function useDemoNearActions(args: UseDemoNearActionsArgs) {
     greetingInput,
     isLoggedIn,
     nearAccountId,
-    seams,
+    nearSigner,
     walletId,
   ]);
 
@@ -327,13 +332,15 @@ export function useDemoNearActions(args: UseDemoNearActionsArgs) {
     delegateLoading,
     handleSetGreeting,
     handleSignDelegateGreeting,
-    canSetGreeting: canExecuteGreeting(
-      greetingInput,
-      isLoggedIn,
-      canStartNearTransaction,
-      walletId,
-      nearAccountId,
-    ),
+    canSetGreeting:
+      Boolean(nearSigner) &&
+      canExecuteGreeting(
+        greetingInput,
+        isLoggedIn,
+        canStartNearTransaction,
+        walletId,
+        nearAccountId,
+      ),
     canSignDelegate: canExecuteGreeting(
       greetingInput,
       isLoggedIn,

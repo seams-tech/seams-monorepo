@@ -8,13 +8,9 @@ import { suiteIconScene, type SuiteIcon } from '@/components/h2/ink/suiteIconSce
 
 const list: readonly { name: string; icon: SuiteIcon; to: string }[] = [
   { name: 'Shop', icon: 'shop', to: '/ecommerce#suite' },
-  { name: 'Menu', icon: 'menu', to: '/ecommerce#suite' },
   { name: 'Inbox', icon: 'inbox', to: '/ecommerce#suite' },
   { name: 'Kitchen', icon: 'kitchen', to: '/ecommerce#kitchen' },
-  { name: 'Stock', icon: 'stock', to: '/ecommerce#suite' },
   { name: 'Payments', icon: 'payments', to: '/ecommerce#suite' },
-  { name: 'Devices', icon: 'devices', to: '/ecommerce#kitchen' },
-  { name: 'Brain', icon: 'brain', to: '/ecommerce#workflows' },
 ];
 
 /* one scene for each app, made once, so a render never repaints the tiles */

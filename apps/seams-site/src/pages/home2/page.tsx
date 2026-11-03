@@ -112,8 +112,8 @@ function HomeHeroCurrent(): React.JSX.Element {
               <span className="h2-hero-simple__title-muted">For cafés and pâtisseries.</span>
             </h1>
             <p className="h2-hero-simple__sub">
-              Satyr agents run the online shop, the inbox and the bake plan. They work with your
-              team in Slack, and each change that matters waits for your approval.
+              Satyr agents run your shop, inbox and bake plan. Changes that matter wait for your
+              approval.
             </p>
             <div className="h2-hero-simple__ctas">
               <a

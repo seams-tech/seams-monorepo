@@ -199,7 +199,7 @@
   color: var(--h2-smoke);
 }
 
-/* four by two, so the row never reaches the wheat under the copy */
+/* one row of four, so the row never reaches the wheat under the copy */
 .h2-suite__list {
   display: grid;
   grid-template-columns: repeat(4, 64px);

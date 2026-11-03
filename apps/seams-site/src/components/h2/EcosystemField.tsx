@@ -71,7 +71,7 @@ function StalkLogo({
   const k = stalk.logoSize / Math.max(vw, vh);
   return (
     <Swayed motions={stalk.motions} base={stalk.base}>
-      <g className="h2-ink-tools__logo" style={{ animationDelay: `${1.6 + order * 0.3}s` }}>
+      <g className="h2-ink-tools__logo" style={{ animationDelay: `${0.4 + order * 0.06}s` }}>
         <g
           transform={`translate(${stalk.x} ${stalk.y}) scale(${k}) translate(${-vx - vw / 2} ${-vy - vh / 2})`}
           filter="url(#h2-field-rough)"
@@ -87,7 +87,7 @@ function StalkLogo({
 
 function Grain({ path, order }: { path: string; order: number }): React.JSX.Element {
   const seconds = `${3.4 + (order % 2) * 0.5}s`;
-  const begin = `${4.5 + order * 1.3}s`;
+  const begin = `${1 + order * 0.6}s`;
   return (
     <circle r="3.8" fill={GRAIN_GOLD} opacity="0">
       <animateMotion dur={seconds} begin={begin} repeatCount="indefinite" path={path} />

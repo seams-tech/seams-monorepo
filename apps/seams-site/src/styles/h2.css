@@ -2808,7 +2808,7 @@ body:has(.h2-page) {
 }
 
 .h2-ink-tools.is-awake .h2-ink-tools__logo {
-  animation: h2-ink-tools-logo 420ms ease-out forwards;
+  animation: h2-ink-tools-logo 300ms ease-out forwards;
 }
 
 @keyframes h2-ink-tools-logo {

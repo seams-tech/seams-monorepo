@@ -23,8 +23,6 @@ export type InkPart = {
 export type InkScene = {
   readonly width: number;
   readonly height: number;
-  /* the longest time that the first drawing may take, if not the usual limit */
-  readonly drawSeconds?: number;
   readonly parts: readonly InkPart[];
 };
 
@@ -1910,7 +1908,6 @@ function windStalk(
 export const windScene: InkScene = {
   width: BANNER_WIDTH,
   height: BANNER_HEIGHT,
-  drawSeconds: 1.5,
   parts: [
     windStalk(0, 76, 150, 0.6, 'ink'),
     windStalk(1, 104, 182, 0.66, 'ink'),

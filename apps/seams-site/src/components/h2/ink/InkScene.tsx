@@ -14,7 +14,7 @@ const SHORTEST_STROKE_S = 0.055;
 /* the next stroke starts when this much of the one before has been drawn */
 const STROKE_OVERLAP = 0.55;
 /* a scene with many strokes speeds up to finish inside this time */
-const LONGEST_SCENE_S = 4.2;
+const LONGEST_SCENE_S = 1;
 /* the strokes of a part that grows together start this far apart */
 const TOGETHER_STAGGER_S = 0.012;
 
@@ -65,9 +65,8 @@ function paint(
   });
 
   const total = timed.reduce((latest, entry) => Math.max(latest, entry.start + entry.duration), 0);
-  const longest = scene.drawSeconds ?? LONGEST_SCENE_S;
-  if (total > longest) {
-    const quicken = longest / total;
+  if (total > LONGEST_SCENE_S) {
+    const quicken = LONGEST_SCENE_S / total;
     for (const entry of timed) {
       entry.start *= quicken;
       entry.duration *= quicken;

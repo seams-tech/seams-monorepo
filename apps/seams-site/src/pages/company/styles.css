@@ -24,7 +24,32 @@
   }
 }
 
-/* ---------- a small gradient banner above the company details ---------- */
+/* a sparrow carries a parcel across the empty side of the short hero */
+.h2-hero-simple.company-hero > .h2-shell {
+  position: relative;
+}
+
+.company-hero__ink {
+  position: absolute;
+  right: -40px;
+  bottom: -18px;
+  width: 620px;
+}
+
+.company-hero .h2-hero-simple__sub,
+.company-hero .h2-hero-simple__title,
+.company-hero .h2-hero-simple__ctas {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 1040px) {
+  .company-hero__ink {
+    display: none;
+  }
+}
+
+/* ---------- a small banner above the company details: paper and a cup ---------- */
 
 .h2-cta__banner.company-banner {
   padding: 40px 48px;
@@ -33,6 +58,39 @@
 @media (max-width: 760px) {
   .h2-cta__banner.company-banner {
     padding: 32px 24px;
+  }
+}
+
+.h2-cta__banner.company-banner--ink {
+  background: #faf8f3;
+}
+
+.company-banner--ink > :not(.h2-ink) {
+  position: relative;
+  z-index: 1;
+}
+
+.company-banner--ink .h2-cta__title {
+  color: var(--h2-ink);
+}
+
+.company-banner--ink .h2-cta__sub {
+  color: var(--h2-smoke);
+}
+
+@media (max-width: 760px) {
+  .h2-cta__banner.company-banner--ink {
+    padding-bottom: 0;
+  }
+
+  .company-banner--ink .h2-ink--banner {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    width: calc(100% + 24px);
+    max-width: 480px;
+    margin: -8px -24px 0 auto;
+    align-self: flex-end;
   }
 }
 

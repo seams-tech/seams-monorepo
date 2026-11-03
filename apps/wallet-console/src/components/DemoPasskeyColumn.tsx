@@ -10,12 +10,40 @@ import { HostedPasskeyLoginMenu } from '@/flows/demo/HostedPasskeyLoginMenu';
 import { ProfileMenuControlProvider } from '@/context/ProfileMenuControl';
 import { useDemoWalletSessionLifecycle } from '@/flows/demo/hooks/useDemoWalletSessionLifecycle';
 
+/* React.lazy suspends on its first render even when the chunk is already in
+   memory, and React then holds the fallback for its reveal throttle (~300 ms).
+   This keeps the loaded component and renders it directly once warmed, so the
+   unlock-time mount never shows the fallback. The choice is fixed at mount: a
+   switch from the lazy wrapper to the direct component would remount it. */
+function preloadableLazy<P extends object>(
+  load: () => Promise<React.ComponentType<P>>,
+): { Component: React.FC<P>; preload: () => Promise<unknown> } {
+  let loaded: React.ComponentType<P> | null = null;
+  let pending: Promise<React.ComponentType<P>> | null = null;
+  const preload = () => {
+    pending ??= load().then(
+      (component) => (loaded = component),
+      (error: unknown) => {
+        pending = null; // a failed chunk fetch may be retried
+        throw error;
+      },
+    );
+    return pending;
+  };
+  const Lazy = React.lazy(() => preload().then((component) => ({ default: component })));
+  function Component(props: P) {
+    const [Resolved] = React.useState<React.ComponentType<P>>(() => loaded ?? Lazy);
+    return <Resolved {...props} />;
+  }
+  return { Component, preload };
+}
+
 // Post-login flows stay deferred until the user unlocks the wallet.
-const DemoPage = React.lazy(() =>
-  import('@/flows/demo/DemoPage').then((m) => ({ default: m.DemoPage })),
+const { Component: DemoPage, preload: preloadDemoPage } = preloadableLazy(() =>
+  import('@/flows/demo/DemoPage').then((m) => m.DemoPage),
 );
-const SyncAccount = React.lazy(() =>
-  import('@/flows/demo/SyncAccount').then((m) => ({ default: m.SyncAccount })),
+const { Component: SyncAccount, preload: preloadSyncAccount } = preloadableLazy(() =>
+  import('@/flows/demo/SyncAccount').then((m) => m.SyncAccount),
 );
 
 type DemoToastThemeVar = (typeof DEMO_TOAST_THEME_VARS)[number];
@@ -121,8 +149,8 @@ export function DemoPasskeyColumn({
   // fallback. Warming at unlock raced the switch and always flashed once.
   React.useEffect(() => {
     const warm = () => {
-      void import('@/flows/demo/DemoPage').catch(() => {});
-      void import('@/flows/demo/SyncAccount').catch(() => {});
+      void preloadDemoPage().catch(() => {});
+      void preloadSyncAccount().catch(() => {});
     };
     const ric = (
       window as Window & {

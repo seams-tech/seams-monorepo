@@ -12,6 +12,7 @@ import { DashboardOnboardingPage } from './routes/onboarding/page';
 import { readUnscopedConsoleSession } from './routes/onboarding/initialOrganizationApi';
 import { requireConsoleBaseUrl } from './consoleHttp';
 import React from 'react';
+import { consoleLocale, languageToggleLabel, saveConsoleLocaleAndReload, t } from '@core/i18n';
 import { assertNever } from '@seams-internal/console-shared/accountPlatform/boundary';
 import type { SidebarProjectGroup } from './layout/DashboardSidebar';
 import DashboardNavigation from './layout/DashboardNavigation';
@@ -180,23 +181,28 @@ function dedupeOptions(options: TopbarOption[]): TopbarOption[] {
 
 const SWITCH_TO_MAINNET = 'console-network-mainnet';
 const SWITCH_TO_TESTNET = 'console-network-testnet';
+const SWITCH_LANGUAGE = 'console-language';
 
-function withConsoleNetworkOptions(
+function withConsoleMenuOptions(
   options: TopbarOption[],
   runtime: Pick<ConsoleRuntimeState, 'selectedNetwork' | 'availableNetworks'>,
 ): TopbarOption[] {
-  if (runtime.availableNetworks.length < 2) return options;
+  const languageOptions = [
+    ...options,
+    { value: SWITCH_LANGUAGE, label: languageToggleLabel(consoleLocale) },
+  ];
+  if (runtime.availableNetworks.length < 2) return languageOptions;
   const mainnet = runtime.selectedNetwork === 'mainnet';
   return [
-    ...options,
+    ...languageOptions,
     {
       value: 'console-current-network',
-      label: mainnet ? 'Network: Mainnet' : 'Network: Testnet',
+      label: mainnet ? t('menuNetworkMainnet') : t('menuNetworkTestnet'),
       disabled: true,
     },
     {
       value: mainnet ? SWITCH_TO_TESTNET : SWITCH_TO_MAINNET,
-      label: mainnet ? 'Switch to Testnet' : 'Switch to Mainnet',
+      label: mainnet ? t('menuSwitchToTestnet') : t('menuSwitchToMainnet'),
     },
   ];
 }
@@ -228,8 +234,11 @@ function consoleNetworkSwitch(
   };
 }
 
-function selectConsoleNetworkOption(go: (to: string) => void, value: string): boolean {
+function selectConsoleMenuOption(go: (to: string) => void, value: string): boolean {
   switch (value) {
+    case SWITCH_LANGUAGE:
+      saveConsoleLocaleAndReload(consoleLocale === 'ja' ? 'en' : 'ja');
+      return true;
     case SWITCH_TO_MAINNET:
       navigateToConsoleNetwork(go, 'mainnet');
       return true;
@@ -844,7 +853,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       organization: dedupeOptions(organizationOptions),
       project: projectOptions,
       environment: environmentOptions,
-      accountSettings: withConsoleNetworkOptions(
+      accountSettings: withConsoleMenuOptions(
         DASHBOARD_ACCOUNT_SETTINGS_OPTIONS.map(
           (entry): TopbarOption => ({
             value: entry,
@@ -984,7 +993,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
 
   const onSelectContext = React.useCallback(
     (menu: TopbarMenuKey, value: string) => {
-      if (menu === 'accountSettings' && selectConsoleNetworkOption(go, value)) return;
+      if (menu === 'accountSettings' && selectConsoleMenuOption(go, value)) return;
       if (menu === 'organization') {
         const nextOrgId = String(value || '').trim();
         if (!nextOrgId) return;
@@ -1259,7 +1268,9 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   return (
     <main className={shellClassName} aria-label="Dashboard workspace">
       <DashboardNavigation
-        accountLabel={consoleSession.claims?.name || consoleSession.claims?.email || 'Account'}
+        accountLabel={
+          consoleSession.claims?.name || consoleSession.claims?.email || t('menuAccountFallback')
+        }
         onSelectContext={onSelectContext}
         dropdownOptions={dropdownOptions}
         pageTitle={activeView.label}
@@ -1387,14 +1398,14 @@ function DashboardPendingShell<ProductRoute extends string, ProductGroupKey exte
       organization: [],
       project: [],
       environment: [],
-      accountSettings: withConsoleNetworkOptions([], frontendRuntime),
+      accountSettings: withConsoleMenuOptions([], frontendRuntime),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- The runtime object is new on each render.
     [frontendRuntime.selectedNetwork, frontendRuntime.availableNetworks.length],
   );
   const selectContext = React.useCallback(
     (menu: TopbarMenuKey, value: string) => {
-      if (menu === 'accountSettings') selectConsoleNetworkOption(go, value);
+      if (menu === 'accountSettings') selectConsoleMenuOption(go, value);
     },
     [go],
   );
@@ -1409,7 +1420,7 @@ function DashboardPendingShell<ProductRoute extends string, ProductGroupKey exte
       aria-busy
     >
       <DashboardNavigation
-        accountLabel={accountLabel || 'Account'}
+        accountLabel={accountLabel || t('menuAccountFallback')}
         onSelectContext={selectContext}
         dropdownOptions={dropdownOptions}
         pageTitle={view.label}
@@ -1521,11 +1532,11 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
   const homeProps = linkProps('https://seams.sh/');
   const accountOptions = React.useMemo<TopbarOption[]>(
     () =>
-      withConsoleNetworkOptions(
+      withConsoleMenuOptions(
         [
           {
             value: composition.accountSettingsSignOutOption,
-            label: logoutPending ? 'Signing out...' : composition.accountSettingsSignOutOption,
+            label: logoutPending ? t('menuSigningOut') : composition.accountSettingsSignOutOption,
             disabled: logoutPending,
           },
         ],
@@ -1553,7 +1564,7 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
   }, []);
   const selectAccountOption = React.useCallback(
     (value: string) => {
-      if (selectConsoleNetworkOption(go, value)) return;
+      if (selectConsoleMenuOption(go, value)) return;
       if (value !== composition.accountSettingsSignOutOption || logoutPending) return;
       setLogoutPending(true);
       void revokeDashboardConsoleSession().finally(() => {
@@ -1577,10 +1588,10 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
   return (
     <main className={shellClassName} aria-label="Dashboard workspace">
       <DashboardNavigation
-        accountLabel="Account"
+        accountLabel={t('menuAccountFallback')}
         onSelectContext={selectTopbarContext}
         dropdownOptions={dropdownOptions}
-        pageTitle="Onboarding"
+        pageTitle={t('navOnboarding')}
         network={consoleNetworkSwitch(frontendRuntime, go)}
         groups={composition.sidebarGroups}
         activeRoute={DASHBOARD_ONBOARDING_ROUTE}

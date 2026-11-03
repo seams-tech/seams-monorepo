@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { LoaderCircle } from 'lucide-react';
 
 export function DashboardLoadingState({ title }: { title: string }): React.JSX.Element {
@@ -9,7 +10,7 @@ export function DashboardLoadingState({ title }: { title: string }): React.JSX.E
       </span>
       <div className="dashboard-loading-state__copy">
         <h2>{title}</h2>
-        <p>Please wait while we prepare your workspace.</p>
+        <p>{t('loadingPrepareWorkspace')}</p>
       </div>
     </div>
   );

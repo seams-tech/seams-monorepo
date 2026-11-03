@@ -301,6 +301,12 @@
   width: 460px;
 }
 
+@media (min-width: 761px) {
+  .h2-banner--ink:has(#h2-cta-title) .h2-swatch {
+    transform: translateY(12px);
+  }
+}
+
 @media (max-width: 1040px) {
   .h2-swatch__paint {
     width: min(480px, 58%);

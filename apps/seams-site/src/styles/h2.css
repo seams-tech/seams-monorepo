@@ -269,7 +269,7 @@ body:has(.h2-page) {
 }
 
 .h2-page .navbar-static--compact {
-  --navbar-top-space: 0.5rem;
+  top: 0.5rem;
 }
 
 /* The dropdown panel is content-width and self-anchored in Navbar.css; the

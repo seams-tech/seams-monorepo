@@ -336,6 +336,14 @@ export const goatScene: InkScene = {
   width: 760,
   height: 520,
   parts: [
+    /* a back row of short stalks, thicker to the right, so the right is a field */
+    ...wheat('back-a', [404, 545], [398, 500], [410, 452], 3301, 0.56),
+    ...wheat('back-b', [440, 545], [446, 506], [436, 466], 4409, 0.5),
+    ...wheat('back-c', [548, 545], [540, 496], [554, 440], 5507, 0.6),
+    ...wheat('back-d', [584, 545], [590, 502], [580, 458], 6607, 0.52),
+    ...wheat('back-e', [626, 545], [620, 494], [632, 436], 7703, 0.62),
+    ...wheat('back-f', [706, 545], [700, 492], [712, 430], 8803, 0.6),
+    ...wheat('back-g', [738, 545], [744, 500], [734, 450], 9901, 0.54),
     /* three stalks stand upright to the right of the goat, under the kite line */
     ...wheat('under-a', [494, 545], [474, 432], [512, 316], 977, 0.95),
     ...wheat('under-b', [664, 545], [684, 468], [652, 404], 7321, 0.8),
@@ -517,6 +525,8 @@ export const goatScene: InkScene = {
     },
     ...wheat('front-a', [84, 545], [104, 505], [160, 498], 1313, 0.56),
     ...kiteParts(MOUTH),
+    /* a sparrow flies up beside the kite line */
+    ...flying('swift', 398, 236, 0.62, 1, 0.22),
   ],
 };
 

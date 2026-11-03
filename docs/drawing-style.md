@@ -92,6 +92,8 @@ These directions were tried and refused. Do not propose them again.
 - Dashboard pictures, logo grids and isometric platforms for integrations.
 - Curves that are too perfect, such as a regular curl in a string.
 - A hero that paints itself in. The hero loads already drawn and moving.
+- Robot faces with ringed eyes, pupils or a mouth. Give a robot plain dot eyes.
+- Robots with a round egg or capsule body and no separate head.
 
 ## The brush
 

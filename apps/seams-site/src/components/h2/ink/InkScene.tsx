@@ -8,15 +8,19 @@ import '@/styles/h2-ink.css';
    drawing costs no script. Two motions with periods that do not divide evenly
    never line up, so a part does not visibly repeat. */
 
-const BRUSH_SPEED = 1050;
-const LONGEST_STROKE_S = 0.62;
-const SHORTEST_STROKE_S = 0.055;
+const BRUSH_SPEED = 700;
+const LONGEST_STROKE_S = 0.93;
+const SHORTEST_STROKE_S = 0.08;
 /* the next stroke starts when this much of the one before has been drawn */
 const STROKE_OVERLAP = 0.55;
-/* a scene with many strokes speeds up to finish inside this time */
-const LONGEST_SCENE_S = 1;
+/* The parts of a scene start in their own order but inside this window, so a few
+   draw at once, each a moment after the one before. Each part then draws as
+   slowly as it can, up to the slowest pace, and every part ends inside the scene. */
+const START_WINDOW_S = 0.8;
+const LONGEST_SCENE_S = 1.5;
+const SLOWEST_STROKE_PACE = 1.7;
 /* the strokes of a part that grows together start this far apart */
-const TOGETHER_STAGGER_S = 0.012;
+const TOGETHER_STAGGER_S = 0.018;
 
 function reducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -25,9 +29,29 @@ function reducedMotion(): boolean {
 type Timed = {
   stroke: PreparedStroke;
   ctx: CanvasRenderingContext2D;
+  part: number;
   start: number;
   duration: number;
 };
+
+/* moves each part's start into the window, then stretches each part's strokes */
+function overlapParts(timed: readonly Timed[], begins: readonly number[]): void {
+  const last = Math.max(0, ...timed.map((entry) => begins[entry.part]));
+  const spread = last > START_WINDOW_S ? START_WINDOW_S / last : 1;
+  const spans = new Map<number, number>();
+  for (const entry of timed) {
+    const span = entry.start - begins[entry.part] + entry.duration;
+    spans.set(entry.part, Math.max(spans.get(entry.part) ?? 0, span));
+  }
+  let pace = SLOWEST_STROKE_PACE;
+  for (const [part, span] of spans) {
+    pace = Math.min(pace, (LONGEST_SCENE_S - begins[part] * spread) / span);
+  }
+  for (const entry of timed) {
+    entry.start = begins[entry.part] * spread + (entry.start - begins[entry.part]) * pace;
+    entry.duration *= pace;
+  }
+}
 
 function paint(
   scene: InkSceneData,
@@ -37,6 +61,7 @@ function paint(
   const scale = window.devicePixelRatio || 1;
   const noise = createNoise(Math.floor(Math.random() * 2147483646) + 1);
   const timed: Timed[] = [];
+  const begins: number[] = [];
   let clock = 0;
 
   scene.parts.forEach((part, index) => {
@@ -50,6 +75,7 @@ function paint(
     if (part.at !== undefined) clock = part.at;
     clock += part.pause ?? 0;
     const first = clock;
+    begins[index] = first;
     let end = clock;
     part.strokes.forEach((raw, strokeIndex) => {
       const stroke = prepareStroke(raw, scale, noise);
@@ -58,21 +84,15 @@ function paint(
         Math.max(SHORTEST_STROKE_S, stroke.length / (BRUSH_SPEED * (raw.pace ?? 1))),
       );
       const start = part.together ? first + strokeIndex * TOGETHER_STAGGER_S : clock;
-      timed.push({ stroke, ctx, start, duration });
+      timed.push({ stroke, ctx, part: index, start, duration });
       end = Math.max(end, start + duration);
       clock += duration * STROKE_OVERLAP;
     });
     if (part.together) clock = first + (end - first) * STROKE_OVERLAP;
   });
 
-  const total = timed.reduce((latest, entry) => Math.max(latest, entry.start + entry.duration), 0);
-  if (total > LONGEST_SCENE_S) {
-    const quicken = LONGEST_SCENE_S / total;
-    for (const entry of timed) {
-      entry.start *= quicken;
-      entry.duration *= quicken;
-    }
-  }
+  /* a scene that times its own parts, such as the wheat field, keeps those times */
+  if (!scene.parts.some((part) => part.at !== undefined)) overlapParts(timed, begins);
 
   if (instantly) {
     for (const entry of timed) entry.stroke.draw(entry.ctx, 1);

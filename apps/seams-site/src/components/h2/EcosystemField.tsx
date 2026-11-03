@@ -81,7 +81,7 @@ function StalkLogo({ stalk }: { stalk: ToolStalk }): React.JSX.Element | null {
 
 function Grain({ path, order }: { path: string; order: number }): React.JSX.Element {
   const seconds = `${3.4 + (order % 2) * 0.5}s`;
-  const begin = `${1 + order * 0.6}s`;
+  const begin = `${1.5 + order * 0.6}s`;
   return (
     <circle r="3.8" fill={GRAIN_GOLD} opacity="0">
       <animateMotion dur={seconds} begin={begin} repeatCount="indefinite" path={path} />

@@ -30,11 +30,11 @@ type ToolPlace = readonly [tool: string, x: number, y: number, lean: number];
 type BarePlace = readonly [x: number, tipY: number, lean: number, size: number];
 
 /* The stalks grow in one wave from left to right: each starts at its own second
-   and draws at the usual brush speed, so the field is whole in about a second. */
-const WAVE_SECONDS = 0.4;
-const EAR_SECONDS = 0.35;
-const KID_AT = 0.25;
-const BIRD_AT = 0.6;
+   and draws at the usual brush speed, so the field is whole in about a second and a half. */
+const WAVE_SECONDS = 0.6;
+const EAR_SECONDS = 0.5;
+const KID_AT = 0.4;
+const BIRD_AT = 0.9;
 
 function startAt(parts: readonly InkPart[], at: number): InkPart[] {
   return parts.map((part, index) => (index === 0 ? { ...part, at } : part));

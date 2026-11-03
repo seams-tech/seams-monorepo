@@ -229,7 +229,7 @@
   background-color: #faf8f3;
 }
 
-.h2-banner--ink > :not(.h2-ink) {
+.h2-banner--ink > :not(.h2-ink, .grain-field) {
   position: relative;
   z-index: 1;
 }

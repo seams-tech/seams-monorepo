@@ -336,10 +336,10 @@ export const goatScene: InkScene = {
   width: 760,
   height: 520,
   parts: [
-    ...wheat('tall', [272, 545], [420, 310], [552, 24], 41, 1.0),
-    ...wheat('under-a', [430, 545], [500, 500], [640, 452], 977, 0.92),
-    ...wheat('under-b', [566, 545], [640, 510], [752, 462], 7321, 0.82),
-    ...wheat('under-c', [330, 545], [372, 505], [470, 468], 2203, 0.78),
+    /* three stalks stand upright to the right of the goat, under the kite line */
+    ...wheat('under-a', [494, 545], [474, 432], [512, 316], 977, 0.95),
+    ...wheat('under-b', [664, 545], [684, 468], [652, 404], 7321, 0.8),
+    ...wheat('under-c', [374, 545], [358, 474], [388, 396], 2203, 0.8),
     /* the wheat stands much taller than the goat */
     ...wheat('behind-a', [118, 545], [84, 450], [122, 346], 6101, 0.98),
     ...wheat('behind-b', [52, 545], [30, 480], [62, 400], 5021, 0.86),

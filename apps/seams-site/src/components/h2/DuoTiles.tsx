@@ -2,8 +2,8 @@ import React from 'react';
 import '@/styles/h2-duo-tiles.css';
 
 /* Real Portal cards, cropped from the Portal's preview pages with the sample
-   café's data (public/satyr-portal/duo-*), stacked on one tile for each duo
-   panel. Each card has its place on a 470 x 360 stage. */
+   café's data (public/satyr-portal/duo-*), stacked on one dot-cloud tile for each
+   duo panel. Each card has its place on a 470 x 360 stage. */
 
 const STAGE_WIDTH = 470;
 
@@ -38,10 +38,6 @@ function DuoTile({ cards }: { cards: readonly TileCard[] }): React.JSX.Element {
   return (
     <div ref={rootRef} className="h2-duotile" aria-hidden>
       <div ref={stageRef} className="h2-duotile__stage">
-        <span className="h2-duotile__corner" />
-        <span className="h2-duotile__corner" />
-        <span className="h2-duotile__corner" />
-        <span className="h2-duotile__corner" />
         {cards.map((card) => (
           <img
             key={card.src}

@@ -3,7 +3,7 @@ import { Activity, Croissant, Inbox, Slack, Store } from 'lucide-react';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
 import {
-  loavesScene,
+  cobotScene,
   orderSlipsScene,
   pillowGoatScene,
   whiskGoatScene,
@@ -106,7 +106,7 @@ export function EcommercePage(): React.JSX.Element {
           drawing={<InkDrawing scene={windScene} className="h2-ink--banner" />}
         />
         <H2Cases drawing={<InkDrawing scene={whiskGoatScene} className="h2-ink--banner" />} />
-        <H2Production drawing={<InkDrawing scene={loavesScene} className="h2-ink--banner" />} />
+        <H2Production drawing={<InkDrawing scene={cobotScene} className="h2-ink--banner" />} />
         <H2Bento drawing={<InkDrawing scene={orderSlipsScene} className="h2-ink--banner" />} />
         <H2Cta
           audience="ecommerce"

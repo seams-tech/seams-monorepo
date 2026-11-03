@@ -32,7 +32,13 @@ type Pt = readonly [number, number];
 
 /* A brush is wide across its travel, so a short wide stroke makes a bar. A round
    shape swells and narrows along its own height instead. */
-function blob(x: number, y: number, rx: number, ry: number, color: InkColor = 'ink'): InkStroke {
+export function blob(
+  x: number,
+  y: number,
+  rx: number,
+  ry: number,
+  color: InkColor = 'ink',
+): InkStroke {
   return {
     color,
     grain: color === 'clear' ? 0 : 0.02,
@@ -50,7 +56,12 @@ function blob(x: number, y: number, rx: number, ry: number, color: InkColor = 'i
 /* ---------- the croissant kite ---------- */
 
 /* one fat crescent with its tips turned down, then its layers cut out across it */
-function croissant(cx: number, cy: number, radius: number, thickness = radius / 40): InkStroke[] {
+export function croissant(
+  cx: number,
+  cy: number,
+  radius: number,
+  thickness = radius / 40,
+): InkStroke[] {
   const size = thickness;
   const reach = (size * 40) / radius;
   const at = (angle: number, r: number): [number, number] => [
@@ -569,7 +580,7 @@ function perched(x: number, y: number, k: number, facing: Facing): InkStroke[] {
 }
 
 /* a part for one standing sparrow, which shifts its weight on its feet */
-function sparrowPart(
+export function sparrowPart(
   id: string,
   x: number,
   y: number,
@@ -590,7 +601,7 @@ function sparrowPart(
 }
 
 /* a sparrow in flight, with its near wing as its own part so that it can beat */
-function flying(
+export function flying(
   id: string,
   x: number,
   y: number,
@@ -860,10 +871,12 @@ export const carryScene: InkScene = {
 /* ---------- the pillow goat: the closing banner of the Satyr page ---------- */
 
 /* a truly round mark, for a head: its width follows a circle down its height */
-function roundBlob(x: number, y: number, rx: number, ry: number): InkStroke {
+export function roundBlob(x: number, y: number, rx: number, ry: number): InkStroke {
   /* evenly spaced, or the spline would double back and spoil the circle */
   const rows = Array.from({ length: 19 }, (_, i) => -0.99 + (i / 18) * 1.98);
   return {
+    /* the circle already closes at each end, so the brush adds no round cap */
+    flat: true,
     grain: 0.02,
     rough: 0.3,
     pts: rows.map((t): InkPoint => [x, y + t * ry, 2 * rx * Math.sqrt(1 - t * t)]),
@@ -1126,7 +1139,7 @@ export const pillowGoatScene: InkScene = {
 
 /* ---------- the other pages: flour, a delivery and a cup ---------- */
 
-function fallingSpeck(id: string, x: number, y: number, r: number, delay: number): InkPart {
+export function fallingSpeck(id: string, x: number, y: number, r: number, delay: number): InkPart {
   return {
     id,
     motions: [{ kind: 'fall', amount: '20px', seconds: 2.4, delay }],
@@ -1633,7 +1646,7 @@ export const parcelSparrowScene: InkScene = {
   ],
 };
 
-function steamCurl(id: string, x: number, y: number, k: number, delay: number): InkPart {
+export function steamCurl(id: string, x: number, y: number, k: number, delay: number): InkPart {
   return {
     id,
     motions: [
@@ -1766,7 +1779,7 @@ export const cupSparrowScene: InkScene = {
 /* ---------- the Satyr page: loaves, wind, a whisk and order slips ---------- */
 
 /* one loaf: a loaded gold pull, with its scores cut out across the top */
-function loaf(x: number, y: number, length: number, width: number): InkStroke[] {
+export function loaf(x: number, y: number, length: number, width: number): InkStroke[] {
   const half = length / 2;
   return [
     {
@@ -2314,6 +2327,224 @@ export const orderSlipsScene: InkScene = {
             ],
           }),
         ),
+      ],
+    },
+  ],
+};
+
+/* ---------- the cobot: an arm lifts a croissant off the line ---------- */
+
+/* a machine joint: a dark ball with a pale ring and a dark pin */
+function machineJoint(x: number, y: number, r: number): InkStroke[] {
+  return [
+    roundBlob(x, y, r, r),
+    blob(x, y, r * 0.52, r * 0.52, 'clear'),
+    blob(x, y, r * 0.24, r * 0.24),
+  ];
+}
+
+const SHOULDER: Pt = [204, 138];
+const ELBOW: Pt = [250, 74];
+const WRIST: Pt = [326, 80];
+
+const AT_SHOULDER: InkMotion = { kind: 'sway', amount: '2.2deg', seconds: 3.7, origin: SHOULDER };
+const AT_ELBOW: InkMotion = {
+  kind: 'sway',
+  amount: '3.4deg',
+  seconds: 2.9,
+  delay: -1,
+  origin: ELBOW,
+};
+const AT_WRIST: InkMotion = {
+  kind: 'sway',
+  amount: '4deg',
+  seconds: 2.1,
+  delay: -0.6,
+  origin: WRIST,
+};
+
+function beltCroissant(id: string, x: number): InkPart {
+  return {
+    id,
+    motions: [{ kind: 'drift', amount: '7px', seconds: 3.6 }],
+    strokes: croissant(x, 156, 17),
+  };
+}
+
+const ARM_LINE = { dry: 0.04, rough: 0.6, grain: 0.02 } as const;
+const SOLID_LINE = { dry: 0, rough: 0.6, grain: 0.02 } as const;
+
+export const cobotScene: InkScene = {
+  width: BANNER_WIDTH,
+  height: BANNER_HEIGHT,
+  parts: [
+    {
+      id: 'ground',
+      strokes: [
+        {
+          pts: [
+            [130, 186, 2],
+            [320, 183, 7],
+            [512, 186, 2],
+          ],
+          dry: 0.8,
+          rough: 0.9,
+          grain: 0.02,
+        },
+      ],
+    },
+    {
+      id: 'belt',
+      strokes: [
+        {
+          flat: true,
+          rough: 0.5,
+          grain: 0.04,
+          pts: [
+            [310, 166, 12],
+            [410, 166, 12],
+            [510, 166, 12],
+          ],
+        },
+        ...[332, 382, 432, 482].flatMap((x) => machineJoint(x, 166, 4.4)),
+        {
+          ...SOLID_LINE,
+          pts: [
+            [326, 172, 5],
+            [326, 184, 4],
+          ],
+        },
+        {
+          ...SOLID_LINE,
+          pts: [
+            [496, 172, 5],
+            [496, 184, 4],
+          ],
+        },
+      ],
+    },
+    beltCroissant('on-belt-a', 386),
+    beltCroissant('on-belt-b', 454),
+    {
+      id: 'base',
+      strokes: [
+        {
+          flat: true,
+          rough: 0.5,
+          grain: 0.03,
+          pts: [
+            [SHOULDER[0], 186, 56],
+            [SHOULDER[0], 170, 46],
+            [SHOULDER[0], 150, 32],
+          ],
+        },
+        {
+          color: 'gold',
+          flat: true,
+          rough: 0.4,
+          grain: 0.03,
+          pts: [
+            [SHOULDER[0], 178, 42],
+            [SHOULDER[0], 170, 40],
+          ],
+        },
+      ],
+    },
+    {
+      id: 'upper-arm',
+      motions: [AT_SHOULDER],
+      strokes: [
+        {
+          ...ARM_LINE,
+          pts: [
+            [SHOULDER[0], SHOULDER[1], 22],
+            [228, 106, 19],
+            [ELBOW[0], ELBOW[1], 17],
+          ],
+        },
+        /* the seam of the casing, and a loose cable */
+        {
+          color: 'clear',
+          dry: 0.2,
+          rough: 0.5,
+          grain: 0,
+          pts: [
+            [212, 124, 1.4],
+            [228, 100, 2],
+            [242, 84, 1.2],
+          ],
+        },
+        {
+          dry: 0.2,
+          rough: 0.6,
+          grain: 0.02,
+          pts: [
+            [190, 142, 1],
+            [196, 104, 1.3],
+            [238, 72, 1],
+          ],
+        },
+        ...machineJoint(SHOULDER[0], SHOULDER[1], 16),
+      ],
+    },
+    {
+      id: 'forearm',
+      motions: [AT_SHOULDER, AT_ELBOW],
+      strokes: [
+        {
+          ...ARM_LINE,
+          pts: [
+            [ELBOW[0], ELBOW[1], 16],
+            [290, 76, 13],
+            [WRIST[0], WRIST[1], 11],
+          ],
+        },
+        {
+          color: 'clear',
+          dry: 0.2,
+          rough: 0.5,
+          grain: 0,
+          pts: [
+            [266, 74, 1.2],
+            [292, 74, 1.8],
+            [314, 78, 1],
+          ],
+        },
+        ...machineJoint(ELBOW[0], ELBOW[1], 13),
+      ],
+    },
+    sparrowPart('rider', 286, 66, 0.52, -1, 2, [AT_SHOULDER, AT_ELBOW]),
+    {
+      id: 'gripper',
+      motions: [AT_SHOULDER, AT_ELBOW, AT_WRIST],
+      strokes: [
+        ...croissant(332, 126, 15),
+        {
+          ...SOLID_LINE,
+          pts: [
+            [WRIST[0], WRIST[1], 9],
+            [330, 98, 8],
+          ],
+        },
+        {
+          ...SOLID_LINE,
+          pts: [
+            [330, 100, 4],
+            [312, 104, 4.6],
+            [312, 118, 3.4],
+            [316, 128, 1.8],
+          ],
+        },
+        {
+          ...SOLID_LINE,
+          pts: [
+            [330, 100, 4],
+            [350, 104, 4.6],
+            [350, 118, 3.4],
+            [346, 128, 1.8],
+          ],
+        },
+        ...machineJoint(WRIST[0], WRIST[1], 9),
       ],
     },
   ],

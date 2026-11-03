@@ -1556,6 +1556,7 @@ async function createLocalRouterApiHandler(
             exportAuthorization: new RouterAbEd25519YaoExportOwnerProofAuthorizationAdapter(
               routerApiService.webAuthn,
               routerApiService.emailOtp,
+              routerApiService.walletUnlock,
               routerApiService.walletAuthMethods,
               routerApiService.authorizedOperations,
               routerApiService.walletRegistration.resolveEd25519MaterialActivation.bind(

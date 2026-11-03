@@ -18,7 +18,7 @@ import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
-import { BrushSwatch, type SwatchColour, type SwatchPaint } from '@/components/h2/ink/BrushSwatch';
+import { BrushSwatch, type SwatchColour, type SwatchLayers } from '@/components/h2/ink/BrushSwatch';
 import { tileSignScenes, type TileSign } from '@/components/h2/ink/tileSignScenes';
 import { PortalShot, type PortalShotName } from '@/components/h2/SceneHero';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
@@ -354,7 +354,7 @@ function BannerSection({
   field,
   drawing,
   swatch,
-  paint,
+  layers,
   mirrored,
   title,
   sub,
@@ -369,7 +369,7 @@ function BannerSection({
   drawing?: React.ReactNode;
   /* the brush stroke of paint under the drawing */
   swatch: SwatchColour;
-  paint: SwatchPaint;
+  layers: SwatchLayers;
   mirrored: boolean;
   title: string;
   sub?: string;
@@ -391,7 +391,7 @@ function BannerSection({
     <section id={anchor} className="h2-section h2-section--banner h2-rule" aria-labelledby={id}>
       {drawing ? (
         <div className="h2-banner h2-banner--ink">
-          <BrushSwatch colour={swatch} paint={paint} mirrored={mirrored} />
+          <BrushSwatch colour={swatch} layers={layers} mirrored={mirrored} />
           {drawing}
           {content}
         </div>
@@ -419,7 +419,10 @@ export function H2Ecosystem({
       <BannerSection
         id="h2-eco-title"
         swatch="seaglass"
-        paint={{ finish: 'wet', stroke: 1 }}
+        layers={{
+          kind: 'single',
+          foreground: { paint: { finish: 'wet', stroke: 1 }, angle: -1, offset: 0 },
+        }}
         mirrored={false}
         anchor="integrations"
         field="teal-peach"
@@ -636,7 +639,10 @@ export function H2Pillars({
       <BannerSection
         id="h2-pillars-title"
         swatch="blush"
-        paint={{ finish: 'dry', stroke: 2 }}
+        layers={{
+          kind: 'single',
+          foreground: { paint: { finish: 'dry', stroke: 2 }, angle: 1, offset: 0 },
+        }}
         mirrored={true}
         anchor="suite"
         field="azure-coral"
@@ -743,7 +749,11 @@ export function H2Bento({ drawing }: { drawing?: React.ReactNode } = {}): React.
       <BannerSection
         id="h2-bento-title"
         swatch="clay"
-        paint={{ finish: 'dry', stroke: 5 }}
+        layers={{
+          kind: 'double',
+          background: { paint: { finish: 'wet', stroke: 1 }, angle: -2, offset: 0 },
+          foreground: { paint: { finish: 'dry', stroke: 5 }, angle: 1, offset: 0 },
+        }}
         mirrored={false}
         anchor="control"
         field="mauve-ember"
@@ -933,7 +943,10 @@ export function H2Cases({ drawing }: { drawing?: React.ReactNode } = {}): React.
       <BannerSection
         id="h2-cases-title"
         swatch="sky"
-        paint={{ finish: 'dry', stroke: 3 }}
+        layers={{
+          kind: 'single',
+          foreground: { paint: { finish: 'dry', stroke: 3 }, angle: -1, offset: 0 },
+        }}
         mirrored={false}
         anchor="workflows"
         field="mauve-ember"
@@ -983,7 +996,10 @@ export function H2Production({ drawing }: { drawing?: React.ReactNode } = {}): R
       <BannerSection
         id="h2-production-title"
         swatch="gold"
-        paint={{ finish: 'wet', stroke: 3 }}
+        layers={{
+          kind: 'single',
+          foreground: { paint: { finish: 'wet', stroke: 3 }, angle: 1, offset: 0 },
+        }}
         mirrored={true}
         anchor="kitchen"
         field="apricot-beam"
@@ -1013,7 +1029,10 @@ export function H2WalletBand({ drawing }: { drawing?: React.ReactNode } = {}): R
     <BannerSection
       id="h2-wallet-title"
       swatch="lavender"
-      paint={{ finish: 'wet', stroke: 2 }}
+      layers={{
+        kind: 'single',
+        foreground: { paint: { finish: 'wet', stroke: 2 }, angle: -1, offset: 0 },
+      }}
       mirrored={true}
       field="teal-peach"
       drawing={drawing}
@@ -2102,7 +2121,11 @@ export function H2Cta({
     <BannerSection
       id="h2-cta-title"
       swatch="peach"
-      paint={{ finish: 'dry', stroke: 4 }}
+      layers={{
+        kind: 'double',
+        background: { paint: { finish: 'wet', stroke: 3 }, angle: 2, offset: 0 },
+        foreground: { paint: { finish: 'dry', stroke: 4 }, angle: -1, offset: 0 },
+      }}
       mirrored={false}
       field={copy.field}
       drawing={drawing}

@@ -253,10 +253,22 @@
   -webkit-mask-position: center;
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-size: 100% 100%;
+  transform-origin: center;
 }
 
-.h2-swatch__paint--mirrored {
-  transform: scaleX(-1);
+.h2-swatch__paint--back {
+  opacity: 0.82;
+}
+
+.h2-swatch--double .h2-swatch__paint {
+  top: 10px;
+  bottom: auto;
+  height: calc(44% - 10px);
+}
+
+.h2-swatch--double .h2-swatch__paint--back {
+  top: auto;
+  bottom: 10px;
 }
 
 .h2-banner--ink > :not(.h2-ink, .h2-swatch) {
@@ -335,6 +347,17 @@
     left: -24px;
     width: auto;
     height: min(38vw, 150px);
+  }
+
+  .h2-swatch--double .h2-swatch__paint {
+    top: 0;
+    bottom: auto;
+    height: calc(min(38vw, 150px) * 0.44);
+  }
+
+  .h2-swatch--double .h2-swatch__paint--back {
+    top: auto;
+    bottom: 0;
   }
 
   .h2-banner--ink {

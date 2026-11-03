@@ -220,7 +220,14 @@ export function CompanyPage(): React.JSX.Element {
 
           <section className="h2-cta h2-cta--banner h2-rule" aria-labelledby="company-banner-title">
             <div className="h2-shell h2-cta__banner company-banner company-banner--ink">
-              <BrushSwatch colour="seaglass" paint={{ finish: 'wet', stroke: 1 }} mirrored={true} />
+              <BrushSwatch
+                colour="seaglass"
+                layers={{
+                  kind: 'single',
+                  foreground: { paint: { finish: 'wet', stroke: 1 }, angle: 1, offset: 0 },
+                }}
+                mirrored={true}
+              />
               <InkDrawing scene={cupSparrowScene} className="h2-ink--banner" />
               <div>
                 <h2 id="company-banner-title" className="h2-display h2-cta__title">

@@ -18,8 +18,7 @@
    on the right. The lit edge runs from warm silver to slate blue, and a pale
    blue rim lights one corner; the lower fold is graphite, with no brown.
    Onyx Black has the same folds in black and grey only.
-   Custom fields use white, near-black and one or two accents; a paper field
-   swaps the two ends for light tones. Preview them
+   Custom fields use white, near-black and one or two accents. Preview them
    on the gradient lab page: /gradients/ on the dev server. */
 
 export const GRAIN_FIELD_GRID_SIZE = 12;
@@ -32,16 +31,6 @@ export type GeneratedField = {
   angle: number;
   /* picks the soft variation laid over the gradient line */
   seed: number;
-  /* the two ends of the gradient line, white and near-black unless set; a
-     paper field sets both to light tones */
-  light?: string;
-  dark?: string;
-  /* how much of each colour's distance from mid grey stays; 0.75 unless set,
-     and 1 keeps pale tones pale */
-  contrast?: number;
-  /* how far the soft variation bends the gradient line; 0.24 unless set, and
-     less gives a plainer, more gradual blend */
-  variation?: number;
 };
 
 export type GrainFieldSource = {
@@ -137,18 +126,10 @@ function mix(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-function generateGrid({
-  accents,
-  angle,
-  seed,
-  light = LIGHT,
-  dark = DARK,
-  contrast = CONTRAST,
-  variation: bend = VARIATION,
-}: GeneratedField): Uint8Array {
+function generateGrid({ accents, angle, seed }: GeneratedField): Uint8Array {
   const size = GRAIN_FIELD_GRID_SIZE;
-  const stops = [light, ...accents, dark].map((hex) =>
-    hexToRgb(hex).map((channel) => (channel - 127.5) * contrast + 127.5),
+  const stops = [LIGHT, ...accents, DARK].map((hex) =>
+    hexToRgb(hex).map((channel) => (channel - 127.5) * CONTRAST + 127.5),
   );
   const segments = stops.length - 1;
   /* a lattice of values in -1..1, smoothly interpolated over the field */
@@ -177,7 +158,7 @@ function generateGrid({
         fy,
       );
       const along = 0.5 + ((u - 0.5) * dx + (v - 0.5) * dy) / span;
-      const position = Math.min(Math.max(along + variation * bend, 0), 1) * segments;
+      const position = Math.min(Math.max(along + variation * VARIATION, 0), 1) * segments;
       const stop = Math.min(Math.floor(position), segments - 1);
       const blend = position - stop;
       for (let channel = 0; channel < 3; channel += 1) {

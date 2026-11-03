@@ -18,7 +18,6 @@ import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
-import { PAPER_FIELDS, PAPER_FLOW, type PaperFieldName } from '@/components/h2/paperFields';
 import { tileSignScenes, type TileSign } from '@/components/h2/ink/tileSignScenes';
 import { PortalShot, type PortalShotName } from '@/components/h2/SceneHero';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
@@ -353,7 +352,6 @@ function BannerSection({
   anchor,
   field,
   drawing,
-  paper = 'linen',
   title,
   sub,
   children,
@@ -365,8 +363,6 @@ function BannerSection({
   /* a drawing on paper in place of the gradient field: the home page brings it,
      so the ink code and styles stay out of the pages that share these sections */
   drawing?: React.ReactNode;
-  /* the cream gradient under the drawing */
-  paper?: PaperFieldName;
   title: string;
   sub?: string;
   children?: React.ReactNode;
@@ -387,7 +383,6 @@ function BannerSection({
     <section id={anchor} className="h2-section h2-section--banner h2-rule" aria-labelledby={id}>
       {drawing ? (
         <div className="h2-banner h2-banner--ink">
-          <GrainField field={PAPER_FIELDS[paper]} flow={PAPER_FLOW} />
           {drawing}
           {content}
         </div>
@@ -414,7 +409,6 @@ export function H2Ecosystem({
     <>
       <BannerSection
         id="h2-eco-title"
-        paper="oat"
         anchor="integrations"
         field="teal-peach"
         drawing={drawing}
@@ -629,7 +623,6 @@ export function H2Pillars({
     <>
       <BannerSection
         id="h2-pillars-title"
-        paper="honey"
         anchor="suite"
         field="azure-coral"
         drawing={drawing}
@@ -734,7 +727,6 @@ export function H2Bento({ drawing }: { drawing?: React.ReactNode } = {}): React.
     <>
       <BannerSection
         id="h2-bento-title"
-        paper="oat"
         anchor="control"
         field="mauve-ember"
         drawing={drawing}
@@ -922,7 +914,6 @@ export function H2Cases({ drawing }: { drawing?: React.ReactNode } = {}): React.
     <>
       <BannerSection
         id="h2-cases-title"
-        paper="linen"
         anchor="workflows"
         field="mauve-ember"
         drawing={drawing}
@@ -970,7 +961,6 @@ export function H2Production({ drawing }: { drawing?: React.ReactNode } = {}): R
     <>
       <BannerSection
         id="h2-production-title"
-        paper="stone"
         anchor="kitchen"
         field="apricot-beam"
         drawing={drawing}
@@ -998,7 +988,6 @@ export function H2WalletBand({ drawing }: { drawing?: React.ReactNode } = {}): R
   return (
     <BannerSection
       id="h2-wallet-title"
-      paper="chalk"
       field="teal-peach"
       drawing={drawing}
       title="Also from Seams: Seams Wallet"
@@ -2085,7 +2074,6 @@ export function H2Cta({
   return (
     <BannerSection
       id="h2-cta-title"
-      paper="butter"
       field={copy.field}
       drawing={drawing}
       title={copy.title}

@@ -65,7 +65,7 @@
   background: #faf8f3;
 }
 
-.company-banner--ink > :not(.h2-ink, .grain-field) {
+.company-banner--ink > :not(.h2-ink) {
   position: relative;
   z-index: 1;
 }

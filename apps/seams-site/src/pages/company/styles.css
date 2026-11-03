@@ -62,7 +62,8 @@
 }
 
 .h2-cta__banner.company-banner--ink {
-  background: transparent;
+  border: 1px solid var(--h2-stone);
+  background: #faf8f3;
 }
 
 .company-banner--ink > :not(.h2-ink, .h2-swatch) {

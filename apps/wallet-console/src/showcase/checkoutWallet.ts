@@ -102,7 +102,6 @@ function model(): ConfirmSurfaceModel {
     appearance: checkoutAppearance(),
     content: {
       kind: 'transaction',
-      capture: null,
       review: {
         model: purchase,
         tree: buildDisplayTreeFromModel(purchase),

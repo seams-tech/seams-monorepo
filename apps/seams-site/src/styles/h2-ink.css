@@ -165,8 +165,8 @@
   background-color: #faf8f3;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .28 0 0 0 0 .22 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23p)'/%3E%3C/svg%3E");
   /* room over the copy for the kite, and under it for the ground */
-  padding-top: 128px;
-  padding-bottom: 84px;
+  padding-top: 88px;
+  padding-bottom: 32px;
 }
 
 .h2-hero-simple--ink .h2-hero-simple__copy {
@@ -195,14 +195,14 @@
 
 /* with no card, the panel keeps the height of the whole drawing */
 .h2-hero-simple--ink > .h2-shell {
-  min-height: 600px;
+  min-height: 408px;
 }
 
 .h2-ink--hero {
   position: absolute;
   right: 0;
   bottom: 0;
-  width: 760px;
+  width: 608px;
 }
 
 @media (max-width: 1000px) {

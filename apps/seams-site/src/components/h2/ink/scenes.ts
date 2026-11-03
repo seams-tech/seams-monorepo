@@ -333,7 +333,7 @@ export function wheat(
 const MOUTH: Pt = [249, 387];
 
 export const goatScene: InkScene = {
-  width: 760,
+  width: 824,
   height: 520,
   parts: [
     /* a back row of short stalks, thicker to the right, so the right is a field */
@@ -344,6 +344,9 @@ export const goatScene: InkScene = {
     ...wheat('back-e', [626, 545], [620, 494], [632, 436], 7703, 0.62),
     ...wheat('back-f', [706, 545], [700, 492], [712, 430], 8803, 0.6),
     ...wheat('back-g', [738, 545], [744, 500], [734, 450], 9901, 0.54),
+    ...wheat('back-h', [772, 545], [766, 498], [778, 444], 1103, 0.58),
+    ...wheat('back-i', [806, 545], [812, 504], [802, 458], 2207, 0.5),
+    ...wheat('under-d', [790, 545], [808, 470], [784, 392], 3511, 0.82),
     /* three stalks stand upright to the right of the goat, under the kite line */
     ...wheat('under-a', [494, 545], [474, 432], [512, 316], 977, 0.95),
     ...wheat('under-b', [664, 545], [684, 468], [652, 404], 7321, 0.8),

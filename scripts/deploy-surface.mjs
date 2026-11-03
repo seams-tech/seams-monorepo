@@ -17,13 +17,22 @@ const COMPANY_OUTPUT = path.join(COMPANY_ROOT, 'dist');
 const WALLET_SITE_ROOT = path.join(REPOSITORY_ROOT, 'apps', 'wallet-console');
 const WALLET_SITE_OUTPUT = path.join(WALLET_SITE_ROOT, 'dist');
 const WALLET_HOST_OUTPUT = path.join(REPOSITORY_ROOT, '.release-artifacts', 'wallet-host');
+const WALLET_DOCS_OUTPUT = path.join(REPOSITORY_ROOT, '.release-artifacts', 'wallet-docs');
+const LEGACY_DOCS_REDIRECT_OUTPUT = path.join(
+  REPOSITORY_ROOT,
+  '.release-artifacts',
+  'legacy-docs-redirect',
+);
 const PUBLIC_DOCS_ARTIFACT_ROOT = path.join(REPOSITORY_ROOT, '.artifacts', 'wallet-docs');
+const PUBLIC_WALLET_DOCS_ORIGIN = 'https://docs.wallet.seams.sh';
 const SURFACES = Object.freeze([
   'platform-console',
   'wallet-console',
   'company',
+  'wallet-docs',
   'wallet-site',
   'wallet-host',
+  'legacy-docs-redirect',
 ]);
 const COMPONENTS = Object.freeze(['all', ...SURFACES]);
 
@@ -61,13 +70,15 @@ async function main(args) {
           consoles.platformPagesProjectEnv,
           consoles.walletConsolePagesProjectEnv,
           site.pagesProjectEnv,
+          site.docsPagesProjectEnv,
           site.walletSitePagesProjectEnv,
           ...walletLanes.map(walletPagesProjectEnvironment),
+          ...legacyDocsRedirectProjectEnvironment(site),
         ],
         process.env,
       );
     }
-    for (const surface of SURFACES) {
+    for (const surface of deploymentSurfaces(site)) {
       if (surface === 'platform-console' || surface === 'wallet-console') {
         await runConsoleOperation(
           options.operation,
@@ -80,11 +91,28 @@ async function main(args) {
     }
     return;
   }
+  assertComponentIsAvailableForSite(site, options.component);
   await runOperation(options.operation, site, options.component, walletLanes);
 }
 
 function walletPagesProjectEnvironment(lane) {
   return lane.walletPagesProjectEnv;
+}
+
+function legacyDocsRedirectProjectEnvironment(site) {
+  return site.id === 'production' ? [site.legacyDocsPagesProjectEnv] : [];
+}
+
+function deploymentSurfaces(site) {
+  return SURFACES.filter((surface) => {
+    return surface !== 'legacy-docs-redirect' || site.id === 'production';
+  });
+}
+
+function assertComponentIsAvailableForSite(site, component) {
+  if (component === 'legacy-docs-redirect' && site.id !== 'production') {
+    throw new Error('legacy-docs-redirect is available only for the production site');
+  }
 }
 
 async function runConsoleOperation(operation, site, component) {
@@ -209,7 +237,7 @@ function parseArguments(args) {
 }
 
 function usage() {
-  return 'usage: deploy-surface.mjs <plan|build|deploy|smoke> --site <site> --component <all|company|wallet-site|wallet-host|platform-console|wallet-console> [--lane <lane>]';
+  return 'usage: deploy-surface.mjs <plan|build|deploy|smoke> --site <site> --component <all|company|wallet-docs|wallet-site|wallet-host|legacy-docs-redirect|platform-console|wallet-console> [--lane <lane>]';
 }
 
 function selectWalletLanes(site, options) {
@@ -237,17 +265,28 @@ function printPlan(site, component, walletLanes) {
       `Pages project environment: ${site.pagesProjectEnv}`,
       'Artifact: company site only',
     ],
+    'wallet-docs': [
+      `Origin: ${site.docsOrigin}`,
+      `Pages project environment: ${site.docsPagesProjectEnv}`,
+      'Artifact: exact public Wallet docs at the origin root',
+    ],
     'wallet-site': [
       `Origin: ${site.walletSiteOrigin}`,
-      `Docs: ${site.docsOrigin}/`,
+      `Docs redirect: ${site.docsOrigin}/`,
       `Console API: ${site.walletSiteOrigin}/console/*`,
       `Pages project environment: ${site.walletSitePagesProjectEnv}`,
-      'Artifact: wallet marketing, showcases, and exact public Wallet docs',
+      'Artifact: wallet marketing and showcases',
     ],
     'wallet-host': walletLanes.flatMap((lane) => [
       `Hosted wallet (${lane.network}): ${lane.walletOrigin}`,
       `Pages project environment (${lane.network}): ${lane.walletPagesProjectEnv}`,
     ]),
+    'legacy-docs-redirect': [
+      `Origin: ${site.legacyDocsOrigin}`,
+      `Destination: ${site.docsOrigin}/`,
+      `Pages project environment: ${site.legacyDocsPagesProjectEnv}`,
+      'Artifact: permanent redirect only',
+    ],
   }[component];
   process.stdout.write(
     `${[`Frontend deployment plan: ${site.id}/${component}`, `Branch: ${site.branch}`, ...lines].join('\n')}\n`,
@@ -265,20 +304,28 @@ function buildFrontend(site, component, walletLanes) {
     assertFile(path.join(COMPANY_OUTPUT, 'sitemap.xml'), 'Company site sitemap');
     return;
   }
+  if (component === 'wallet-docs') {
+    copyPublicDocsArtifact(WALLET_DOCS_OUTPUT);
+    if (site.id === 'staging') {
+      fs.appendFileSync(
+        WALLET_DOCS_OUTPUT + path.sep + '_headers',
+        '\n/*\n  X-Robots-Tag: noindex\n',
+      );
+    }
+    assertFile(path.join(WALLET_DOCS_OUTPUT, 'index.html'), 'Wallet docs entry');
+    assertFile(
+      path.join(WALLET_DOCS_OUTPUT, 'guides', 'transaction-review.html'),
+      'Wallet docs guide',
+    );
+    assertFile(path.join(WALLET_DOCS_OUTPUT, 'sitemap.xml'), 'Wallet docs sitemap');
+    return;
+  }
   if (component === 'wallet-site') {
     runCommand('pnpm', ['-C', 'apps/wallet-console', 'run', 'build:marketing'], {
       env: buildFrontendEnvironment(site, site.walletSiteOrigin),
     });
     writeWalletConsoleRedirects(site);
-    copyPublicDocsArtifact();
     copySdkAssets(WALLET_SITE_OUTPUT);
-    const docsSitemap = path.join(WALLET_SITE_OUTPUT, 'docs', 'sitemap.xml');
-    if (fs.existsSync(docsSitemap)) {
-      fs.appendFileSync(
-        path.join(WALLET_SITE_OUTPUT, 'robots.txt'),
-        `Sitemap: ${new URL('/docs/sitemap.xml', site.walletSiteOrigin).href}\n`,
-      );
-    }
     if (site.id === 'staging') {
       fs.appendFileSync(
         path.join(WALLET_SITE_OUTPUT, '_headers'),
@@ -287,8 +334,7 @@ function buildFrontend(site, component, walletLanes) {
     }
     fs.appendFileSync(
       path.join(WALLET_SITE_OUTPUT, '_headers'),
-      '\n/docs/*\n  Cache-Control: public, max-age=0, must-revalidate, no-transform\n' +
-        '\n/showcase/*\n  X-Robots-Tag: noindex\n/wallet-service/*\n  X-Robots-Tag: noindex\n' +
+      '\n/showcase/*\n  X-Robots-Tag: noindex\n/wallet-service/*\n  X-Robots-Tag: noindex\n' +
         '\nhttps://:project.pages.dev/*\n  X-Robots-Tag: noindex\n' +
         '\nhttps://:version.:project.pages.dev/*\n  X-Robots-Tag: noindex\n',
     );
@@ -305,7 +351,10 @@ function buildFrontend(site, component, walletLanes) {
       'Japanese Wallet features entry',
     );
     assertFile(path.join(WALLET_SITE_OUTPUT, 'sitemap.xml'), 'Wallet site sitemap');
-    assertFile(path.join(WALLET_SITE_OUTPUT, 'docs', 'index.html'), 'Wallet docs entry');
+    return;
+  }
+  if (component === 'legacy-docs-redirect') {
+    writeLegacyDocsRedirects(site);
     return;
   }
   assertWalletSettingsExport();
@@ -350,7 +399,9 @@ function writeWalletConsoleRedirects(site) {
     '/platform/*',
   ];
   const lines = [
-    '/docs /docs/ 301',
+    `/docs ${site.docsOrigin}/ 301`,
+    `/docs/ ${site.docsOrigin}/ 301`,
+    `/docs/* ${site.docsOrigin}/:splat 301`,
     '/ja /ja/ 301',
     '/pricing /pricing/ 301',
     '/ja/pricing /ja/pricing/ 301',
@@ -367,6 +418,19 @@ function writeWalletConsoleRedirects(site) {
   lines.push(`/dashboard ${consoleSite.walletConsoleOrigin}/dashboard 302`);
   lines.push(`/dashboard/* ${consoleSite.walletConsoleOrigin}/dashboard/:splat 302`);
   fs.writeFileSync(path.join(WALLET_SITE_OUTPUT, '_redirects'), `${lines.join('\n')}\n`);
+}
+
+function writeLegacyDocsRedirects(site) {
+  fs.rmSync(LEGACY_DOCS_REDIRECT_OUTPUT, { recursive: true, force: true });
+  fs.mkdirSync(LEGACY_DOCS_REDIRECT_OUTPUT, { recursive: true });
+  const lines = [
+    `/docs ${site.docsOrigin}/ 301`,
+    `/docs/ ${site.docsOrigin}/ 301`,
+    `/docs/* ${site.docsOrigin}/:splat 301`,
+    `/ ${site.docsOrigin}/ 301`,
+    `/* ${site.docsOrigin}/:splat 301`,
+  ];
+  fs.writeFileSync(path.join(LEGACY_DOCS_REDIRECT_OUTPUT, '_redirects'), `${lines.join('\n')}\n`);
 }
 
 function writeCompanyCutoverFiles(site) {
@@ -395,13 +459,21 @@ function writeCompanyCutoverFiles(site) {
   );
 }
 
-function copyPublicDocsArtifact() {
+function copyPublicDocsArtifact(destination) {
   assertDirectory(PUBLIC_DOCS_ARTIFACT_ROOT, 'Public Wallet docs artifact');
   assertFile(
     path.join(PUBLIC_DOCS_ARTIFACT_ROOT, 'seams-wallet-docs-artifact.json'),
     'Public Wallet docs artifact receipt',
   );
-  copyDirectory(PUBLIC_DOCS_ARTIFACT_ROOT, path.join(WALLET_SITE_OUTPUT, 'docs'));
+  assertRootDocsArtifact();
+  copyDirectory(PUBLIC_DOCS_ARTIFACT_ROOT, destination);
+}
+
+function assertRootDocsArtifact() {
+  const entry = fs.readFileSync(path.join(PUBLIC_DOCS_ARTIFACT_ROOT, 'index.html'), 'utf8');
+  if (entry.includes('href="/docs/') || entry.includes('src="/docs/')) {
+    throw new Error('Public Wallet docs artifact must use the root base path');
+  }
 }
 
 function copySdkAssets(destination) {
@@ -452,7 +524,7 @@ export function buildFrontendEnvironment(site, frontendOrigin, sourceEnvironment
     VITE_SITE_ORIGIN: frontendOrigin,
     VITE_COMPANY_SITE_ORIGIN: site.origin,
     VITE_WALLET_SITE_ORIGIN: site.walletSiteOrigin,
-    VITE_DOCS_ORIGIN: `${site.docsOrigin}/`,
+    VITE_DOCS_ORIGIN: site.docsOrigin,
     VITE_PLATFORM_CONSOLE_ORIGIN: readConsoleFrontendSite(site.id).platformOrigin,
     // The pricing page's plan cards open the Wallet Console sign-in in a dialog.
     VITE_WALLET_CONSOLE_ORIGIN: readConsoleFrontendSite(site.id).walletConsoleOrigin,
@@ -485,6 +557,12 @@ async function deployFrontend(site, component, walletLanes) {
     requireEnvironmentValues([site.pagesProjectEnv], process.env);
     assertDirectory(COMPANY_OUTPUT, 'Company Pages output');
     deployPagesProject(COMPANY_OUTPUT, site, process.env[site.pagesProjectEnv]);
+  } else if (component === 'wallet-docs') {
+    requireEnvironmentValues([site.docsPagesProjectEnv], process.env);
+    assertDirectory(WALLET_DOCS_OUTPUT, 'Wallet docs Pages output');
+    const project = process.env[site.docsPagesProjectEnv];
+    deployPagesProject(WALLET_DOCS_OUTPUT, site, project);
+    if (site.id === 'production') await ensurePagesCustomDomain(site.docsOrigin, project);
   } else if (component === 'wallet-site') {
     const consoles = readConsoleFrontendSite(site.id);
     await runConsoleOperation('smoke', consoles, 'platform-console');
@@ -494,6 +572,14 @@ async function deployFrontend(site, component, walletLanes) {
     const project = process.env[site.walletSitePagesProjectEnv];
     deployPagesProject(WALLET_SITE_OUTPUT, site, project);
     await ensurePagesCustomDomain(site.walletSiteOrigin, project);
+  } else if (component === 'legacy-docs-redirect') {
+    requireEnvironmentValues([site.legacyDocsPagesProjectEnv], process.env);
+    assertDirectory(LEGACY_DOCS_REDIRECT_OUTPUT, 'Legacy docs redirect Pages output');
+    deployPagesProject(
+      LEGACY_DOCS_REDIRECT_OUTPUT,
+      site,
+      process.env[site.legacyDocsPagesProjectEnv],
+    );
   } else {
     const projectEnvironments = [...new Set(walletLanes.map((lane) => lane.walletPagesProjectEnv))];
     requireEnvironmentValues(projectEnvironments, process.env);
@@ -565,22 +651,41 @@ function buildSmokeChecks(site, component, walletLanes) {
   if (component === 'company')
     return smokeChecks('company', site.origin, ['/', '/company/', '/ja/company/', '/sitemap.xml']);
   if (component === 'wallet-site') {
-    return smokeChecks('wallet-site', site.walletSiteOrigin, [
-      { path: '/', isReady: walletMarketingIsReady },
-      '/ja/',
-      '/pricing/',
-      '/ja/pricing/',
-      '/features/',
-      '/ja/features/',
+    return [
+      ...smokeChecks('wallet-site', site.walletSiteOrigin, [
+        { path: '/', isReady: walletMarketingIsReady },
+        '/ja/',
+        '/pricing/',
+        '/ja/pricing/',
+        '/features/',
+        '/ja/features/',
+        '/sitemap.xml',
+        { path: '/robots.txt', isReady: walletRobotsIsReady },
+        '/sdk/workers/near-signer.worker.js',
+      ]),
+      docsRedirectCheck('wallet-site', site.walletSiteOrigin, '/docs/guides/transaction-review'),
+    ];
+  }
+  if (component === 'wallet-docs') {
+    const origin = walletDocsSmokeOrigin(site);
+    const isReady = site.id === 'staging' ? stagingWalletDocsIsReady : walletDocsIsReady;
+    return smokeChecks('wallet-docs', origin, [
+      { path: '/', isReady },
+      { path: '/concepts/', isReady },
+      { path: '/guides/transaction-review', isReady },
+      { path: '/reference/server', isReady },
       '/sitemap.xml',
-      { path: '/robots.txt', isReady: walletRobotsIsReady },
-      '/docs/',
-      '/docs/concepts/',
-      '/docs/releases',
-      '/docs/reference/server',
-      '/docs/seams-wallet-docs-artifact.json',
-      '/sdk/workers/near-signer.worker.js',
+      '/seams-wallet-docs-artifact.json',
     ]);
+  }
+  if (component === 'legacy-docs-redirect') {
+    return [
+      docsRedirectCheck(
+        'legacy-docs-redirect',
+        site.legacyDocsOrigin,
+        '/guides/transaction-review',
+      ),
+    ];
   }
   return walletLanes.flatMap((lane) =>
     smokeChecks(`wallet-${lane.network}`, lane.walletOrigin, [
@@ -605,6 +710,51 @@ async function walletMarketingIsReady(response) {
   if (!response.headers.get('content-type')?.includes('text/html')) return false;
   const html = await response.text();
   return html.includes('data-rendered="true"') && /<h1\b[^>]*>[^<]+/.test(html);
+}
+
+async function walletDocsIsReady(response) {
+  if (!response.ok) return false;
+  if (!response.headers.get('content-type')?.includes('text/html')) return false;
+  const html = await response.text();
+  return html.includes('<meta name="generator" content="VitePress">');
+}
+
+async function stagingWalletDocsIsReady(response) {
+  if (!(await walletDocsIsReady(response))) return false;
+  return /\bnoindex\b/i.test(response.headers.get('x-robots-tag') || '');
+}
+
+function walletDocsSmokeOrigin(site) {
+  if (site.id === 'production') return site.docsOrigin;
+  const project = String(process.env[site.docsPagesProjectEnv] || '').trim();
+  if (!project) throw new Error(`${site.docsPagesProjectEnv} is required for staging docs smoke`);
+  return `https://${site.branch}.${project}.pages.dev`;
+}
+
+function docsRedirectCheck(surface, sourceOrigin, sourcePath) {
+  const source = new URL(sourcePath, sourceOrigin);
+  return {
+    name: `${surface}${sourcePath} redirects to docs`,
+    url: source.href,
+    request: { redirect: 'manual' },
+    isReady: isPermanentRedirectToWalletDocs,
+  };
+}
+
+function isPermanentRedirectToWalletDocs(response) {
+  if (response.status !== 301 && response.status !== 308) return false;
+  const location = response.headers.get('location');
+  if (!location) return false;
+  const source = new URL(response.url);
+  const destination = new URL(location, source);
+  const sourcePath = source.pathname.startsWith('/docs/')
+    ? source.pathname.slice('/docs'.length)
+    : source.pathname;
+  return (
+    destination.origin === PUBLIC_WALLET_DOCS_ORIGIN &&
+    destination.pathname === sourcePath &&
+    destination.search === source.search
+  );
 }
 
 function smokeChecks(surface, origin, requests) {

@@ -1,8 +1,8 @@
 const FRONTEND_CONFIG = {
   baseUrl: String(import.meta.env.VITE_SITE_ORIGIN ?? '').trim() || '/',
   docsOrigin: new URL(
-    '/docs',
-    String(import.meta.env.VITE_DOCS_ORIGIN ?? '').trim() || 'https://docs.localhost:4003/docs',
+    '/',
+    String(import.meta.env.VITE_DOCS_ORIGIN ?? '').trim() || 'https://docs.localhost:4003',
   ).href,
 };
 

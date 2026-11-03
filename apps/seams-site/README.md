@@ -24,7 +24,7 @@ artifact at `.artifacts/wallet-docs` first. Follow the
 | Wallet page             | `http://localhost:4001/wallet`          |
 | Wallet pricing          | `http://localhost:4001/wallet/pricing/` |
 | Wallet Console          | `http://localhost:4001/dashboard`       |
-| Documentation preview   | `https://docs.localhost:4003/docs/`     |
+| Documentation preview   | `https://docs.localhost:4003/`          |
 | Isolated wallet service | `https://localhost:4002/wallet-service` |
 | Gateway                 | `https://localhost:4101`                |
 
@@ -47,10 +47,10 @@ revision. Never edit the generated copy.
 
 ## Production publication
 
-The existing production frontend workflow selects company, Wallet site,
-Console, or wallet-host surfaces. `wallet-site` includes public docs built from
-the supplied full `wallet_revision`. Its receipt records that revision. Verify
-staging before production through the corresponding frontend workflows.
+The existing production frontend workflow selects company, Wallet site, Wallet
+docs, Console, or wallet-host surfaces. `wallet-docs` deploys public docs built
+from the supplied full `wallet_revision`. Its receipt records that revision.
+Verify staging before production through the corresponding frontend workflows.
 
 After application changes, run:
 
@@ -75,7 +75,7 @@ message requires English and Japanese text. Both languages use the same React
 components. The Vite build emits language-specific HTML metadata and a sitemap.
 Showcase frames receive the language through `?lang=ja`.
 
-Documentation provides tentative Japanese support at `/docs/ja/` for installation,
+Documentation provides tentative Japanese support at `/ja/` for installation,
 getting-started guides, all guides, and section overview pages. Untranslated
 topics open English pages.
 Japanese marketing pages link to the Japanese docs entry. Console remains in

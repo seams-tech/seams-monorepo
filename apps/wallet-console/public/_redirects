@@ -1,4 +1,6 @@
-/docs /docs/ 301
+/docs https://docs.wallet.seams.sh/ 301
+/docs/ https://docs.wallet.seams.sh/ 301
+/docs/* https://docs.wallet.seams.sh/:splat 301
 /ja /ja/ 301
 /pricing /pricing/ 301
 /ja/pricing /ja/pricing/ 301

@@ -302,14 +302,13 @@ test('production-mainnet plan reports the provisioned mainnet service', () => {
 test('frontend plan runs without deployment secrets', () => {
   const result = runCommand(
     frontendScript,
-    ['plan', '--site', 'staging', '--component', 'wallet-site'],
+    ['plan', '--site', 'staging', '--component', 'wallet-docs'],
     environmentWithoutDeploymentSecrets(),
   );
 
   expect(result.status).toBe(0);
-  expect(result.stdout).toContain('Origin: https://staging.wallet.seams.sh');
-  expect(result.stdout).toContain('Docs: https://staging.wallet.seams.sh/docs/');
-  expect(result.stdout).toContain('Pages project environment: CF_PAGES_PROJECT_WALLET_SITE');
+  expect(result.stdout).toContain('Origin: https://docs.wallet.seams.sh');
+  expect(result.stdout).toContain('Pages project environment: CF_PAGES_PROJECT_WALLET_DOCS');
 });
 
 test('wallet host smoke requires the exact installed wallet package version', async () => {
@@ -1051,12 +1050,14 @@ test('frontend workflows contain one environment-bound deployment job', () => {
     expect(workflow.env?.DEPLOY_SITE).toBe(site);
     expect(workflowSource).toContain('--site "$DEPLOY_SITE"');
     expect(workflowSource).toContain('CF_PAGES_PROJECT_WALLET_SITE:');
+    expect(workflowSource).toContain('CF_PAGES_PROJECT_WALLET_DOCS:');
     expect(workflowSource).toContain('--component "$DEPLOY_COMPONENT"');
     expect(workflowSource).not.toContain('--target');
     if (site === 'staging') {
       expect(workflowSource).toContain('CF_PAGES_PROJECT_WALLET:');
       expect(workflowSource).not.toContain('CF_PAGES_PROJECT_WALLET_TESTNET:');
     } else {
+      expect(workflowSource).toContain('CF_PAGES_PROJECT_LEGACY_DOCS:');
       expect(workflowSource).toContain('CF_PAGES_PROJECT_WALLET_TESTNET:');
       expect(workflowSource).toContain('CF_PAGES_PROJECT_WALLET_MAINNET:');
     }

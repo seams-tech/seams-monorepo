@@ -23,7 +23,7 @@ Three cold mobile lab observations per origin use a 390 × 844 viewport, 4× CPU
 
 ## Delivery record and remaining evidence gates
 
-- Search Console setup is complete on October 31. The URL-prefix property `https://wallet.seams.sh/` is verified through the homepage HTML tag. Both `/sitemap.xml` (6 URLs) and `/docs/sitemap.xml` (172 URLs) show **Success**. Retain the verification tag in `apps/wallet-console/index.html`. Google is processing the indexing and performance reports, so a search baseline and organic attribution remain unavailable.
+- Search Console setup is complete on October 31. The URL-prefix property `https://wallet.seams.sh/` is verified through the homepage HTML tag. Its `/sitemap.xml` has six URLs. After the docs host cutover, add the `https://docs.wallet.seams.sh/` URL-prefix property and submit its root `/sitemap.xml`. Retain the verification tag in `apps/wallet-console/index.html`. Google is processing the indexing and performance reports, so a search baseline and organic attribution remain unavailable.
 - Publication is complete at `ce2e5e2576d9c62a84d718fa4f91dda097992041`. Both marketing workflows passed deployed acceptance with public docs `fafbd28d79102cdb996f6c89f226363fbd7efc0f`. Hosted Wallet settings exclusions also passed both deployments. See the [deployment evidence](evidence/wallet-marketing-seo-20261031.md).
 - The three proposed landing pages remain conditional on distinct search demand and sufficient original content. Evaluate them after Search Console provides a baseline. The existing features page already links to passkey, recovery, and hosting documentation.
 - Compare equal 28-day search periods after publication. Real-user Core Web Vitals and search growth remain unmeasured outcomes.
@@ -51,7 +51,7 @@ Search volume, current rankings, and conversion baselines remain unknown.
 | Routing and translation modules read browser globals at import time.                      | `src/marketing/WalletMarketingRoute.tsx`, `src/marketing/i18n/browser.ts` | Pass page and locale into the render tree before adding build rendering. |
 | Unknown paths resolve to the home page in the marketing parser.                           | `src/marketing/i18n/locale.ts`                                            | Add an explicit unknown-route result and check real HTTP 404 behavior.   |
 | The English homepage title is only “Seams Wallet.”                                        | `src/marketing/i18n/catalog.ts`                                           | Describe the product category in the title.                              |
-| The deployment script explicitly adds staging `noindex` only under `/docs/*`.             | `scripts/deploy-surface.mjs`                                              | Check all surface headers and apply a complete staging policy.           |
+| The deployment script adds staging `noindex` to the root docs artifact.                   | `scripts/deploy-surface.mjs`                                              | Check all surface headers and apply a complete staging policy.           |
 | Public documentation comes from an exact `seams-wallet` revision.                         | `docs/README.md`, `scripts/deploy-surface.mjs`                            | Preserve that ownership and artifact publication path.                   |
 | Marketing and both Console builds share a public asset directory.                         | `apps/wallet-console/vite.console.config.ts`                              | Generate crawl rules per deployment surface.                             |
 
@@ -65,7 +65,7 @@ Confirm them through Search Console and an accessible deployed endpoint before r
 **2. P0: Establish the baseline and URL policy**
 
 Use `https://wallet.seams.sh/` as the marketing origin, consistent with deployment configuration.
-Keep public documentation under `/docs/` and Console applications on their configured origins.
+Use `https://docs.wallet.seams.sh/` as the public documentation origin. Keep Console applications on their configured origins.
 A canonical URL identifies the preferred address for a page.
 
 - Record response status, redirects, content type, canonical URL, indexing headers, title, and heading for each public route.
@@ -122,7 +122,7 @@ Apply rules after composing marketing, docs, and SDK artifacts so later copies c
 - Keep production marketing and docs indexable. Avoid a shared header file that accidentally excludes them.
 - Preserve access controls for private data. Indexing directives do not provide authorization.
 - Emit a useful `404.html` and serve unknown public routes with HTTP 404.
-- Preserve `/docs/`, SDK asset paths, and documented Console redirects when changing fallback routing.
+- Preserve Wallet `/docs/` redirects, SDK asset paths, and documented Console redirects when changing fallback routing.
 - Normalize known slash variants with one permanent redirect. Remove query parameters from canonical URLs while preserving navigation behavior.
 
 Allow crawlers to retrieve pages that must expose `noindex`.

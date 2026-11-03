@@ -82,19 +82,49 @@ of Platform and Wallet entry points and the reasons for that design.
    gh workflow run deploy-production-frontend.yml --ref main -f lane=production-mainnet
    ```
 
-   Manual runs publish only the Wallet site, showcases, and documentation.
+   Select `wallet-docs` to publish documentation. Select `wallet-site` to
+   publish Wallet marketing and its redirects. The production `all` deployment
+   also updates the legacy docs redirect.
    Full-stack calls still deploy all frontend surfaces.
    Each run checks out public `seams-wallet/main`, verifies its browser SDK version
    matches the site's installed release, and records the exact docs source SHA.
    Documentation corrections can therefore publish between SDK package releases.
-5. Read `/docs/seams-wallet-docs-artifact.json` from both deployed sites. Compare
+
+5. Read `https://docs.wallet.seams.sh/seams-wallet-docs-artifact.json`. Compare
    its revision with the committed docs source SHA from that run. Check installation,
    releases, server reference, Google SSO, search, deep links, and assets.
 
-Production canonical and sitemap URLs use `https://wallet.seams.sh/docs`.
-Staging documentation requests `noindex` through Pages headers. Console and
-marketing links use the configured docs origin. A 403 leaves live verification
-incomplete. A successful build does not establish what a deployed site serves.
+Production canonical and sitemap URLs use `https://docs.wallet.seams.sh`.
+The `seams-wallet-docs` Pages project serves the root-path docs artifact. Its
+`docs.wallet.seams.sh` custom domain is the production host. The `seams-docs`
+Pages project stays bound to `docs.seams.sh` and serves only permanent redirects.
+The Wallet site redirects `/docs/*` to the production docs host. Do not remove
+the legacy custom domain or retire `seams-docs` until a user approves retirement.
+Staging docs requests `noindex` through Pages headers. Console and marketing
+links use the configured docs origin. A 403 leaves live verification incomplete.
+A successful build does not establish what a deployed site serves.
+
+### Docs host cutover
+
+1. Create the `seams-wallet-docs` Pages project. Set `main` as its production
+   branch. Do not connect the project to a Git repository.
+2. Set `CF_PAGES_PROJECT_WALLET_DOCS=seams-wallet-docs` in the staging and
+   production GitHub environments. Set
+   `CF_PAGES_PROJECT_LEGACY_DOCS=seams-docs` in production.
+3. Add the `docs.wallet.seams.sh` Pages custom domain. Cloudflare must create
+   the required DNS record. This action needs user approval.
+4. Deploy `wallet-docs` to staging. The `dev` branch uses its Pages preview
+   host and returns `X-Robots-Tag: noindex`.
+5. Deploy `wallet-docs` to production. Then deploy `wallet-site` and
+   `legacy-docs-redirect`. The production `all` surface performs those steps
+   in that order.
+6. Check `docs.wallet.seams.sh/guides/transaction-review`, the root sitemap,
+   and both redirect paths. Check
+   `wallet.seams.sh/docs/guides/transaction-review` and
+   `docs.seams.sh/guides/transaction-review` with redirects disabled.
+
+Keep `docs.seams.sh` active as a redirect host. Request approval before you
+remove its custom domain, DNS record, or Pages project.
 
 The current SDK target is **0.35.0**, with iframe protocol **21.0.0** and recovery CLI **0.29.0**.
 

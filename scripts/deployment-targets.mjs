@@ -43,6 +43,8 @@ const CONSOLE_LANE_IDS = Object.freeze([
 ]);
 const FRONTEND_SITE_IDS = Object.freeze(['staging', 'production']);
 const CONSOLE_FRONTEND_SITE_IDS = Object.freeze(['staging', 'production']);
+const PUBLIC_WALLET_DOCS_ORIGIN = 'https://docs.wallet.seams.sh';
+const LEGACY_WALLET_DOCS_ORIGIN = 'https://docs.seams.sh';
 
 export const BACKEND_COMPONENTS = Object.freeze([
   'signing-worker',
@@ -767,6 +769,8 @@ function parseSite(value, releaseId, branch) {
       'availableNetworks',
       'pagesProjectEnv',
       'walletSitePagesProjectEnv',
+      'docsPagesProjectEnv',
+      'legacyDocsPagesProjectEnv',
     ],
     sitePath,
   );
@@ -791,7 +795,8 @@ function parseSite(value, releaseId, branch) {
     branch,
     origin: requireHttpsOrigin(site.origin, sitePath + '.origin'),
     walletSiteOrigin,
-    docsOrigin: `${walletSiteOrigin}/docs`,
+    docsOrigin: PUBLIC_WALLET_DOCS_ORIGIN,
+    legacyDocsOrigin: LEGACY_WALLET_DOCS_ORIGIN,
     googleOidcClientId: requirePattern(
       site.googleOidcClientId,
       /^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/u,
@@ -803,6 +808,14 @@ function parseSite(value, releaseId, branch) {
     walletSitePagesProjectEnv: requireEnvironmentName(
       site.walletSitePagesProjectEnv,
       sitePath + '.walletSitePagesProjectEnv',
+    ),
+    docsPagesProjectEnv: requireEnvironmentName(
+      site.docsPagesProjectEnv,
+      sitePath + '.docsPagesProjectEnv',
+    ),
+    legacyDocsPagesProjectEnv: requireEnvironmentName(
+      site.legacyDocsPagesProjectEnv,
+      sitePath + '.legacyDocsPagesProjectEnv',
     ),
   });
 }
@@ -1207,7 +1220,11 @@ function parseRequiredValues(value, pathName) {
 
 function assertUniqueSiteOrigins(sites) {
   assertUnique(
-    sites.flatMap((site) => [site.origin, site.docsOrigin]),
+    sites.map((site) => site.origin),
+    'frontend site origins',
+  );
+  assertUnique(
+    [...sites.map((site) => site.origin), ...new Set(sites.map((site) => site.docsOrigin))],
     'frontend site and docs origins',
   );
 }

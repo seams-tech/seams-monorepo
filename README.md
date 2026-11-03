@@ -65,8 +65,8 @@ Applications can replace the footer brand with their own logo.
 The application SDK and isolated Wallet host must use the same iframe protocol.
 
 Public docs live in `seams-wallet/apps/docs`. This repository publishes their
-exact built revision at `https://wallet.seams.sh/docs/` and its staging counterpart.
-The receipt is `/docs/seams-wallet-docs-artifact.json` on each Wallet site.
+exact built revision at `https://docs.wallet.seams.sh/`. The receipt is
+`https://docs.wallet.seams.sh/seams-wallet-docs-artifact.json`.
 See the [documentation and operator index](docs/README.md) for ownership,
 current Console procedures, hosted evidence, validation, and publication.
 

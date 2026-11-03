@@ -2,13 +2,13 @@
 
 Use the public integration guides for Wallet behavior and SDK examples:
 
-- [Application sessions and owner approval](https://wallet.seams.sh/docs/guides/application-auth)
+- [Application sessions and owner approval](https://docs.wallet.seams.sh/guides/application-auth)
   covers trusted application-issuer handoffs, association, and fresh approval for each NEAR operation.
-- [Google authentication](https://wallet.seams.sh/docs/guides/google-sso)
+- [Google authentication](https://docs.wallet.seams.sh/guides/google-sso)
   covers direct Google credentials and backend handoffs.
-- [Authentication](https://wallet.seams.sh/docs/guides/authentication) and
-  [VoiceID](https://wallet.seams.sh/docs/concepts/auth-methods/voiceid) cover Wallet authentication methods.
-- [Release notes](https://wallet.seams.sh/docs/releases) identify package versions.
+- [Authentication](https://docs.wallet.seams.sh/guides/authentication) and
+  [VoiceID](https://docs.wallet.seams.sh/concepts/auth-methods/voiceid) cover Wallet authentication methods.
+- [Release notes](https://docs.wallet.seams.sh/releases) identify package versions.
 
 This private guide owns Console configuration. Console administrator authentication
 remains separate from application login and Wallet owner authentication.

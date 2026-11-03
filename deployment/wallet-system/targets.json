@@ -9,7 +9,9 @@
       "defaultNetwork": "testnet",
       "availableNetworks": ["testnet"],
       "pagesProjectEnv": "CF_PAGES_PROJECT_VITE",
-      "walletSitePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_SITE"
+      "walletSitePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_SITE",
+      "docsPagesProjectEnv": "CF_PAGES_PROJECT_WALLET_DOCS",
+      "legacyDocsPagesProjectEnv": "CF_PAGES_PROJECT_LEGACY_DOCS"
     },
     "lanes": {
       "testnet": {
@@ -257,7 +259,9 @@
       "defaultNetwork": "testnet",
       "availableNetworks": ["testnet", "mainnet"],
       "pagesProjectEnv": "CF_PAGES_PROJECT_VITE",
-      "walletSitePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_SITE"
+      "walletSitePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_SITE",
+      "docsPagesProjectEnv": "CF_PAGES_PROJECT_WALLET_DOCS",
+      "legacyDocsPagesProjectEnv": "CF_PAGES_PROJECT_LEGACY_DOCS"
     },
     "lanes": {
       "testnet": {

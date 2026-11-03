@@ -12,16 +12,17 @@ This file is the source of truth: when a rule changes, change it here first.
 
 All paths are in `apps/seams-site/src/`.
 
-| Path                                     | What it holds                                                                    |
-| ---------------------------------------- | -------------------------------------------------------------------------------- |
-| `components/h2/ink/brush.ts`             | The bristle brush: `InkStroke`, `prepareStroke` and the colors                   |
-| `components/h2/ink/InkScene.tsx`         | `InkDrawing`: one canvas for each part, the draw-in timeline and the CSS motions |
-| `components/h2/ink/scenes.ts`            | The shared helpers and most scenes: the hero goat, the banners and the cobot     |
-| `components/h2/ink/wheatFieldScene.ts`   | The integrations wheat field, which times its own stalks                         |
-| `components/h2/ink/bakeryRobotScenes.ts` | The oven arm and the rack runner                                                 |
-| `components/h2/ink/conceptScenes.ts`     | Spare drawings that no page uses yet                                             |
-| `components/h2/EcosystemField.tsx`       | The SVG layer of tool logos and gold grains over the wheat field                 |
-| `styles/h2-ink.css`                      | The motion keyframes, the resting state and reduced motion                       |
+| Path                                     | What it holds                                                                                              |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `components/h2/ink/brush.ts`             | The bristle brush: `InkStroke`, `prepareStroke` and the colors                                             |
+| `components/h2/ink/InkScene.tsx`         | `InkDrawing`: one canvas for each part, the draw-in timeline and the CSS motions                           |
+| `components/h2/ink/scenes.ts`            | The shared helpers and most scenes: the hero goat, the banners and the cobot                               |
+| `components/h2/ink/wheatFieldScene.ts`   | The integrations wheat field, which times its own stalks                                                   |
+| `components/h2/ink/bakeryRobotScenes.ts` | The oven arm and the rack runner                                                                           |
+| `components/h2/ink/conceptScenes.ts`     | Spare drawings that no page uses yet                                                                       |
+| `components/h2/ink/tileSignScenes.ts`    | The ink tiles that stand over the gradient tiles on the front page: a rounded square with the sign cut out |
+| `components/h2/EcosystemField.tsx`       | The SVG layer of tool logos and gold grains over the wheat field                                           |
+| `styles/h2-ink.css`                      | The motion keyframes, the resting state and reduced motion                                                 |
 
 | Page                      | Drawings                                                                                               |
 | ------------------------- | ------------------------------------------------------------------------------------------------------ |

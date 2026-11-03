@@ -23,6 +23,8 @@ import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
+import { InkDrawing } from '@/components/h2/ink/InkScene';
+import { tileSignScenes, type TileSign } from '@/components/h2/ink/tileSignScenes';
 import { PortalShot, type PortalShotName } from '@/components/h2/SceneHero';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
@@ -299,6 +301,26 @@ export function FieldTile({ field, icon: Icon }: { field: GrainFieldName; icon: 
   );
 }
 
+/* The same tile painted in ink, with its sign cut out. The gradient tile waits
+   under the ink and shows while the link or tab that holds it is under the
+   pointer. */
+export function InkTile({
+  field,
+  icon,
+  sign,
+}: {
+  field: GrainFieldName;
+  icon: TileIcon;
+  sign: TileSign;
+}): React.JSX.Element {
+  return (
+    <span className="h2-inktile" aria-hidden>
+      <FieldTile field={field} icon={icon} />
+      <InkDrawing scene={tileSignScenes[sign]} className="h2-inktile__ink" drawn />
+    </span>
+  );
+}
+
 /* A wide banner spreads each colour over its width, so the site's flow barely
    shows on it; this much more keeps its movement subtle but visible. */
 const BANNER_FLOW = 3;
@@ -503,6 +525,7 @@ type Pillar = {
   id: string;
   label: string;
   icon: TileIcon;
+  sign: TileSign;
   field: GrainFieldName;
   copy: React.ReactNode;
   mock: React.ReactNode;
@@ -515,6 +538,7 @@ const pillars: Pillar[] = [
     id: 'shop',
     label: 'Shop and menus',
     icon: Store,
+    sign: 'shop',
     field: 'azure-coral',
     copy: (
       <>
@@ -534,6 +558,7 @@ const pillars: Pillar[] = [
     id: 'orders',
     label: 'Orders and payments',
     icon: ShoppingBag,
+    sign: 'bag',
     field: 'slate-amber',
     copy: (
       <>
@@ -553,6 +578,7 @@ const pillars: Pillar[] = [
     id: 'inbox',
     label: 'Inbox',
     icon: Mail,
+    sign: 'inbox',
     field: 'sky-sand',
     copy: (
       <>
@@ -572,6 +598,7 @@ const pillars: Pillar[] = [
     id: 'production',
     label: 'Production',
     icon: Croissant,
+    sign: 'croissant',
     field: 'apricot-beam',
     copy: (
       <>
@@ -591,6 +618,7 @@ const pillars: Pillar[] = [
     id: 'vault',
     label: 'Vault',
     icon: KeyRound,
+    sign: 'key',
     field: 'mauve-ember',
     copy: (
       <>
@@ -647,7 +675,7 @@ export function H2Pillars({
                   className={`h2-pillar${i === active ? ' is-active' : ''}`}
                   onClick={() => setActive(i)}
                 >
-                  <FieldTile field={p.field} icon={p.icon} />
+                  <InkTile field={p.field} icon={p.icon} sign={p.sign} />
                   {p.label}
                 </button>
               ))}
@@ -1616,7 +1644,7 @@ export function H2Duo(): React.JSX.Element {
         <div className="h2-duo__grid">
           <a className="h2-duo__panel" href={satyrProps.href} onClick={satyrProps.onClick}>
             <h3 className="h2-duo__title">
-              <FieldTile field="azure-coral" icon={Store} />
+              <InkTile field="azure-coral" icon={Store} sign="shop" />
               Satyr
             </h3>
             <p className="h2-duo__panel-copy">
@@ -1641,7 +1669,7 @@ export function H2Duo(): React.JSX.Element {
           </a>
           <a className="h2-duo__panel" href={bakeryProps.href} onClick={bakeryProps.onClick}>
             <h3 className="h2-duo__title">
-              <FieldTile field="apricot-beam" icon={Croissant} />
+              <InkTile field="apricot-beam" icon={Croissant} sign="croissant" />
               Satyr Kitchen
             </h3>
             <p className="h2-duo__panel-copy">

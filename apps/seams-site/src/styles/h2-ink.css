@@ -313,3 +313,55 @@
     align-self: flex-end;
   }
 }
+
+/* a tile painted in ink over its gradient tile; the gradient shows while the
+   link or tab that holds the tile is under the pointer or has focus */
+.h2-inktile {
+  display: inline-grid;
+  flex: none;
+}
+
+.h2-inktile > * {
+  grid-area: 1 / 1;
+}
+
+.h2-inktile > .h2-fieldtile,
+.h2-inktile__ink {
+  transition: opacity 220ms ease;
+}
+
+.h2-inktile > .h2-fieldtile {
+  opacity: 0;
+}
+
+.h2-inktile__ink {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  pointer-events: none;
+}
+
+:is(a, button):focus-visible .h2-inktile > .h2-fieldtile {
+  opacity: 1;
+}
+
+:is(a, button):focus-visible .h2-inktile__ink {
+  opacity: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(a, button):hover .h2-inktile > .h2-fieldtile {
+    opacity: 1;
+  }
+
+  :is(a, button):hover .h2-inktile__ink {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h2-inktile > .h2-fieldtile,
+  .h2-inktile__ink {
+    transition: none;
+  }
+}

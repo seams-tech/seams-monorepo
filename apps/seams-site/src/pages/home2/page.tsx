@@ -1,16 +1,13 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { EcosystemField } from '@/components/h2/EcosystemField';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
 import { palmierOvenScene } from '@/components/h2/ink/butterflyScenes';
 import { goatScene, keyScene, stalkScene, wireScene } from '@/components/h2/ink/scenes';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
-import { IntegrationsWindow, PortalShot } from '@/components/h2/SceneHero';
-import { type TileSign } from '@/components/h2/ink/tileSignScenes';
+import { ProductTour } from '@/components/h2/ProductTour';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import {
   H2Cta,
-  InkTile,
   H2Duo,
   H2Ecosystem,
   H2Footer,
@@ -21,77 +18,17 @@ import '@/styles/h2.css';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 /* Umbrella front page, led by Satyr: a simple headline on paper, where a baby
-   goat flies a croissant kite, then a paged two-panel scene band (Satyr's views at the left,
-   Satyr Kitchen at the right), the shop-to-oven split, the suite, and one band
-   for Seams Wallet. The Satyr and Satyr Kitchen scenes are real Portal screens;
-   the Slack scene is an HTML mock. */
+   goat flies a croissant kite, then the product tour (Satyr and Satyr Kitchen, with
+   overlapping Portal screens), the shop-to-oven split, the suite, and one band
+   for Seams Wallet. Every tour screen is a real Portal screen. */
 
-/* ---------- hero: headline + paged scenes ---------- */
-
-type HeroScene = {
-  id: string;
-  sign: TileSign;
-  title: string;
-  sub: string;
-  left: React.ReactNode;
-};
-
-/* Left column pages through Satyr's views; the Satyr Kitchen plan stays fixed in
-   the right column, like the reference hero's assistant card. */
-const heroScenes: HeroScene[] = [
-  {
-    id: 'portal',
-    sign: 'shop',
-    title: 'Satyr',
-    sub: 'Agents run the shop, the orders and the inbox',
-    left: (
-      <PortalShot
-        shot="agents"
-        alt="The Agents page of the Satyr Portal: the café's merchant agent has a suggested change for review"
-        eager
-      />
-    ),
-  },
-  {
-    id: 'activity',
-    sign: 'activity',
-    title: 'Satyr Activity',
-    sub: 'Every Case of the day, and who holds it now',
-    left: (
-      <PortalShot
-        shot="activity"
-        alt="The Activity timeline of the Satyr Portal: three Cases wait for a person, and a card shows the steps of a refund request"
-      />
-    ),
-  },
-  {
-    id: 'inbox',
-    sign: 'inbox',
-    title: 'Satyr Inbox',
-    sub: 'Replies wait for your approval before they are sent',
-    left: (
-      <PortalShot
-        shot="inbox"
-        alt="The Satyr Inbox: a reply that an agent drafted for a customer waits for approval"
-      />
-    ),
-  },
-  {
-    id: 'slack',
-    sign: 'channel',
-    title: 'Satyr in Slack',
-    sub: 'Approvals land where your team already works',
-    left: <IntegrationsWindow />,
-  },
-];
+/* ---------- hero: headline + product tour ---------- */
 
 function HomeHeroCurrent(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const contactProps = linkProps(CONTACT_LINK_TARGET);
   const satyrProps = linkProps('/ecommerce');
   const bakeryProps = linkProps('/ecommerce#kitchen');
-  const [page, setPage] = React.useState(0);
-  const scene = heroScenes[page];
 
   return (
     <>
@@ -130,84 +67,8 @@ function HomeHeroCurrent(): React.JSX.Element {
         </div>
       </header>
 
-      <section className="h2-heroscene h2-rule" aria-label="Product tour">
-        <div className="h2-heroscene__split">
-          {/* whole panel navigates; the pager is a sibling so it stays clickable */}
-          <a
-            className="h2-heroscene__stage"
-            href={satyrProps.href}
-            onClick={satyrProps.onClick}
-            aria-label="Explore Satyr"
-          >
-            <div className="h2-heroscene__intro h2-fadein" key={`intro-${scene.id}`}>
-              <InkTile sign={scene.sign} />
-              <div>
-                <p className="h2-heroscene__intro-title">{scene.title}</p>
-                <p className="h2-heroscene__intro-sub">{scene.sub}</p>
-              </div>
-            </div>
-            <div
-              className="h2-heroscene__frame h2-fadein h2-fadein--late"
-              key={`frame-${scene.id}`}
-            >
-              {scene.left}
-            </div>
-          </a>
-
-          <a
-            className="h2-heroscene__aside"
-            href={bakeryProps.href}
-            onClick={bakeryProps.onClick}
-            aria-label="Explore Satyr Kitchen"
-          >
-            <div className="h2-heroscene__intro">
-              <InkTile sign="croissant" />
-              <div>
-                <p className="h2-heroscene__intro-title">Satyr Kitchen</p>
-                <p className="h2-heroscene__intro-sub">Orders become a bake plan for the kitchen</p>
-              </div>
-            </div>
-            <div className="h2-heroscene__aside-body">
-              <PortalShot
-                shot="kitchen-floor"
-                alt="Satyr Kitchen: the floor plan and a 3D view of the bakery during a financier shift, with the Portal chat beside them"
-                className="h2-shot--card"
-                eager
-              />
-            </div>
-          </a>
-
-          {/* Pager sits on the divider/border junction, like the demo hero's */}
-          <div className="h2-pager" role="group" aria-label="Product views">
-            <button
-              type="button"
-              className="h2-pager__btn"
-              aria-label="Previous product view"
-              disabled={page === 0}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
-              <ChevronLeft aria-hidden />
-            </button>
-            <span className="h2-pager__dots">
-              {heroScenes.map((s, i) => (
-                <span
-                  key={s.id}
-                  className={`h2-pager__dot${i === page ? ' is-active' : ''}`}
-                  title={s.title}
-                />
-              ))}
-            </span>
-            <button
-              type="button"
-              className="h2-pager__btn"
-              aria-label="Next product view"
-              disabled={page >= heroScenes.length - 1}
-              onClick={() => setPage((p) => Math.min(heroScenes.length - 1, p + 1))}
-            >
-              <ChevronRight aria-hidden />
-            </button>
-          </div>
-        </div>
+      <section className="h2-rule h2-tour-band" aria-label="Product tour">
+        <ProductTour links={{ satyr: satyrProps, kitchen: bakeryProps }} />
       </section>
     </>
   );

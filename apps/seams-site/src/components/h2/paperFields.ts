@@ -3,8 +3,7 @@ import type { GeneratedField } from '@seams-internal/grain-field';
 /* Paper gradients for the ink banners, in the front page palette: white, the
    paper (#faf8f3), taupe (#f5f3f1), stone (#ebe8e4), the soft amber
    (#f7ecdd) and a little of the gold ink. Every tone stays light, so the
-   black ink keeps its contrast, and each one has a paper texture in place of
-   the film grain. */
+   black ink keeps its contrast. */
 
 /* a little of the generator's bend, so each blend runs in one wide sweep */
 const PAPER_VARIATION = 0.08;
@@ -20,7 +19,6 @@ export const PAPER_FIELDS = {
     seed: 3,
     contrast: 1,
     variation: PAPER_VARIATION,
-    surface: 'paper',
   },
   oat: {
     light: '#fffdf9',
@@ -30,7 +28,6 @@ export const PAPER_FIELDS = {
     seed: 11,
     contrast: 1,
     variation: PAPER_VARIATION,
-    surface: 'paper',
   },
   honey: {
     light: '#fffbf3',
@@ -40,7 +37,6 @@ export const PAPER_FIELDS = {
     seed: 23,
     contrast: 1,
     variation: PAPER_VARIATION,
-    surface: 'paper',
   },
   chalk: {
     light: '#ffffff',
@@ -50,7 +46,6 @@ export const PAPER_FIELDS = {
     seed: 5,
     contrast: 1,
     variation: PAPER_VARIATION,
-    surface: 'paper',
   },
   butter: {
     light: '#fffef8',
@@ -60,7 +55,6 @@ export const PAPER_FIELDS = {
     seed: 41,
     contrast: 1,
     variation: PAPER_VARIATION,
-    surface: 'paper',
   },
   stone: {
     light: '#fbfaf8',
@@ -70,7 +64,6 @@ export const PAPER_FIELDS = {
     seed: 17,
     contrast: 1,
     variation: PAPER_VARIATION,
-    surface: 'paper',
   },
 } as const satisfies Record<string, GeneratedField>;
 

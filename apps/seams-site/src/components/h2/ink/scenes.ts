@@ -16,6 +16,8 @@ export type InkPart = {
   readonly motions?: readonly InkMotion[];
   /* seconds to wait before this part starts */
   readonly pause?: number;
+  /* the second at which this part starts, in place of after the part before it */
+  readonly at?: number;
   /* its strokes grow at nearly the same time, in place of one after another */
   readonly together?: boolean;
 };

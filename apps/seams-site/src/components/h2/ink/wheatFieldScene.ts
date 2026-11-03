@@ -13,6 +13,8 @@ export type ToolStalk = {
   readonly y: number;
   readonly logoSize: number;
   readonly base: Pt;
+  /* the second at which its ear is nearly drawn, so that its logo can appear */
+  readonly shown: number;
   /* the sway of the stalk, so that its logo moves with it */
   readonly motions: readonly InkMotion[];
 };
@@ -26,6 +28,17 @@ export type WheatFieldLayout = {
 
 type ToolPlace = readonly [tool: string, x: number, y: number, lean: number];
 type BarePlace = readonly [x: number, tipY: number, lean: number, size: number];
+
+/* The stalks grow in one wave from left to right: each starts at its own second
+   and draws at the usual brush speed, so the field is whole in about a second. */
+const WAVE_SECONDS = 0.4;
+const EAR_SECONDS = 0.35;
+const KID_AT = 0.25;
+const BIRD_AT = 0.6;
+
+function startAt(parts: readonly InkPart[], at: number): InkPart[] {
+  return parts.map((part, index) => (index === 0 ? { ...part, at } : part));
+}
 
 function placed(
   parts: readonly InkPart[],
@@ -56,13 +69,22 @@ function partsNamed(scene: InkScene, prefix: string): readonly InkPart[] {
 }
 
 /* a loaded brush on the stem: a dry one leaves gaps that read as a broken stalk */
-function stalk(id: string, base: Pt, tip: Pt, lean: number, seed: number, size: number): InkPart[] {
+function stalk(
+  id: string,
+  base: Pt,
+  tip: Pt,
+  lean: number,
+  seed: number,
+  size: number,
+  at: number,
+): InkPart[] {
   const bend: Pt = [base[0] + lean * 0.45, (base[1] + tip[1]) / 2];
-  return wheat(id, base, bend, tip, seed, size).map((part) =>
+  const parts = wheat(id, base, bend, tip, seed, size).map((part) =>
     part.id.endsWith('-stem')
       ? { ...part, strokes: part.strokes.map((stroke) => ({ ...stroke, dry: 0.08, rough: 0.6 })) }
       : part,
   );
+  return startAt(parts, at);
 }
 
 const kid = partsNamed(goatScene, 'kid-');
@@ -85,7 +107,9 @@ function layout(
 ): WheatFieldLayout {
   const ground = height + 2;
   const gap = logoSize * 0.82;
+  const waveAt = (x: number): number => (WAVE_SECONDS * x) / width;
   const toolParts = tools.map(([tool, x, y, lean], index) => {
+    const at = waveAt(x);
     const parts = stalk(
       `tool-${tool}`,
       [x - lean, ground],
@@ -93,12 +117,14 @@ function layout(
       lean,
       101 + index * 137,
       stalkSize,
+      at,
     );
     const motions = parts[0]?.motions ?? [];
-    return { parts, stalk: { tool, x, y, logoSize, base: [x - lean, ground] as const, motions } };
+    const base = [x - lean, ground] as const;
+    return { parts, stalk: { tool, x, y, logoSize, base, shown: at + EAR_SECONDS, motions } };
   });
   const bareParts = bare.flatMap(([x, tipY, lean, size], index) =>
-    stalk(`bare-${index}`, [x - lean, ground], [x, tipY], lean, 211 + index * 89, size),
+    stalk(`bare-${index}`, [x - lean, ground], [x, tipY], lean, 211 + index * 89, size, waveAt(x)),
   );
   const stalks = toolParts.map((entry) => entry.stalk);
   const grains = grainPairs.flatMap(([a, b]) => {
@@ -118,9 +144,9 @@ function layout(
       parts: [
         ...bareParts,
         ...toolParts.flatMap((entry) => entry.parts),
-        ...placed(kid, 'kid', kidScale, kidX, height - kidFeet * kidScale - 8),
+        ...startAt(placed(kid, 'kid', kidScale, kidX, height - kidFeet * kidScale - 8), KID_AT),
         ...birds.flatMap(([x, y, k], index) =>
-          placed(bird, `bird-${index}`, k, x - 118 * k, y - 40 * k),
+          startAt(placed(bird, `bird-${index}`, k, x - 118 * k, y - 40 * k), BIRD_AT),
         ),
       ],
     },

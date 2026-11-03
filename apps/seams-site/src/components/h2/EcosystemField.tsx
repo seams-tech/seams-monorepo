@@ -58,20 +58,14 @@ function Swayed({
   ) as React.JSX.Element;
 }
 
-function StalkLogo({
-  stalk,
-  order,
-}: {
-  stalk: ToolStalk;
-  order: number;
-}): React.JSX.Element | null {
+function StalkLogo({ stalk }: { stalk: ToolStalk }): React.JSX.Element | null {
   const mark = ECOSYSTEM_LOGO_MARKS.find((candidate) => candidate.id === stalk.tool);
   if (!mark) return null;
   const [vx = 0, vy = 0, vw = 24, vh = 24] = (mark.viewBox ?? '0 0 24 24').split(' ').map(Number);
   const k = stalk.logoSize / Math.max(vw, vh);
   return (
     <Swayed motions={stalk.motions} base={stalk.base}>
-      <g className="h2-ink-tools__logo" style={{ animationDelay: `${0.4 + order * 0.06}s` }}>
+      <g className="h2-ink-tools__logo" style={{ animationDelay: `${stalk.shown}s` }}>
         <g
           transform={`translate(${stalk.x} ${stalk.y}) scale(${k}) translate(${-vx - vw / 2} ${-vy - vh / 2})`}
           filter="url(#h2-field-rough)"
@@ -158,8 +152,8 @@ export function EcosystemField(): React.JSX.Element {
           />
           <feDisplacementMap in="SourceGraphic" in2="grain" scale="1.1" />
         </filter>
-        {stalks.map((stalk, order) => (
-          <StalkLogo key={stalk.tool} stalk={stalk} order={order} />
+        {stalks.map((stalk) => (
+          <StalkLogo key={stalk.tool} stalk={stalk} />
         ))}
         {!still && awake
           ? grains.map((path, order) => <Grain key={path} path={path} order={order} />)

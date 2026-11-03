@@ -47,6 +47,7 @@ function paint(
     canvas.width = Math.ceil(box.width * scale);
     canvas.height = Math.ceil(box.height * scale);
     ctx.setTransform(scale, 0, 0, scale, -box.x * scale, -box.y * scale);
+    if (part.at !== undefined) clock = part.at;
     clock += part.pause ?? 0;
     const first = clock;
     let end = clock;

@@ -67,6 +67,41 @@ const signs = {
       [51, 38],
     ],
   ],
+  /* a list with a tick on each row */
+  list: [20, 33, 46].flatMap((y): Line[] => [
+    ...path([11, y], [15, y + 4], [22, y - 4]),
+    [
+      [28, y],
+      [53, y],
+    ],
+  ]),
+  /* a receipt: the slip with a torn foot and three lines of print */
+  receipt: [
+    ...path(
+      [17, 12],
+      [47, 12],
+      [47, 51],
+      [42, 47],
+      [37, 51],
+      [32, 47],
+      [27, 51],
+      [22, 47],
+      [17, 51],
+      [17, 12],
+    ),
+    [
+      [23, 22],
+      [41, 22],
+    ],
+    [
+      [23, 30],
+      [41, 30],
+    ],
+    [
+      [23, 38],
+      [34, 38],
+    ],
+  ],
   /* a pulse across the day */
   activity: path([9, 34], [20, 34], [25, 16], [34, 50], [40, 27], [45, 34], [55, 34]),
   /* an envelope */
@@ -101,28 +136,33 @@ export type TileSign = keyof typeof signs | 'croissant';
    in each corner, so the square comes out with round corners */
 const INSET = 10;
 const SLAB = { flat: true, dry: 0.04, rough: 0.3, grain: 0.05, pace: 0.8 } as const;
-const TILE: InkStroke[] = [
-  {
-    ...SLAB,
-    pts: [
-      [32, 3, 64 - 2 * INSET],
-      [32, 61, 64 - 2 * INSET],
-    ],
-  },
-  {
-    ...SLAB,
-    pts: [
-      [3, 32, 64 - 2 * INSET],
-      [61, 32, 64 - 2 * INSET],
-    ],
-  },
-  ...[
-    [INSET, INSET],
-    [64 - INSET, INSET],
-    [INSET, 64 - INSET],
-    [64 - INSET, 64 - INSET],
-  ].map(([x, y]) => blob(x, y, INSET - 3, INSET - 3)),
-];
+
+function tile(color: InkColor): InkStroke[] {
+  return [
+    {
+      ...SLAB,
+      color,
+      pts: [
+        [32, 3, 64 - 2 * INSET],
+        [32, 61, 64 - 2 * INSET],
+      ],
+    },
+    {
+      ...SLAB,
+      color,
+      pts: [
+        [3, 32, 64 - 2 * INSET],
+        [61, 32, 64 - 2 * INSET],
+      ],
+    },
+    ...[
+      [INSET, INSET],
+      [64 - INSET, INSET],
+      [INSET, 64 - INSET],
+      [64 - INSET, 64 - INSET],
+    ].map(([x, y]) => blob(x, y, INSET - 3, INSET - 3, color)),
+  ];
+}
 
 function line(points: Line): InkStroke {
   const last = points.length - 1;
@@ -142,9 +182,10 @@ function line(points: Line): InkStroke {
   };
 }
 
-/* the croissant is cut out whole, then its layers are painted back in ink */
-function croissantSign(): InkStroke[] {
-  const swap: Partial<Record<InkColor, InkColor>> = { gold: 'clear', clear: 'ink' };
+/* the croissant is cut out whole, then its layers are painted back in the
+   tile's colour */
+function croissantSign(color: InkColor): InkStroke[] {
+  const swap: Partial<Record<InkColor, InkColor>> = { gold: 'clear', clear: color };
   return croissant(32, 42, 18).map((stroke) => ({
     ...stroke,
     color: swap[stroke.color ?? 'ink'] ?? stroke.color,
@@ -152,18 +193,25 @@ function croissantSign(): InkStroke[] {
   }));
 }
 
-function signScene(sign: TileSign): InkScene {
-  const cut = sign === 'croissant' ? croissantSign() : signs[sign].map(line);
-  return { width: SIZE, height: SIZE, parts: [{ id: sign, strokes: [...TILE, ...cut] }] };
+function signScene(sign: TileSign, color: InkColor): InkScene {
+  const cut = sign === 'croissant' ? croissantSign(color) : signs[sign].map(line);
+  return { width: SIZE, height: SIZE, parts: [{ id: sign, strokes: [...tile(color), ...cut] }] };
 }
 
-/* one scene for each sign, made once, so a render never repaints a tile */
-export const tileSignScenes: Record<TileSign, InkScene> = {
-  shop: signScene('shop'),
-  bag: signScene('bag'),
-  key: signScene('key'),
-  activity: signScene('activity'),
-  inbox: signScene('inbox'),
-  channel: signScene('channel'),
-  croissant: signScene('croissant'),
-};
+const SIGNS: readonly TileSign[] = [
+  'shop',
+  'bag',
+  'key',
+  'list',
+  'receipt',
+  'activity',
+  'inbox',
+  'channel',
+  'croissant',
+];
+
+/* each sign in ink, and in gold for the hover; made once, so a render never
+   repaints a tile */
+export const tileSignScenes = Object.fromEntries(
+  SIGNS.map((sign) => [sign, { ink: signScene(sign, 'ink'), gold: signScene(sign, 'gold') }]),
+) as Record<TileSign, { ink: InkScene; gold: InkScene }>;

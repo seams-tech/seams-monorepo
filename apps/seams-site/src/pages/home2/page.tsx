@@ -1,6 +1,5 @@
 import React from 'react';
-import { Activity, ChevronLeft, ChevronRight, Croissant, Inbox, Slack, Store } from 'lucide-react';
-import { type GrainFieldName } from '@seams-internal/grain-field';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { EcosystemField } from '@/components/h2/EcosystemField';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
 import { carryScene, goatScene, keyScene, stalkScene, wireScene } from '@/components/h2/ink/scenes';
@@ -30,8 +29,6 @@ import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
 type HeroScene = {
   id: string;
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
-  field: GrainFieldName;
   sign: TileSign;
   title: string;
   sub: string;
@@ -43,8 +40,6 @@ type HeroScene = {
 const heroScenes: HeroScene[] = [
   {
     id: 'portal',
-    icon: Store,
-    field: 'azure-coral',
     sign: 'shop',
     title: 'Satyr',
     sub: 'Agents run the shop, the orders and the inbox',
@@ -58,8 +53,6 @@ const heroScenes: HeroScene[] = [
   },
   {
     id: 'activity',
-    icon: Activity,
-    field: 'teal-peach',
     sign: 'activity',
     title: 'Satyr Activity',
     sub: 'Every Case of the day, and who holds it now',
@@ -72,8 +65,6 @@ const heroScenes: HeroScene[] = [
   },
   {
     id: 'inbox',
-    icon: Inbox,
-    field: 'sky-sand',
     sign: 'inbox',
     title: 'Satyr Inbox',
     sub: 'Replies wait for your approval before they are sent',
@@ -86,8 +77,6 @@ const heroScenes: HeroScene[] = [
   },
   {
     id: 'slack',
-    icon: Slack,
-    field: 'mauve-ember',
     sign: 'channel',
     title: 'Satyr in Slack',
     sub: 'Approvals land where your team already works',
@@ -150,7 +139,7 @@ function HomeHeroCurrent(): React.JSX.Element {
             aria-label="Explore Satyr"
           >
             <div className="h2-heroscene__intro h2-fadein" key={`intro-${scene.id}`}>
-              <InkTile field={scene.field} icon={scene.icon} sign={scene.sign} />
+              <InkTile sign={scene.sign} />
               <div>
                 <p className="h2-heroscene__intro-title">{scene.title}</p>
                 <p className="h2-heroscene__intro-sub">{scene.sub}</p>
@@ -171,7 +160,7 @@ function HomeHeroCurrent(): React.JSX.Element {
             aria-label="Explore Satyr Kitchen"
           >
             <div className="h2-heroscene__intro">
-              <InkTile field="apricot-beam" icon={Croissant} sign="croissant" />
+              <InkTile sign="croissant" />
               <div>
                 <p className="h2-heroscene__intro-title">Satyr Kitchen</p>
                 <p className="h2-heroscene__intro-sub">Orders become a bake plan for the kitchen</p>

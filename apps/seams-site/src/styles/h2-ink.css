@@ -314,54 +314,60 @@
   }
 }
 
-/* a tile painted in ink over its gradient tile; the gradient shows while the
-   link or tab that holds the tile is under the pointer or has focus */
+/* a tile painted in ink over a gold copy of itself; the gold shows while the
+   link, tab or card that holds the tile is under the pointer or has focus */
 .h2-inktile {
   display: inline-grid;
   flex: none;
+  width: 40px;
+}
+
+/* the sizes that the gradient tiles had in each place */
+.h2-pillar .h2-inktile {
+  width: 36px;
+}
+
+.h2-bento__card--sm .h2-inktile {
+  margin-bottom: 5px;
 }
 
 .h2-inktile > * {
   grid-area: 1 / 1;
+  width: 100%;
 }
 
-.h2-inktile > .h2-fieldtile,
-.h2-inktile__ink {
+/* the two copies cross over: the brush paints each one a little differently,
+   so the gold must not show at the edges of the ink */
+.h2-inktile__ink,
+.h2-inktile__gold {
   transition: opacity 220ms ease;
 }
 
-.h2-inktile > .h2-fieldtile {
+.h2-inktile__gold {
   opacity: 0;
-}
-
-.h2-inktile__ink {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  pointer-events: none;
-}
-
-:is(a, button):focus-visible .h2-inktile > .h2-fieldtile {
-  opacity: 1;
 }
 
 :is(a, button):focus-visible .h2-inktile__ink {
   opacity: 0;
 }
 
+:is(a, button):focus-visible .h2-inktile__gold {
+  opacity: 1;
+}
+
 @media (hover: hover) and (pointer: fine) {
-  :is(a, button):hover .h2-inktile > .h2-fieldtile {
-    opacity: 1;
+  :is(a, button, .h2-bento__card):hover .h2-inktile__ink {
+    opacity: 0;
   }
 
-  :is(a, button):hover .h2-inktile__ink {
-    opacity: 0;
+  :is(a, button, .h2-bento__card):hover .h2-inktile__gold {
+    opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .h2-inktile > .h2-fieldtile,
-  .h2-inktile__ink {
+  .h2-inktile__ink,
+  .h2-inktile__gold {
     transition: none;
   }
 }

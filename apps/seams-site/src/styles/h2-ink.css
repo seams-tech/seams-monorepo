@@ -185,67 +185,6 @@
   min-height: 600px;
 }
 
-/* the row of Satyr apps under the actions: ink tiles with their names */
-.h2-suite {
-  margin-top: 40px;
-}
-
-.h2-suite__label {
-  margin: 0 0 12px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--h2-smoke);
-}
-
-/* one row of four, so the row never reaches the wheat under the copy */
-.h2-suite__list {
-  display: grid;
-  grid-template-columns: repeat(4, 64px);
-  gap: 14px 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.h2-suite__app {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  border-radius: 10px;
-  font-size: 12px;
-  color: var(--h2-graphite);
-  text-decoration: none;
-  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.h2-suite__app:focus-visible {
-  outline: 2px solid var(--h2-ink);
-  outline-offset: 4px;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .h2-suite__app:hover {
-    color: var(--h2-ink);
-    transform: translateY(-2px);
-  }
-}
-
-.h2-suite__tile {
-  width: 52px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .h2-suite__app {
-    transition: none;
-  }
-
-  .h2-suite__app:hover {
-    transform: none;
-  }
-}
-
 .h2-ink--hero {
   position: absolute;
   right: 0;

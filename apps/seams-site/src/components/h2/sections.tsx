@@ -432,7 +432,7 @@ export function H2Ecosystem({
         title="Connects to the tools a café already uses"
         sub="Slack, Gmail, Shopify, Square, Stripe and your files. Each connection has its own access, and you can disconnect it at any time."
       >
-        <a className="h2-btn h2-btn--outline" href={satyrProps.href} onClick={satyrProps.onClick}>
+        <a className="h2-btn h2-btn--primary" href={satyrProps.href} onClick={satyrProps.onClick}>
           Explore Satyr
           <ArrowRightAnim size={12} />
         </a>
@@ -1041,7 +1041,7 @@ export function H2WalletBand({ drawing }: { drawing?: React.ReactNode } = {}): R
       title="Also from Seams: Seams Wallet"
       sub="A stablecoin wallet that opens with a passkey. Keys are split between the device and the server, so neither side can sign alone."
     >
-      <a className="h2-btn h2-btn--outline" href={walletProps.href} onClick={walletProps.onClick}>
+      <a className="h2-btn h2-btn--primary" href={walletProps.href} onClick={walletProps.onClick}>
         Explore Seams Wallet
         <ArrowRightAnim size={12} />
       </a>
@@ -2073,14 +2073,12 @@ const ctaCopy = {
     title: 'Put agents to work in your café',
     sub: 'We connect the shop, Slack and your mailbox with you, and we set the first approval rules together.',
     secondary: { label: 'Explore Satyr', to: '/ecommerce' },
-    primary: { label: 'Talk to us', to: CONTACT_LINK_TARGET },
   },
   ecommerce: {
     field: 'mauve-ember',
     title: 'See Satyr run your shop',
     sub: 'Tell us what you sell and where. We show you Satyr on your own shop.',
     secondary: { label: 'See the integrations', to: '/#integrations' },
-    primary: { label: 'Talk to us', to: CONTACT_LINK_TARGET },
   },
 } satisfies Record<
   string,
@@ -2089,7 +2087,6 @@ const ctaCopy = {
     title: string;
     sub: string;
     secondary: { label: string; to: string };
-    primary: { label: string; to: string };
   }
 >;
 
@@ -2103,7 +2100,6 @@ export function H2Cta({
   const { linkProps } = useSiteRouter();
   const copy = ctaCopy[audience];
   const secondaryProps = linkProps(copy.secondary.to);
-  const primaryProps = linkProps(copy.primary.to);
 
   return (
     <BannerSection
@@ -2121,15 +2117,11 @@ export function H2Cta({
       sub={copy.sub}
     >
       <a
-        className="h2-btn h2-btn--outline"
+        className="h2-btn h2-btn--primary"
         href={secondaryProps.href}
         onClick={secondaryProps.onClick}
       >
         {copy.secondary.label}
-        <ArrowRightAnim size={12} />
-      </a>
-      <a className="h2-btn h2-btn--primary" href={primaryProps.href} onClick={primaryProps.onClick}>
-        {copy.primary.label}
         <ArrowRightAnim size={12} />
       </a>
     </BannerSection>

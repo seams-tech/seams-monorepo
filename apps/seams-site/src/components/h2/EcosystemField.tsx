@@ -5,6 +5,7 @@ import type { InkMotion } from './ink/scenes';
 import {
   narrowField,
   wideField,
+  type Mote,
   type ToolStalk,
   type WheatFieldLayout,
 } from './ink/wheatFieldScene';
@@ -97,9 +98,27 @@ function Grain({ path, order }: { path: string; order: number }): React.JSX.Elem
   );
 }
 
+function GoldMote({ mote }: { mote: Mote }): React.JSX.Element {
+  const seconds = `${mote.seconds}s`;
+  const begin = `${mote.begin}s`;
+  return (
+    <circle r={mote.radius} fill={GRAIN_GOLD} opacity="0">
+      <animateMotion dur={seconds} begin={begin} repeatCount="indefinite" path={mote.path} />
+      <animate
+        attributeName="opacity"
+        dur={seconds}
+        begin={begin}
+        repeatCount="indefinite"
+        values="0;0.9;0.7;0"
+        keyTimes="0;0.2;0.7;1"
+      />
+    </circle>
+  );
+}
+
 export function EcosystemField(): React.JSX.Element {
   const narrow = useNarrow();
-  const { scene, stalks, grains }: WheatFieldLayout = narrow ? narrowField : wideField;
+  const { scene, stalks, grains, motes }: WheatFieldLayout = narrow ? narrowField : wideField;
   const rootRef = React.useRef<HTMLDivElement>(null);
   const [resting, setResting] = React.useState(true);
   const [awake, setAwake] = React.useState(false);
@@ -157,6 +176,9 @@ export function EcosystemField(): React.JSX.Element {
         ))}
         {!still && awake
           ? grains.map((path, order) => <Grain key={path} path={path} order={order} />)
+          : null}
+        {!still && awake
+          ? motes.map((mote) => <GoldMote key={mote.path} mote={mote} />)
           : null}
       </svg>
     </div>

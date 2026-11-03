@@ -44,12 +44,15 @@
 
 .h2-tour-tab {
   position: relative;
-  padding: 26px 32px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 32px 14px 16px;
   border: 0;
   background: transparent;
   text-align: left;
   font: inherit;
-  font-size: clamp(22px, 3vw, 34px);
+  font-size: clamp(19px, 2.4vw, 28px);
   font-weight: 300;
   letter-spacing: -0.02em;
   color: var(--h2-ash, #a59f97);
@@ -316,7 +319,8 @@
 /* ---- phone width ---- */
 @media (max-width: 720px) {
   .h2-tour-tab {
-    padding: 18px 16px 16px;
+    padding: 14px 16px 12px;
+    gap: 10px;
   }
   .h2-tour-stage {
     aspect-ratio: 4 / 5;
@@ -393,7 +397,7 @@
   border-bottom: 0;
 }
 
-/* The pager sits on the line between the tabs and the stage. */
+/* The pager sits on the line between the stage and the features. */
 .h2-tour-pager-line {
   position: relative;
   height: 0;

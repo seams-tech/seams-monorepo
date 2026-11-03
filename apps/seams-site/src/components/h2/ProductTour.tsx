@@ -1,6 +1,7 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { IntegrationsWindow } from '@/components/h2/SceneHero';
+import { InkTile } from '@/components/h2/sections';
+import type { TileSign } from '@/components/h2/ink/tileSignScenes';
 import '@/styles/h2-tour.css';
 
 /* Front-page product tour: two tabs (Satyr, Satyr Kitchen), each with three features. A
@@ -39,12 +40,13 @@ type Feature = {
   mark: Mark;
   overlap: Overlap;
 };
-type Tab = { id: string; label: string; features: Feature[] };
+type Tab = { id: string; label: string; sign: TileSign; features: Feature[] };
 
 const TABS: Tab[] = [
   {
     id: 'satyr',
     label: 'Satyr Commerce Agents',
+    sign: 'shop',
     features: [
       {
         id: 'inbox',
@@ -88,6 +90,7 @@ const TABS: Tab[] = [
   {
     id: 'kitchen',
     label: 'Satyr Kitchen',
+    sign: 'croissant',
     features: [
       {
         id: 'plan',
@@ -335,42 +338,13 @@ export function ProductTour({
               onClick={() => jump(i, 0)}
             >
               <span className="h2-tour-line" style={{ transform: `scaleX(${fill})` }} aria-hidden />
+              <InkTile sign={item.sign} />
               {item.label}
             </button>
           );
         })}
       </div>
 
-      <div className="h2-tour-pager-line">
-        {/* Pager sits on the line between the tabs and the stage. */}
-        <div className="h2-pager" role="group" aria-label="Product views">
-          <button
-            type="button"
-            className="h2-pager__btn"
-            aria-label="Previous product view"
-            onClick={() => setStep((s) => (s - 1 + ORDER.length) % ORDER.length)}
-          >
-            <ChevronLeft aria-hidden />
-          </button>
-          <span className="h2-pager__dots">
-            {tab.features.map((item, i) => (
-              <span
-                key={item.id}
-                className={`h2-pager__dot${i === f ? ' is-active' : ''}`}
-                title={item.title}
-              />
-            ))}
-          </span>
-          <button
-            type="button"
-            className="h2-pager__btn"
-            aria-label="Next product view"
-            onClick={() => setStep((s) => (s + 1) % ORDER.length)}
-          >
-            <ChevronRight aria-hidden />
-          </button>
-        </div>
-      </div>
       {links?.[tab.id] ? (
         <a
           className="h2-tour-stage-link"
@@ -383,6 +357,21 @@ export function ProductTour({
       ) : (
         <Stage feature={feature} progress={progress} />
       )}
+
+      <div className="h2-tour-pager-line">
+        {/* Pager sits on the line between the stage and the features. */}
+        <div className="h2-pager" role="group" aria-label="Product views">
+          <span className="h2-pager__dots">
+            {tab.features.map((item, i) => (
+              <span
+                key={item.id}
+                className={`h2-pager__dot${i === f ? ' is-active' : ''}`}
+                title={item.title}
+              />
+            ))}
+          </span>
+        </div>
+      </div>
 
       <div className="h2-tour-features" role="tablist" aria-label={`${tab.label} features`}>
         {tab.features.map((item, i) => {

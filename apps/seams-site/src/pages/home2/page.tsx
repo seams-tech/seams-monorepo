@@ -1,8 +1,7 @@
 import React from 'react';
 import { EcosystemField } from '@/components/h2/EcosystemField';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
-import { palmierOvenScene } from '@/components/h2/ink/butterflyScenes';
-import { goatScene, keyScene, stalkScene, wireScene } from '@/components/h2/ink/scenes';
+import { goatScene, keyScene, stalkScene, whiskGoatScene, wireScene } from '@/components/h2/ink/scenes';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { ProductTour } from '@/components/h2/ProductTour';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
@@ -89,7 +88,7 @@ export function HomePage(): React.JSX.Element {
         <H2WalletBand drawing={<InkDrawing scene={keyScene} className="h2-ink--banner" />} />
         <H2Cta
           audience="home"
-          drawing={<InkDrawing scene={palmierOvenScene} className="h2-ink--banner" />}
+          drawing={<InkDrawing scene={whiskGoatScene} className="h2-ink--banner" />}
         />
         <H2Footer faq="home" />
       </div>

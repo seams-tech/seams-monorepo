@@ -42,7 +42,14 @@ export type GeneratedField = {
   /* how far the soft variation bends the gradient line; 0.24 unless set, and
      less gives a plainer, more gradual blend */
   variation?: number;
+  /* the texture over the gradient: film grain unless set, or a paper or
+     woven linen surface */
+  surface?: GrainSurface;
 };
+
+export type GrainSurface = 'grain' | 'paper' | 'linen';
+
+const SURFACES: Record<GrainSurface, number> = { grain: 0, paper: 1, linen: 2 };
 
 export type GrainFieldSource = {
   key: string;
@@ -52,6 +59,8 @@ export type GrainFieldSource = {
   fit: 'cover' | 'stretch';
   /* mean colour, shown until the first frame */
   base: string;
+  /* the shader's texture: 0 grain, 1 paper, 2 linen */
+  surface: number;
 };
 
 const LIGHT = '#ffffff';
@@ -200,17 +209,23 @@ function cachedSource(
   key: string,
   fit: GrainFieldSource['fit'],
   makeGrid: () => Uint8Array,
+  surface: GrainSurface = 'grain',
 ): GrainFieldSource {
   const cached = sources.get(key);
   if (cached) return cached;
   const grid = makeGrid();
-  const source = { key, grid, fit, base: meanColour(grid) };
+  const source = { key, grid, fit, base: meanColour(grid), surface: SURFACES[surface] };
   sources.set(key, source);
   return source;
 }
 
 export function generatedFieldSource(field: GeneratedField): GrainFieldSource {
-  return cachedSource(JSON.stringify(field), 'stretch', () => generateGrid(field));
+  return cachedSource(
+    JSON.stringify(field),
+    'stretch',
+    () => generateGrid(field),
+    field.surface,
+  );
 }
 
 export function grainFieldSource(field: GrainFieldName | GeneratedField): GrainFieldSource {

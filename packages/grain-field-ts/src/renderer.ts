@@ -54,6 +54,8 @@ type Gpu = {
   seed: WebGLUniformLocation | null;
   distortion: WebGLUniformLocation | null;
   grain: WebGLUniformLocation | null;
+  surface: WebGLUniformLocation | null;
+  pixel: WebGLUniformLocation | null;
   textures: Map<string, WebGLTexture>;
 };
 
@@ -61,6 +63,8 @@ type Gpu = {
 const FRAME_MS = 1000 / 30;
 const MAX_STEP_S = 0.1;
 const MAX_SIDE = 2048;
+/* the same cap as the field canvases */
+const MAX_PIXEL_RATIO = 2;
 
 const VERTEX_SHADER = `
 attribute vec2 aPosition;
@@ -87,6 +91,10 @@ uniform float uTime;
 uniform float uSeed;
 uniform float uDistortion;
 uniform float uGrain;
+/* 0 film grain, 1 paper, 2 woven linen */
+uniform float uSurface;
+/* device pixels per CSS pixel, so a texture keeps its size on any screen */
+uniform float uPixel;
 varying vec2 vUv;
 
 const float GRID = ${GRAIN_FIELD_GRID_SIZE.toFixed(1)};
@@ -139,6 +147,43 @@ vec3 field(vec2 uv) {
   return g0.y * (g0.x * c00 + g1.x * c10) + g1.y * (g0.x * c01 + g1.x * c11);
 }
 
+/* Paper: a fine mottle where the fibres lie thicker or thinner, short thin
+   fibres in three directions, some lighter and some darker, and a fine
+   tooth. q is in CSS pixels. */
+float paperSurface(vec2 q) {
+  float mottle = 0.3 * noise(q / 32.0) + 0.4 * noise(q / 9.0 + 7.1) + 0.3 * noise(q / 3.5 + 3.7);
+  mat2 tilt = mat2(0.87, 0.5, -0.5, 0.87);
+  mat2 steep = mat2(0.26, -0.97, 0.97, 0.26);
+  float fibre = 0.0;
+  fibre += 1.0 - smoothstep(0.0, 0.04, abs(noise(tilt * q * vec2(0.05, 0.8))));
+  fibre += 1.0 - smoothstep(0.0, 0.04, abs(noise(steep * q * vec2(0.05, 0.8) + 11.0)));
+  fibre += 1.0 - smoothstep(0.0, 0.04, abs(noise(q * vec2(0.8, 0.05) + 23.0)));
+  /* only some patches show their fibres, and a patch is lighter or darker */
+  fibre *= smoothstep(0.0, 0.25, abs(noise(q / 18.0 + 41.0))) * sign(noise(q / 18.0 + 41.0));
+  float tooth = hash12(floor(q * 1.5)) - 0.5;
+  return mottle * 0.05 + fibre * 0.02 + tooth * 0.024;
+}
+
+/* Linen: a plain weave in which every thread has its own tone, so the
+   threads show as fine crossing stripes. A thread also thickens and fades
+   along its length (slubs), and the weave drifts in long soft bands. q is
+   in CSS pixels. */
+float linenSurface(vec2 q) {
+  const float PERIOD = 3.0;
+  vec2 c = q / PERIOD;
+  vec2 cell = floor(c);
+  vec2 f = fract(c);
+  float warpTone = 0.8 * (hash12(vec2(cell.x, 3.0)) - 0.5) + 0.7 * noise(vec2(cell.x * 1.7, q.y / 22.0));
+  float weftTone = 0.8 * (hash12(vec2(7.0, cell.y)) - 0.5) + 0.7 * noise(vec2(q.x / 22.0, cell.y * 1.7 + 50.0));
+  float warp = sin(3.14159 * f.x);
+  float weft = sin(3.14159 * f.y);
+  float over = mod(cell.x + cell.y, 2.0);
+  float thread = mix(weft, warp, over);
+  float tone = mix(weftTone, warpTone, 0.35 + 0.3 * over);
+  float band = noise(vec2(q.x / 260.0, q.y / 9.0));
+  return tone * 0.05 + (thread - 0.64) * 0.022 + band * 0.012;
+}
+
 void main() {
   /* p spans 1 on the short side, so the flow is round on any shape */
   vec2 aspect = uResolution / min(uResolution.x, uResolution.y);
@@ -154,8 +199,11 @@ void main() {
     noise(1.3 * b + 1.2 * warp + vec2(8.3, 2.8) - 0.07 * t)
   );
   vec3 color = field(0.5 + (p + flow * uDistortion) / aspect * uCover);
-  /* the grain stays fixed to the screen while the field flows under it */
-  color += (hash12(gl_FragCoord.xy) - 0.5) * uGrain;
+  /* the texture stays fixed to the screen while the field flows under it */
+  vec2 q = gl_FragCoord.xy / uPixel;
+  if (uSurface > 1.5) color += linenSurface(q);
+  else if (uSurface > 0.5) color += paperSurface(q);
+  else color += (hash12(gl_FragCoord.xy) - 0.5) * uGrain;
   gl_FragColor = vec4(color, 1.0);
 }
 `;
@@ -235,6 +283,8 @@ function createGpu(): Gpu | null {
     seed: gl.getUniformLocation(program, 'uSeed'),
     distortion: gl.getUniformLocation(program, 'uDistortion'),
     grain: gl.getUniformLocation(program, 'uGrain'),
+    surface: gl.getUniformLocation(program, 'uSurface'),
+    pixel: gl.getUniformLocation(program, 'uPixel'),
     textures: new Map(),
   };
 }
@@ -308,6 +358,8 @@ function draw(view: View): void {
   gl.uniform1f(gpu.seed, view.seed);
   gl.uniform1f(gpu.distortion, style.distortion * view.flow);
   gl.uniform1f(gpu.grain, style.grain);
+  gl.uniform1f(gpu.surface, view.source.surface);
+  gl.uniform1f(gpu.pixel, Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   /* the viewport sits at the bottom left of the shared canvas; copy it out
      before this task ends, while the drawing buffer still holds it */

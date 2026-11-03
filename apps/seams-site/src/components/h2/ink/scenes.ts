@@ -2332,7 +2332,7 @@ export const orderSlipsScene: InkScene = {
 /* ---------- the cobot: an arm lifts a croissant off the line ---------- */
 
 /* a machine joint: a dark ball with a pale ring and a dark pin */
-function machineJoint(x: number, y: number, r: number): InkStroke[] {
+export function machineJoint(x: number, y: number, r: number): InkStroke[] {
   return [
     roundBlob(x, y, r, r),
     blob(x, y, r * 0.52, r * 0.52, 'clear'),
@@ -2368,8 +2368,8 @@ function beltCroissant(id: string, x: number): InkPart {
   };
 }
 
-const ARM_LINE = { dry: 0.04, rough: 0.6, grain: 0.02 } as const;
-const SOLID_LINE = { dry: 0, rough: 0.6, grain: 0.02 } as const;
+export const ARM_LINE = { dry: 0.04, rough: 0.6, grain: 0.02 } as const;
+export const SOLID_LINE = { dry: 0, rough: 0.6, grain: 0.02 } as const;
 
 export const cobotScene: InkScene = {
   width: BANNER_WIDTH,

@@ -40,7 +40,3 @@ export function saveConsoleLocaleAndReload(locale: ConsoleLocale): void {
   }
   window.location.reload();
 }
-
-export function languageToggleLabel(locale: ConsoleLocale): string {
-  return locale === 'ja' ? 'English' : '日本語';
-}

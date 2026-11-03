@@ -55,7 +55,11 @@ import {
 import DashboardSidebarToggleIcon from '../icons/DashboardSidebarToggleIcon';
 import type { SidebarIconComponent, TopbarMenuKey, TopbarOption } from '../types';
 import { getDocsOrigin } from '@core/router/siteRouting';
-import type { ConsoleNetwork } from '@core/runtime';
+import {
+  AccountMenuToggles,
+  CONSOLE_NETWORKS,
+  type DashboardNetworkSwitch,
+} from './AccountMenuToggles';
 import { useDashboardConsoleSession } from '../consoleSession';
 import { dashboardSignInLabel } from '../utils/userIdentity';
 import { ProviderMark } from '@core/auth/ProviderMark';
@@ -67,18 +71,7 @@ export type TopbarSearchItem = {
   icon: SidebarIconComponent;
 };
 
-/** The account network this Console reads, and the switch to the other one. */
-export type DashboardNetworkSwitch = {
-  readonly selected: ConsoleNetwork;
-  readonly onSelect: (network: ConsoleNetwork) => void;
-  /** Called when the pointer or focus reaches the switch, before a click. */
-  readonly onIntent?: () => void;
-};
-
-const CONSOLE_NETWORKS: readonly { readonly value: ConsoleNetwork; readonly label: string }[] = [
-  { value: 'testnet', label: t('commonNetworkTestnet') },
-  { value: 'mainnet', label: t('commonNetworkMainnet') },
-];
+export type { DashboardNetworkSwitch };
 
 export type DashboardTopbarProps = {
   workspace?: SidebarWorkspaceProps;
@@ -399,6 +392,7 @@ export function DashboardTopbar({
             </span>
           ) : null}
         </div>
+        <AccountMenuToggles network={network} inMenu onDone={accountMenu.close} />
         {dropdownOptions.accountSettings.map((option) => {
           const icon =
             option.icon === 'sun' ? (

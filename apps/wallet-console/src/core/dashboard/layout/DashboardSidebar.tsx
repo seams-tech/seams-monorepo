@@ -12,6 +12,7 @@ import type { DashboardProduct, DashboardProductId, SidebarGroup, TopbarOption }
 import { useDashboardConsoleSession } from '../consoleSession';
 import { dashboardSignInLabel } from '../utils/userIdentity';
 import { ProviderMark } from '@core/auth/ProviderMark';
+import { AccountMenuToggles, type DashboardNetworkSwitch } from './AccountMenuToggles';
 
 export type DashboardLinkPropsFactory = (to: string) => {
   href: string;
@@ -58,6 +59,7 @@ export type SidebarProductProps = {
 export type DashboardSidebarProps<Route extends string, GroupKey extends string> = {
   accountLabel: string;
   accountOptions: TopbarOption[];
+  network?: DashboardNetworkSwitch;
   onSelectAccount: (value: string) => void;
   groups: SidebarGroup<Route, GroupKey>[];
   externalLinks?: readonly DashboardExternalLink[];
@@ -525,6 +527,7 @@ function externalConsoleLink(link: DashboardExternalLink): React.JSX.Element {
 export function DashboardSidebar<Route extends string, GroupKey extends string>({
   accountLabel,
   accountOptions,
+  network,
   onSelectAccount,
   groups,
   externalLinks = [],
@@ -676,6 +679,7 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
                   </span>
                 </div>
               ) : null}
+              <AccountMenuToggles network={network} inMenu={false} />
               {accountOptions.map((option) => (
                 <button
                   key={option.value}

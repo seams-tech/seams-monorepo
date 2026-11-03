@@ -3,7 +3,7 @@ import { resolveConsoleLocale, type ConsoleLocale } from './locale';
 
 export type { ConsoleLocale } from './locale';
 export type { MessageKey } from './catalog';
-export { languageToggleLabel, saveConsoleLocaleAndReload } from './locale';
+export { saveConsoleLocaleAndReload } from './locale';
 
 // Like the marketing pages, a language change reloads the page, so one locale holds for the whole run.
 export const consoleLocale: ConsoleLocale = resolveConsoleLocale();

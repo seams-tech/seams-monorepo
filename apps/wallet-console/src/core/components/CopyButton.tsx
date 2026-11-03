@@ -1,3 +1,4 @@
+import { t } from '@core/i18n';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Copy as CopyIcon, Check as CheckIcon } from 'lucide-react';
 
@@ -12,7 +13,7 @@ export type CopyButtonProps = {
 
 export const CopyButton: React.FC<CopyButtonProps> = ({
   text,
-  ariaLabel = 'Copy to clipboard',
+  ariaLabel = t('commonCopyToClipboard'),
   className,
   size = 16,
   onCopy,

@@ -1,3 +1,4 @@
+import { t } from '@core/i18n';
 import type { DashboardConsoleAuditEvent } from './consoleAuditApi';
 
 /* The audit toolbar reads a window of time rather than two free-typed
@@ -23,10 +24,10 @@ const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 
 export const AUDIT_RANGE_PRESETS: readonly AuditRangePreset[] = [
-  { id: 'hour', label: 'Last hour', durationMs: HOUR_MS },
-  { id: 'day', label: 'Last 24 hours', durationMs: DAY_MS },
-  { id: 'week', label: 'Last 7 days', durationMs: 7 * DAY_MS },
-  { id: 'month', label: 'Last 30 days', durationMs: 30 * DAY_MS },
+  { id: 'hour', label: t('auditRangeLastHour'), durationMs: HOUR_MS },
+  { id: 'day', label: t('auditRangeLast24Hours'), durationMs: DAY_MS },
+  { id: 'week', label: t('auditRangeLast7Days'), durationMs: 7 * DAY_MS },
+  { id: 'month', label: t('auditRangeLast30Days'), durationMs: 30 * DAY_MS },
 ];
 
 export const DEFAULT_AUDIT_RANGE_PRESET_ID: AuditRangePresetId = 'week';
@@ -55,14 +56,14 @@ function formatSpanLabel(spanMs: number): string {
   const round = (value: number) => Math.max(1, Math.round(value));
   if (spanMs < 90 * MINUTE_MS) {
     const minutes = round(spanMs / MINUTE_MS);
-    return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+    return t(minutes === 1 ? 'auditSpanMinuteOne' : 'auditSpanMinuteMany', { count: minutes });
   }
   if (spanMs < 36 * HOUR_MS) {
     const hours = round(spanMs / HOUR_MS);
-    return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+    return t(hours === 1 ? 'auditSpanHourOne' : 'auditSpanHourMany', { count: hours });
   }
   const days = round(spanMs / DAY_MS);
-  return `${days} ${days === 1 ? 'day' : 'days'}`;
+  return t(days === 1 ? 'auditSpanDayOne' : 'auditSpanDayMany', { count: days });
 }
 
 /* A window ending at the present is "Last 7 days"; the same span stepped
@@ -74,7 +75,9 @@ export function auditRangeLabel(range: AuditTimeRange, nowMs: number): string {
   const endsNow = nowMs - range.toMs < Math.min(MINUTE_MS, spanMs / 20);
   const preset = auditRangeSpanPreset(range);
   if (preset) return endsNow ? preset.label : formatSpanLabel(spanMs);
-  return endsNow ? `Last ${formatSpanLabel(spanMs)}` : formatSpanLabel(spanMs);
+  return endsNow
+    ? t('auditRangeLastSpan', { span: formatSpanLabel(spanMs) })
+    : formatSpanLabel(spanMs);
 }
 
 /* Stepping keeps the span fixed and slides the window, so "‹" always shows

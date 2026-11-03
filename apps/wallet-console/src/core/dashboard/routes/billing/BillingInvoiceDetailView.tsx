@@ -1,5 +1,5 @@
-import { billingDocumentLabel } from './consoleBillingApi';
 import React from 'react';
+import { t } from '@core/i18n';
 import {
   DashboardTable,
   DashboardTableCell,
@@ -19,9 +19,11 @@ import {
 } from './consoleBillingApi';
 import {
   BillingMetricsGrid,
+  billingDocumentTypeLabel,
   formatInvoiceStatusLabel,
   formatTimestamp,
   getInvoiceStatusBadgeClassName,
+  textWithNodes,
   type BillingMetric,
 } from './billingShared';
 import {
@@ -77,33 +79,37 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
 
   const detailMetrics: BillingMetric[] = [
     {
-      label: 'Document type',
-      value: invoice ? billingDocumentLabel(invoice.documentType) : 'Document',
+      label: t('billingDocumentType'),
+      value: invoice
+        ? billingDocumentTypeLabel(invoice.documentType)
+        : t('billingMetricDocumentFallback'),
       hint: invoice?.id || invoiceId,
     },
     {
-      label: 'Status',
+      label: t('billingMetricStatus'),
       value: invoice ? formatInvoiceStatusLabel(invoice.status) : '-',
       hint:
         invoice?.documentType === 'PURCHASE_RECEIPT'
-          ? 'Settled prepaid credit purchase'
-          : 'Generated from recorded prepaid usage',
+          ? t('billingStatusHintReceipt')
+          : t('billingStatusHintStatement'),
     },
     {
-      label: 'Amount',
+      label: t('billingMetricAmount'),
       value: formatUsdMinor(Number(invoice?.amountDueMinor || 0)),
-      hint: `Paid ${formatUsdMinor(Number(invoice?.amountPaidMinor || 0))}`,
+      hint: t('billingPaidAmount', {
+        amount: formatUsdMinor(Number(invoice?.amountPaidMinor || 0)),
+      }),
     },
     {
-      label: 'Period',
+      label: t('billingMetricPeriod'),
       value: invoice?.periodMonthUtc || '-',
-      hint: `Created ${formatTimestamp(invoice?.createdAt || null)}`,
+      hint: t('billingCreatedAt', { time: formatTimestamp(invoice?.createdAt || null) }),
     },
   ];
   const lineItemsPagination = useDashboardTablePagination(lineItems, {
     disabled: lineItemsLoading,
-    itemLabel: 'line item',
-    itemLabelPlural: 'line items',
+    itemLabel: t('billingItemLineItem'),
+    itemLabelPlural: t('billingItemLineItems'),
   });
   const hasInternalActivityEntries = Boolean(
     invoiceActivity?.entries.some((entry) => entry.visibility === 'INTERNAL'),
@@ -113,7 +119,7 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
     <>
       <section
         className="dashboard-view__section dashboard-billing-invoice-hero"
-        aria-label="Billing document detail header"
+        aria-label={t('billingDocumentDetailHeader')}
       >
         <div className="dashboard-billing-invoice-hero__actions">
           <button
@@ -121,7 +127,7 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
             className="dashboard-pagination-button dashboard-pagination-button--secondary"
             onClick={onBackToInvoices}
           >
-            Back to invoices
+            {t('billingBackToInvoices')}
           </button>
           <button
             type="button"
@@ -131,13 +137,15 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
             }}
             disabled={downloadingInvoicePdfId === invoiceId}
           >
-            {downloadingInvoicePdfId === invoiceId ? 'Downloading PDF...' : 'Download PDF'}
+            {downloadingInvoicePdfId === invoiceId
+              ? t('billingDownloadingPdfEllipsis')
+              : t('billingDownloadPdf')}
           </button>
         </div>
         <div className="dashboard-billing-invoice-hero__copy">
-          <p className="dashboard-billing-invoice-hero__eyebrow">Billing document</p>
+          <p className="dashboard-billing-invoice-hero__eyebrow">{t('billingDocumentEyebrow')}</p>
           <h2>{invoice?.id || invoiceId}</h2>
-          <p>View document status, line items, and recorded ledger activity.</p>
+          <p>{t('billingDocumentIntro')}</p>
         </div>
         {invoiceDownloadError ? (
           <p className="dashboard-pagination-note">{invoiceDownloadError}</p>
@@ -147,7 +155,7 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
       {invoiceDetailLoading ? (
         <section className="dashboard-view__section">
           <DashboardPageSkeleton
-            label="Loading billing document"
+            label={t('billingLoadingDocument')}
             metrics={3}
             rows={4}
             columns={5}
@@ -155,58 +163,61 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
         </section>
       ) : invoiceDetailError ? (
         <section className="dashboard-view__section">
-          <p>Billing document unavailable: {invoiceDetailError}</p>
+          <p>{t('billingDocumentUnavailable', { error: invoiceDetailError })}</p>
         </section>
       ) : !invoice ? (
         <section className="dashboard-view__section">
-          <p>Billing document {invoiceId} was not found.</p>
+          <p>{t('billingDocumentNotFound', { id: invoiceId })}</p>
         </section>
       ) : (
         <>
           <BillingMetricsGrid
             metrics={detailMetrics}
-            ariaLabel="Billing document summary metrics"
+            ariaLabel={t('billingDocumentSummaryMetricsLabel')}
           />
 
           {invoice.documentType === 'USAGE_STATEMENT' ? (
             <section
               className="dashboard-view__section"
-              aria-label="Billing document account activity"
+              aria-label={t('billingDocumentAccountActivityLabel')}
             >
               <p className="dashboard-info-banner">
-                Review service costs for this billing period in{' '}
-                <a
-                  href={`/dashboard/billing/account?periodMonthUtc=${encodeURIComponent(invoice.periodMonthUtc)}#billing-usage-costs`}
-                >
-                  Usage costs
-                </a>
-                . Review posted financial movements in{' '}
-                <a href="/dashboard/billing/account#billing-account-activity">Account activity</a>.
+                {textWithNodes(t('billingUsageStatementNote'), {
+                  usageLink: (
+                    <a
+                      href={`/dashboard/billing/account?periodMonthUtc=${encodeURIComponent(invoice.periodMonthUtc)}#billing-usage-costs`}
+                    >
+                      {t('billingUsageCostsLink')}
+                    </a>
+                  ),
+                  activityLink: (
+                    <a href="/dashboard/billing/account#billing-account-activity">
+                      {t('billingAccountActivityLink')}
+                    </a>
+                  ),
+                })}
               </p>
             </section>
           ) : null}
 
           <section
             className="dashboard-table-wrapper"
-            aria-label="Billing document activity timeline"
+            aria-label={t('billingActivityTimelineLabel')}
           >
             <div className="dashboard-table-limit dashboard-billing-table__intro">
-              <h3 className="dashboard-billing-table__title">Document activity</h3>
+              <h3 className="dashboard-billing-table__title">{t('billingDocumentActivity')}</h3>
               <p className="dashboard-billing-table__description">
-                Review document creation and ledger activity in one chronological feed.
+                {t('billingDocumentActivityIntro')}
               </p>
               {hasInternalActivityEntries ? (
-                <p className="dashboard-pagination-note">
-                  Internal manual adjustments are visible in this staff timeline only and are
-                  excluded from exported PDFs.
-                </p>
+                <p className="dashboard-pagination-note">{t('billingInternalNote')}</p>
               ) : null}
               {invoiceActivityError ? (
                 <p className="dashboard-pagination-note">{invoiceActivityError}</p>
               ) : null}
             </div>
             {invoiceActivityLoading ? (
-              <p className="dashboard-table-limit">Loading document activity...</p>
+              <p className="dashboard-table-limit">{t('billingLoadingDocumentActivity')}</p>
             ) : invoiceActivity?.entries.length ? (
               <div className="dashboard-billing-timeline">
                 {invoiceActivity.entries.map((entry) => (
@@ -220,43 +231,43 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
                     <p className="dashboard-billing-timeline__meta">
                       {formatTimestamp(entry.occurredAt)}
                       {entry.actorUserId ? ` • ${entry.actorUserId}` : ''}
-                      {entry.visibility === 'INTERNAL' ? ' • Internal only' : ''}
+                      {entry.visibility === 'INTERNAL' ? ` • ${t('billingInternalOnly')}` : ''}
                     </p>
                   </article>
                 ))}
               </div>
             ) : (
-              <p className="dashboard-table-limit">No document activity has been recorded yet.</p>
+              <p className="dashboard-table-limit">{t('billingNoDocumentActivity')}</p>
             )}
           </section>
 
           <DashboardTable
-            ariaLabel="Billing document line items"
+            ariaLabel={t('billingLineItemsTableLabel')}
             columns={BILLING_INVOICE_LINE_ITEMS_TABLE_COLUMNS}
             pagination={lineItemsPagination.pagination}
           >
             <DashboardTableIntro className="dashboard-billing-table__intro">
-              <h3 className="dashboard-billing-table__title">Line items</h3>
-              <p className="dashboard-billing-table__description">
-                Review the billed or credited components captured in this document snapshot.
-              </p>
+              <h3 className="dashboard-billing-table__title">{t('billingLineItems')}</h3>
+              <p className="dashboard-billing-table__description">{t('billingLineItemsIntro')}</p>
             </DashboardTableIntro>
             <DashboardTableHeader>
-              <DashboardTableHeaderCell>Line item ID</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Type</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Description</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Period</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Quantity</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Unit amount</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Amount</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Document</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('billingColLineItemId')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('billingColType')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('billingColDescription')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('billingColPeriod')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('billingColQuantity')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('billingColUnitAmount')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('billingColAmount')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('billingColDocument')}</DashboardTableHeaderCell>
             </DashboardTableHeader>
             {lineItemsLoading ? (
-              <DashboardTableSkeletonRows label="Loading line items" columns={8} />
+              <DashboardTableSkeletonRows label={t('billingLoadingLineItems')} columns={8} />
             ) : lineItemsError ? (
-              <DashboardTableState>Line items unavailable: {lineItemsError}</DashboardTableState>
+              <DashboardTableState>
+                {t('billingLineItemsUnavailable', { error: lineItemsError })}
+              </DashboardTableState>
             ) : lineItems.length === 0 ? (
-              <DashboardTableState>No line items for this document.</DashboardTableState>
+              <DashboardTableState>{t('billingNoLineItems')}</DashboardTableState>
             ) : (
               <>
                 {lineItemsPagination.rows.map((lineItem) => (
@@ -291,16 +302,16 @@ export default BillingInvoiceDetailView;
 function invoiceItemLabel(type: string): string {
   switch (type) {
     case 'PLAN_BASE_FEE':
-      return 'Plan base fee';
+      return t('billingItemPlanBaseFee');
     case 'PLAN_SIGNING_USAGE':
-      return 'Signing usage';
+      return t('billingItemSigningUsage');
     case 'PRODUCT_EXECUTION_DEBIT':
-      return 'Execution usage';
+      return t('billingItemExecutionUsage');
     case 'CREDIT_TOP_UP':
-      return 'Credit purchase';
+      return t('billingItemCreditPurchase');
     case 'ACTIVE_RESOURCE_USAGE_DEBIT':
-      return 'Active resource usage';
+      return t('billingItemActiveResourceUsage');
     default:
-      return 'Adjustment';
+      return t('billingItemAdjustment');
   }
 }

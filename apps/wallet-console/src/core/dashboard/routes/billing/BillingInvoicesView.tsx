@@ -1,5 +1,5 @@
-import { billingDocumentLabel } from './consoleBillingApi';
 import React from 'react';
+import { t } from '@core/i18n';
 import { Download, LoaderCircle } from 'lucide-react';
 import {
   DashboardTable,
@@ -16,6 +16,7 @@ import {
 import { formatUsdMinor, type DashboardBillingInvoice } from './consoleBillingApi';
 import {
   BillingMetricsGrid,
+  billingDocumentTypeLabel,
   formatTimestamp,
   formatInvoiceStatusLabel,
   getInvoiceStatusBadgeClassName,
@@ -78,53 +79,56 @@ export function BillingInvoicesView(props: BillingInvoicesViewProps): React.JSX.
   } = props;
   const invoicesPagination = useDashboardTablePagination(invoices, {
     disabled: invoiceListLoading,
-    itemLabel: 'document',
-    itemLabelPlural: 'documents',
+    itemLabel: t('billingItemDocument'),
+    itemLabelPlural: t('billingItemDocuments'),
   });
 
   return (
     <>
-      <BillingMetricsGrid metrics={invoiceMetrics} ariaLabel="Billing document summary metrics" />
+      <BillingMetricsGrid
+        metrics={invoiceMetrics}
+        ariaLabel={t('billingDocumentSummaryMetricsLabel')}
+      />
 
       <section className="dashboard-view__section dashboard-billing-filters-panel">
         <div className="dashboard-billing-table__intro">
-          <h3 className="dashboard-billing-table__title">Receipts and statements</h3>
+          <h3 className="dashboard-billing-table__title">{t('billingReceiptsAndStatements')}</h3>
           <div
             className="dashboard-billing-filters"
             role="group"
-            aria-label="Billing document filters"
+            aria-label={t('billingDocumentFiltersLabel')}
           >
             <label className="dashboard-form-field">
-              <span>Document type</span>
+              <span>{t('billingDocumentType')}</span>
               <select
                 className="dashboard-input"
                 value={invoiceDocumentTypeFilter}
                 onChange={(event) => setInvoiceDocumentTypeFilter(event.target.value)}
               >
-                <option value="all">All documents</option>
-                <option value="PURCHASE_RECEIPT">Purchase receipts</option>
-                <option value="USAGE_STATEMENT">Usage statements</option>
-                <option value="MONTHLY_INVOICE">Monthly invoices</option>
+                <option value="all">{t('billingAllDocuments')}</option>
+                <option value="PURCHASE_RECEIPT">{t('billingPurchaseReceiptsPlural')}</option>
+                <option value="USAGE_STATEMENT">{t('billingUsageStatementsPlural')}</option>
+                <option value="MONTHLY_INVOICE">{t('billingMonthlyInvoicesPlural')}</option>
               </select>
             </label>
             <label className="dashboard-form-field">
-              <span>Status</span>
+              <span>{t('billingStatus')}</span>
               <select
                 className="dashboard-input"
                 value={invoiceStatusFilter}
                 onChange={(event) => setInvoiceStatusFilter(event.target.value)}
               >
-                <option value="all">All statuses</option>
-                <option value="open">Open</option>
-                <option value="overdue">Overdue</option>
-                <option value="paid">Paid</option>
-                <option value="void">Void</option>
-                <option value="uncollectible">Uncollectible</option>
+                <option value="all">{t('billingAllStatuses')}</option>
+                <option value="open">{t('billingFilterOpen')}</option>
+                <option value="overdue">{t('billingFilterOverdue')}</option>
+                <option value="paid">{t('billingFilterPaid')}</option>
+                <option value="void">{t('billingFilterVoid')}</option>
+                <option value="uncollectible">{t('billingFilterUncollectible')}</option>
               </select>
             </label>
             <div className="dashboard-form-field dashboard-form-field--full dashboard-billing-filters__period">
               <label className="dashboard-form-field dashboard-billing-filters__period-input--start">
-                <span>Start date</span>
+                <span>{t('billingStartDate')}</span>
                 <input
                   className="dashboard-input"
                   type="date"
@@ -134,7 +138,7 @@ export function BillingInvoicesView(props: BillingInvoicesViewProps): React.JSX.
                 />
               </label>
               <label className="dashboard-form-field dashboard-billing-filters__period-input--end">
-                <span>End date</span>
+                <span>{t('billingEndDate')}</span>
                 <input
                   className="dashboard-input"
                   type="date"
@@ -154,27 +158,25 @@ export function BillingInvoicesView(props: BillingInvoicesViewProps): React.JSX.
       </section>
 
       <DashboardTable
-        ariaLabel="Billing documents table"
+        ariaLabel={t('billingDocumentsTableLabel')}
         columns={BILLING_INVOICES_TABLE_COLUMNS}
         pagination={invoicesPagination.pagination}
       >
         <DashboardTableHeader>
-          <DashboardTableHeaderCell>Document ID</DashboardTableHeaderCell>
-          <DashboardTableHeaderCell>Type</DashboardTableHeaderCell>
-          <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
-          <DashboardTableHeaderCell>Period</DashboardTableHeaderCell>
-          <DashboardTableHeaderCell>Created</DashboardTableHeaderCell>
-          <DashboardTableHeaderCell>Amount</DashboardTableHeaderCell>
-          <DashboardTableHeaderCell>Paid</DashboardTableHeaderCell>
-          <DashboardTableHeaderCell>Actions</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('billingColDocumentId')}</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('billingColType')}</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('billingColStatus')}</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('billingColPeriod')}</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('billingColCreated')}</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('billingColAmount')}</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('billingColPaid')}</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('billingColActions')}</DashboardTableHeaderCell>
         </DashboardTableHeader>
         {invoiceListLoading ? (
-          <DashboardTableSkeletonRows label="Loading billing documents" columns={8} />
+          <DashboardTableSkeletonRows label={t('billingLoadingDocuments')} columns={8} />
         ) : invoices.length === 0 ? (
           <DashboardTableState>
-            {hasAnyInvoices
-              ? 'No documents match the current filters.'
-              : 'No billing documents yet.'}
+            {hasAnyInvoices ? t('billingNoDocumentsMatch') : t('billingNoDocuments')}
           </DashboardTableState>
         ) : (
           <>
@@ -184,7 +186,7 @@ export function BillingInvoicesView(props: BillingInvoicesViewProps): React.JSX.
                   <code>{invoice.id}</code>
                 </DashboardTableCell>
                 <DashboardTableCell truncate>
-                  {billingDocumentLabel(invoice.documentType)}
+                  {billingDocumentTypeLabel(invoice.documentType)}
                 </DashboardTableCell>
                 <DashboardTableCell>
                   <span className={getInvoiceStatusBadgeClassName(invoice.status)}>
@@ -200,17 +202,19 @@ export function BillingInvoicesView(props: BillingInvoicesViewProps): React.JSX.
                 <DashboardTableCell>
                   <DashboardTableActionGroup>
                     <DashboardTableActionButton
-                      aria-label="View document"
+                      aria-label={t('billingViewDocumentLabel')}
                       onClick={() => onOpenInvoice(invoice.id)}
                     >
-                      View
+                      {t('billingView')}
                     </DashboardTableActionButton>
                     <DashboardTableActionButton
                       className="dashboard-data-table__action-button--icon"
                       aria-label={
-                        downloadingInvoicePdfId === invoice.id ? 'Downloading PDF' : 'Download PDF'
+                        downloadingInvoicePdfId === invoice.id
+                          ? t('billingDownloadingPdf')
+                          : t('billingDownloadPdf')
                       }
-                      title="Download PDF"
+                      title={t('billingDownloadPdf')}
                       onClick={() => {
                         void onDownloadInvoicePdf(invoice.id);
                       }}

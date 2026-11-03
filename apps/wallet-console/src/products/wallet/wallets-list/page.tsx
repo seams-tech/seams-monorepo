@@ -3,6 +3,7 @@ import {
   type ConsoleWalletKey,
 } from '@seams-internal/wallet-console-shared';
 import React from 'react';
+import { t } from '@core/i18n';
 import { formatDashboardTimestamp } from '@core/dashboard/utils/timestamps';
 import {
   DashboardTable,
@@ -41,15 +42,15 @@ import {
 } from '../wallets/consoleWalletApi';
 
 const USER_WALLETS_TABLE_COLUMNS = [
-  'Wallet',
-  'Owner',
-  'Policy',
-  'Balance',
-  'Status',
-  'Updated',
+  { id: 'wallet', label: t('walletListColWallet') },
+  { id: 'owner', label: t('walletListColOwner') },
+  { id: 'policy', label: t('walletListColPolicy') },
+  { id: 'balance', label: t('walletListColBalance') },
+  { id: 'status', label: t('walletListColStatus') },
+  { id: 'updated', label: t('walletListColUpdated') },
 ] as const;
-const SEARCH_USER_WALLETS_PLACEHOLDER =
-  'Search by wallet address, wallet ID, user ID, or external reference ID';
+const SEARCH_USER_WALLETS_PLACEHOLDER = t('walletListSearchPlaceholder');
+const ANY_POLICY_LABEL = t('walletListAnyPolicy');
 
 type WalletFilterOption = {
   value: string;
@@ -62,25 +63,40 @@ type WalletSortOption = WalletFilterOption & {
 };
 
 const WALLET_TYPE_OPTIONS: readonly WalletFilterOption[] = [
-  { value: '', label: 'EOA + Smart' },
-  { value: 'EOA', label: 'EOA only' },
-  { value: 'SMART', label: 'Smart only' },
+  { value: '', label: t('walletListTypeAll') },
+  { value: 'EOA', label: t('walletListTypeEoa') },
+  { value: 'SMART', label: t('walletListTypeSmart') },
 ];
 
 const SORT_OPTIONS: readonly WalletSortOption[] = [
-  { value: 'created-desc', label: 'Newest first', sortBy: 'createdAt', sortOrder: 'desc' },
-  { value: 'created-asc', label: 'Oldest first', sortBy: 'createdAt', sortOrder: 'asc' },
-  { value: 'balance-desc', label: 'Highest balance', sortBy: 'balance', sortOrder: 'desc' },
-  { value: 'balance-asc', label: 'Lowest balance', sortBy: 'balance', sortOrder: 'asc' },
+  {
+    value: 'created-desc',
+    label: t('walletListSortNewest'),
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  },
+  { value: 'created-asc', label: t('walletListSortOldest'), sortBy: 'createdAt', sortOrder: 'asc' },
+  {
+    value: 'balance-desc',
+    label: t('walletListSortHighestBalance'),
+    sortBy: 'balance',
+    sortOrder: 'desc',
+  },
+  {
+    value: 'balance-asc',
+    label: t('walletListSortLowestBalance'),
+    sortBy: 'balance',
+    sortOrder: 'asc',
+  },
   {
     value: 'last-activity-desc',
-    label: 'Recent activity',
+    label: t('walletListSortRecentActivity'),
     sortBy: 'lastActivity',
     sortOrder: 'desc',
   },
   {
     value: 'last-activity-asc',
-    label: 'Oldest activity',
+    label: t('walletListSortOldestActivity'),
     sortBy: 'lastActivity',
     sortOrder: 'asc',
   },
@@ -116,6 +132,23 @@ function formatStablecoinBalance(raw: string, decimals: number): string {
   return `$${formatRawAmount(raw, decimals, 2, 2)}`;
 }
 
+function walletListFooterText(
+  count: number,
+  searchMode: boolean,
+  projectId: string | undefined,
+  environmentId: string | undefined,
+): string {
+  const one = count === 1;
+  const summary = searchMode
+    ? t(one ? 'walletListFooterResultsOne' : 'walletListFooterResultsMany', { count })
+    : t(one ? 'walletListFooterWalletsOne' : 'walletListFooterWalletsMany', { count });
+  if (!projectId) return summary;
+  const scope = environmentId
+    ? t('walletListFooterScopeEnvironment', { project: projectId, environment: environmentId })
+    : t('walletListFooterScopeProject', { project: projectId });
+  return `${summary} ${scope}`;
+}
+
 function walletBalancesRegionId(wallet: ConsoleWalletKey): string {
   return `wallet-chain-balances-${encodeURIComponent(consoleWalletKeyString(wallet))}`;
 }
@@ -128,16 +161,16 @@ function WalletChainBalances(props: { wallet: DashboardConsoleWallet }): React.J
     <DashboardTableDetailsPanel className="dashboard-wallet-balances">
       <section
         id={walletBalancesRegionId(wallet)}
-        aria-label={`Gas balances for ${wallet.address}`}
+        aria-label={t('walletBalancesLabel', { address: wallet.address })}
       >
         <header className="dashboard-wallet-balances__header">
-          <strong>Gas balances</strong>
+          <strong>{t('walletBalancesTitle')}</strong>
           {balances ? (
             <time dateTime={balances.observedAt}>
-              Updated {formatTimestamp(balances.observedAt)}
+              {t('walletBalancesUpdated', { time: formatTimestamp(balances.observedAt) })}
             </time>
           ) : (
-            <span>Waiting for first balance refresh</span>
+            <span>{t('walletBalancesWaiting')}</span>
           )}
         </header>
         {balances ? (
@@ -145,48 +178,48 @@ function WalletChainBalances(props: { wallet: DashboardConsoleWallet }): React.J
             <article className="dashboard-wallet-balances__card">
               <header className="dashboard-wallet-balances__network">
                 <strong>NEAR</strong>
-                <span>Gas currency</span>
+                <span>{t('walletBalancesGasCurrency')}</span>
               </header>
               <p className="dashboard-wallet-balances__amount">
                 <strong>{formatNearBalance(balances.near.balanceYocto)}</strong>
                 <span>NEAR</span>
               </p>
               <div className="dashboard-wallet-balances__identity">
-                <span>Account</span>
+                <span>{t('walletBalancesAccount')}</span>
                 <code title={balances.near.accountId}>{balances.near.accountId}</code>
               </div>
             </article>
             <article className="dashboard-wallet-balances__card">
               <header className="dashboard-wallet-balances__network">
                 <strong>Tempo</strong>
-                <span>Gas currency</span>
+                <span>{t('walletBalancesGasCurrency')}</span>
               </header>
               <p className="dashboard-wallet-balances__amount">
                 <strong>{formatStablecoinBalance(balances.tempo.alphaUsdRaw, 6)}</strong>
                 <span>AlphaUSD</span>
               </p>
               <div className="dashboard-wallet-balances__identity">
-                <span>Address</span>
+                <span>{t('walletBalancesAddress')}</span>
                 <code title={balances.tempo.address}>{balances.tempo.address}</code>
               </div>
             </article>
             <article className="dashboard-wallet-balances__card">
               <header className="dashboard-wallet-balances__network">
                 <strong>Arc</strong>
-                <span>Gas currency</span>
+                <span>{t('walletBalancesGasCurrency')}</span>
               </header>
               <p className="dashboard-wallet-balances__amount">
                 <strong>{formatStablecoinBalance(balances.arc.usdcRaw, 18)}</strong>
                 <span>USDC</span>
               </p>
               <div className="dashboard-wallet-balances__identity">
-                <span>Address</span>
+                <span>{t('walletBalancesAddress')}</span>
                 <code title={balances.arc.address}>{balances.arc.address}</code>
               </div>
             </article>
           </div>
         ) : (
-          <p className="dashboard-wallet-balances__empty">Balances have not been read yet.</p>
+          <p className="dashboard-wallet-balances__empty">{t('walletBalancesEmpty')}</p>
         )}
       </section>
     </DashboardTableDetailsPanel>
@@ -205,7 +238,7 @@ export function UserWalletsListPage(): React.JSX.Element {
   const [walletTypeFilter, setWalletTypeFilter] = React.useState<string>('');
   const [sortValue, setSortValue] = React.useState<string>(SORT_OPTIONS[0].value);
   const [policyOptions, setPolicyOptions] = React.useState<readonly WalletFilterOption[]>([
-    { value: '', label: 'Any policy' },
+    { value: '', label: ANY_POLICY_LABEL },
   ]);
   const walletScope = React.useMemo(
     () => ({
@@ -218,8 +251,8 @@ export function UserWalletsListPage(): React.JSX.Element {
   const searchMode = trimmedQuery.length >= 2;
   const walletsPagination = useDashboardTablePagination(wallets, {
     disabled: loading,
-    itemLabel: 'wallet',
-    itemLabelPlural: 'wallets',
+    itemLabel: t('walletListItemSingular'),
+    itemLabelPlural: t('walletListItemPlural'),
   });
   const activeSort = SORT_OPTIONS.find((option) => option.value === sortValue) || SORT_OPTIONS[0];
   const walletRequest = React.useMemo<DashboardConsoleWalletListInput>(
@@ -236,7 +269,7 @@ export function UserWalletsListPage(): React.JSX.Element {
 
   React.useEffect(() => {
     if (session.loading || !session.claims) {
-      setPolicyOptions([{ value: '', label: 'Any policy' }]);
+      setPolicyOptions([{ value: '', label: ANY_POLICY_LABEL }]);
       return;
     }
 
@@ -244,7 +277,7 @@ export function UserWalletsListPage(): React.JSX.Element {
     listDashboardPolicies()
       .then((policies) => {
         if (cancelled) return;
-        const nextOptions: WalletFilterOption[] = [{ value: '', label: 'Any policy' }];
+        const nextOptions: WalletFilterOption[] = [{ value: '', label: ANY_POLICY_LABEL }];
         const seen = new Set<string>();
         for (const policy of policies) {
           const policyId = String(policy.id || '').trim();
@@ -259,7 +292,7 @@ export function UserWalletsListPage(): React.JSX.Element {
       })
       .catch(() => {
         if (cancelled) return;
-        setPolicyOptions([{ value: '', label: 'Any policy' }]);
+        setPolicyOptions([{ value: '', label: ANY_POLICY_LABEL }]);
       });
 
     return () => {
@@ -278,7 +311,7 @@ export function UserWalletsListPage(): React.JSX.Element {
       if (policyFilter && !dynamic.has(policyFilter)) {
         dynamic.set(policyFilter, policyFilter);
       }
-      const next = [{ value: '', label: 'Any policy' }];
+      const next = [{ value: '', label: ANY_POLICY_LABEL }];
       for (const [value, label] of dynamic.entries()) {
         if (!value) continue;
         next.push({ value, label });
@@ -303,7 +336,7 @@ export function UserWalletsListPage(): React.JSX.Element {
     if (!session.claims) {
       setLoading(false);
       setWallets([]);
-      setErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setErrorMessage(session.errorMessage || t('walletListSessionUnavailable'));
       return;
     }
 
@@ -372,15 +405,15 @@ export function UserWalletsListPage(): React.JSX.Element {
   const summaryMetrics = React.useMemo(
     () => [
       {
-        label: 'Wallets',
+        label: t('walletListSummaryWallets'),
         value: String(wallets.length),
       },
       {
-        label: 'Funded',
+        label: t('walletListSummaryFunded'),
         value: String(wallets.filter((wallet) => wallet.funded).length),
       },
       {
-        label: 'Active',
+        label: t('walletListSummaryActive'),
         value: String(
           wallets.filter((wallet) => String(wallet.status || '').toUpperCase() === 'ACTIVE').length,
         ),
@@ -390,14 +423,14 @@ export function UserWalletsListPage(): React.JSX.Element {
   );
 
   return (
-    <div className="dashboard-view" aria-label="User wallets list page">
-      <section className="dashboard-filters" aria-label="Wallet search controls">
+    <div className="dashboard-view" aria-label={t('walletListPageLabel')}>
+      <section className="dashboard-filters" aria-label={t('walletListSearchControls')}>
         <label className="dashboard-search-control">
           <span className="dashboard-search-icon" aria-hidden="true" />
           <input
             type="search"
             placeholder={SEARCH_USER_WALLETS_PLACEHOLDER}
-            aria-label="Search wallets"
+            aria-label={t('walletListSearchLabel')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -405,13 +438,13 @@ export function UserWalletsListPage(): React.JSX.Element {
         <label className="dashboard-form-field">
           <select
             className="dashboard-input"
-            aria-label="Filter wallets by policy"
+            aria-label={t('walletListFilterPolicyLabel')}
             value={policyFilter}
             onChange={(event) => setPolicyFilter(event.target.value)}
           >
             {policyOptions.map((option) => (
               <option key={option.value || 'all'} value={option.value}>
-                Policy: {option.label}
+                {t('walletListPolicyOption', { label: option.label })}
               </option>
             ))}
           </select>
@@ -419,13 +452,13 @@ export function UserWalletsListPage(): React.JSX.Element {
         <label className="dashboard-form-field">
           <select
             className="dashboard-input"
-            aria-label="Filter wallets by wallet type"
+            aria-label={t('walletListFilterTypeLabel')}
             value={walletTypeFilter}
             onChange={(event) => setWalletTypeFilter(event.target.value)}
           >
             {WALLET_TYPE_OPTIONS.map((option) => (
               <option key={option.value || 'all'} value={option.value}>
-                Type: {option.label}
+                {t('walletListTypeOption', { label: option.label })}
               </option>
             ))}
           </select>
@@ -433,20 +466,20 @@ export function UserWalletsListPage(): React.JSX.Element {
         <label className="dashboard-form-field">
           <select
             className="dashboard-input"
-            aria-label="Sort wallets"
+            aria-label={t('walletListSortLabel')}
             value={sortValue}
             onChange={(event) => setSortValue(event.target.value)}
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
-                Sort: {option.label}
+                {t('walletListSortOption', { label: option.label })}
               </option>
             ))}
           </select>
         </label>
       </section>
 
-      <section className="dashboard-wallet-summary" aria-label="Wallet summary metrics">
+      <section className="dashboard-wallet-summary" aria-label={t('walletListSummaryLabel')}>
         {summaryMetrics.map((metric) => (
           <article className="dashboard-wallet-summary__item" key={metric.label}>
             <p className="dashboard-wallet-summary__label">{metric.label}</p>
@@ -456,37 +489,35 @@ export function UserWalletsListPage(): React.JSX.Element {
       </section>
 
       <DashboardTable
-        ariaLabel="Wallets table"
+        ariaLabel={t('walletListTableLabel')}
         columns={WALLETS_TABLE_COLUMNS}
         pagination={walletsPagination.pagination}
       >
         <DashboardTableHeader>
           {USER_WALLETS_TABLE_COLUMNS.map((column) => (
             <DashboardTableHeaderCell
-              key={column}
+              key={column.id}
               className={
-                column === 'Balance' ? 'dashboard-data-table__header-cell--end' : undefined
+                column.id === 'balance' ? 'dashboard-data-table__header-cell--end' : undefined
               }
             >
-              {column}
+              {column.label}
             </DashboardTableHeaderCell>
           ))}
         </DashboardTableHeader>
         {loading ? (
           <DashboardTableState>
-            {searchMode ? 'Searching wallets...' : 'Loading wallets from console API...'}
+            {searchMode ? t('walletListSearching') : t('walletListLoading')}
           </DashboardTableState>
         ) : errorMessage ? (
           <DashboardTableState>
             {searchMode
-              ? `Search failed: ${errorMessage}`
-              : `Wallet list unavailable: ${errorMessage}`}
+              ? t('walletListSearchFailed', { message: errorMessage })
+              : t('walletListUnavailable', { message: errorMessage })}
           </DashboardTableState>
         ) : wallets.length === 0 ? (
           <DashboardTableState>
-            {searchMode
-              ? 'No wallets matched this query.'
-              : 'No wallets in this environment yet. Wallets appear here after your first user signs up.'}
+            {searchMode ? t('walletListNoMatch') : t('walletListEmpty')}
           </DashboardTableState>
         ) : (
           <>
@@ -512,7 +543,9 @@ export function UserWalletsListPage(): React.JSX.Element {
                               className="dashboard-inline-link dashboard-data-table__mono dashboard-wallet-row__toggle"
                               aria-expanded={expanded}
                               aria-controls={walletBalancesRegionId(wallet)}
-                              aria-label={`Toggle chain balances for ${wallet.address}`}
+                              aria-label={t('walletListToggleBalances', {
+                                address: wallet.address,
+                              })}
                               onClick={() =>
                                 setExpandedWalletKey((current) => (current === key ? '' : key))
                               }
@@ -559,14 +592,12 @@ export function UserWalletsListPage(): React.JSX.Element {
               );
             })}
             <DashboardTableFooter>
-              {searchMode
-                ? `Showing ${wallets.length} result${wallets.length === 1 ? '' : 's'}.`
-                : `${wallets.length} wallet${wallets.length === 1 ? '' : 's'}.`}
-              {walletScope.projectId
-                ? ` Scope: project ${walletScope.projectId}${
-                    walletScope.environmentId ? `, environment ${walletScope.environmentId}` : ''
-                  }.`
-                : ''}
+              {walletListFooterText(
+                wallets.length,
+                searchMode,
+                walletScope.projectId,
+                walletScope.environmentId,
+              )}
             </DashboardTableFooter>
           </>
         )}

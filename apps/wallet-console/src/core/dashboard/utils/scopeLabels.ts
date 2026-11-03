@@ -1,3 +1,5 @@
+import { t } from '@core/i18n';
+
 function normalizeString(value: unknown): string {
   return String(value || '').trim();
 }
@@ -22,15 +24,18 @@ function inferEnvironmentKey(value: string): 'dev' | 'staging' | 'prod' | null {
 }
 
 function humanizeEnvironmentKey(key: 'dev' | 'staging' | 'prod'): string {
-  if (key === 'dev') return 'Development';
-  if (key === 'staging') return 'Staging';
-  return 'Production';
+  if (key === 'dev') return t('commonEnvironmentDevelopment');
+  if (key === 'staging') return t('commonEnvironmentStaging');
+  return t('commonEnvironmentProduction');
 }
 
 function humanizeIdentifier(value: string): string {
   const normalized = normalizeString(value);
   if (!normalized) return '';
-  return normalized.replace(/[_:-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return normalized
+    .replace(/[_:-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export function getDashboardProjectLabel(input: {
@@ -40,7 +45,7 @@ export function getDashboardProjectLabel(input: {
   const name = normalizeString(input.projectName);
   if (name) return name;
   const id = normalizeString(input.projectId);
-  return id ? humanizeIdentifier(id) : 'No project';
+  return id ? humanizeIdentifier(id) : t('commonNoProject');
 }
 
 export function getDashboardEnvironmentLabel(input: {
@@ -50,7 +55,7 @@ export function getDashboardEnvironmentLabel(input: {
   const name = normalizeString(input.environmentName);
   if (name) return name;
   const id = normalizeString(input.environmentId);
-  if (!id) return 'No environment';
+  if (!id) return t('commonNoEnvironment');
   const inferredKey = inferEnvironmentKey(id);
   return inferredKey ? humanizeEnvironmentKey(inferredKey) : humanizeIdentifier(id);
 }

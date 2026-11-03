@@ -1,11 +1,12 @@
+import { t } from '@core/i18n';
 import type { DashboardConsoleSessionClaims } from '../consoleSession';
 
 export function dashboardSignInLabel(provider: DashboardConsoleSessionClaims['provider']): string {
   switch (provider) {
     case 'google':
-      return 'Signed in with Google';
+      return t('commonSignedInWithGoogle');
     case 'github':
-      return 'Signed in with GitHub';
+      return t('commonSignedInWithGithub');
     case null:
       return '';
     default:

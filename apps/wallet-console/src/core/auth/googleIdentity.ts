@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+
 export interface GoogleAuthOptions {
   configured: boolean;
   clientId?: string;
@@ -102,11 +104,7 @@ function handleGoogleIdentityScriptError(
   reject: (error: Error) => void,
 ): void {
   window.clearTimeout(timeout);
-  failGoogleIdentityScript(
-    script,
-    reject,
-    'Could not load Google sign-in. Check your connection and retry.',
-  );
+  failGoogleIdentityScript(script, reject, t('commonGoogleLoadFailed'));
 }
 
 function handleGoogleIdentityScriptLoaded(
@@ -118,11 +116,7 @@ function handleGoogleIdentityScriptLoaded(
   window.clearTimeout(timeout);
   const api = readGoogleIdentityButtonApi();
   if (!api) {
-    failGoogleIdentityScript(
-      script,
-      reject,
-      'Google sign-in loaded without its button API. Retry sign-in.',
-    );
+    failGoogleIdentityScript(script, reject, t('commonGoogleNoButtonApi'));
     return;
   }
   script.onload = null;
@@ -136,12 +130,7 @@ function loadGoogleIdentityScript(
 ): void {
   const script = document.createElement('script');
   const timeout = window.setTimeout(
-    failGoogleIdentityScript.bind(
-      null,
-      script,
-      reject,
-      'Google sign-in took too long to load. Retry sign-in.',
-    ),
+    failGoogleIdentityScript.bind(null, script, reject, t('commonGoogleLoadTimeout')),
     GOOGLE_IDENTITY_SCRIPT_TIMEOUT_MS,
   );
   script.src = 'https://accounts.google.com/gsi/client';

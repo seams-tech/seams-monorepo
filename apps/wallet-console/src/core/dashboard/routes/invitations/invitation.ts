@@ -1,3 +1,4 @@
+import { t } from '@core/i18n';
 import {
   buildConsoleJsonHeaders,
   fetchConsoleEndpoint,
@@ -75,8 +76,7 @@ function parseAcceptanceResponse(value: unknown): InvitationAcceptanceResult {
         return {
           ok: false,
           code,
-          message:
-            'This invitation belongs to another email address. Use the account that received it.',
+          message: t('invitationEmailMismatch'),
         };
       }
       return { ok: false, code, message };
@@ -85,7 +85,7 @@ function parseAcceptanceResponse(value: unknown): InvitationAcceptanceResult {
   return {
     ok: false,
     code: 'invalid_response',
-    message: 'The invitation response was invalid. Try again.',
+    message: t('invitationInvalidResponse'),
   };
 }
 
@@ -108,14 +108,14 @@ export async function acceptDashboardInvitation(
     const body: unknown = await response.json();
     const result = parseAcceptanceResponse(body);
     if (!response.ok && result.ok) {
-      return { ok: false, code: 'invalid_response', message: 'Invitation acceptance failed.' };
+      return { ok: false, code: 'invalid_response', message: t('invitationAcceptanceFailed') };
     }
     return result;
   } catch (error: unknown) {
     return {
       ok: false,
       code: 'request_failed',
-      message: error instanceof Error ? error.message : 'Invitation acceptance failed. Try again.',
+      message: error instanceof Error ? error.message : t('invitationAcceptanceFailedRetry'),
     };
   }
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { toast } from 'sonner';
+import { consoleLocale, t, type MessageKey } from '@core/i18n';
 import { formatDashboardTimestamp } from '../../utils/timestamps';
 import {
   DashboardTable,
@@ -99,14 +100,49 @@ type AuditLogsPageProps = {
   approvalIntegration?: AuditApprovalIntegration;
 };
 
+const AUDIT_CATEGORY_LABEL_KEYS = {
+  POLICY: 'auditCategoryPolicy',
+  SETTINGS: 'auditCategorySettings',
+  KEY_EXPORT: 'auditCategoryKeyExport',
+  BILLING: 'auditCategoryBilling',
+  WEBHOOK: 'auditCategoryWebhook',
+  API_KEY: 'auditCategoryApiKey',
+  TEAM: 'auditCategoryTeam',
+  APPROVAL: 'auditCategoryApproval',
+  ORG_PROJECT_ENV: 'auditCategoryOrgProjectEnv',
+  RUNTIME_SNAPSHOT: 'auditCategoryRuntimeSnapshot',
+  SYSTEM: 'auditCategorySystem',
+} as const satisfies Record<DashboardConsoleAuditCategory, MessageKey>;
+
+const AUDIT_OUTCOME_LABEL_KEYS = {
+  SUCCESS: 'auditOutcomeSuccess',
+  FAILURE: 'auditOutcomeFailure',
+  PENDING: 'auditOutcomePending',
+} as const satisfies Record<DashboardConsoleAuditOutcome, MessageKey>;
+
 function formatAuditCategoryLabel(category: DashboardConsoleAuditCategory): string {
-  if (category === 'API_KEY') return 'API keys';
-  if (category === 'ORG_PROJECT_ENV') return 'Org / project / env';
-  if (category === 'KEY_EXPORT') return 'Key export';
-  if (category === 'RUNTIME_SNAPSHOT') return 'Runtime snapshot';
-  const spaced = category.replaceAll('_', ' ').toLowerCase();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  return t(AUDIT_CATEGORY_LABEL_KEYS[category]);
 }
+
+/* Badges show the raw wire enum in English, as before; other locales show the label. */
+function formatAuditBadgeText(raw: string, label: string): string {
+  return consoleLocale === 'en' ? raw : label;
+}
+
+function formatAuditActorType(actorType: string): string {
+  if (actorType === 'USER') return formatAuditBadgeText(actorType, t('auditActorTypeUser'));
+  if (actorType === 'SYSTEM') return formatAuditBadgeText(actorType, t('auditActorTypeSystem'));
+  return actorType;
+}
+
+function formatAuditScopeTypeLabel(value: string): string {
+  const normalized = readText(value).toUpperCase();
+  if (normalized === 'ORG' || normalized === 'ORGANIZATION') return t('auditScopeTypeOrganization');
+  if (normalized === 'PROJECT') return t('auditScopeTypeProject');
+  if (normalized === 'ENVIRONMENT') return t('auditScopeTypeEnvironment');
+  return humanizeMachineLabel(value);
+}
+
 const AUDIT_EVENTS_TABLE_COLUMNS = dashboardTableColumns(1.05, 2.1, 0.95, 1.1, 0.8, 0.75);
 const AUDIT_EVENTS_LIMIT = 100;
 /* Bar count is fixed rather than measured: at the card's width these land
@@ -143,8 +179,8 @@ function humanizeMachineLabel(value: string): string {
 
 function formatPolicyKindLabel(value: string): string {
   const normalized = readText(value).toUpperCase();
-  if (normalized === 'GAS_SPONSORSHIP') return 'Gas sponsorship';
-  if (normalized === 'TRANSACTION') return 'Transaction';
+  if (normalized === 'GAS_SPONSORSHIP') return t('auditPolicyKindGasSponsorship');
+  if (normalized === 'TRANSACTION') return t('auditPolicyKindTransaction');
   return humanizeMachineLabel(value);
 }
 
@@ -253,7 +289,7 @@ function formatPolicyAuditEventTitle(row: DashboardConsoleAuditEvent): {
     appendDetail(details, policyKind);
     appendDetail(details, versionLabel);
     return {
-      title: 'Created policy',
+      title: t('auditTitlePolicyCreated'),
       detailParts: details,
     };
   }
@@ -263,7 +299,7 @@ function formatPolicyAuditEventTitle(row: DashboardConsoleAuditEvent): {
     appendDetail(details, policyKind);
     appendDetail(details, versionLabel);
     return {
-      title: 'Updated policy',
+      title: t('auditTitlePolicyUpdated'),
       detailParts: details,
     };
   }
@@ -273,7 +309,7 @@ function formatPolicyAuditEventTitle(row: DashboardConsoleAuditEvent): {
     appendDetail(details, policyKind);
     appendDetail(details, versionLabel);
     return {
-      title: 'Deleted policy',
+      title: t('auditTitlePolicyDeleted'),
       detailParts: details,
     };
   }
@@ -284,7 +320,7 @@ function formatPolicyAuditEventTitle(row: DashboardConsoleAuditEvent): {
     appendDetail(details, versionLabel);
     appendDetail(details, readText(row.metadata?.status));
     return {
-      title: 'Published policy',
+      title: t('auditTitlePolicyPublished'),
       detailParts: details,
     };
   }
@@ -292,9 +328,9 @@ function formatPolicyAuditEventTitle(row: DashboardConsoleAuditEvent): {
   if (action === 'policy.assignment.upsert') {
     appendDetail(details, policyName);
     appendDetail(details, policyKind);
-    appendDetail(details, humanizeMachineLabel(readText(row.metadata?.assignmentScopeType)));
+    appendDetail(details, formatAuditScopeTypeLabel(readText(row.metadata?.assignmentScopeType)));
     return {
-      title: 'Updated policy assignment',
+      title: t('auditTitlePolicyAssignmentUpdated'),
       detailParts: details,
     };
   }
@@ -302,9 +338,9 @@ function formatPolicyAuditEventTitle(row: DashboardConsoleAuditEvent): {
   if (action === 'policy.assignment.delete') {
     appendDetail(details, policyName);
     appendDetail(details, policyKind);
-    appendDetail(details, humanizeMachineLabel(readText(row.metadata?.assignmentScopeType)));
+    appendDetail(details, formatAuditScopeTypeLabel(readText(row.metadata?.assignmentScopeType)));
     return {
-      title: 'Removed policy assignment',
+      title: t('auditTitlePolicyAssignmentRemoved'),
       detailParts: details,
     };
   }
@@ -334,7 +370,7 @@ function formatBillingAuditEventTitle(
     appendDetail(details, readText(row.metadata?.providerCheckoutSessionRef));
     appendDetail(details, humanizeMachineLabel(readText(row.metadata?.settlementSource)));
     return {
-      title: 'Settled Stripe credit purchase',
+      title: t('auditTitleCreditPurchaseSettled'),
       detailParts: details,
     };
   }
@@ -349,7 +385,9 @@ function formatBillingAuditEventTitle(
     appendDetail(details, humanizeMachineLabel(readText(row.metadata?.invoiceDocumentType)));
     return {
       title:
-        readText(row.metadata?.generated) === 'true' ? 'Generated invoice' : 'Refreshed invoice',
+        readText(row.metadata?.generated) === 'true'
+          ? t('auditTitleInvoiceGenerated')
+          : t('auditTitleInvoiceRefreshed'),
       detailParts: details,
     };
   }
@@ -358,7 +396,7 @@ function formatBillingAuditEventTitle(
     appendDetail(details, readText(row.metadata?.invoiceId));
     appendDetail(details, readText(row.metadata?.periodMonthUtc));
     return {
-      title: 'Exported invoice PDF',
+      title: t('auditTitleInvoicePdfExported'),
       detailParts: details,
     };
   }
@@ -385,17 +423,20 @@ function formatBillingAuditEventTitle(
     appendDetail(details, orgLabel);
     appendDetail(details, readText(row.metadata?.reasonCode));
     appendDetail(details, readFirstText(row.metadata?.relatedInvoiceId, row.metadata?.invoiceId));
-    appendDetail(details, resultingBalance ? `Balance ${resultingBalance}` : '');
+    appendDetail(
+      details,
+      resultingBalance ? t('auditDetailBalance', { amount: resultingBalance }) : '',
+    );
     appendDetail(details, readText(row.metadata?.adjustmentId));
     return {
       title:
         created === 'false'
           ? readText(row.metadata?.platformBilling) === 'true'
-            ? 'Reused customer support credit'
-            : 'Reused support credit'
+            ? t('auditTitleSupportCreditReusedCustomer')
+            : t('auditTitleSupportCreditReused')
           : readText(row.metadata?.platformBilling) === 'true'
-            ? 'Granted customer support credit'
-            : 'Granted support credit',
+            ? t('auditTitleSupportCreditGrantedCustomer')
+            : t('auditTitleSupportCreditGranted'),
       detailParts: details,
     };
   }
@@ -422,17 +463,20 @@ function formatBillingAuditEventTitle(
     appendDetail(details, orgLabel);
     appendDetail(details, readText(row.metadata?.reasonCode));
     appendDetail(details, readFirstText(row.metadata?.relatedInvoiceId, row.metadata?.invoiceId));
-    appendDetail(details, resultingBalance ? `Balance ${resultingBalance}` : '');
+    appendDetail(
+      details,
+      resultingBalance ? t('auditDetailBalance', { amount: resultingBalance }) : '',
+    );
     appendDetail(details, readText(row.metadata?.adjustmentId));
     return {
       title:
         created === 'false'
           ? readText(row.metadata?.platformBilling) === 'true'
-            ? 'Reused customer admin debit'
-            : 'Reused admin debit'
+            ? t('auditTitleAdminDebitReusedCustomer')
+            : t('auditTitleAdminDebitReused')
           : readText(row.metadata?.platformBilling) === 'true'
-            ? 'Applied customer admin debit'
-            : 'Applied admin debit',
+            ? t('auditTitleAdminDebitAppliedCustomer')
+            : t('auditTitleAdminDebitApplied'),
       detailParts: details,
     };
   }
@@ -451,16 +495,16 @@ function formatWebhookAuditEventTitle(row: DashboardConsoleAuditEvent): {
   appendDetail(details, readText(row.metadata?.deliveryId));
 
   if (action === 'webhook.endpoint.create') {
-    return { title: 'Created webhook endpoint', detailParts: details };
+    return { title: t('auditTitleWebhookEndpointCreated'), detailParts: details };
   }
   if (action === 'webhook.endpoint.update') {
-    return { title: 'Updated webhook endpoint', detailParts: details };
+    return { title: t('auditTitleWebhookEndpointUpdated'), detailParts: details };
   }
   if (action === 'webhook.endpoint.delete') {
-    return { title: 'Deleted webhook endpoint', detailParts: details };
+    return { title: t('auditTitleWebhookEndpointDeleted'), detailParts: details };
   }
   if (action === 'webhook.delivery.replay_requested') {
-    return { title: 'Requested webhook replay', detailParts: details };
+    return { title: t('auditTitleWebhookReplayRequested'), detailParts: details };
   }
   return null;
 }
@@ -476,16 +520,16 @@ function formatAuditEventTitle(
   const approvalId = readText(row.metadata?.approvalId);
   const operationType = readText(row.metadata?.operationType);
   if (action.startsWith('approval.request.')) {
-    const verb =
+    const title =
       action === 'approval.request.create'
-        ? 'Created'
+        ? t('auditTitleApprovalCreated')
         : action === 'approval.request.approve'
-          ? 'Approved'
+          ? t('auditTitleApprovalApproved')
           : action === 'approval.request.reject'
-            ? 'Rejected'
-            : 'Updated';
+            ? t('auditTitleApprovalRejected')
+            : t('auditTitleApprovalUpdated');
     return {
-      title: `${verb} approval request`,
+      title,
       detailParts: [humanizeMachineLabel(operationType), approvalId].filter(Boolean),
     };
   }
@@ -524,7 +568,7 @@ function formatAuditActor(
   if (row.actorType === 'SYSTEM') {
     return {
       primary,
-      secondary: 'System',
+      secondary: t('auditActorTypeSystem'),
     };
   }
   return {
@@ -719,8 +763,8 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
   const eventsPagination = useDashboardTablePagination(events, {
     disabled: loading,
     initialRowsPerPage: 10,
-    itemLabel: 'event',
-    itemLabelPlural: 'events',
+    itemLabel: t('auditEventItemLabel'),
+    itemLabelPlural: t('auditEventItemLabelPlural'),
   });
   const setEventsPage = eventsPagination.setPage;
   const auditTablePagination = React.useMemo(
@@ -894,9 +938,11 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
           throw new Error('clipboard_unavailable');
         }
         await window.navigator.clipboard.writeText(normalized);
-        toast.success(`${label} ID copied.`);
+        toast.success(t(label === 'Project' ? 'auditProjectIdCopied' : 'auditEnvironmentIdCopied'));
       } catch {
-        toast.error(`Clipboard copy failed. Copy ${label.toLowerCase()} ID manually.`);
+        toast.error(
+          t(label === 'Project' ? 'auditProjectIdCopyFailed' : 'auditEnvironmentIdCopyFailed'),
+        );
       }
     },
     [],
@@ -908,7 +954,7 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
       setEvents([]);
       setEventsPage(1);
       setExpandedEventId('');
-      setErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setErrorMessage(session.errorMessage || t('auditSessionUnavailable'));
       return;
     }
 
@@ -1024,7 +1070,7 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
     () => [
       {
         id: 'category',
-        label: 'Category',
+        label: t('auditFilterCategory'),
         value: eventCategoryFilter,
         options: CATEGORY_OPTIONS.map((entry) => ({
           value: entry,
@@ -1033,14 +1079,14 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
       },
       {
         id: 'outcome',
-        label: 'Outcome',
+        label: t('auditFilterOutcome'),
         value: eventOutcomeFilter,
         options: OUTCOME_OPTIONS.map((entry) => ({
           value: entry,
-          label: entry.charAt(0) + entry.slice(1).toLowerCase(),
+          label: t(AUDIT_OUTCOME_LABEL_KEYS[entry]),
         })),
       },
-      { id: 'actor', label: 'Actor', value: eventActorFilter, options: actorOptions },
+      { id: 'actor', label: t('auditFilterActor'), value: eventActorFilter, options: actorOptions },
     ],
     [actorOptions, eventActorFilter, eventCategoryFilter, eventOutcomeFilter],
   );
@@ -1091,27 +1137,27 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
     try {
       downloadAuditEvents(events);
     } catch (error: unknown) {
-      toast.error('Export failed', {
+      toast.error(t('auditExportFailed'), {
         description: error instanceof Error ? error.message : String(error),
       });
     }
   }, [events]);
 
   return (
-    <div className="dashboard-view" aria-label="Audit logs page">
+    <div className="dashboard-view" aria-label={t('auditPageLabel')}>
       <section
         className="dashboard-view__section dashboard-audit-section--plain"
-        aria-label="Audit event filters"
+        aria-label={t('auditEventFilters')}
       >
         <div className="dashboard-audit-toolbar">
           <label className="dashboard-search-control dashboard-search-control--compact dashboard-audit-toolbar__search">
             <span className="dashboard-search-icon" aria-hidden="true" />
             <input
               type="search"
-              aria-label="Search events"
+              aria-label={t('auditSearchEvents')}
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search action, summary, or actor..."
+              placeholder={t('auditSearchPlaceholder')}
             />
           </label>
           <button
@@ -1119,10 +1165,10 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
             className="dashboard-pagination-button dashboard-pagination-button--secondary dashboard-pagination-button--with-icon"
             onClick={onExportEvents}
             disabled={loading || events.length === 0}
-            title={`Download the ${events.length} loaded events across all table pages. Narrow the filters to export a different set.`}
+            title={t('auditExportTooltip', { count: events.length })}
           >
             <DownloadIcon size={15} strokeWidth={1.75} />
-            Export shown events
+            {t('auditExportShown')}
           </button>
         </div>
 
@@ -1151,26 +1197,24 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
 
       <section
         className="dashboard-view__section dashboard-audit-section--plain"
-        aria-label="Audit events table"
+        aria-label={t('auditEventsTableLabel')}
       >
         <DashboardTable
-          ariaLabel="Audit events"
+          ariaLabel={t('auditEventsLabel')}
           columns={AUDIT_EVENTS_TABLE_COLUMNS}
           pagination={auditTablePagination}
         >
           <DashboardTableHeader>
-            <DashboardTableHeaderCell>Timestamp</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Event</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>User</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Scope</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Outcome</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Details</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('auditTimestamp')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('auditEvent')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('auditColumnUser')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('auditColumnScope')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('auditColumnOutcome')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('auditDetails')}</DashboardTableHeaderCell>
           </DashboardTableHeader>
           {events.length === 0 ? (
             <DashboardTableState>
-              {loading
-                ? 'Loading audit events...'
-                : 'No audit events matched the current scope and filters.'}
+              {loading ? t('auditLoadingEvents') : t('auditNoEvents')}
             </DashboardTableState>
           ) : (
             eventsPagination.rows.map((row) => {
@@ -1313,7 +1357,12 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                         {eventDisplay.title}
                       </strong>
                       <span className="dashboard-data-table__subline">
-                        <DashboardTableBadge>{row.category}</DashboardTableBadge>
+                        <DashboardTableBadge>
+                          {formatAuditBadgeText(
+                            row.category,
+                            formatAuditCategoryLabel(row.category),
+                          )}
+                        </DashboardTableBadge>
                         {eventDisplay.detailParts.map((detail, index) => (
                           <span key={`${detail}-${index}`}>{detail}</span>
                         ))}
@@ -1332,21 +1381,25 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                     <DashboardTableCell>
                       {scopeDisplay.projectLabel ? (
                         <span>
-                          <strong>Project:</strong> {scopeDisplay.projectLabel}
+                          <strong>{t('auditScopeProject')}</strong> {scopeDisplay.projectLabel}
                         </span>
                       ) : null}
                       {scopeDisplay.environmentLabel ? (
                         <span>
-                          <strong>Env:</strong> {scopeDisplay.environmentLabel}
+                          <strong>{t('auditScopeEnvironment')}</strong>{' '}
+                          {scopeDisplay.environmentLabel}
                         </span>
                       ) : null}
                       {!scopeDisplay.projectLabel && !scopeDisplay.environmentLabel ? (
-                        <span>Organization</span>
+                        <span>{t('auditScopeOrganization')}</span>
                       ) : null}
                     </DashboardTableCell>
                     <DashboardTableCell>
                       <DashboardTableStatus tone={outcomeTone(row.outcome)}>
-                        {row.outcome}
+                        {formatAuditBadgeText(
+                          row.outcome,
+                          t(AUDIT_OUTCOME_LABEL_KEYS[row.outcome]),
+                        )}
                       </DashboardTableStatus>
                     </DashboardTableCell>
                     <DashboardTableCell
@@ -1360,7 +1413,7 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                           setExpandedEventId((current) => (current === row.id ? '' : row.id))
                         }
                       >
-                        {isExpanded ? 'Hide' : 'View'}
+                        {isExpanded ? t('auditHide') : t('auditView')}
                       </DashboardTableActionButton>
                     </DashboardTableCell>
                   </DashboardTableRow>
@@ -1374,22 +1427,22 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                   >
                     <div className="dashboard-audit-events__details-content">
                       <DashboardTableDetailsGrid>
-                        <DashboardTableDetailsItem label="Event ID">
+                        <DashboardTableDetailsItem label={t('auditDetailEventId')}>
                           <span>{row.id}</span>
                         </DashboardTableDetailsItem>
-                        <DashboardTableDetailsItem label="Action">
+                        <DashboardTableDetailsItem label={t('auditDetailAction')}>
                           <span>{row.action || '-'}</span>
                         </DashboardTableDetailsItem>
-                        <DashboardTableDetailsItem label="Actor">
+                        <DashboardTableDetailsItem label={t('auditDetailActor')}>
                           <span>{actorDisplay.primary || '-'}</span>
                         </DashboardTableDetailsItem>
-                        <DashboardTableDetailsItem label="Actor ID">
+                        <DashboardTableDetailsItem label={t('auditDetailActorId')}>
                           {actorUserId ? <code>{actorUserId}</code> : <span>-</span>}
                         </DashboardTableDetailsItem>
-                        <DashboardTableDetailsItem label="Actor Type">
-                          <span>{row.actorType || '-'}</span>
+                        <DashboardTableDetailsItem label={t('auditDetailActorType')}>
+                          <span>{formatAuditActorType(row.actorType) || '-'}</span>
                         </DashboardTableDetailsItem>
-                        <DashboardTableDetailsItem label="Policy">
+                        <DashboardTableDetailsItem label={t('auditDetailPolicy')}>
                           {renderAuditLinkedIdentifier({
                             id: linkedPolicyId,
                             label: linkedPolicyLabel,
@@ -1397,7 +1450,7 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                             onClick: policyLink?.onClick,
                           })}
                         </DashboardTableDetailsItem>
-                        <DashboardTableDetailsItem label="Approval">
+                        <DashboardTableDetailsItem label={t('auditDetailApproval')}>
                           {renderAuditLinkedIdentifier({
                             id: approvalId,
                             href: approvalLink?.href,
@@ -1405,17 +1458,17 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                           })}
                         </DashboardTableDetailsItem>
                         {purchaseId ? (
-                          <DashboardTableDetailsItem label="Purchase">
+                          <DashboardTableDetailsItem label={t('auditDetailPurchase')}>
                             <code>{purchaseId}</code>
                           </DashboardTableDetailsItem>
                         ) : null}
                         {adjustmentId ? (
-                          <DashboardTableDetailsItem label="Adjustment">
+                          <DashboardTableDetailsItem label={t('auditDetailAdjustment')}>
                             <code>{adjustmentId}</code>
                           </DashboardTableDetailsItem>
                         ) : null}
                         {invoiceId ? (
-                          <DashboardTableDetailsItem label="Invoice">
+                          <DashboardTableDetailsItem label={t('auditDetailInvoice')}>
                             {renderAuditLinkedIdentifier({
                               id: invoiceId,
                               href: invoiceLink?.href,
@@ -1424,22 +1477,22 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                           </DashboardTableDetailsItem>
                         ) : null}
                         {reasonCode ? (
-                          <DashboardTableDetailsItem label="Reason Code">
+                          <DashboardTableDetailsItem label={t('auditDetailReasonCode')}>
                             <code>{reasonCode}</code>
                           </DashboardTableDetailsItem>
                         ) : null}
                         {resultingBalanceLabel ? (
-                          <DashboardTableDetailsItem label="Resulting Balance">
+                          <DashboardTableDetailsItem label={t('auditDetailResultingBalance')}>
                             <span>{resultingBalanceLabel}</span>
                           </DashboardTableDetailsItem>
                         ) : null}
                         {adjustmentNote ? (
-                          <DashboardTableDetailsItem label="Note">
+                          <DashboardTableDetailsItem label={t('auditDetailNote')}>
                             <span>{adjustmentNote}</span>
                           </DashboardTableDetailsItem>
                         ) : null}
                         {linkedOrganizationId ? (
-                          <DashboardTableDetailsItem label="Organization">
+                          <DashboardTableDetailsItem label={t('auditDetailOrganization')}>
                             <div>
                               <span>{linkedOrganizationLabel || linkedOrganizationId}</span>
                               {linkedOrganizationLabel &&
@@ -1453,7 +1506,7 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                           </DashboardTableDetailsItem>
                         ) : null}
                         {receiptId ? (
-                          <DashboardTableDetailsItem label="Receipt">
+                          <DashboardTableDetailsItem label={t('auditDetailReceipt')}>
                             {renderAuditLinkedIdentifier({
                               id: receiptId,
                               href: receiptLink?.href,
@@ -1462,7 +1515,7 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                           </DashboardTableDetailsItem>
                         ) : null}
                         {webhookEndpointId ? (
-                          <DashboardTableDetailsItem label="Webhook Endpoint">
+                          <DashboardTableDetailsItem label={t('auditDetailWebhookEndpoint')}>
                             {renderAuditLinkedIdentifier({
                               id: webhookEndpointId,
                               href: webhookEndpointLink?.href,
@@ -1471,7 +1524,7 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                           </DashboardTableDetailsItem>
                         ) : null}
                         {webhookDeliveryId ? (
-                          <DashboardTableDetailsItem label="Webhook Delivery">
+                          <DashboardTableDetailsItem label={t('auditDetailWebhookDelivery')}>
                             {renderAuditLinkedIdentifier({
                               id: webhookDeliveryId,
                               href: webhookDeliveryLink?.href,
@@ -1479,19 +1532,19 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                             })}
                           </DashboardTableDetailsItem>
                         ) : null}
-                        <DashboardTableDetailsItem label="Scope Type">
+                        <DashboardTableDetailsItem label={t('auditDetailScopeType')}>
                           <span>
                             {scopeType === 'ORG'
-                              ? 'Organization'
+                              ? t('auditScopeTypeOrganization')
                               : scopeType
-                                ? humanizeMachineLabel(scopeType)
-                                : 'Organization'}
+                                ? formatAuditScopeTypeLabel(scopeType)
+                                : t('auditScopeTypeOrganization')}
                           </span>
                         </DashboardTableDetailsItem>
-                        <DashboardTableDetailsItem label="Scope ID">
+                        <DashboardTableDetailsItem label={t('auditDetailScopeId')}>
                           {scopeId ? <code>{scopeId}</code> : <span>-</span>}
                         </DashboardTableDetailsItem>
-                        <DashboardTableDetailsItem label="Project">
+                        <DashboardTableDetailsItem label={t('auditDetailProject')}>
                           {row.projectId ? (
                             <div>
                               <button
@@ -1515,7 +1568,7 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                             <span>-</span>
                           )}
                         </DashboardTableDetailsItem>
-                        <DashboardTableDetailsItem label="Environment">
+                        <DashboardTableDetailsItem label={t('auditDetailEnvironment')}>
                           {row.environmentId ? (
                             <div>
                               <button
@@ -1542,7 +1595,7 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
                       </DashboardTableDetailsGrid>
                       {row.metadata && Object.keys(row.metadata).length > 0 ? (
                         <details className="dashboard-audit-events__raw-metadata">
-                          <summary>Raw JSON</summary>
+                          <summary>{t('auditDetailRawJson')}</summary>
                           <pre className="dashboard-data-table__metadata-json">
                             {JSON.stringify(row.metadata, null, 2)}
                           </pre>

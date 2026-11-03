@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatDashboardTimestamp } from '@core/dashboard/utils/timestamps';
 import { toast } from 'sonner';
+import { t } from '@core/i18n';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import {
   GAS_SPONSORSHIP_CHAIN_MATRIX_ROWS,
@@ -156,7 +157,7 @@ function normalizeFunctionSignatureInput(value: string): string | null {
 function parseRequiredUnsignedIntegerString(value: string, field: string): string {
   const normalized = normalizeString(value);
   if (!/^\d+$/.test(normalized)) {
-    throw new Error(`${field} must be a non-negative integer.`);
+    throw new Error(t('gasErrIntNonNegative', { field }));
   }
   return BigInt(normalized).toString(10);
 }
@@ -164,7 +165,7 @@ function parseRequiredUnsignedIntegerString(value: string, field: string): strin
 function parseRequiredPositiveIntegerString(value: string, field: string): string {
   const normalized = parseRequiredUnsignedIntegerString(value, field);
   if (BigInt(normalized) <= 0n) {
-    throw new Error(`${field} must be greater than zero.`);
+    throw new Error(t('gasErrGreaterThanZero', { field }));
   }
   return normalized;
 }
@@ -233,7 +234,7 @@ function formatSpendCapAmountMinor(
   currencyCode: string,
   displayDecimals: number,
 ): string {
-  const normalizedUnit = normalizeString(currencyCode) || 'units';
+  const normalizedUnit = normalizeString(currencyCode) || t('gasUnitsFallback');
   const safeValue = Number.isFinite(valueMinor) ? valueMinor : 0;
   return `${getSpendCapDecimalFormatter(displayDecimals).format(
     safeValue / getSpendCapMinorDivisor(displayDecimals),
@@ -268,9 +269,7 @@ function parseRequiredSpendCapAmountToMinor(
   const normalizedDecimals = normalizeSpendCapDisplayDecimals(displayDecimals);
   const parsed = parseSpendCapAmountToMinor(value, normalizedDecimals);
   if (parsed === null) {
-    throw new Error(
-      `${field} must be a non-negative amount with up to ${normalizedDecimals} decimal places.`,
-    );
+    throw new Error(t('gasErrSpendCapAmount', { field, decimals: normalizedDecimals }));
   }
   return parsed;
 }
@@ -537,7 +536,7 @@ function resolveSelectedTargetsOrThrow(selectedTargetIds: readonly string[]): Ga
     .map((targetId) => GAS_CHAIN_TARGETS_BY_ID.get(targetId) || null)
     .filter((target): target is GasChainTarget => target !== null);
   if (targets.length === 0) {
-    throw new Error('Choose at least one chain target.');
+    throw new Error(t('gasErrChooseTarget'));
   }
   return targets;
 }
@@ -558,9 +557,12 @@ function formatSelectedTargetLabels(targetIds: readonly string[]): string {
   const labels = uniqueGasTargetIds(targetIds)
     .map((targetId) => GAS_CHAIN_TARGETS_BY_ID.get(targetId)?.chainLabel || '')
     .filter(Boolean);
-  if (labels.length === 0) return 'No chain targets';
+  if (labels.length === 0) return t('gasNoChainTargets');
   if (labels.length <= 2) return labels.join(' / ');
-  return `${labels.slice(0, 2).join(' / ')} +${labels.length - 2} more`;
+  return t('gasChainTargetsMore', {
+    labels: labels.slice(0, 2).join(' / '),
+    count: labels.length - 2,
+  });
 }
 
 function parseGasSponsorshipFormDraft(
@@ -792,16 +794,16 @@ function buildScopePayload(form: GasSponsorshipFormState): Record<string, string
   const scopePolicyId = normalizeString(form.scopePolicyId);
   const walletSegmentId = normalizeString(form.walletSegmentId);
   if (form.scopeType === 'PROJECT' && !projectId) {
-    throw new Error('Project scope requires a project ID.');
+    throw new Error(t('gasErrProjectScope'));
   }
   if (form.scopeType === 'ENVIRONMENT' && !environmentId) {
-    throw new Error('Environment scope requires an environment ID.');
+    throw new Error(t('gasErrEnvironmentScope'));
   }
   if (form.scopeType === 'POLICY' && !scopePolicyId) {
-    throw new Error('Policy scope requires a policy ID.');
+    throw new Error(t('gasErrPolicyScope'));
   }
   if (form.scopeType === 'WALLET_SEGMENT' && !walletSegmentId) {
-    throw new Error('Wallet segment scope requires a wallet segment ID.');
+    throw new Error(t('gasErrWalletSegmentScope'));
   }
   return {
     scopeType: form.scopeType,
@@ -831,7 +833,7 @@ function buildSpendCap(form: GasSponsorshipFormState, selectedTargets: readonly 
           chainId: target.chainId,
           capMinor: parseRequiredSpendCapAmountToMinor(
             rawCapAmount,
-            `${target.chainLabel} spend cap`,
+            t('gasFieldSpendCap', { chain: target.chainLabel }),
             target.spendCapDisplayDecimals,
           ),
         },
@@ -845,10 +847,10 @@ function buildAllowedCalls(
   selectedTargets: readonly GasChainTarget[],
 ) {
   if (selectedTargets.length === 0) {
-    throw new Error('Choose at least one chain target.');
+    throw new Error(t('gasErrChooseTarget'));
   }
   if (form.contractCallRules.length === 0) {
-    throw new Error('Add at least one allowed contract.');
+    throw new Error(t('gasErrAddContract'));
   }
   const out = new Map<
     string,
@@ -863,7 +865,7 @@ function buildAllowedCalls(
   for (const rule of form.contractCallRules) {
     const contractAddress = normalizeString(rule.contractAddress);
     if (!/^0x[0-9a-fA-F]{40}$/.test(contractAddress)) {
-      throw new Error('Allowed contract must be a valid EVM address.');
+      throw new Error(t('gasErrContractAddress'));
     }
     const functions = rule.functions.filter(
       (entry) =>
@@ -872,22 +874,20 @@ function buildAllowedCalls(
         normalizeString(entry.maxValueWei),
     );
     if (functions.length === 0) {
-      throw new Error('Each allowed contract needs at least one function.');
+      throw new Error(t('gasErrContractNeedsFunction'));
     }
     for (const functionEntry of functions) {
       const functionSignature = normalizeFunctionSignatureInput(functionEntry.functionSignature);
       if (!functionSignature) {
-        throw new Error(
-          'Allowed function must be a function signature like transfer(address,uint256).',
-        );
+        throw new Error(t('gasErrFunctionSignature'));
       }
       const maxGasLimit = parseRequiredPositiveIntegerString(
         functionEntry.maxGasLimit,
-        `${functionSignature} max gas limit`,
+        t('gasFieldMaxGasLimit', { signature: functionSignature }),
       );
       const maxValueWei = parseRequiredUnsignedIntegerString(
         functionEntry.maxValueWei,
-        `${functionSignature} max value`,
+        t('gasFieldMaxValue', { signature: functionSignature }),
       );
       for (const target of selectedTargets) {
         out.set(
@@ -917,17 +917,17 @@ function buildAllowedDelegateActions(
       entry.allowTransfers,
   );
   if (populatedRules.length === 0) {
-    throw new Error('Add at least one allowed delegate action.');
+    throw new Error(t('gasErrAddDelegateAction'));
   }
   const out = new Map<string, DashboardGasSponsorshipAllowedDelegateAction>();
   for (const rule of populatedRules) {
     const receiverId = normalizeString(rule.receiverId);
     if (!receiverId) {
-      throw new Error('Delegate action receiver ID is required.');
+      throw new Error(t('gasErrReceiverRequired'));
     }
     const maxDepositYocto = parseRequiredUnsignedIntegerString(
       rule.maxDepositYocto,
-      `${receiverId} max deposit`,
+      t('gasFieldMaxDeposit', { receiver: receiverId }),
     );
     const methods = splitNearMethodsInput(rule.methodsText);
     const dedupeKey = [
@@ -953,7 +953,13 @@ function buildGasSponsorshipRequest(
   if (form.ruleKind === 'near_delegate') {
     const nearTarget = getNearSpendCapTargetForNetwork(networkClass);
     if (form.spendCapMode !== 'NONE' && !nearTarget) {
-      throw new Error(`NEAR spend cap target is unavailable for ${networkClass.toLowerCase()}.`);
+      throw new Error(
+        t('gasErrNearCapTarget', {
+          network: t(
+            networkClass === 'MAINNET' ? 'gasNetworkMainnet' : 'gasNetworkTestnet',
+          ).toLowerCase(),
+        }),
+      );
     }
     return {
       ...buildScopePayload(form),
@@ -1007,18 +1013,26 @@ function describeCoverageEnvironmentLabel(input: {
   const explicitName = normalizeString(String(input.environmentName || ''));
   if (explicitName) return explicitName.toLowerCase();
   const environmentKey = normalizeString(String(input.environmentKey || '')).toLowerCase();
-  if (environmentKey === 'dev') return 'development';
-  if (environmentKey === 'prod') return 'production';
-  if (environmentKey === 'staging') return 'staging';
+  if (environmentKey === 'dev') return t('gasEnvDevelopment');
+  if (environmentKey === 'prod') return t('gasEnvProduction');
+  if (environmentKey === 'staging') return t('gasEnvStaging');
   return normalizeString(String(input.environmentId || '')) || '-';
 }
 
 function describeSpendCapMode(
   mode: GasSpendCapMode | DashboardGasSponsorshipPolicy['spendCap']['mode'],
 ): string {
-  if (mode === 'CHAIN_TOTAL') return 'Per chain total';
-  if (mode === 'WALLET_CHAIN_TOTAL') return 'Per wallet, per chain';
-  return 'No spend cap';
+  if (mode === 'CHAIN_TOTAL') return t('gasSpendCapPerChain');
+  if (mode === 'WALLET_CHAIN_TOTAL') return t('gasSpendCapPerWalletChain');
+  return t('gasSpendCapNone');
+}
+
+function describeSpendCapPeriodInline(period: GasSpendCapPeriod): string {
+  return period === 'WEEKLY' ? t('gasPeriodWeeklyInline') : t('gasPeriodMonthlyInline');
+}
+
+function describeSpendCapPeriodOption(period: GasSpendCapPeriod): string {
+  return period === 'WEEKLY' ? t('gasPeriodWeekly') : t('gasPeriodMonthly');
 }
 
 function formatSpendCapCoverageEntry(input: {
@@ -1028,25 +1042,36 @@ function formatSpendCapCoverageEntry(input: {
   period: DashboardGasSponsorshipPolicy['spendCap']['period'];
 }): string {
   const target = GAS_CHAIN_TARGETS_BY_CHAIN_ID.get(input.chainId);
-  const chainLabel = target?.chainLabel || `Chain ${input.chainId}`;
-  const scopeLabel = input.mode === 'CHAIN_TOTAL' ? 'total' : 'per wallet';
-  return `${chainLabel} ${input.period.toLowerCase()} cap ${formatSpendCapAmountMinor(
-    input.capMinor,
-    target?.spendCapCurrencyCode || 'units',
-    target?.spendCapDisplayDecimals ?? 2,
-  )} ${scopeLabel}`;
+  const chainLabel = target?.chainLabel || t('gasChainFallback', { chainId: input.chainId });
+  const scopeLabel =
+    input.mode === 'CHAIN_TOTAL' ? t('gasCapScopeTotal') : t('gasCapScopePerWallet');
+  return t('gasCapCoverageEntry', {
+    chain: chainLabel,
+    period: describeSpendCapPeriodInline(input.period),
+    amount: formatSpendCapAmountMinor(
+      input.capMinor,
+      target?.spendCapCurrencyCode || t('gasUnitsFallback'),
+      target?.spendCapDisplayDecimals ?? 2,
+    ),
+    scope: scopeLabel,
+  });
 }
 
 function formatSpendCapSummary(policy: DashboardGasSponsorshipPolicy): string {
-  if (policy.spendCap.mode === 'NONE') return 'No spend cap';
+  if (policy.spendCap.mode === 'NONE') return t('gasSpendCapNone');
   const firstCap = policy.spendCap.capsByChain[0];
   if (!firstCap) {
-    return `${describeSpendCapMode(policy.spendCap.mode)} (${policy.spendCap.period.toLowerCase()})`;
+    return t('gasSpendCapModePeriod', {
+      mode: describeSpendCapMode(policy.spendCap.mode),
+      period: describeSpendCapPeriodInline(policy.spendCap.period),
+    });
   }
   if (policy.spendCap.capsByChain.length > 1) {
-    return `${policy.spendCap.capsByChain.length} ${policy.spendCap.period.toLowerCase()} caps · ${describeSpendCapMode(
-      policy.spendCap.mode,
-    ).toLowerCase()}`;
+    return t('gasSpendCapMultiple', {
+      count: policy.spendCap.capsByChain.length,
+      period: describeSpendCapPeriodInline(policy.spendCap.period),
+      mode: describeSpendCapMode(policy.spendCap.mode).toLowerCase(),
+    });
   }
   return formatSpendCapCoverageEntry({
     chainId: firstCap.chainId,
@@ -1061,47 +1086,64 @@ function formatAllowedFunctionSummary(input: {
   maxGasLimit: string;
   maxValueWei: string;
 }): string {
-  return `${input.functionSignature} · gas <= ${input.maxGasLimit} · value <= ${input.maxValueWei} wei`;
+  return t('gasAllowedFunctionSummary', {
+    signature: input.functionSignature,
+    gas: input.maxGasLimit,
+    value: input.maxValueWei,
+  });
 }
 
 function formatAllowedDelegateActionSummary(
   action: DashboardGasSponsorshipAllowedDelegateAction,
 ): string {
-  const methodsLabel = action.methods.length > 0 ? action.methods.join(', ') : 'any method';
-  return `${action.receiverId} · ${methodsLabel} · deposit <= ${action.maxDepositYocto} yocto · transfers ${action.allowTransfers ? 'allowed' : 'blocked'}`;
+  const methodsLabel = action.methods.length > 0 ? action.methods.join(', ') : t('gasAnyMethod');
+  return t('gasDelegateActionSummary', {
+    receiver: action.receiverId,
+    methods: methodsLabel,
+    deposit: action.maxDepositYocto,
+    transfers: action.allowTransfers ? t('gasTransfersAllowed') : t('gasTransfersBlocked'),
+  });
 }
 
 function formatAllowedRuleSummary(policy: DashboardGasSponsorshipPolicy): string {
   if (policy.kind === 'near_delegate') {
     const actionCount = policy.allowedDelegateActions.length;
-    if (actionCount === 0) return 'No allowed delegate action';
-    return `${actionCount} delegate action${actionCount === 1 ? '' : 's'}`;
+    if (actionCount === 0) return t('gasNoDelegateActionAllowed');
+    return t(actionCount === 1 ? 'gasDelegateActionCountOne' : 'gasDelegateActionCountOther', {
+      count: actionCount,
+    });
   }
   const groupedRules = groupAllowedCallsByContract(policy.allowedCalls);
   const contractCount = groupedRules.length;
   const functionCount = groupedRules.reduce((sum, rule) => sum + rule.functions.length, 0);
-  if (contractCount === 0 || functionCount === 0) return 'No allowed-call rule';
-  return `${contractCount} contract${contractCount === 1 ? '' : 's'} / ${functionCount} function${functionCount === 1 ? '' : 's'}`;
+  if (contractCount === 0 || functionCount === 0) return t('gasNoAllowedCallRule');
+  const contractsLabel = t(contractCount === 1 ? 'gasContractCountOne' : 'gasContractCountOther', {
+    count: contractCount,
+  });
+  const functionsLabel = t(functionCount === 1 ? 'gasFunctionCountOne' : 'gasFunctionCountOther', {
+    count: functionCount,
+  });
+  return `${contractsLabel} / ${functionsLabel}`;
 }
 
 function formatNetworkClassLabel(
   networkClass: DashboardGasSponsorshipPolicy['networkClass'],
 ): string {
-  if (networkClass === 'MAINNET') return 'Mainnet';
-  if (networkClass === 'TESTNET') return 'Testnet';
-  return 'Any network';
+  if (networkClass === 'MAINNET') return t('gasNetworkMainnet');
+  if (networkClass === 'TESTNET') return t('gasNetworkTestnet');
+  return t('gasNetworkAny');
 }
 
 function formatRuleSummary(policy: DashboardGasSponsorshipPolicy): string {
   if (policy.kind === 'near_delegate') {
     return [
       formatNetworkClassLabel(policy.networkClass),
-      policy.enabled ? 'enabled' : 'disabled',
+      (policy.enabled ? t('gasEnabled') : t('gasDisabled')).toLowerCase(),
     ].join(' / ');
   }
   return [
     formatSelectedTargetLabels(resolveSelectedTargetIdsFromPolicy(policy)),
-    policy.enabled ? 'enabled' : 'disabled',
+    (policy.enabled ? t('gasEnabled') : t('gasDisabled')).toLowerCase(),
   ].join(' / ');
 }
 
@@ -1161,11 +1203,11 @@ export function GasSponsorshipPage(): React.JSX.Element {
     [selectedEnvironmentKey],
   );
   const activeChainColumnLabel =
-    selectedEnvironmentNetworkClass === 'MAINNET' ? 'Mainnet' : 'Testnet';
+    selectedEnvironmentNetworkClass === 'MAINNET' ? t('gasNetworkMainnet') : t('gasNetworkTestnet');
   const activeTargetGroupIds =
     selectedEnvironmentNetworkClass === 'MAINNET' ? GAS_MAINNET_TARGET_IDS : GAS_TESTNET_TARGET_IDS;
   const activeTargetGroupLabel =
-    selectedEnvironmentNetworkClass === 'MAINNET' ? 'All mainnets' : 'All testnets';
+    selectedEnvironmentNetworkClass === 'MAINNET' ? t('gasAllMainnets') : t('gasAllTestnets');
 
   const draftIdentity = React.useMemo<DashboardDraftIdentity | null>(() => {
     if (!policyModalOpen || !modalScope) return null;
@@ -1218,7 +1260,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
     ].join(':');
     if (restoredDraftToastKeyRef.current === toastKey) return;
     restoredDraftToastKeyRef.current = toastKey;
-    toast('Restored unsaved draft.', {
+    toast(t('gasDraftRestored'), {
       id: `gas-sponsorship-draft:${toastKey}`,
       description: null,
     });
@@ -1293,8 +1335,8 @@ export function GasSponsorshipPage(): React.JSX.Element {
   );
   const gasPoliciesPagination = useDashboardTablePagination(gasPolicies, {
     disabled: session.loading || loading,
-    itemLabel: 'policy',
-    itemLabelPlural: 'policies',
+    itemLabel: t('gasPolicyItem'),
+    itemLabelPlural: t('gasPolicyItemPlural'),
   });
 
   React.useEffect(() => {
@@ -1344,7 +1386,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
   const loadBillingOverview = React.useCallback(() => {
     if (!session.claims) {
       setBillingOverview(null);
-      setBillingOverviewError(session.errorMessage || 'Console session is unavailable');
+      setBillingOverviewError(session.errorMessage || t('gasSessionUnavailable'));
       setBillingOverviewLoading(false);
       setSponsoredHistory([]);
       setReconciliationPage(null);
@@ -1417,7 +1459,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
   const loadGasPolicies = React.useCallback(async (): Promise<void> => {
     if (!session.claims) {
       setLoading(false);
-      setErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setErrorMessage(session.errorMessage || t('gasSessionUnavailable'));
       setGasPolicies([]);
       return;
     }
@@ -1730,11 +1772,11 @@ export function GasSponsorshipPage(): React.JSX.Element {
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (!session.claims) {
-        setMutationError(session.errorMessage || 'Console session is unavailable');
+        setMutationError(session.errorMessage || t('gasSessionUnavailable'));
         return;
       }
       if (!canMutatePolicy) {
-        setMutationError('Owner, administrator, or project editor access is required.');
+        setMutationError(t('gasAccessRequired'));
         return;
       }
       setMutating(true);
@@ -1743,10 +1785,10 @@ export function GasSponsorshipPage(): React.JSX.Element {
         const request = buildGasSponsorshipRequest(form, selectedEnvironmentNetworkClass);
         if (editingPolicyId) {
           await updateDashboardGasSponsorshipPolicy(editingPolicyId, request);
-          toast.success('Gas sponsorship policy updated.');
+          toast.success(t('gasPolicyUpdated'));
         } else {
           await createDashboardGasSponsorshipPolicy(request);
-          toast.success('Gas sponsorship policy created.');
+          toast.success(t('gasPolicyCreated'));
         }
         await loadGasPolicies();
         clearDraft();
@@ -1789,7 +1831,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
 
   const onDiscardDraft = React.useCallback(() => {
     if (formDiffersFromInitial && typeof window !== 'undefined') {
-      const confirmed = window.confirm('Discard this unsaved draft?');
+      const confirmed = window.confirm(t('gasConfirmDiscardDraft'));
       if (!confirmed) return;
     }
     resetToInitial();
@@ -1799,11 +1841,11 @@ export function GasSponsorshipPage(): React.JSX.Element {
   const onToggleEnabled = React.useCallback(
     async (policy: DashboardGasSponsorshipPolicy) => {
       if (!session.claims) {
-        setMutationError(session.errorMessage || 'Console session is unavailable');
+        setMutationError(session.errorMessage || t('gasSessionUnavailable'));
         return;
       }
       if (!canMutatePolicy) {
-        setMutationError('Owner, administrator, or project editor access is required.');
+        setMutationError(t('gasAccessRequired'));
         return;
       }
       setMutating(true);
@@ -1812,7 +1854,9 @@ export function GasSponsorshipPage(): React.JSX.Element {
         const enabled = !isGasSponsorshipPolicyEnabled(policy);
         await setDashboardGasSponsorshipPolicyEnabled(policy.id, enabled);
         await loadGasPolicies();
-        toast.success(`${policy.name || policy.id} ${enabled ? 'enabled' : 'disabled'}.`);
+        toast.success(
+          t(enabled ? 'gasToastEnabled' : 'gasToastDisabled', { name: policy.name || policy.id }),
+        );
       } catch (error: unknown) {
         setMutationError(error instanceof Error ? error.message : String(error));
       } finally {
@@ -1825,16 +1869,16 @@ export function GasSponsorshipPage(): React.JSX.Element {
   const onDeletePolicy = React.useCallback(
     async (policy: DashboardGasSponsorshipPolicy) => {
       if (!session.claims) {
-        setMutationError(session.errorMessage || 'Console session is unavailable');
+        setMutationError(session.errorMessage || t('gasSessionUnavailable'));
         return;
       }
       if (!canMutatePolicy) {
-        setMutationError('Owner, administrator, or project editor access is required.');
+        setMutationError(t('gasAccessRequired'));
         return;
       }
       if (typeof window !== 'undefined') {
         const confirmed = window.confirm(
-          `Delete gas sponsorship policy "${policy.name || policy.id}"? This cannot be undone.`,
+          t('gasConfirmDeletePolicy', { name: policy.name || policy.id }),
         );
         if (!confirmed) return;
       }
@@ -1843,7 +1887,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
       try {
         await deleteDashboardGasSponsorshipPolicy(policy.id);
         await loadGasPolicies();
-        toast.success(`${policy.name || policy.id} deleted.`);
+        toast.success(t('gasToastDeleted', { name: policy.name || policy.id }));
       } catch (error: unknown) {
         setMutationError(error instanceof Error ? error.message : String(error));
       } finally {
@@ -1857,35 +1901,46 @@ export function GasSponsorshipPage(): React.JSX.Element {
     if (!billingOverview) return [];
     return [
       {
-        label: 'Org prepaid balance',
+        label: t('gasBalanceOrgPrepaid'),
         value: formatUsdMinor(billingOverview.creditBalanceMinor),
         hint:
           billingOverview.creditBalanceMinor <= 0
-            ? 'Sponsorship is blocked until balance is positive again'
+            ? t('gasBalanceBlockedHint')
             : billingOverview.creditBalanceMinor <= billingOverview.lowBalanceThresholdMinor
-              ? `Warning threshold ${formatUsdMinor(billingOverview.lowBalanceThresholdMinor)}`
-              : 'Positive balance available for sponsorship admission',
+              ? t('gasBalanceWarningHint', {
+                  amount: formatUsdMinor(billingOverview.lowBalanceThresholdMinor),
+                })
+              : t('gasBalanceHealthyHint'),
       },
       {
-        label: 'Reserved funds',
+        label: t('gasBalanceReserved'),
         value: formatUsdMinor(billingOverview.reservedMinor),
-        hint: `${billingOverview.activeReservationCount} active reservation${
-          billingOverview.activeReservationCount === 1 ? '' : 's'
-        }`,
+        hint: t(
+          billingOverview.activeReservationCount === 1
+            ? 'gasReservationsOne'
+            : 'gasReservationsOther',
+          { count: billingOverview.activeReservationCount },
+        ),
       },
       {
-        label: '30-day sponsored spend',
+        label: t('gasBalanceSpend30'),
         value: formatUsdMinor(billingOverview.trailing30DaySponsoredSpendMinor),
-        hint: `${billingOverview.trailing30DaySponsoredExecutionCount} recent sponsored execution${
-          billingOverview.trailing30DaySponsoredExecutionCount === 1 ? '' : 's'
-        }`,
+        hint: t(
+          billingOverview.trailing30DaySponsoredExecutionCount === 1
+            ? 'gasRecentExecutionsOne'
+            : 'gasRecentExecutionsOther',
+          { count: billingOverview.trailing30DaySponsoredExecutionCount },
+        ),
       },
       {
-        label: '90-day sponsored spend',
+        label: t('gasBalanceSpend90'),
         value: formatUsdMinor(billingOverview.trailing90DaySponsoredSpendMinor),
-        hint: `${billingOverview.trailing90DaySponsoredExecutionCount} execution${
-          billingOverview.trailing90DaySponsoredExecutionCount === 1 ? '' : 's'
-        } over the full lookback`,
+        hint: t(
+          billingOverview.trailing90DaySponsoredExecutionCount === 1
+            ? 'gasLookbackExecutionsOne'
+            : 'gasLookbackExecutionsOther',
+          { count: billingOverview.trailing90DaySponsoredExecutionCount },
+        ),
       },
     ];
   }, [billingOverview]);
@@ -1895,16 +1950,15 @@ export function GasSponsorshipPage(): React.JSX.Element {
     if (billingOverview.creditBalanceMinor <= 0) {
       return {
         tone: 'warning' as const,
-        message:
-          'Sponsored execution is currently blocked because org prepaid balance is depleted. Policy caps can still have room, but no new sponsored requests will be admitted until the balance is refilled.',
+        message: t('gasNoticeDepleted'),
       };
     }
     if (billingOverview.creditBalanceMinor <= billingOverview.lowBalanceThresholdMinor) {
       return {
         tone: 'info' as const,
-        message: `Sponsored execution is still active, but prepaid balance is at or below the warning threshold (${formatUsdMinor(
-          billingOverview.lowBalanceThresholdMinor,
-        )}). Refill before live traffic pushes the org into blocked state.`,
+        message: t('gasNoticeLow', {
+          threshold: formatUsdMinor(billingOverview.lowBalanceThresholdMinor),
+        }),
       };
     }
     /* Healthy state: no banner. The section intro already explains that policy
@@ -1914,12 +1968,9 @@ export function GasSponsorshipPage(): React.JSX.Element {
   }, [billingOverview]);
 
   return (
-    <div
-      className="dashboard-view dashboard-gas-sponsorship-view"
-      aria-label="Gas sponsorship page"
-    >
+    <div className="dashboard-view dashboard-gas-sponsorship-view" aria-label={t('gasPageLabel')}>
       {mutationError ? (
-        <section className="dashboard-view__section" aria-label="Gas sponsorship error">
+        <section className="dashboard-view__section" aria-label={t('gasErrorLabel')}>
           <p className="dashboard-pagination-note" role="alert">
             {mutationError}
           </p>
@@ -1928,32 +1979,33 @@ export function GasSponsorshipPage(): React.JSX.Element {
 
       {session.loading || loading ? (
         <section className="dashboard-view__section">
-          <p>Loading gas sponsorship policies...</p>
+          <p>{t('gasLoadingPolicies')}</p>
         </section>
       ) : !session.claims ? (
         <section className="dashboard-view__section">
-          <p>Gas sponsorship data unavailable: {session.errorMessage || 'unauthorized'}.</p>
+          <p>
+            {t('gasDataUnavailableSession', {
+              reason: session.errorMessage || t('gasUnauthorized'),
+            })}
+          </p>
         </section>
       ) : errorMessage ? (
         <section className="dashboard-view__section">
-          <p>Gas sponsorship data unavailable: {errorMessage}</p>
+          <p>{t('gasDataUnavailable', { reason: errorMessage })}</p>
         </section>
       ) : (
         <>
           <section
             className="dashboard-view__section dashboard-gas-sponsorship-view__readiness"
-            aria-label="Gas sponsorship balance readiness"
+            aria-label={t('gasReadinessLabel')}
           >
-            <h2>Sponsorship balance readiness</h2>
-            <p>
-              Policy configuration and prepaid balance are separate controls. Even with enabled
-              policies, sponsorship stops immediately when the organization balance is exhausted.
-            </p>
+            <h2>{t('gasReadinessTitle')}</h2>
+            <p>{t('gasReadinessIntro')}</p>
             {billingOverviewLoading ? (
-              <p>Loading sponsorship balance state...</p>
+              <p>{t('gasLoadingBalance')}</p>
             ) : billingOverviewError ? (
               <p className="dashboard-pagination-note">
-                Sponsorship balance state unavailable: {billingOverviewError}
+                {t('gasBalanceUnavailable', { reason: billingOverviewError })}
               </p>
             ) : billingOverview ? (
               <>
@@ -1966,7 +2018,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                         className="dashboard-warning-banner__dismiss"
                         onClick={() => go('/dashboard/billing/account')}
                       >
-                        Top up balance
+                        {t('gasTopUp')}
                       </button>
                     </div>
                   ) : (
@@ -1977,14 +2029,14 @@ export function GasSponsorshipPage(): React.JSX.Element {
                         className="dashboard-pagination-button"
                         onClick={() => go('/dashboard/billing/account')}
                       >
-                        Open billing
+                        {t('gasOpenBilling')}
                       </button>
                     </div>
                   )
                 ) : null}
                 <BillingMetricsGrid
                   metrics={gasBalanceMetrics}
-                  ariaLabel="Gas sponsorship balance readiness metrics"
+                  ariaLabel={t('gasReadinessMetricsLabel')}
                 />
               </>
             ) : null}
@@ -1992,9 +2044,9 @@ export function GasSponsorshipPage(): React.JSX.Element {
 
           <section
             className="dashboard-view__section dashboard-view__section--plain dashboard-gas-sponsorship-view__policies"
-            aria-label="Gas sponsorship policies"
+            aria-label={t('gasPoliciesLabel')}
           >
-            <h2>Policies</h2>
+            <h2>{t('gasPolicies')}</h2>
             <DashboardPageActions>
               <button
                 type="button"
@@ -2002,26 +2054,24 @@ export function GasSponsorshipPage(): React.JSX.Element {
                 onClick={openCreateModal}
                 disabled={!canMutatePolicy || mutating}
               >
-                Create policy
+                {t('gasCreatePolicy')}
               </button>
             </DashboardPageActions>
             <DashboardTable
-              ariaLabel="Gas sponsorship rows"
+              ariaLabel={t('gasRowsLabel')}
               className="dashboard-gas-sponsorship-table"
               columns={GAS_SPONSORSHIP_TABLE_COLUMNS}
               pagination={gasPoliciesPagination.pagination}
             >
               <DashboardTableHeader className="dashboard-gas-sponsorship-table__header">
-                <DashboardTableHeaderCell>Policy</DashboardTableHeaderCell>
-                <DashboardTableHeaderCell>Behavior</DashboardTableHeaderCell>
-                <DashboardTableHeaderCell>Spend cap</DashboardTableHeaderCell>
-                <DashboardTableHeaderCell>Updated</DashboardTableHeaderCell>
-                <DashboardTableHeaderCell>Actions</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('gasPolicy')}</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('gasBehavior')}</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('gasSpendCap')}</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('gasUpdated')}</DashboardTableHeaderCell>
+                <DashboardTableHeaderCell>{t('gasActions')}</DashboardTableHeaderCell>
               </DashboardTableHeader>
               {gasPolicies.length === 0 ? (
-                <DashboardTableState>
-                  No gas sponsorship policies found for this environment yet.
-                </DashboardTableState>
+                <DashboardTableState>{t('gasNoPolicies')}</DashboardTableState>
               ) : (
                 gasPoliciesPagination.rows.map((policy) => {
                   const enabled = isGasSponsorshipPolicyEnabled(policy);
@@ -2052,7 +2102,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                                     : 'dashboard-data-table__badge--neutral'
                                 }`}
                               >
-                                {enabled ? 'Enabled' : 'Disabled'}
+                                {enabled ? t('gasEnabled') : t('gasDisabled')}
                               </span>
                             </span>
                             <span className="dashboard-lead__sub">
@@ -2082,23 +2132,23 @@ export function GasSponsorshipPage(): React.JSX.Element {
                             onClick={() => onViewPolicy(policy)}
                             disabled={mutating}
                           >
-                            View
+                            {t('gasView')}
                           </DashboardTableActionButton>
                           <DashboardTableActionMenu
-                            ariaLabel={`More actions for ${policy.name || policy.id}`}
+                            ariaLabel={t('gasMoreActionsFor', { name: policy.name || policy.id })}
                             items={[
                               {
-                                label: 'Edit',
+                                label: t('gasEdit'),
                                 onSelect: () => onEditPolicy(policy),
                                 disabled: mutating,
                               },
                               {
-                                label: enabled ? 'Disable' : 'Enable',
+                                label: enabled ? t('gasDisable') : t('gasEnable'),
                                 onSelect: () => onToggleEnabled(policy),
                                 disabled: !canMutatePolicy || mutating,
                               },
                               {
-                                label: 'Delete',
+                                label: t('gasDelete'),
                                 onSelect: () => onDeletePolicy(policy),
                                 tone: 'danger' as const,
                                 disabled: !canMutatePolicy || mutating,
@@ -2121,7 +2171,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
               entries={sponsoredHistory}
               loading={billingOverviewLoading}
               error={sponsoredHistoryError}
-              scopeDescription={`Showing the selected Wallet environment (${selectedEnvironmentId}).`}
+              scopeDescription={t('gasHistoryScope', { environmentId: selectedEnvironmentId })}
             />
           </section>
           <SponsoredExecutionReconciliationSection
@@ -2139,65 +2189,71 @@ export function GasSponsorshipPage(): React.JSX.Element {
           className="dashboard-modal--wide"
           ariaLabel={
             activeModal === 'create'
-              ? 'Create gas sponsorship policy modal'
+              ? t('gasModalCreateLabel')
               : activeModal === 'edit'
-                ? 'Edit gas sponsorship policy modal'
-                : 'View gas sponsorship coverage modal'
+                ? t('gasModalEditLabel')
+                : t('gasModalViewLabel')
           }
         >
           {activeModal === 'view' ? (
             <>
-              <h2>Coverage</h2>
+              <h2>{t('gasCoverage')}</h2>
               <p className="dashboard-pagination-note dashboard-gas-coverage__subtitle">
-                {selectedPolicy?.name || selectedPolicy?.id || 'Selected sponsorship policy'}
+                {selectedPolicy?.name || selectedPolicy?.id || t('gasSelectedPolicyFallback')}
               </p>
               {selectedPolicy ? (
                 <>
                   <div className="dashboard-gas-coverage__stats">
                     <div className="dashboard-gas-coverage__stat">
-                      <span>Environment</span>
+                      <span>{t('gasEnvironment')}</span>
                       <strong className="dashboard-gas-coverage__scope-value">
                         <span>
-                          project:{' '}
-                          {describeCoverageProjectLabel({
-                            projectName: selectedProjectName,
-                            projectId: selectedPolicy.projectId,
+                          {t('gasScopeProject', {
+                            name: describeCoverageProjectLabel({
+                              projectName: selectedProjectName,
+                              projectId: selectedPolicy.projectId,
+                            }),
                           })}
                         </span>
                         <span>
-                          environment:{' '}
-                          {describeCoverageEnvironmentLabel({
-                            environmentName: selectedEnvironmentName,
-                            environmentKey: selectedEnvironmentKey,
-                            environmentId: selectedPolicy.environmentId,
+                          {t('gasScopeEnvironment', {
+                            name: describeCoverageEnvironmentLabel({
+                              environmentName: selectedEnvironmentName,
+                              environmentKey: selectedEnvironmentKey,
+                              environmentId: selectedPolicy.environmentId,
+                            }),
                           })}
                         </span>
                       </strong>
                     </div>
                     <div className="dashboard-gas-coverage__stat">
-                      <span>Status</span>
+                      <span>{t('gasStatus')}</span>
                       <strong>
-                        {isGasSponsorshipPolicyEnabled(selectedPolicy) ? 'Enabled' : 'Disabled'}
+                        {isGasSponsorshipPolicyEnabled(selectedPolicy)
+                          ? t('gasEnabled')
+                          : t('gasDisabled')}
                       </strong>
                     </div>
                     <div className="dashboard-gas-coverage__stat">
                       <span>
-                        {selectedPolicy.kind === 'near_delegate' ? 'Delegate actions' : 'Rules'}
+                        {selectedPolicy.kind === 'near_delegate'
+                          ? t('gasDelegateActions')
+                          : t('gasRules')}
                       </span>
                       <strong>{formatAllowedRuleSummary(selectedPolicy)}</strong>
                     </div>
                     <div className="dashboard-gas-coverage__stat">
-                      <span>Execution mode</span>
+                      <span>{t('gasExecutionMode')}</span>
                       <strong>{selectedPolicy.executionMode}</strong>
                     </div>
                     <div className="dashboard-gas-coverage__stat">
-                      <span>Spend cap</span>
+                      <span>{t('gasSpendCap')}</span>
                       <strong>{describeSpendCapMode(selectedPolicy.spendCap.mode)}</strong>
                     </div>
                   </div>
                   <section className="dashboard-gas-coverage__section">
                     <div className="dashboard-gas-coverage__section-header">
-                      <span>Policy behavior</span>
+                      <span>{t('gasPolicyBehavior')}</span>
                     </div>
                     <p className="dashboard-pagination-note">{formatRuleSummary(selectedPolicy)}</p>
                   </section>
@@ -2205,8 +2261,8 @@ export function GasSponsorshipPage(): React.JSX.Element {
                     <div className="dashboard-gas-coverage__section-header">
                       <span>
                         {selectedPolicy.kind === 'near_delegate'
-                          ? 'Delegate actions'
-                          : 'Contract calls'}
+                          ? t('gasDelegateActions')
+                          : t('gasContractCalls')}
                       </span>
                     </div>
                     {selectedPolicy.kind === 'near_delegate' ? (
@@ -2228,7 +2284,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                         </div>
                       ) : (
                         <p className="dashboard-pagination-note dashboard-gas-coverage__empty">
-                          No delegate-action rules configured.
+                          {t('gasNoDelegateRules')}
                         </p>
                       )
                     ) : selectedPolicy.allowedCalls.length > 0 ? (
@@ -2253,13 +2309,13 @@ export function GasSponsorshipPage(): React.JSX.Element {
                       </div>
                     ) : (
                       <p className="dashboard-pagination-note dashboard-gas-coverage__empty">
-                        No allowed-call rules configured.
+                        {t('gasNoAllowedCallRules')}
                       </p>
                     )}
                   </section>
                   <section className="dashboard-gas-coverage__section dashboard-gas-coverage__section--spend-caps">
                     <div className="dashboard-gas-coverage__section-header">
-                      <span>Spend caps</span>
+                      <span>{t('gasSpendCaps')}</span>
                     </div>
                     {selectedPolicy.spendCap.capsByChain.length > 0 ? (
                       <div className="dashboard-gas-coverage__function-list">
@@ -2280,53 +2336,48 @@ export function GasSponsorshipPage(): React.JSX.Element {
                     ) : (
                       <p className="dashboard-pagination-note dashboard-gas-coverage__empty">
                         {selectedPolicy.spendCap.mode === 'NONE'
-                          ? 'No spend cap configured.'
-                          : 'No per-chain spend caps configured.'}
+                          ? t('gasNoSpendCapConfigured')
+                          : t('gasNoPerChainCaps')}
                       </p>
                     )}
                   </section>
                 </>
               ) : (
                 <p className="dashboard-pagination-note">
-                  {loading
-                    ? 'Loading sponsorship policy...'
-                    : errorMessage || 'This sponsorship policy is no longer available.'}
+                  {loading ? t('gasLoadingPolicy') : errorMessage || t('gasPolicyUnavailable')}
                 </p>
               )}
               <div className="dashboard-form-actions">
                 <button type="button" className="dashboard-pagination-button" onClick={onResetForm}>
-                  Close
+                  {t('gasClose')}
                 </button>
               </div>
             </>
           ) : (
             <>
-              <h2>{activeModal === 'create' ? 'Create policy' : 'Edit sponsorship policy'}</h2>
-              <p className="dashboard-pagination-note">
-                Name the policy, choose its scope, then define either EVM call templates or NEAR
-                delegate-action templates.
-              </p>
+              <h2>{activeModal === 'create' ? t('gasCreatePolicy') : t('gasEditPolicyTitle')}</h2>
+              <p className="dashboard-pagination-note">{t('gasFormIntro')}</p>
               {mutationError ? <p className="dashboard-pagination-note">{mutationError}</p> : null}
               <form className="dashboard-view-grid dashboard-view-grid--two" onSubmit={onSubmit}>
                 <section className="dashboard-policy-rule-panel dashboard-form-field dashboard-form-field--full">
                   <div className="dashboard-policy-rule-panel__header">
-                    <span>Policy</span>
+                    <span>{t('gasPolicy')}</span>
                   </div>
                   <div className="dashboard-view-grid dashboard-view-grid--two">
                     <label className="dashboard-form-field">
-                      <span>Policy name</span>
+                      <span>{t('gasPolicyName')}</span>
                       <input
                         className="dashboard-input"
                         value={form.name}
                         onChange={(event) =>
                           setForm((current) => ({ ...current, name: event.target.value }))
                         }
-                        placeholder="Tempo testnet onboarding"
+                        placeholder={t('gasPolicyNamePlaceholder')}
                         disabled={mutating}
                       />
                     </label>
                     <div className="dashboard-form-field">
-                      <span>Rule kind</span>
+                      <span>{t('gasRuleKind')}</span>
                       <div className="dashboard-policy-contract-call-mode">
                         <button
                           type="button"
@@ -2345,7 +2396,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                           }
                           disabled={mutating}
                         >
-                          EVM calls
+                          {t('gasRuleKindEvm')}
                         </button>
                         <button
                           type="button"
@@ -2366,12 +2417,12 @@ export function GasSponsorshipPage(): React.JSX.Element {
                           }
                           disabled={mutating}
                         >
-                          NEAR delegate
+                          {t('gasRuleKindNear')}
                         </button>
                       </div>
                     </div>
                     <label className="dashboard-form-field">
-                      <span>Spend-cap period</span>
+                      <span>{t('gasSpendCapPeriod')}</span>
                       <select
                         className="dashboard-input"
                         value={form.spendCapPeriod}
@@ -2385,13 +2436,13 @@ export function GasSponsorshipPage(): React.JSX.Element {
                       >
                         {GAS_SPEND_CAP_PERIODS.map((period) => (
                           <option key={period} value={period}>
-                            {period}
+                            {describeSpendCapPeriodOption(period)}
                           </option>
                         ))}
                       </select>
                     </label>
                     <div className="dashboard-form-field dashboard-form-field--full">
-                      <span>Spend cap</span>
+                      <span>{t('gasSpendCap')}</span>
                       <div className="dashboard-policy-contract-call-mode">
                         <button
                           type="button"
@@ -2410,7 +2461,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                           }
                           disabled={mutating}
                         >
-                          No spend cap
+                          {t('gasSpendCapNone')}
                         </button>
                         <button
                           type="button"
@@ -2431,7 +2482,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                           }
                           disabled={mutating}
                         >
-                          Per chain total
+                          {t('gasSpendCapPerChain')}
                         </button>
                         <button
                           type="button"
@@ -2452,7 +2503,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                           }
                           disabled={mutating}
                         >
-                          Per wallet, per chain
+                          {t('gasSpendCapPerWalletChain')}
                         </button>
                       </div>
                     </div>
@@ -2460,9 +2511,9 @@ export function GasSponsorshipPage(): React.JSX.Element {
                       <div className="dashboard-form-field dashboard-form-field--full">
                         <div className="dashboard-gas-target-matrix">
                           <div className="dashboard-gas-target-matrix__header">
-                            <span>Chain</span>
+                            <span>{t('gasChain')}</span>
                             <span>{activeChainColumnLabel}</span>
-                            <span>Spend cap</span>
+                            <span>{t('gasSpendCap')}</span>
                           </div>
                           {GAS_CHAIN_MATRIX_ROWS.map((row) => (
                             <div className="dashboard-gas-target-matrix__row" key={row.chainName}>
@@ -2479,7 +2530,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                                     <>
                                       <span className="dashboard-gas-target-matrix__cell">
                                         <span className="dashboard-gas-target-pill dashboard-gas-target-pill--unavailable">
-                                          N/A
+                                          {t('gasNotAvailable')}
                                         </span>
                                       </span>
                                       <span className="dashboard-gas-target-matrix__cap">
@@ -2511,7 +2562,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                                           onClick={() => onSetTargetEnabled(target.id, true)}
                                           disabled={mutating}
                                         >
-                                          On
+                                          {t('gasOn')}
                                         </button>
                                         <button
                                           type="button"
@@ -2527,24 +2578,26 @@ export function GasSponsorshipPage(): React.JSX.Element {
                                           onClick={() => onSetTargetEnabled(target.id, false)}
                                           disabled={mutating}
                                         >
-                                          Off
+                                          {t('gasOff')}
                                         </button>
                                       </span>
                                     </span>
                                     <span className="dashboard-gas-target-matrix__cap">
                                       {form.spendCapMode === 'NONE' ? (
                                         <span className="dashboard-gas-target-cap__empty">
-                                          No cap
+                                          {t('gasNoCap')}
                                         </span>
                                       ) : !pressed ? (
                                         <span className="dashboard-gas-target-cap__empty">
-                                          Turn on chain
+                                          {t('gasTurnOnChain')}
                                         </span>
                                       ) : (
                                         <span className="dashboard-gas-target-cap__input">
                                           <input
                                             className="dashboard-input"
-                                            aria-label={`${target.chainLabel} spend cap`}
+                                            aria-label={t('gasFieldSpendCap', {
+                                              chain: target.chainLabel,
+                                            })}
                                             inputMode="decimal"
                                             value={
                                               form.spendCapAmountByChainName[target.chainName] || ''
@@ -2605,8 +2658,9 @@ export function GasSponsorshipPage(): React.JSX.Element {
                     ) : (
                       <div className="dashboard-form-field dashboard-form-field--full">
                         <p className="dashboard-pagination-note">
-                          NEAR delegate sponsorship follows the selected environment network:{' '}
-                          {formatNetworkClassLabel(selectedEnvironmentNetworkClass)}.
+                          {t('gasNearFollowsNetwork', {
+                            network: formatNetworkClassLabel(selectedEnvironmentNetworkClass),
+                          })}
                         </p>
                         {(() => {
                           const nearTarget = getNearSpendCapTargetForNetwork(
@@ -2616,9 +2670,9 @@ export function GasSponsorshipPage(): React.JSX.Element {
                           return (
                             <div className="dashboard-gas-target-matrix">
                               <div className="dashboard-gas-target-matrix__header">
-                                <span>Chain</span>
-                                <span>Network</span>
-                                <span>Spend cap</span>
+                                <span>{t('gasChain')}</span>
+                                <span>{t('gasNetwork')}</span>
+                                <span>{t('gasSpendCap')}</span>
                               </div>
                               <div className="dashboard-gas-target-matrix__row">
                                 <div className="dashboard-gas-target-matrix__chain">NEAR</div>
@@ -2629,12 +2683,16 @@ export function GasSponsorshipPage(): React.JSX.Element {
                                 </span>
                                 <span className="dashboard-gas-target-matrix__cap">
                                   {form.spendCapMode === 'NONE' ? (
-                                    <span className="dashboard-gas-target-cap__empty">No cap</span>
+                                    <span className="dashboard-gas-target-cap__empty">
+                                      {t('gasNoCap')}
+                                    </span>
                                   ) : (
                                     <span className="dashboard-gas-target-cap__input">
                                       <input
                                         className="dashboard-input"
-                                        aria-label={`${nearTarget.chainLabel} spend cap`}
+                                        aria-label={t('gasFieldSpendCap', {
+                                          chain: nearTarget.chainLabel,
+                                        })}
                                         inputMode="decimal"
                                         value={
                                           form.spendCapAmountByChainName[nearTarget.chainName] || ''
@@ -2681,39 +2739,38 @@ export function GasSponsorshipPage(): React.JSX.Element {
                 <section className="dashboard-policy-rule-panel dashboard-form-field dashboard-form-field--full">
                   <div className="dashboard-policy-rule-panel__header">
                     <span>
-                      {form.ruleKind === 'near_delegate' ? 'Delegate actions' : 'Contract calls'}
+                      {form.ruleKind === 'near_delegate'
+                        ? t('gasDelegateActions')
+                        : t('gasContractCalls')}
                     </span>
                     <p className="dashboard-pagination-note">
                       {form.ruleKind === 'near_delegate'
-                        ? 'Define the allowlisted NEAR receivers, optional method lists, deposit bounds, and transfer allowance.'
-                        : 'Define the allowlisted contract functions and their gas/value bounds for the selected chains.'}
+                        ? t('gasDefineDelegate')
+                        : t('gasDefineContracts')}
                     </p>
                   </div>
                   {form.ruleKind === 'near_delegate' ? (
                     <div className="dashboard-policy-contract-calls">
-                      <p className="dashboard-pagination-note">Execution mode: `near_delegate`.</p>
+                      <p className="dashboard-pagination-note">{t('gasExecutionModeNear')}</p>
                       {form.delegateActionRules.length === 0 ? (
-                        <p className="dashboard-pagination-note">
-                          Add one or more delegate actions to define the sponsored receiver and
-                          method templates.
-                        </p>
+                        <p className="dashboard-pagination-note">{t('gasAddDelegateHint')}</p>
                       ) : null}
                       {form.delegateActionRules.map((rule) => (
                         <div key={rule.id} className="dashboard-policy-contract-card">
                           <div className="dashboard-policy-contract-card__header">
-                            <strong>Allowed delegate action</strong>
+                            <strong>{t('gasAllowedDelegateAction')}</strong>
                             <button
                               type="button"
                               className="dashboard-inline-link dashboard-inline-link--danger"
                               onClick={() => removeDelegateActionRule(rule.id)}
                               disabled={mutating}
                             >
-                              Remove
+                              {t('gasRemove')}
                             </button>
                           </div>
                           <div className="dashboard-view-grid dashboard-view-grid--two">
                             <label className="dashboard-form-field">
-                              <span>Receiver ID</span>
+                              <span>{t('gasReceiverId')}</span>
                               <input
                                 className="dashboard-input"
                                 value={rule.receiverId}
@@ -2727,7 +2784,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                               />
                             </label>
                             <label className="dashboard-form-field">
-                              <span>Max deposit (yoctoNEAR)</span>
+                              <span>{t('gasMaxDepositYocto')}</span>
                               <input
                                 className="dashboard-input"
                                 value={rule.maxDepositYocto}
@@ -2742,7 +2799,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                               />
                             </label>
                             <label className="dashboard-form-field dashboard-form-field--full">
-                              <span>Allowed methods (comma or newline separated)</span>
+                              <span>{t('gasAllowedMethods')}</span>
                               <textarea
                                 className="dashboard-input"
                                 value={rule.methodsText}
@@ -2768,7 +2825,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                                   }
                                   disabled={mutating}
                                 />
-                                Allow native transfers in the delegate action
+                                {t('gasAllowNativeTransfers')}
                               </span>
                             </label>
                           </div>
@@ -2780,32 +2837,30 @@ export function GasSponsorshipPage(): React.JSX.Element {
                         onClick={addDelegateActionRule}
                         disabled={mutating}
                       >
-                        Add delegate action
+                        {t('gasAddDelegateAction')}
                       </button>
                     </div>
                   ) : (
                     <div className="dashboard-policy-contract-calls">
-                      <p className="dashboard-pagination-note">Execution mode: `evm_eoa`.</p>
+                      <p className="dashboard-pagination-note">{t('gasExecutionModeEvm')}</p>
                       {form.contractCallRules.length === 0 ? (
-                        <p className="dashboard-pagination-note">
-                          Add one or more contracts to define the sponsored function templates.
-                        </p>
+                        <p className="dashboard-pagination-note">{t('gasAddContractHint')}</p>
                       ) : null}
                       {form.contractCallRules.map((rule) => (
                         <div key={rule.id} className="dashboard-policy-contract-card">
                           <div className="dashboard-policy-contract-card__header">
-                            <strong>Allowed contract</strong>
+                            <strong>{t('gasAllowedContract')}</strong>
                             <button
                               type="button"
                               className="dashboard-inline-link dashboard-inline-link--danger"
                               onClick={() => removeContractCallRule(rule.id)}
                               disabled={mutating}
                             >
-                              Remove
+                              {t('gasRemove')}
                             </button>
                           </div>
                           <label className="dashboard-form-field">
-                            <span>Contract address</span>
+                            <span>{t('gasContractAddress')}</span>
                             <input
                               className="dashboard-input"
                               value={rule.contractAddress}
@@ -2824,7 +2879,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                               >
                                 <label className="dashboard-form-field dashboard-uri-list-editor__field">
                                   <span className={index === 0 ? '' : 'dashboard-visually-hidden'}>
-                                    Function signature
+                                    {t('gasFunctionSignature')}
                                   </span>
                                   <input
                                     className="dashboard-input"
@@ -2840,7 +2895,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                                 </label>
                                 <label className="dashboard-form-field dashboard-uri-list-editor__field">
                                   <span className={index === 0 ? '' : 'dashboard-visually-hidden'}>
-                                    Max gas limit
+                                    {t('gasMaxGasLimit')}
                                   </span>
                                   <input
                                     className="dashboard-input"
@@ -2857,7 +2912,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                                 </label>
                                 <label className="dashboard-form-field dashboard-uri-list-editor__field">
                                   <span className={index === 0 ? '' : 'dashboard-visually-hidden'}>
-                                    Max value (wei)
+                                    {t('gasMaxValueWei')}
                                   </span>
                                   <input
                                     className="dashboard-input"
@@ -2881,7 +2936,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                                     }
                                     disabled={mutating}
                                   >
-                                    Remove
+                                    {t('gasRemove')}
                                   </button>
                                 </div>
                               </div>
@@ -2893,7 +2948,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                             onClick={() => addContractFunction(rule.id)}
                             disabled={mutating}
                           >
-                            Add function
+                            {t('gasAddFunction')}
                           </button>
                         </div>
                       ))}
@@ -2903,7 +2958,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                         onClick={addContractCallRule}
                         disabled={mutating}
                       >
-                        Add contract
+                        {t('gasAddContract')}
                       </button>
                     </div>
                   )}
@@ -2924,7 +2979,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                     onClick={onDiscardDraft}
                     disabled={mutating}
                   >
-                    Discard draft
+                    {t('gasDiscardDraft')}
                   </button>
                   <button
                     type="submit"
@@ -2933,10 +2988,10 @@ export function GasSponsorshipPage(): React.JSX.Element {
                     title={formValidationError || undefined}
                   >
                     {mutating
-                      ? 'Saving...'
+                      ? t('gasSaving')
                       : editingPolicyId
-                        ? 'Save sponsorship policy'
-                        : 'Create sponsorship policy'}
+                        ? t('gasSavePolicy')
+                        : t('gasCreateSponsorshipPolicy')}
                   </button>
                   <button
                     type="button"
@@ -2944,7 +2999,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
                     onClick={onResetForm}
                     disabled={mutating}
                   >
-                    Cancel
+                    {t('gasCancel')}
                   </button>
                 </div>
               </form>

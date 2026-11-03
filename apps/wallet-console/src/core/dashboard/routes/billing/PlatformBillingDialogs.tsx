@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { DashboardInlineModal } from '../../components/DashboardInlineModal';
 import {
   formatUsdMinor,
@@ -23,9 +24,29 @@ export function describePlatformLiveAccess(state: PlatformLiveAccessState): {
   label: string;
   tone: 'success' | 'warning' | 'danger';
 } {
-  if (state === 'BLOCKED') return { label: 'Blocked', tone: 'danger' };
-  if (state === 'LOW_BALANCE') return { label: 'Allowed, low balance', tone: 'warning' };
-  return { label: 'Allowed', tone: 'success' };
+  if (state === 'BLOCKED') return { label: t('platformBillingBlocked'), tone: 'danger' };
+  if (state === 'LOW_BALANCE') {
+    return { label: t('platformBillingAllowedLow'), tone: 'warning' };
+  }
+  return { label: t('platformBillingAllowed'), tone: 'success' };
+}
+
+/** The refund status as people read it. A status this Console does not know shows as sent. */
+export function describePlatformRefundStatus(status: string): string {
+  switch (status) {
+    case 'requested':
+      return t('platformBillingRefundStatusRequested');
+    case 'provider_pending':
+      return t('platformBillingRefundStatusProviderPending');
+    case 'succeeded':
+      return t('platformBillingRefundStatusSucceeded');
+    case 'failed':
+      return t('platformBillingRefundStatusFailed');
+    case 'canceled':
+      return t('platformBillingRefundStatusCanceled');
+    default:
+      return status.replace('_', ' ');
+  }
 }
 
 /** "$50.00", or "−$50.00" for a negative balance. */
@@ -52,16 +73,16 @@ function formatUsdAmountInput(amountMinor: number): string {
 
 /* Fixed reasons keep the audit log consistent; the note carries the details. */
 const SUPPORT_CREDIT_REASONS = [
-  { code: 'correction', label: 'Correction of a mistaken entry' },
-  { code: 'platform_owner_account', label: 'Platform owner account' },
-  { code: 'incident_credit', label: 'Incident credit' },
-  { code: 'goodwill', label: 'Goodwill' },
+  { code: 'correction', label: t('platformBillingReasonCorrection') },
+  { code: 'platform_owner_account', label: t('platformBillingReasonPlatformOwner') },
+  { code: 'incident_credit', label: t('platformBillingReasonIncident') },
+  { code: 'goodwill', label: t('platformBillingReasonGoodwill') },
 ] as const;
 
 const ADMIN_DEBIT_REASONS = [
-  { code: 'correction', label: 'Correction of a mistaken entry' },
-  { code: 'unbilled_usage', label: 'Usage that was not billed' },
-  { code: 'account_closure', label: 'Account closure' },
+  { code: 'correction', label: t('platformBillingReasonCorrection') },
+  { code: 'unbilled_usage', label: t('platformBillingReasonUnbilled') },
+  { code: 'account_closure', label: t('platformBillingReasonClosure') },
 ] as const;
 
 const SUPPORT_CREDIT_PRESETS_MINOR = [2500, 5000, 10000] as const;
@@ -196,15 +217,15 @@ function PlatformAdjustmentDialogBody(props: {
   const amountLabel = isAmountValid ? formatUsdMinor(amountMinor) : '';
   const submitLabel = submitting
     ? isCredit
-      ? 'Adding credit...'
-      : 'Debiting...'
+      ? t('platformBillingAddingCredit')
+      : t('platformBillingDebiting')
     : isCredit
       ? amountLabel
-        ? `Add ${amountLabel} credit`
-        : 'Add credit'
+        ? t('platformBillingAddAmountCredit', { amount: amountLabel })
+        : t('platformBillingAddCredit')
       : amountLabel
-        ? `Debit ${amountLabel}`
-        : 'Debit';
+        ? t('platformBillingDebitAmount', { amount: amountLabel })
+        : t('platformBillingDebit');
 
   const close = React.useCallback(() => {
     if (!submitting) onClose();
@@ -232,11 +253,11 @@ function PlatformAdjustmentDialogBody(props: {
 
   const title = request.reversal
     ? isCredit
-      ? 'Reverse admin debit'
-      : 'Reverse support credit'
+      ? t('platformBillingReverseAdminDebit')
+      : t('platformBillingReverseSupportCredit')
     : isCredit
-      ? 'Add credit'
-      : `Debit ${organization.name}`;
+      ? t('platformBillingAddCredit')
+      : t('platformBillingDebitOrganization', { name: organization.name });
 
   return (
     <DashboardInlineModal
@@ -251,12 +272,12 @@ function PlatformAdjustmentDialogBody(props: {
         <h2 id={titleId}>{title}</h2>
         <p id={descriptionId} className="dashboard-pagination-note">
           {organization.name} · <code>{organization.id}</code>
-          {isCredit ? null : <> · Removes credit from the balance.</>}
+          {isCredit ? null : <> · {t('platformBillingRemovesCredit')}</>}
         </p>
       </div>
       <form className="dashboard-billing-adjustment-form" onSubmit={submit}>
         <div className="dashboard-form-field">
-          <span>Amount (USD)</span>
+          <span>{t('platformBillingAmountUsd')}</span>
           <div className="dashboard-platform-adjustment-dialog__amount">
             {isCredit && !request.reversal
               ? SUPPORT_CREDIT_PRESETS_MINOR.map((presetMinor) => (
@@ -275,31 +296,35 @@ function PlatformAdjustmentDialogBody(props: {
               className="dashboard-input"
               type="text"
               inputMode="decimal"
-              aria-label="Amount in US dollars"
+              aria-label={t('platformBillingAmountAria')}
               autoFocus={!request.reversal}
               readOnly={Boolean(request.reversal)}
               value={amountInput}
               onChange={(event) => setAmountInput(event.target.value)}
-              placeholder={isCredit ? 'Other amount' : 'Amount'}
+              placeholder={
+                isCredit ? t('platformBillingOtherAmount') : t('platformBillingColAmount')
+              }
             />
           </div>
           {amountInput && !isAmountValid ? (
-            <p className="dashboard-form-alert">Enter an amount above $0, such as 25.00.</p>
+            <p className="dashboard-form-alert">{t('platformBillingAmountInvalid')}</p>
           ) : request.reversal ? (
             <p className="dashboard-form-hint">
-              A reversal uses the amount of <code>{request.reversal.ledgerEntryId}</code>.
+              {t('platformBillingReversalAmountBefore')}
+              <code>{request.reversal.ledgerEntryId}</code>
+              {t('platformBillingReversalAmountAfter')}
             </p>
           ) : null}
         </div>
         <label className="dashboard-form-field">
-          <span>Reason</span>
+          <span>{t('platformBillingColReason')}</span>
           <select
             className="dashboard-input"
             value={reasonCode}
             onChange={(event) => setReasonCode(event.target.value)}
           >
             <option value="" disabled>
-              Choose a reason
+              {t('platformBillingChooseReason')}
             </option>
             {reasons.map((reason) => (
               <option key={reason.code} value={reason.code}>
@@ -309,24 +334,24 @@ function PlatformAdjustmentDialogBody(props: {
           </select>
         </label>
         <label className="dashboard-form-field">
-          <span>Note (shown in the audit log)</span>
+          <span>{t('platformBillingNote')}</span>
           <textarea
             className="dashboard-input dashboard-textarea"
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            placeholder="Why is this needed? Name the ticket or the entry."
+            placeholder={t('platformBillingNotePlaceholder')}
           />
         </label>
         <details className="dashboard-platform-adjustment-dialog__more">
-          <summary>Link a billing document (optional)</summary>
+          <summary>{t('platformBillingLinkDocument')}</summary>
           <label className="dashboard-form-field">
-            <span>Document ID</span>
+            <span>{t('platformBillingDocumentId')}</span>
             <input
               className="dashboard-input"
               type="text"
               value={relatedInvoiceId}
               onChange={(event) => setRelatedInvoiceId(event.target.value)}
-              placeholder="receipt_bcp_... or inv_..."
+              placeholder={t('platformBillingDocumentPlaceholder')}
             />
           </label>
         </details>
@@ -335,34 +360,34 @@ function PlatformAdjustmentDialogBody(props: {
           aria-live="polite"
         >
           <div className="dashboard-platform-adjustment-preview__row">
-            <span>Balance</span>
+            <span>{t('platformBillingBalance')}</span>
             <span>
               {formatBalanceUsdMinor(balance.creditBalanceMinor)} →{' '}
               <strong>{formatBalanceUsdMinor(afterBalance.creditBalanceMinor)}</strong>
             </span>
           </div>
           <div className="dashboard-platform-adjustment-preview__row">
-            <span>Live environments</span>
+            <span>{t('platformBillingLiveEnvironments')}</span>
             <span>
               {beforeAccess.label} → <strong>{afterAccess.label}</strong>
             </span>
           </div>
           {blocksLiveAccess ? (
             <p className="dashboard-platform-adjustment-preview__warning">
-              This debit blocks live environments for {organization.name}.
+              {t('platformBillingDebitBlocks', { name: organization.name })}
             </p>
           ) : null}
         </div>
         {isCredit ? null : (
           <label className="dashboard-form-field">
-            <span>Type the amount again to confirm</span>
+            <span>{t('platformBillingConfirmAmount')}</span>
             <input
               className="dashboard-input"
               type="text"
               inputMode="decimal"
               value={confirmInput}
               onChange={(event) => setConfirmInput(event.target.value)}
-              placeholder="Same amount as above"
+              placeholder={t('platformBillingSameAmount')}
             />
           </label>
         )}
@@ -378,7 +403,7 @@ function PlatformAdjustmentDialogBody(props: {
             onClick={close}
             disabled={submitting}
           >
-            Cancel
+            {t('platformBillingCancel')}
           </button>
           <button
             type="submit"
@@ -478,23 +503,24 @@ function PlatformRefundDialogBody(props: {
   return (
     <DashboardInlineModal
       isOpen
-      ariaLabel="Refund purchase"
+      ariaLabel={t('platformBillingRefundPurchase')}
       ariaLabelledBy={titleId}
       ariaDescribedBy={descriptionId}
       onRequestClose={close}
       className="dashboard-platform-adjustment-dialog dashboard-platform-adjustment-dialog--danger"
     >
       <div className="dashboard-platform-adjustment-dialog__heading">
-        <h2 id={titleId}>Refund purchase</h2>
+        <h2 id={titleId}>{t('platformBillingRefundPurchase')}</h2>
         <p id={descriptionId} className="dashboard-pagination-note">
-          {organization.name} · <code>{target.purchaseId}</code> · paid{' '}
-          {formatUsdMinor(target.purchasedMinor)}. Stripe returns the money to the card, and the
-          balance goes down by the same amount.
+          {organization.name} · <code>{target.purchaseId}</code> ·{' '}
+          {t('platformBillingRefundPaid', { amount: formatUsdMinor(target.purchasedMinor) })}
         </p>
       </div>
       <form className="dashboard-billing-adjustment-form" onSubmit={submit}>
         <label className="dashboard-form-field">
-          <span>Amount (USD), up to {formatUsdMinor(target.refundableMinor)}</span>
+          <span>
+            {t('platformBillingRefundAmountUpTo', { max: formatUsdMinor(target.refundableMinor) })}
+          </span>
           <input
             className="dashboard-input"
             type="text"
@@ -506,17 +532,19 @@ function PlatformRefundDialogBody(props: {
         </label>
         {amountInput && !isAmountValid ? (
           <p className="dashboard-form-alert">
-            Enter an amount above $0 and up to {formatUsdMinor(target.refundableMinor)}.
+            {t('platformBillingRefundAmountInvalid', {
+              max: formatUsdMinor(target.refundableMinor),
+            })}
           </p>
         ) : null}
         <label className="dashboard-form-field">
-          <span>Reason</span>
+          <span>{t('platformBillingColReason')}</span>
           <input
             className="dashboard-input"
             type="text"
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            placeholder="Customer refund request"
+            placeholder={t('platformBillingRefundReasonPlaceholder')}
           />
         </label>
         {error ? (
@@ -531,7 +559,7 @@ function PlatformRefundDialogBody(props: {
             onClick={close}
             disabled={submitting}
           >
-            Cancel
+            {t('platformBillingCancel')}
           </button>
           <button
             type="submit"
@@ -539,8 +567,10 @@ function PlatformRefundDialogBody(props: {
             disabled={!canSubmit}
           >
             {submitting
-              ? 'Requesting refund...'
-              : `Refund ${isAmountValid && amountMinor != null ? formatUsdMinor(amountMinor) : ''}`.trim()}
+              ? t('platformBillingRequestingRefund')
+              : isAmountValid && amountMinor != null
+                ? t('platformBillingRefundAmount', { amount: formatUsdMinor(amountMinor) })
+                : t('platformBillingRefund')}
           </button>
         </div>
       </form>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { CopyButton } from '@core/components/CopyButton';
 import { getDocsOrigin } from '@core/router/siteRouting';
 import { DashboardExpander } from '../../components/DashboardExpander';
@@ -48,7 +49,7 @@ export function WebhooksGetStarted(props: {
   const { onAddEndpoint, disabled } = props;
 
   return (
-    <section className="dashboard-webhooks-start" aria-label="Get started with webhooks">
+    <section className="dashboard-webhooks-start" aria-label={t('webhooksStartAria')}>
       <div className="dashboard-webhooks-start__hero">
         <div className="dashboard-webhooks-start__glyphs" aria-hidden="true">
           <span className="dashboard-webhooks-start__glyph">
@@ -63,16 +64,16 @@ export function WebhooksGetStarted(props: {
             <ServerIcon size={20} strokeWidth={1.75} />
           </span>
         </div>
-        <h2 className="dashboard-webhooks-start__title">Send Seams events to your backend</h2>
+        <h2 className="dashboard-webhooks-start__title">{t('webhooksStartTitle')}</h2>
         <p className="dashboard-webhooks-start__lede">
-          Receive event notifications on your server. Track deliveries and replay failures here.{' '}
+          {t('webhooksStartLede')}{' '}
           <a
             className="dashboard-inline-link"
             href={getDocsOrigin()}
             target="_blank"
             rel="noreferrer"
           >
-            Read the docs
+            {t('webhooksReadDocs')}
           </a>
         </p>
         <button
@@ -82,7 +83,7 @@ export function WebhooksGetStarted(props: {
           disabled={disabled}
         >
           <PlusIcon size={16} strokeWidth={2} />
-          Add endpoint
+          {t('webhooksAddEndpoint')}
         </button>
       </div>
 
@@ -92,8 +93,8 @@ export function WebhooksGetStarted(props: {
             1
           </span>
           <div className="dashboard-webhooks-start__step-copy">
-            <h3>Add an endpoint</h3>
-            <p>Enter your server URL and choose which events to receive.</p>
+            <h3>{t('webhooksStep1Title')}</h3>
+            <p>{t('webhooksStep1Body')}</p>
           </div>
         </li>
 
@@ -102,30 +103,31 @@ export function WebhooksGetStarted(props: {
             2
           </span>
           <div className="dashboard-webhooks-start__step-copy">
-            <h3>Verify each request</h3>
-            <p>
-              Use your endpoint&rsquo;s signing secret to check that each event came from Seams.
-            </p>
-            <DashboardExpander title="Signature details">
+            <h3>{t('webhooksStep2Title')}</h3>
+            <p>{t('webhooksStep2Body')}</p>
+            <DashboardExpander title={t('webhooksSignatureDetails')}>
               <div className="dashboard-webhooks-start__step-copy">
                 <p>
-                  Read <code>X-Console-Webhook-Timestamp</code> and{' '}
-                  <code>X-Console-Webhook-Signature</code> from the request headers. Calculate
-                  HMAC-SHA256 using the timestamp, raw request body, and your endpoint&rsquo;s{' '}
-                  <code>whsec_…</code> secret.
+                  {t('webhooksSigReadPre')}
+                  <code>X-Console-Webhook-Timestamp</code>
+                  {t('webhooksSigReadAnd')}
+                  <code>X-Console-Webhook-Signature</code>
+                  {t('webhooksSigReadMid')}
+                  <code>whsec_…</code>
+                  {t('webhooksSigReadPost')}
                 </p>
                 <div className="dashboard-webhooks-start__snippet">
                   <div className="dashboard-webhooks-start__snippet-header">JavaScript</div>
                   <pre
                     className="dashboard-code-block"
                     tabIndex={0}
-                    aria-label="Signature verification JavaScript"
+                    aria-label={t('webhooksSignatureVerificationAria')}
                   >
                     <code>{SIGNATURE_CODE.map(renderSignatureToken)}</code>
                   </pre>
                   <CopyButton
                     text={VERIFY_SIGNATURE_SNIPPET}
-                    ariaLabel="Copy signature verification snippet"
+                    ariaLabel={t('webhooksCopySnippetAria')}
                   />
                 </div>
               </div>
@@ -138,8 +140,8 @@ export function WebhooksGetStarted(props: {
             3
           </span>
           <div className="dashboard-webhooks-start__step-copy">
-            <h3>Respond with 2xx within 10 seconds</h3>
-            <p>If a delivery fails, fix the issue and replay it from the deliveries table.</p>
+            <h3>{t('webhooksStep3Title')}</h3>
+            <p>{t('webhooksStep3Body')}</p>
           </div>
         </li>
       </ol>

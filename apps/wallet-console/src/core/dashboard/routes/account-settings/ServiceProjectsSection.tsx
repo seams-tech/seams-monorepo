@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import type { PlatformServiceIdV1 } from '@seams-internal/console-shared/accountPlatform';
 import { assertNever } from '@seams-internal/console-shared/accountPlatform/boundary';
 import {
@@ -29,13 +30,21 @@ type ServiceProjectsState =
 function statusBadge(status: ServiceProject['status']): React.JSX.Element {
   switch (status.kind) {
     case 'active':
-      return <DashboardTableBadge tone="success">Active</DashboardTableBadge>;
+      return (
+        <DashboardTableBadge tone="success">{t('accountServiceStatusActive')}</DashboardTableBadge>
+      );
     case 'provisioning':
-      return <DashboardTableBadge tone="warning">Provisioning</DashboardTableBadge>;
+      return (
+        <DashboardTableBadge tone="warning">
+          {t('accountServiceStatusProvisioning')}
+        </DashboardTableBadge>
+      );
     case 'disabled':
-      return <DashboardTableBadge>Disabled</DashboardTableBadge>;
+      return <DashboardTableBadge>{t('accountServiceStatusDisabled')}</DashboardTableBadge>;
     case 'failed':
-      return <DashboardTableBadge tone="danger">Failed</DashboardTableBadge>;
+      return (
+        <DashboardTableBadge tone="danger">{t('accountServiceStatusFailed')}</DashboardTableBadge>
+      );
     default:
       return assertNever(status);
   }
@@ -73,28 +82,34 @@ export function ServiceProjectsSection(props: {
     <section className="dashboard-account-panel dashboard-account-panel--organizations">
       <div className="dashboard-section-toolbar dashboard-account-section-header">
         <div className="dashboard-section-toolbar__copy">
-          <h2>{label} projects</h2>
+          <h2>{t('accountServiceProjectsTitle', { label })}</h2>
           <p className="dashboard-pagination-note">
-            Projects in the current organization that run {label}. Create projects and enable
-            services in{' '}
-            <a href={platformConsoleHref('/dashboard/account-settings')}>Platform Console</a>.
+            {t('accountServiceProjectsHelp', { label })}
+            <a href={platformConsoleHref('/dashboard/account-settings')}>Platform Console</a>
+            {t('accountServiceProjectsHelpEnd')}
           </p>
         </div>
       </div>
-      <DashboardTable ariaLabel={`${label} projects`} columns={SERVICE_PROJECT_COLUMNS}>
+      <DashboardTable
+        ariaLabel={t('accountServiceProjectsTitle', { label })}
+        columns={SERVICE_PROJECT_COLUMNS}
+      >
         <DashboardTableHeader>
-          <DashboardTableHeaderCell>Project</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('accountColProject')}</DashboardTableHeaderCell>
           <DashboardTableHeaderCell>{label}</DashboardTableHeaderCell>
-          <DashboardTableHeaderCell>Created</DashboardTableHeaderCell>
+          <DashboardTableHeaderCell>{t('accountColCreated')}</DashboardTableHeaderCell>
         </DashboardTableHeader>
         {state.kind === 'loading' ? (
-          <DashboardTableState>Loading {label} projects…</DashboardTableState>
+          <DashboardTableState>{t('accountServiceProjectsLoading', { label })}</DashboardTableState>
         ) : state.kind === 'failed' ? (
           <DashboardTableState>
-            {label} projects are unavailable: {state.message}
+            {t('accountServiceProjectsUnavailable', {
+              label,
+              message: state.message,
+            })}
           </DashboardTableState>
         ) : state.projects.length === 0 ? (
-          <DashboardTableState>No project in this organization runs {label}.</DashboardTableState>
+          <DashboardTableState>{t('accountServiceProjectsEmpty', { label })}</DashboardTableState>
         ) : (
           state.projects.map(({ project, status }) => (
             <DashboardTableRow key={project.id}>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { DashboardMenu, DashboardMenuItem, useDashboardMenu } from '../../components/DashboardMenu';
 import { formatDashboardTimestamp } from '../../utils/timestamps';
 import {
@@ -78,7 +79,7 @@ function AuditRangePicker(props: {
       <button
         type="button"
         className="dashboard-audit-range__step"
-        aria-label="Previous period"
+        aria-label={t('auditPreviousPeriod')}
         onClick={() => onStepRange(-1)}
       >
         <ChevronLeftIcon size={15} strokeWidth={1.75} />
@@ -102,7 +103,7 @@ function AuditRangePicker(props: {
       <button
         type="button"
         className="dashboard-audit-range__step"
-        aria-label="Next period"
+        aria-label={t('auditNextPeriod')}
         disabled={!canStepForward}
         onClick={() => onStepRange(1)}
       >
@@ -156,7 +157,7 @@ function AuditJumpControl(props: {
           })
         }
       >
-        Jump to timestamp
+        {t('auditJumpToTimestamp')}
       </button>
       {open ? (
         <form
@@ -170,7 +171,7 @@ function AuditJumpControl(props: {
           }}
         >
           <label className="dashboard-form-field">
-            <span>Centre the window on</span>
+            <span>{t('auditCentreWindowOn')}</span>
             <input
               className="dashboard-input"
               type="datetime-local"
@@ -185,14 +186,14 @@ function AuditJumpControl(props: {
               className="dashboard-pagination-button dashboard-pagination-button--secondary"
               onClick={() => setOpen(false)}
             >
-              Cancel
+              {t('auditCancel')}
             </button>
             <button
               type="submit"
               className="dashboard-pagination-button dashboard-pagination-button--primary"
               disabled={fromDateTimeLocalInput(value) === null}
             >
-              Jump
+              {t('auditJump')}
             </button>
           </div>
         </form>
@@ -270,7 +271,7 @@ export function AuditActivityChart(props: AuditActivityChartProps): React.JSX.El
   }, [dragFractions, range.fromMs, selection, span]);
 
   return (
-    <section className="dashboard-audit-activity" aria-label="Audit event activity">
+    <section className="dashboard-audit-activity" aria-label={t('auditChartLabel')}>
       <div className="dashboard-audit-activity__plot-row">
         {/* Ticks are positioned off the same fraction as the gridlines rather
             than distributed by the flexbox, so a label always sits on the
@@ -293,12 +294,15 @@ export function AuditActivityChart(props: AuditActivityChartProps): React.JSX.El
           role="img"
           aria-label={
             loading
-              ? 'Loading audit event activity'
-              : `${total} audit ${total === 1 ? 'event' : 'events'}${
-                  failures ? `, ${failures} failed` : ''
-                } between ${formatDashboardTimestamp(range.fromMs)} and ${formatDashboardTimestamp(
-                  range.toMs,
-                )}`
+              ? t('auditChartLoading')
+              : t('auditChartSummary', {
+                  events: t(total === 1 ? 'auditChartEventsOne' : 'auditChartEventsMany', {
+                    count: total,
+                  }),
+                  failed: failures ? t('auditChartFailed', { count: failures }) : '',
+                  from: formatDashboardTimestamp(range.fromMs),
+                  to: formatDashboardTimestamp(range.toMs),
+                })
           }
           onPointerDown={(event) => {
             if (event.button !== 0) return;
@@ -352,9 +356,13 @@ export function AuditActivityChart(props: AuditActivityChartProps): React.JSX.El
                 <span
                   key={bin.startMs}
                   className="dashboard-audit-activity__bar"
-                  title={`${formatDashboardTimestamp(bin.startMs)} — ${bin.total} ${
-                    bin.total === 1 ? 'event' : 'events'
-                  }${bin.failures ? `, ${bin.failures} failed` : ''}`}
+                  title={t('auditBarTitle', {
+                    time: formatDashboardTimestamp(bin.startMs),
+                    events: t(bin.total === 1 ? 'auditBarEventsOne' : 'auditBarEventsMany', {
+                      count: bin.total,
+                    }),
+                    failed: bin.failures ? t('auditChartFailed', { count: bin.failures }) : '',
+                  })}
                 >
                   {/* An empty bucket paints nothing at all: a minimum-height
                       seat on every bar would draw a continuous line along the
@@ -400,7 +408,7 @@ export function AuditActivityChart(props: AuditActivityChartProps): React.JSX.El
             disabled={!selection}
             onClick={onFocusSelection}
           >
-            Focus to selection
+            {t('auditFocusToSelection')}
           </button>
         </div>
       </div>

@@ -1,7 +1,9 @@
+import { consoleLocale } from '@core/i18n';
+
 /* Single console-wide timestamp format: short month, day, minute precision.
    Seconds are never useful at dashboard granularity and they overflow cells. */
 
-const DASHBOARD_TIMESTAMP_FORMAT = new Intl.DateTimeFormat('en-US', {
+const DASHBOARD_TIMESTAMP_FORMAT = new Intl.DateTimeFormat(consoleLocale, {
   month: 'short',
   day: 'numeric',
   year: 'numeric',
@@ -9,7 +11,7 @@ const DASHBOARD_TIMESTAMP_FORMAT = new Intl.DateTimeFormat('en-US', {
   minute: '2-digit',
 });
 
-const DASHBOARD_DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
+const DASHBOARD_DATE_FORMAT = new Intl.DateTimeFormat(consoleLocale, {
   month: 'short',
   day: 'numeric',
   year: 'numeric',

@@ -1,5 +1,6 @@
 import { createInitialOrganization } from './initialOrganizationApi';
 import React from 'react';
+import { t } from '@core/i18n';
 import { Check } from 'lucide-react';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import { useDashboardConsoleSession } from '../../consoleSession';
@@ -115,49 +116,49 @@ function clearOnboardingDraft(storageKey: string): void {
 
 function validateOrganizationName(value: string): string {
   const trimmed = String(value || '').trim();
-  if (!trimmed) return 'Organization name is required.';
-  if (trimmed.length < 2) return 'Organization name must be at least 2 characters.';
-  if (trimmed.length > 80) return 'Organization name must be 80 characters or fewer.';
+  if (!trimmed) return t('onboardingOrgNameRequired');
+  if (trimmed.length < 2) return t('onboardingOrgNameTooShort');
+  if (trimmed.length > 80) return t('onboardingOrgNameTooLong');
   return '';
 }
 
 function validateProjectName(value: string): string {
   const trimmed = String(value || '').trim();
-  if (!trimmed) return 'Project name is required.';
-  if (trimmed.length > 80) return 'Project name must be 80 characters or fewer.';
+  if (!trimmed) return t('onboardingProjectNameRequired');
+  if (trimmed.length > 80) return t('onboardingProjectNameTooLong');
   return '';
 }
 
 function resolveActionableMutationError(error: unknown): string {
   if (error instanceof DashboardConsoleApiError) {
     if (error.code === 'forbidden' || error.status === 403) {
-      return 'Permission missing. Ask an organization owner/admin for onboarding access and retry.';
+      return t('onboardingPermissionMissing');
     }
     if (error.code === 'invalid_body') {
-      return 'Invalid input format. Update the form values and retry.';
+      return t('onboardingInvalidInput');
     }
     if (error.code === 'project_already_exists') {
-      return 'Name already used. Choose a different project name and retry.';
+      return t('onboardingProjectNameUsed');
     }
     if (error.code === 'organization_required') {
-      return 'Name your organization before creating your first project.';
+      return t('onboardingNameOrgFirst');
     }
     if (error.code === 'project_archived') {
-      return 'Name already used. That name belongs to an archived resource, so choose a new name.';
+      return t('onboardingNameArchived');
     }
   }
 
   const message =
     error instanceof Error ? String(error.message || '').trim() : String(error || '').trim();
-  if (!message) return 'Request failed. Update the inputs and retry.';
+  if (!message) return t('onboardingRequestFailed');
   if (/already exists|already used|conflict/i.test(message)) {
-    return 'Name already used. Choose a different value and retry.';
+    return t('onboardingNameUsed');
   }
   if (/invalid|may only contain/i.test(message)) {
-    return 'Invalid input format. Update the form values and retry.';
+    return t('onboardingInvalidInput');
   }
   if (/forbidden|permission|unauthorized/i.test(message)) {
-    return 'Permission missing. Ask an organization owner/admin for onboarding access and retry.';
+    return t('onboardingPermissionMissing');
   }
   return message;
 }
@@ -171,9 +172,25 @@ function markInert(node: HTMLElement | null): void {
 }
 
 function stepperStatusLabel(status: OnboardingStepperStatus): string {
-  if (status === 'current') return 'Current';
-  if (status === 'done') return 'Done';
-  return 'Locked';
+  if (status === 'current') return t('onboardingStepCurrent');
+  if (status === 'done') return t('onboardingStepDone');
+  return t('onboardingStepLocked');
+}
+
+const SAVED_AS_NAME_MARK = '\u0001';
+
+/** "Saved as {name}." with the name in bold. The mark lets each language place the name. */
+function savedAs(name: string): React.JSX.Element {
+  const [before = '', after = ''] = t('onboardingSavedAs', { name: SAVED_AS_NAME_MARK }).split(
+    SAVED_AS_NAME_MARK,
+  );
+  return (
+    <>
+      {before}
+      <strong>{name}</strong>
+      {after}
+    </>
+  );
 }
 
 function publishOnboardingStateUpdate(state: DashboardOnboardingState): void {
@@ -254,7 +271,7 @@ export function DashboardOnboardingPage({
     if (!sessionOrgId) {
       setState(null);
       setLoading(false);
-      setErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setErrorMessage(session.errorMessage || t('onboardingConsoleSessionUnavailable'));
       return;
     }
     if (createOrganizationIntent) {
@@ -373,7 +390,7 @@ export function DashboardOnboardingPage({
     setOrganizationSubmitAttempted(true);
     setOrgNameTouched(true);
     if (!session.claims && !onOrganizationCreated) {
-      setMutationError(session.errorMessage || 'Console session is unavailable');
+      setMutationError(session.errorMessage || t('onboardingConsoleSessionUnavailable'));
       return;
     }
     if (orgNameValidationMessage) {
@@ -445,14 +462,14 @@ export function DashboardOnboardingPage({
     setProjectSubmitAttempted(true);
     setProjectNameTouched(true);
     if (!session.claims) {
-      setMutationError(session.errorMessage || 'Console session is unavailable');
+      setMutationError(session.errorMessage || t('onboardingConsoleSessionUnavailable'));
       return;
     }
     if (
       !state?.organizationReady ||
       !hasConfiguredOrganizationName(state, orgNameExplicitlySelected)
     ) {
-      setMutationError('Complete organization setup before creating your first project.');
+      setMutationError(t('onboardingCompleteOrgFirst'));
       return;
     }
     if (projectNameValidationMessage) {
@@ -623,7 +640,7 @@ export function DashboardOnboardingPage({
   }> = [
     {
       key: 'organization',
-      label: 'Organization',
+      label: t('onboardingStepOrganization'),
       status: organizationProfileReady
         ? visibleStep === 'organization'
           ? 'current'
@@ -632,7 +649,7 @@ export function DashboardOnboardingPage({
     },
     {
       key: 'project',
-      label: 'Project',
+      label: t('onboardingStepProject'),
       status: projectProfileReady ? 'done' : visibleStep === 'project' ? 'current' : 'locked',
     },
   ];
@@ -642,11 +659,13 @@ export function DashboardOnboardingPage({
 
   const statusMessage =
     session.loading || loading
-      ? 'Loading onboarding status...'
+      ? t('onboardingLoadingStatus')
       : !session.claims && !onOrganizationCreated
-        ? `Onboarding unavailable: ${session.errorMessage || 'unauthorized'}.`
+        ? t('onboardingUnavailable', {
+            reason: session.errorMessage || t('onboardingUnauthorized'),
+          })
         : errorMessage
-          ? `Onboarding status unavailable: ${errorMessage}`
+          ? t('onboardingStatusUnavailable', { message: errorMessage })
           : '';
 
   /* The step that just left stays a moment as an inert copy, so the two steps
@@ -696,15 +715,15 @@ export function DashboardOnboardingPage({
     step === 'organization' ? (
       <form
         className="dashboard-onboarding-form dashboard-onboarding-form--organization"
-        aria-label="Create organization"
+        aria-label={t('onboardingCreateOrganizationAria')}
         onSubmit={onSubmitOrganization}
       >
         <div className="dashboard-onboarding-form__head">
-          <h2>Name your organization</h2>
-          <p>Your team sees this name in the Console. You can change it later.</p>
+          <h2>{t('onboardingNameYourOrganization')}</h2>
+          <p>{t('onboardingNameVisibleHint')}</p>
         </div>
         <label className="dashboard-form-field">
-          <span>Organization name</span>
+          <span>{t('onboardingOrganizationName')}</span>
           <input
             className="dashboard-input"
             type="text"
@@ -722,7 +741,7 @@ export function DashboardOnboardingPage({
             </p>
           ) : (
             <p className="dashboard-form-hint">
-              Handle: <code>{orgSlugInput || 'acme-wallets'}</code>
+              {t('onboardingHandle')} <code>{orgSlugInput || 'acme-wallets'}</code>
             </p>
           )}
         </label>
@@ -732,31 +751,28 @@ export function DashboardOnboardingPage({
             className="dashboard-pagination-button dashboard-pagination-button--primary"
             disabled={organizationSubmitDisabled}
           >
-            {submitting ? 'Saving organization...' : 'Continue'}
+            {submitting ? t('onboardingSavingOrganization') : t('onboardingContinue')}
           </button>
         </div>
         {organizationResult ? (
           <p className="dashboard-pagination-note">
-            Saved as <strong>{organizationResult.organization.name}</strong>.
+            {savedAs(organizationResult.organization.name)}
           </p>
         ) : null}
       </form>
     ) : (
       <form
         className="dashboard-onboarding-form dashboard-onboarding-form--project"
-        aria-label="Create project"
+        aria-label={t('onboardingCreateProjectAria')}
         onSubmit={onSubmitProjectStep}
       >
         <fieldset className="dashboard-onboarding-form__fieldset" disabled={projectStepLocked}>
           <div className="dashboard-onboarding-form__head">
-            <h2>Create your first project</h2>
-            <p>
-              A project holds your app&rsquo;s wallets, keys and policies. Wallet sets itself up
-              when you open the project.
-            </p>
+            <h2>{t('onboardingCreateFirstProject')}</h2>
+            <p>{t('onboardingProjectHelp')}</p>
           </div>
           <label className="dashboard-form-field">
-            <span>Project name</span>
+            <span>{t('onboardingProjectName')}</span>
             <input
               className="dashboard-input"
               type="text"
@@ -771,7 +787,7 @@ export function DashboardOnboardingPage({
             <p
               className={`dashboard-form-hint${projectNameValidationMessageForUi ? ' dashboard-form-hint--error' : ''}`}
             >
-              {projectNameValidationMessageForUi || 'You can rename it later.'}
+              {projectNameValidationMessageForUi || t('onboardingRenameLater')}
             </p>
           </label>
           <div className="dashboard-onboarding-form__actions">
@@ -781,40 +797,38 @@ export function DashboardOnboardingPage({
               onClick={onBackToOrganizationStep}
               disabled={submitting}
             >
-              Back
+              {t('onboardingBack')}
             </button>
             <button
               type="submit"
               className="dashboard-pagination-button dashboard-pagination-button--primary"
               disabled={projectSubmitDisabled}
             >
-              {submitting ? 'Creating project...' : 'Create project'}
+              {submitting ? t('onboardingCreatingProject') : t('onboardingCreateProject')}
             </button>
           </div>
         </fieldset>
         {projectResult ? (
-          <p className="dashboard-pagination-note">
-            Saved as <strong>{projectResult.project.name}</strong>.
-          </p>
+          <p className="dashboard-pagination-note">{savedAs(projectResult.project.name)}</p>
         ) : null}
       </form>
     );
 
   if (onboardingComplete) {
     return (
-      <div className="dashboard-view" aria-label="Onboarding wizard page">
-        <DashboardLoadingState title="Opening overview..." />
+      <div className="dashboard-view" aria-label={t('onboardingWizardPageAria')}>
+        <DashboardLoadingState title={t('onboardingOpeningOverview')} />
       </div>
     );
   }
 
   /* One card: a light slate band with the two steps, then one question per step. */
   return (
-    <div className="dashboard-view dashboard-onboarding" aria-label="Onboarding wizard page">
-      <section className="dashboard-onboarding-card" aria-label="Set up your workspace">
+    <div className="dashboard-view dashboard-onboarding" aria-label={t('onboardingWizardPageAria')}>
+      <section className="dashboard-onboarding-card" aria-label={t('onboardingSetUpWorkspace')}>
         <header className="dashboard-onboarding-card__band">
-          <p className="dashboard-onboarding-card__eyebrow">Set up your workspace</p>
-          <ol className="dashboard-onboarding-stepper" aria-label="Onboarding progress">
+          <p className="dashboard-onboarding-card__eyebrow">{t('onboardingSetUpWorkspace')}</p>
+          <ol className="dashboard-onboarding-stepper" aria-label={t('onboardingProgressAria')}>
             {stepper.map((entry, index) => (
               <li
                 key={entry.key}
@@ -851,7 +865,7 @@ export function DashboardOnboardingPage({
                       onClick={onRetryFailedMutation}
                       disabled={submitting}
                     >
-                      {submitting ? 'Retrying...' : 'Retry'}
+                      {submitting ? t('onboardingRetrying') : t('onboardingRetry')}
                     </button>
                   ) : null}
                 </div>

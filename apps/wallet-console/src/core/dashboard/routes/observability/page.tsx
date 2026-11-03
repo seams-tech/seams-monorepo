@@ -1,4 +1,5 @@
 import React from 'react';
+import { t, type MessageKey } from '@core/i18n';
 import { formatDashboardTimestamp } from '../../utils/timestamps';
 import { ActivityIcon } from '../../icons/SidebarIcons';
 import {
@@ -44,12 +45,44 @@ const OBSERVABILITY_WINDOW_OPTIONS: ReadonlyArray<{
   label: string;
   durationMs: number;
 }> = [
-  { value: '1h', label: 'Last hour', durationMs: 1000 * 60 * 60 },
-  { value: '24h', label: 'Last 24 hours', durationMs: DEFAULT_OBSERVABILITY_WINDOW_MS },
-  { value: '7d', label: 'Last 7 days', durationMs: 1000 * 60 * 60 * 24 * 7 },
+  { value: '1h', label: t('auditRangeLastHour'), durationMs: 1000 * 60 * 60 },
+  { value: '24h', label: t('auditRangeLast24Hours'), durationMs: DEFAULT_OBSERVABILITY_WINDOW_MS },
+  { value: '7d', label: t('auditRangeLast7Days'), durationMs: 1000 * 60 * 60 * 24 * 7 },
 ];
 const OBSERVABILITY_SERVICE_TABLE_COLUMNS = dashboardTableColumns(1.9, 0.75, 0.7, 1);
 const OBSERVABILITY_EVENTS_TABLE_COLUMNS = dashboardTableColumns(2.4, 0.75, 0.7, 0.95, 0.5);
+
+const OBSERVABILITY_LEVEL_OPTIONS: readonly DashboardConsoleObservabilityLevel[] = [
+  'DEBUG',
+  'INFO',
+  'WARN',
+  'ERROR',
+  'FATAL',
+];
+
+/* Known wire statuses and levels get a translated label; anything else keeps the
+   generic casing of the wire value. */
+const OBSERVABILITY_STATUS_LABEL_KEYS: Readonly<Record<string, MessageKey>> = {
+  HEALTHY: 'observabilityStatusHealthy',
+  DEGRADED: 'observabilityStatusDegraded',
+  FAILING: 'observabilityStatusFailing',
+  UNKNOWN: 'observabilityStatusUnknown',
+  DEBUG: 'observabilityLevelDebug',
+  INFO: 'observabilityLevelInfo',
+  WARN: 'observabilityLevelWarn',
+  ERROR: 'observabilityLevelError',
+  FATAL: 'observabilityLevelFatal',
+};
+
+function observabilityStatusLabel(raw: string): string {
+  const key =
+    OBSERVABILITY_STATUS_LABEL_KEYS[
+      String(raw || '')
+        .trim()
+        .toUpperCase()
+    ];
+  return key ? t(key) : dashboardStatusLabel(raw);
+}
 
 function formatTimestamp(value: string | undefined | null): string {
   return formatDashboardTimestamp(value, '—');
@@ -68,7 +101,9 @@ function metadataSummary(metadata: Record<string, unknown>): string {
     .slice(0, 3)
     .map((key) => `${key}=${String(metadata[key])}`)
     .join(', ');
-  return keys.length > 3 ? `${first}, +${keys.length - 3} more` : first;
+  return keys.length > 3
+    ? `${first}${t('observabilityMetadataMore', { count: keys.length - 3 })}`
+    : first;
 }
 
 function resolveObservabilityWindowOption(
@@ -99,21 +134,23 @@ function toStatusWarning(
 ): string | null {
   if (status.state === 'ok') return null;
   const detail = status.message ? `: ${status.message}` : '';
-  if (status.state === 'not_configured') return `${label} is not configured${detail}`;
-  if (status.state === 'forbidden') return `${label} is not available for this role${detail}`;
-  return `${label} is degraded${detail}`;
+  if (status.state === 'not_configured') {
+    return t('observabilityWarningNotConfigured', { label, detail });
+  }
+  if (status.state === 'forbidden') return t('observabilityWarningForbidden', { label, detail });
+  return t('observabilityWarningDegraded', { label, detail });
 }
 
 function toErrorMessage(error: unknown): string {
   if (isDashboardConsoleObservabilityApiErrorCode(error, 'observability_not_configured')) {
-    return 'Observability service is not configured on this server.';
+    return t('observabilityErrorNotConfigured');
   }
   if (isDashboardConsoleObservabilityApiErrorCode(error, 'forbidden')) {
-    return 'Observability is not available for this role.';
+    return t('observabilityErrorForbidden');
   }
   if (error instanceof DashboardConsoleObservabilityApiError) return error.message;
   if (error instanceof Error) return error.message;
-  return String(error || 'Unknown error');
+  return String(error || t('auditUnknownError'));
 }
 
 export function ObservabilityPage(): React.JSX.Element {
@@ -174,7 +211,7 @@ export function ObservabilityPage(): React.JSX.Element {
       setWarnings([]);
       setLoadingMoreEvents(false);
       setLoadMoreEventsError('');
-      setErrorMessage(session.errorMessage || 'Console session is unavailable');
+      setErrorMessage(session.errorMessage || t('auditSessionUnavailable'));
       return;
     }
 
@@ -197,9 +234,9 @@ export function ObservabilityPage(): React.JSX.Element {
       .then(([summary, services, events]) => {
         if (cancelled) return;
         const nextWarnings = [
-          toStatusWarning('Summary', summary.status),
-          toStatusWarning('Events', events.status),
-          toStatusWarning('Service health', services.status),
+          toStatusWarning(t('observabilityModuleSummary'), summary.status),
+          toStatusWarning(t('observabilityModuleEvents'), events.status),
+          toStatusWarning(t('observabilityServiceHealth'), services.status),
         ].filter((entry): entry is string => Boolean(entry));
         setWarnings(nextWarnings);
         setData({
@@ -243,13 +280,13 @@ export function ObservabilityPage(): React.JSX.Element {
   const hasEventsFilters = Boolean(normalizedEventsQuery) || Boolean(eventsLevelFilter);
   const servicesPagination = useDashboardTablePagination(services, {
     disabled: loading,
-    itemLabel: 'service',
-    itemLabelPlural: 'services',
+    itemLabel: t('observabilityServiceItemLabel'),
+    itemLabelPlural: t('observabilityServiceItemLabelPlural'),
   });
   const eventsPagination = useDashboardTablePagination(events, {
     disabled: loading,
-    itemLabel: 'event',
-    itemLabelPlural: 'events',
+    itemLabel: t('auditEventItemLabel'),
+    itemLabelPlural: t('auditEventItemLabelPlural'),
   });
   const handleLoadMoreEvents = React.useCallback(async () => {
     if (!session.claims) return;
@@ -303,9 +340,9 @@ export function ObservabilityPage(): React.JSX.Element {
   ]);
 
   return (
-    <div className="dashboard-view" aria-label="Observability page">
+    <div className="dashboard-view" aria-label={t('observabilityPageLabel')}>
       <p className="dashboard-visually-hidden" role="status" aria-live="polite" aria-atomic="true">
-        {loading ? 'Refreshing observability...' : ''}
+        {loading ? t('observabilityRefreshing') : ''}
       </p>
       {errorMessage ? (
         <p className="dashboard-pagination-note" role="alert">
@@ -313,7 +350,7 @@ export function ObservabilityPage(): React.JSX.Element {
         </p>
       ) : null}
       {warnings.length > 0 ? (
-        <ul className="dashboard-view-list" aria-label="Observability status warnings">
+        <ul className="dashboard-view-list" aria-label={t('observabilityWarningsLabel')}>
           {warnings.map((warning) => (
             <li key={warning}>{warning}</li>
           ))}
@@ -322,20 +359,20 @@ export function ObservabilityPage(): React.JSX.Element {
 
       <section
         className="dashboard-view__section dashboard-observability-section--plain"
-        aria-label="Observability overview"
+        aria-label={t('observabilityOverviewLabel')}
       >
-        <h2 className="dashboard-visually-hidden">Overview</h2>
+        <h2 className="dashboard-visually-hidden">{t('observabilityOverviewHeading')}</h2>
         <DashboardPageActions>
           <label className="dashboard-form-field dashboard-form-field--observability-select">
             <select
               className="dashboard-input dashboard-select--observability"
-              aria-label="Time window for all observability data"
+              aria-label={t('observabilityWindowLabel')}
               value={windowFilter}
               onChange={(event) => setWindowFilter(event.target.value as ObservabilityWindowKey)}
             >
               {OBSERVABILITY_WINDOW_OPTIONS.map((entry) => (
                 <option key={entry.value} value={entry.value}>
-                  Window: {entry.label}
+                  {t('observabilityWindowOption', { label: entry.label })}
                 </option>
               ))}
             </select>
@@ -344,26 +381,34 @@ export function ObservabilityPage(): React.JSX.Element {
         {summary ? (
           <section
             className="dashboard-observability-summary"
-            aria-label="Observability summary metrics"
+            aria-label={t('observabilitySummaryLabel')}
           >
             <article className="dashboard-observability-summary__item">
-              <p className="dashboard-observability-summary__label">Error rate</p>
+              <p className="dashboard-observability-summary__label">
+                {t('observabilityErrorRate')}
+              </p>
               <p className="dashboard-observability-summary__value">
                 {formatPercent(summary.errorRate)}
               </p>
             </article>
             <article className="dashboard-observability-summary__item">
-              <p className="dashboard-observability-summary__label">p95 latency</p>
+              <p className="dashboard-observability-summary__label">
+                {t('observabilityP95Latency')}
+              </p>
               <p className="dashboard-observability-summary__value">
                 {Math.max(0, Number(summary.p95LatencyMs || 0)).toFixed(0)}ms
               </p>
             </article>
             <article className="dashboard-observability-summary__item">
-              <p className="dashboard-observability-summary__label">Failing services</p>
+              <p className="dashboard-observability-summary__label">
+                {t('observabilityFailingServices')}
+              </p>
               <p className="dashboard-observability-summary__value">{summary.failingServices}</p>
             </article>
             <article className="dashboard-observability-summary__item">
-              <p className="dashboard-observability-summary__label">Dead letters</p>
+              <p className="dashboard-observability-summary__label">
+                {t('observabilityDeadLetters')}
+              </p>
               <p className="dashboard-observability-summary__value">{summary.deadLetterCount}</p>
             </article>
           </section>
@@ -372,25 +417,27 @@ export function ObservabilityPage(): React.JSX.Element {
 
       <section
         className="dashboard-view__section dashboard-observability-section--plain"
-        aria-label="Observability service health table"
+        aria-label={t('observabilityServiceHealthTableLabel')}
       >
-        <h2>Service health</h2>
+        <h2>{t('observabilityServiceHealth')}</h2>
         <DashboardTable
-          ariaLabel="Observability service health"
+          ariaLabel={t('observabilityServiceHealthLabel')}
           columns={OBSERVABILITY_SERVICE_TABLE_COLUMNS}
           pagination={servicesPagination.pagination}
         >
           <DashboardTableHeader>
-            <DashboardTableHeaderCell>Service</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('observabilityColumnService')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('observabilityColumnStatus')}</DashboardTableHeaderCell>
             <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
-              Recent failures
+              {t('observabilityColumnRecentFailures')}
             </DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Latest incident</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>
+              {t('observabilityColumnLatestIncident')}
+            </DashboardTableHeaderCell>
           </DashboardTableHeader>
           {services.length === 0 ? (
             <DashboardTableState>
-              {loading ? 'Loading service health...' : 'No service health records for this scope.'}
+              {loading ? t('observabilityLoadingServices') : t('observabilityNoServices')}
             </DashboardTableState>
           ) : (
             servicesPagination.rows.map((entry) => (
@@ -406,15 +453,15 @@ export function ObservabilityPage(): React.JSX.Element {
                       </span>
                       <span className="dashboard-lead__sub">
                         {entry.recentFailureCount > 0
-                          ? 'Investigate recent failures'
-                          : 'No recent failures'}
+                          ? t('observabilityInvestigateFailures')
+                          : t('observabilityNoRecentFailures')}
                       </span>
                     </span>
                   </div>
                 </DashboardTableCell>
                 <DashboardTableCell>
                   <DashboardTableStatus tone={dashboardStatusTone(entry.status)}>
-                    {dashboardStatusLabel(entry.status)}
+                    {observabilityStatusLabel(entry.status)}
                   </DashboardTableStatus>
                 </DashboardTableCell>
                 <DashboardTableCell align="end">{entry.recentFailureCount}</DashboardTableCell>
@@ -429,23 +476,23 @@ export function ObservabilityPage(): React.JSX.Element {
 
       <section
         className="dashboard-view__section dashboard-observability-section--plain"
-        aria-label="Observability events table"
+        aria-label={t('observabilityEventsTableLabel')}
       >
-        <h2>Event log</h2>
+        <h2>{t('observabilityEventLog')}</h2>
         <div
           className="dashboard-observability-controls-card dashboard-observability-controls-card--event-log"
-          aria-label="Observability event controls"
+          aria-label={t('observabilityEventControlsLabel')}
         >
           <div
             className="dashboard-filters dashboard-observability-filters dashboard-observability-filters--primary"
-            aria-label="Observability event filters"
+            aria-label={t('observabilityEventFiltersLabel')}
           >
             <label className="dashboard-search-control dashboard-search-control--compact">
               <span className="dashboard-search-icon" aria-hidden="true" />
               <input
                 type="search"
-                aria-label="Search observability events"
-                placeholder="Search event ID, message, request, trace, or metadata"
+                aria-label={t('observabilitySearchEvents')}
+                placeholder={t('observabilitySearchPlaceholder')}
                 value={eventsQueryInput}
                 onChange={(event) => setEventsQueryInput(event.target.value)}
               />
@@ -453,7 +500,7 @@ export function ObservabilityPage(): React.JSX.Element {
             <label className="dashboard-form-field dashboard-form-field--observability-select">
               <select
                 className="dashboard-input dashboard-select--observability"
-                aria-label="Filter observability events by level"
+                aria-label={t('observabilityFilterByLevel')}
                 value={eventsLevelFilter}
                 onChange={(event) =>
                   setEventsLevelFilter(
@@ -461,35 +508,37 @@ export function ObservabilityPage(): React.JSX.Element {
                   )
                 }
               >
-                <option value="">Level: All</option>
-                <option value="DEBUG">Level: Debug</option>
-                <option value="INFO">Level: Info</option>
-                <option value="WARN">Level: Warn</option>
-                <option value="ERROR">Level: Error</option>
-                <option value="FATAL">Level: Fatal</option>
+                <option value="">
+                  {t('observabilityLevelOption', { level: t('auditFilterAll') })}
+                </option>
+                {OBSERVABILITY_LEVEL_OPTIONS.map((level) => (
+                  <option key={level} value={level}>
+                    {t('observabilityLevelOption', { level: observabilityStatusLabel(level) })}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
         </div>
         <DashboardTable
-          ariaLabel="Observability events"
+          ariaLabel={t('observabilityEventsLabel')}
           columns={OBSERVABILITY_EVENTS_TABLE_COLUMNS}
           pagination={eventsPagination.pagination}
         >
           <DashboardTableHeader>
-            <DashboardTableHeaderCell>Event</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Level</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Service</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Timestamp</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Details</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('auditEvent')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('observabilityColumnLevel')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('observabilityColumnService')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('auditTimestamp')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('auditDetails')}</DashboardTableHeaderCell>
           </DashboardTableHeader>
           {events.length === 0 ? (
             <DashboardTableState>
               {loading
-                ? 'Loading observability events...'
+                ? t('observabilityLoadingEvents')
                 : hasEventsFilters
-                  ? 'No observability incidents match the current filters.'
-                  : 'No incidents in the selected window. Observability is incident-driven, so healthy periods can be empty.'}
+                  ? t('observabilityNoEventsFiltered')
+                  : t('observabilityNoEvents')}
             </DashboardTableState>
           ) : (
             eventsPagination.rows.map((entry) => {
@@ -514,7 +563,7 @@ export function ObservabilityPage(): React.JSX.Element {
                     </DashboardTableCell>
                     <DashboardTableCell>
                       <DashboardTableStatus tone={dashboardStatusTone(entry.level)}>
-                        {dashboardStatusLabel(entry.level)}
+                        {observabilityStatusLabel(entry.level)}
                       </DashboardTableStatus>
                     </DashboardTableCell>
                     <DashboardTableCell className="dashboard-data-table__cell--nowrap">
@@ -530,31 +579,31 @@ export function ObservabilityPage(): React.JSX.Element {
                           setExpandedEventId((current) => (current === entry.id ? '' : entry.id))
                         }
                       >
-                        {isExpanded ? 'Hide' : 'View'}
+                        {isExpanded ? t('auditHide') : t('auditView')}
                       </DashboardTableActionButton>
                     </DashboardTableCell>
                   </DashboardTableRow>
                   {isExpanded ? (
                     <DashboardTableDetailsPanel>
                       <DashboardTableDetailsGrid>
-                        <DashboardTableDetailsItem label="Component">
+                        <DashboardTableDetailsItem label={t('observabilityDetailComponent')}>
                           <span>{entry.component || DASHBOARD_EMPTY_VALUE}</span>
                         </DashboardTableDetailsItem>
-                        <DashboardTableDetailsItem label="Request ID">
+                        <DashboardTableDetailsItem label={t('observabilityDetailRequestId')}>
                           {entry.requestId ? (
                             <code>{entry.requestId}</code>
                           ) : (
                             <span>{DASHBOARD_EMPTY_VALUE}</span>
                           )}
                         </DashboardTableDetailsItem>
-                        <DashboardTableDetailsItem label="Trace ID">
+                        <DashboardTableDetailsItem label={t('observabilityDetailTraceId')}>
                           {entry.traceId ? (
                             <code>{entry.traceId}</code>
                           ) : (
                             <span>{DASHBOARD_EMPTY_VALUE}</span>
                           )}
                         </DashboardTableDetailsItem>
-                        <DashboardTableDetailsItem label="Metadata">
+                        <DashboardTableDetailsItem label={t('observabilityDetailMetadata')}>
                           <span>{metadataSummary(entry.metadata)}</span>
                         </DashboardTableDetailsItem>
                       </DashboardTableDetailsGrid>
@@ -580,7 +629,7 @@ export function ObservabilityPage(): React.JSX.Element {
               }}
               disabled={loading || loadingMoreEvents}
             >
-              {loadingMoreEvents ? 'Loading more events...' : 'Load more events'}
+              {loadingMoreEvents ? t('observabilityLoadingMore') : t('observabilityLoadMore')}
             </button>
           </p>
         ) : null}

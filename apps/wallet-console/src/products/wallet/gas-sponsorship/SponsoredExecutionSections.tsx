@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import {
   DashboardTable,
   DashboardTableCell,
@@ -37,14 +38,14 @@ const BILLING_SPONSORED_RECONCILIATION_TABLE_COLUMNS = dashboardTableColumns(
 );
 
 function formatSponsoredChainLabel(input: DashboardSponsoredExecutionHistoryEntry): string {
-  return input.chainFamily === 'near' ? 'NEAR delegate' : 'EVM call';
+  return input.chainFamily === 'near' ? t('gasChainFamilyNear') : t('gasChainFamilyEvm');
 }
 
 function describeSponsoredReceiptStatus(input: DashboardSponsoredExecutionHistoryEntry): string {
-  if (input.receiptStatus === 'broadcast_failed') return 'Broadcast failed';
-  if (input.receiptStatus === 'rpc_rejected') return 'RPC rejected';
-  if (input.receiptStatus === 'reverted') return 'Reverted';
-  return 'Succeeded';
+  if (input.receiptStatus === 'broadcast_failed') return t('gasReceiptBroadcastFailed');
+  if (input.receiptStatus === 'rpc_rejected') return t('gasReceiptRpcRejected');
+  if (input.receiptStatus === 'reverted') return t('gasReceiptReverted');
+  return t('gasReceiptSucceeded');
 }
 
 function getSponsoredReceiptTone(
@@ -70,10 +71,12 @@ function describeSponsoredChargeHint(
   input: DashboardSponsoredExecutionHistoryEntry,
 ): string | null {
   if (!input.charged) {
-    return input.chargedReason ? `Not charged: ${input.chargedReason}` : 'Not charged';
+    return input.chargedReason
+      ? t('gasNotChargedReason', { reason: input.chargedReason })
+      : t('gasNotCharged');
   }
-  if (input.billingLedgerEntryId) return `Ledger ${input.billingLedgerEntryId}`;
-  return input.pricingVersion ? `Pricing ${input.pricingVersion}` : null;
+  if (input.billingLedgerEntryId) return t('gasLedgerRef', { id: input.billingLedgerEntryId });
+  return input.pricingVersion ? t('gasPricingRef', { version: input.pricingVersion }) : null;
 }
 
 function describeReconciliationStatus(
@@ -81,15 +84,15 @@ function describeReconciliationStatus(
 ): string {
   switch (input.status) {
     case 'matched':
-      return 'Matched';
+      return t('gasReconMatched');
     case 'missing_billing_debit':
-      return 'Missing debit';
+      return t('gasReconMissingDebit');
     case 'amount_mismatch':
-      return 'Amount mismatch';
+      return t('gasReconAmountMismatch');
     case 'unexpected_billing_debit':
-      return 'Unexpected debit';
+      return t('gasReconUnexpectedDebit');
     case 'not_charged':
-      return 'Not charged';
+      return t('gasNotCharged');
     default:
       return input.status;
   }
@@ -113,42 +116,40 @@ export function SponsoredExecutionHistorySection(props: {
   const { entries, loading = false, error, scopeDescription } = props;
   const pagination = useDashboardTablePagination(entries, {
     initialRowsPerPage: 10,
-    itemLabel: 'execution',
-    itemLabelPlural: 'executions',
+    itemLabel: t('gasExecutionItem'),
+    itemLabelPlural: t('gasExecutionItemPlural'),
   });
   return (
     <DashboardTable
-      ariaLabel="Sponsored execution history"
+      ariaLabel={t('gasHistoryLabel')}
       className="dashboard-billing-activity-table dashboard-billing-sponsored-table"
       columns={BILLING_SPONSORED_HISTORY_TABLE_COLUMNS}
       pagination={error || loading ? undefined : pagination.pagination}
     >
       <DashboardTableIntro className="dashboard-billing-table__intro">
         <div className="dashboard-billing-activity-table__heading">
-          <h3 className="dashboard-billing-table__title">Sponsored usage history</h3>
-          <p className="dashboard-billing-table__description">
-            Last 90 days of sponsored executions with receipt outcomes and billed spend.
-          </p>
+          <h3 className="dashboard-billing-table__title">{t('gasHistoryTitle')}</h3>
+          <p className="dashboard-billing-table__description">{t('gasHistoryDescription')}</p>
           {scopeDescription ? (
             <p className="dashboard-pagination-note">{scopeDescription}</p>
           ) : null}
         </div>
       </DashboardTableIntro>
       {loading ? (
-        <DashboardTableState>Loading sponsored execution history...</DashboardTableState>
+        <DashboardTableState>{t('gasHistoryLoading')}</DashboardTableState>
       ) : error ? (
         <DashboardTableState>{error}</DashboardTableState>
       ) : entries.length === 0 ? (
-        <DashboardTableState>No sponsored executions found for this scope yet.</DashboardTableState>
+        <DashboardTableState>{t('gasHistoryEmpty')}</DashboardTableState>
       ) : (
         <>
           <DashboardTableHeader>
-            <DashboardTableHeaderCell>When (UTC)</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Network</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Policy</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Charge</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Receipt</DashboardTableHeaderCell>
-            <DashboardTableHeaderCell>Reference</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('gasWhenUtc')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('gasNetwork')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('gasPolicy')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('gasCharge')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('gasReceipt')}</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>{t('gasReference')}</DashboardTableHeaderCell>
           </DashboardTableHeader>
           {pagination.rows.map((entry) => {
             const createdAt = formatTimestampUtcParts(entry.createdAt);
@@ -191,7 +192,7 @@ export function SponsoredExecutionHistorySection(props: {
                       {formatSponsoredChargeAmount(entry)}
                     </strong>
                     <DashboardTableStatus tone={getSponsoredChargeTone(entry)}>
-                      {entry.charged ? 'Charged' : 'Not charged'}
+                      {entry.charged ? t('gasCharged') : t('gasNotCharged')}
                     </DashboardTableStatus>
                     {chargeHint ? (
                       <span className="dashboard-data-table__subline dashboard-data-table__subline--muted dashboard-billing-activity-table__detail">
@@ -248,8 +249,8 @@ export function SponsoredExecutionReconciliationSection(props: {
   const summary = page?.summary || null;
   const pagination = useDashboardTablePagination(items, {
     initialRowsPerPage: 10,
-    itemLabel: 'reconciliation row',
-    itemLabelPlural: 'reconciliation rows',
+    itemLabel: t('gasReconItem'),
+    itemLabelPlural: t('gasReconItemPlural'),
   });
   /* Reconciliation is an operations-grade audit view; collapse it by default
      so the billing page leads with balance and top-up. The scope note is
@@ -258,60 +259,52 @@ export function SponsoredExecutionReconciliationSection(props: {
     <details
       id={sectionId}
       className="dashboard-view__section dashboard-billing-execution-card"
-      aria-label="Sponsored execution reconciliation"
+      aria-label={t('gasReconLabel')}
     >
-      <summary>Reconciliation</summary>
+      <summary>{t('gasReconTitle')}</summary>
       <div className="dashboard-billing-table__intro">
-        <p className="dashboard-billing-table__description">
-          Compare sponsored execution records against linked billing debits.
-        </p>
+        <p className="dashboard-billing-table__description">{t('gasReconDescription')}</p>
       </div>
       {summary ? (
         <div className="dashboard-kpi-grid dashboard-kpi-grid--content dashboard-billing-reconciliation-summary">
           <article className="dashboard-kpi-card">
-            <p className="dashboard-kpi-card__label">Matched</p>
+            <p className="dashboard-kpi-card__label">{t('gasReconMatched')}</p>
             <p className="dashboard-kpi-card__value">{summary.matchedCount}</p>
-            <p className="dashboard-kpi-card__hint">Records aligned with billing</p>
+            <p className="dashboard-kpi-card__hint">{t('gasReconMatchedHint')}</p>
           </article>
           <article className="dashboard-kpi-card">
-            <p className="dashboard-kpi-card__label">Mismatches</p>
+            <p className="dashboard-kpi-card__label">{t('gasReconMismatches')}</p>
             <p className="dashboard-kpi-card__value">{summary.mismatchCount}</p>
-            <p className="dashboard-kpi-card__hint">
-              Missing, unexpected, or amount-mismatched debits
-            </p>
+            <p className="dashboard-kpi-card__hint">{t('gasReconMismatchesHint')}</p>
           </article>
           <article className="dashboard-kpi-card">
-            <p className="dashboard-kpi-card__label">Not charged</p>
+            <p className="dashboard-kpi-card__label">{t('gasNotCharged')}</p>
             <p className="dashboard-kpi-card__value">{summary.notChargedCount}</p>
-            <p className="dashboard-kpi-card__hint">
-              Execution records intentionally left unbilled
-            </p>
+            <p className="dashboard-kpi-card__hint">{t('gasReconNotChargedHint')}</p>
           </article>
         </div>
       ) : null}
       <DashboardTable
-        ariaLabel="Sponsored execution reconciliation rows"
+        ariaLabel={t('gasReconRowsLabel')}
         className="dashboard-billing-activity-table dashboard-billing-sponsored-table"
         columns={BILLING_SPONSORED_RECONCILIATION_TABLE_COLUMNS}
         pagination={error || loading ? undefined : pagination.pagination}
       >
         {loading ? (
-          <DashboardTableState>Loading reconciliation data...</DashboardTableState>
+          <DashboardTableState>{t('gasReconLoading')}</DashboardTableState>
         ) : error ? (
           <DashboardTableState>{error}</DashboardTableState>
         ) : items.length === 0 ? (
-          <DashboardTableState>
-            No reconciliation records found for this scope yet.
-          </DashboardTableState>
+          <DashboardTableState>{t('gasReconEmpty')}</DashboardTableState>
         ) : (
           <>
             <DashboardTableHeader>
-              <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>When (UTC)</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Policy</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Settled spend</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Billing debit</DashboardTableHeaderCell>
-              <DashboardTableHeaderCell>Notes</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('gasStatus')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('gasWhenUtc')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('gasPolicy')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('gasSettledSpend')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('gasBillingDebit')}</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>{t('gasNotes')}</DashboardTableHeaderCell>
             </DashboardTableHeader>
             {pagination.rows.map((entry) => {
               const createdAt = formatTimestampUtcParts(entry.record.createdAt);
@@ -351,7 +344,7 @@ export function SponsoredExecutionReconciliationSection(props: {
                         {formatUsdMinor(settledSpend)}
                       </strong>
                       <span className="dashboard-data-table__subline dashboard-data-table__subline--muted">
-                        {entry.record.charged ? 'Charged execution' : 'Not charged'}
+                        {entry.record.charged ? t('gasChargedExecution') : t('gasNotCharged')}
                       </span>
                     </div>
                   </DashboardTableCell>
@@ -376,7 +369,7 @@ export function SponsoredExecutionReconciliationSection(props: {
                   <DashboardTableCell title={entry.mismatchReasons.join(', ') || undefined}>
                     <div className="dashboard-billing-activity-table__stack">
                       <strong className="dashboard-data-table__summary">
-                        {entry.mismatchReasons[0] || 'Billing debit linked'}
+                        {entry.mismatchReasons[0] || t('gasBillingDebitLinked')}
                       </strong>
                       {entry.mismatchReasons.length > 1 ? (
                         <span className="dashboard-data-table__subline dashboard-data-table__subline--muted dashboard-billing-activity-table__detail">

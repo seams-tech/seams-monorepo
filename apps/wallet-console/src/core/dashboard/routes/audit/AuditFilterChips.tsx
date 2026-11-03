@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import { DashboardMenu, DashboardMenuItem, useDashboardMenu } from '../../components/DashboardMenu';
 import { PlusIcon, XIcon } from '../../icons/SidebarIcons';
 
@@ -70,7 +71,7 @@ function AuditFilterChip(props: {
         <button
           type="button"
           className="dashboard-audit-chip__clear"
-          aria-label={`Clear ${filter.label.toLowerCase()} filter`}
+          aria-label={t('auditClearFilter', { filter: filter.label.toLowerCase() })}
           onClick={() => {
             menu.close();
             onChange('');
@@ -89,7 +90,7 @@ function AuditFilterChip(props: {
             .join(' ')}
           onSelect={() => onChange('')}
         >
-          All
+          {t('auditFilterAll')}
         </DashboardMenuItem>
         {filter.options.map((option) => (
           <DashboardMenuItem
@@ -119,7 +120,7 @@ export function AuditFilterChips(props: AuditFilterChipsProps): React.JSX.Elemen
   const anyActive = filters.some((filter) => Boolean(filter.value));
 
   return (
-    <div className="dashboard-audit-chips" role="group" aria-label="Audit event filters">
+    <div className="dashboard-audit-chips" role="group" aria-label={t('auditEventFilters')}>
       {filters.map((filter) => (
         <AuditFilterChip
           key={filter.id}
@@ -131,8 +132,8 @@ export function AuditFilterChips(props: AuditFilterChipsProps): React.JSX.Elemen
         <button
           type="button"
           className="dashboard-audit-chips__clear"
-          aria-label="Clear all filters"
-          title="Clear all filters"
+          aria-label={t('auditClearAllFilters')}
+          title={t('auditClearAllFilters')}
           onClick={onClearAll}
         >
           <XIcon size={14} strokeWidth={2} />

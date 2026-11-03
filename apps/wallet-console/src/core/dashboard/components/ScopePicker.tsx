@@ -1,3 +1,4 @@
+import { t } from '@core/i18n';
 import React from 'react';
 
 export interface DashboardScopeOption<Value extends string = string> {
@@ -41,9 +42,9 @@ export function ScopePicker<Value extends string = string>(
     onChange,
     disabled = false,
     variant = 'picker',
-    addLabel = 'Add scope',
-    emptyLabel = 'No scopes selected.',
-    placeholderLabel = 'Select a scope',
+    addLabel = t('commonScopeAdd'),
+    emptyLabel = t('commonScopeNoneSelected'),
+    placeholderLabel = t('commonScopeSelect'),
   } = props;
   const selected = dedupeScopes(values);
   const knownValues = new Set(options.map((option) => option.value));
@@ -59,11 +60,11 @@ export function ScopePicker<Value extends string = string>(
         <div
           className="dashboard-scope-picker__segments"
           role="group"
-          aria-label={`${label} toggles`}
+          aria-label={t('commonScopeToggles', { label })}
         >
           {options.map((option) => {
             const active = selected.includes(option.value);
-            const stateLabel = active ? 'On' : 'Off';
+            const stateLabel = active ? t('commonScopeOn') : t('commonScopeOff');
             return (
               <button
                 key={option.value}
@@ -123,7 +124,7 @@ export function ScopePicker<Value extends string = string>(
           className="dashboard-input dashboard-scope-picker__select"
           value=""
           disabled={disabled || availableOptions.length === 0}
-          aria-label={`${label} dropdown`}
+          aria-label={t('commonScopeDropdown', { label })}
           onChange={(event) => {
             const nextValue = String(event.target.value || '').trim();
             const nextOption = options.find((option) => option.value === nextValue);
@@ -132,7 +133,7 @@ export function ScopePicker<Value extends string = string>(
           }}
         >
           <option value="">
-            {availableOptions.length > 0 ? placeholderLabel : 'All available scopes selected'}
+            {availableOptions.length > 0 ? placeholderLabel : t('commonScopeAllSelected')}
           </option>
           {options.map((option) => (
             <option
@@ -146,7 +147,10 @@ export function ScopePicker<Value extends string = string>(
         </select>
       </label>
 
-      <div className="dashboard-scope-picker__chips" aria-label={`${label} selected scopes`}>
+      <div
+        className="dashboard-scope-picker__chips"
+        aria-label={t('commonScopeSelectedList', { label })}
+      >
         {selected.length > 0 ? (
           selected.map((scope) => {
             const option = options.find((entry) => entry.value === scope);
@@ -167,7 +171,7 @@ export function ScopePicker<Value extends string = string>(
                   className="dashboard-scope-picker__chip-remove"
                   onClick={() => onChange(selected.filter((entry) => entry !== scope))}
                   disabled={disabled}
-                  aria-label={`Remove scope ${scope}`}
+                  aria-label={t('commonScopeRemove', { scope })}
                 >
                   x
                 </button>

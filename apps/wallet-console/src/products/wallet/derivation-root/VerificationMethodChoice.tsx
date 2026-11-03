@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 
 export type VerificationMethod = 'passkey' | 'authenticator';
 
@@ -47,7 +48,10 @@ export function VerificationMethodChoice({
       >
         {action === null && (
           <span>
-            Verification: <strong>{value === 'passkey' ? 'Passkey' : 'Authenticator app'}</strong>
+            {t('derivationVerificationLabel')}{' '}
+            <strong>
+              {value === 'passkey' ? t('derivationPasskey') : t('derivationAuthenticatorApp')}
+            </strong>
           </span>
         )}
         <button
@@ -58,7 +62,7 @@ export function VerificationMethodChoice({
           aria-controls={`${id}-dialog`}
           onClick={openVerificationDialog.bind(null, dialogRef)}
         >
-          {action === null ? 'Change' : action.label}
+          {action === null ? t('derivationChange') : action.label}
         </button>
       </div>
       <dialog
@@ -69,9 +73,9 @@ export function VerificationMethodChoice({
         aria-describedby={`${id}-help`}
         onKeyDown={containVerificationEscape}
       >
-        <h2 id={`${id}-title`}>Verify your identity</h2>
+        <h2 id={`${id}-title`}>{t('derivationVerifyIdentity')}</h2>
         <fieldset className="derivation-root-policy-options" disabled={disabled}>
-          <legend>Verification method</legend>
+          <legend>{t('derivationVerificationMethod')}</legend>
           <label className="derivation-root-policy-choice">
             <input
               type="radio"
@@ -80,8 +84,8 @@ export function VerificationMethodChoice({
               onChange={onChange.bind(null, 'passkey')}
             />
             <span>
-              <strong>Passkey</strong>
-              <span>Use your device or security key.</span>
+              <strong>{t('derivationPasskey')}</strong>
+              <span>{t('derivationUseDeviceOrKey')}</span>
             </span>
           </label>
           <label className="derivation-root-policy-choice">
@@ -93,15 +97,15 @@ export function VerificationMethodChoice({
               onChange={onChange.bind(null, 'authenticator')}
             />
             <span>
-              <strong>Authenticator app · Coming soon</strong>
-              <span>Verify with a six-digit code.</span>
+              <strong>{t('derivationAuthenticatorSoon')}</strong>
+              <span>{t('derivationVerifySixDigit')}</span>
             </span>
           </label>
         </fieldset>
         <p id={`${id}-help`} role="status">
           {value === 'passkey'
-            ? 'Your browser will prompt you to verify. If you need a passkey, it will guide you through setup first.'
-            : 'Authenticator verification is not available yet. Select Passkey to continue.'}
+            ? t('derivationPasskeyHelp')
+            : t('derivationAuthenticatorUnavailable')}
         </p>
         <div className="derivation-root-modal-actions">
           {action !== null && (
@@ -110,7 +114,7 @@ export function VerificationMethodChoice({
               className="dashboard-pagination-button"
               onClick={closeVerificationDialog.bind(null, dialogRef)}
             >
-              Cancel
+              {t('derivationCancel')}
             </button>
           )}
           <button
@@ -119,7 +123,7 @@ export function VerificationMethodChoice({
             disabled={disabled || (action !== null && value !== 'passkey')}
             onClick={confirmVerification.bind(null, dialogRef, action)}
           >
-            {action === null ? 'Done' : action.confirmLabel}
+            {action === null ? t('derivationDone') : action.confirmLabel}
           </button>
         </div>
       </dialog>

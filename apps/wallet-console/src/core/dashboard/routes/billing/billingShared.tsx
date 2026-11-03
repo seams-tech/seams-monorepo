@@ -1,4 +1,5 @@
 import React from 'react';
+import { t, type MessageKey } from '@core/i18n';
 import { formatDashboardTimestamp } from '../../utils/timestamps';
 import type { DashboardBillingInvoice } from './consoleBillingApi';
 
@@ -55,16 +56,63 @@ export function isInvoiceOverdue(invoice: DashboardBillingInvoice): boolean {
   return dueAtMs < Date.now();
 }
 
+const INVOICE_STATUS_LABEL_KEYS: ReadonlyMap<string, MessageKey> = new Map<string, MessageKey>(
+  Object.entries({
+    action_required: 'billingStatusActionRequired',
+    created: 'billingStatusCreated',
+    pending: 'billingStatusPending',
+    confirming: 'billingStatusConfirming',
+    open: 'billingStatusOpen',
+    past_due: 'billingStatusPastDue',
+    paid: 'billingStatusPaid',
+    settled: 'billingStatusSettled',
+    partially_settled: 'billingStatusPartiallySettled',
+    overpaid: 'billingStatusOverpaid',
+    void: 'billingStatusVoid',
+    canceled: 'billingStatusCanceled',
+    expired: 'billingStatusExpired',
+    uncollectible: 'billingStatusUncollectible',
+    failed: 'billingStatusFailed',
+    disputed: 'billingStatusDisputed',
+  } satisfies Record<string, MessageKey>),
+);
+
 export function formatInvoiceStatusLabel(status: string): string {
   const normalized = String(status || '')
     .trim()
     .toUpperCase();
-  if (!normalized) return 'Unknown';
+  if (!normalized) return t('billingStatusUnknown');
+  const knownKey = INVOICE_STATUS_LABEL_KEYS.get(normalized.toLowerCase());
+  if (knownKey) return t(knownKey);
   return normalized
     .split(/[_\s-]+/)
     .filter(Boolean)
     .map((part) => `${part[0]}${part.slice(1).toLowerCase()}`)
     .join(' ');
+}
+
+/** Labels a billing document type (receipt, usage statement or monthly invoice). */
+export function billingDocumentTypeLabel(type: DashboardBillingInvoice['documentType']): string {
+  switch (type) {
+    case 'PURCHASE_RECEIPT':
+      return t('billingDocPurchaseReceipt');
+    case 'USAGE_STATEMENT':
+      return t('billingDocUsageStatement');
+    case 'MONTHLY_INVOICE':
+      return t('billingDocMonthlyInvoice');
+  }
+}
+
+/** Fills each `{name}` in a message with a node, so a link can sit inside translated text. */
+export function textWithNodes(
+  text: string,
+  nodes: Readonly<Record<string, React.ReactNode>>,
+): React.ReactNode[] {
+  return text.split(/(\{\w+\})/).map((part, index) => {
+    const name = /^\{(\w+)\}$/.exec(part)?.[1];
+    const node = name === undefined ? undefined : nodes[name];
+    return <React.Fragment key={index}>{node === undefined ? part : node}</React.Fragment>;
+  });
 }
 
 export function getInvoiceStatusBadgeClassName(status: string): string {
@@ -143,11 +191,11 @@ export function OrganizationSharedNote(props: {
 }): React.JSX.Element {
   return (
     <div className="dashboard-shared-scope-note" role="note">
-      <span className="dashboard-shared-scope-note__badge">Organization-wide</span>
+      <span className="dashboard-shared-scope-note__badge">{t('billingOrganizationWide')}</span>
       <p>
         {props.subject === 'account'
-          ? `The card, prepaid balance, plan, and invoices are shared by every product in this organization. Usage costs below count ${props.serviceLabel} only.`
-          : `Invoices and receipts are shared by every product in this organization. They can include usage from products other than ${props.serviceLabel}.`}
+          ? t('billingSharedNoteAccount', { service: props.serviceLabel })
+          : t('billingSharedNoteInvoices', { service: props.serviceLabel })}
       </p>
     </div>
   );

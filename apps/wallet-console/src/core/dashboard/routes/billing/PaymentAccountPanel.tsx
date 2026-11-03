@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@core/i18n';
 import {
   buildConsoleAcceptHeaders,
   buildConsoleJsonHeaders,
@@ -51,7 +52,7 @@ function invoice(raw: unknown): MonthlyInvoice {
 function accountFromResponse(raw: unknown): PaymentAccount {
   const body = record(raw);
   if (body.ok !== true)
-    throw new Error(typeof body.message === 'string' ? body.message : 'Billing request failed');
+    throw new Error(typeof body.message === 'string' ? body.message : t('billingRequestFailed'));
   const account = record(body.account);
   const policy = record(account.policy);
   if (policy.kind === 'prepaid') return { kind: 'prepaid' };
@@ -89,7 +90,7 @@ async function refresh(setState: (state: PanelState) => void, signal: AbortSigna
     if (!signal.aborted)
       setState({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Billing request failed',
+        message: error instanceof Error ? error.message : t('billingRequestFailed'),
       });
   }
 }
@@ -113,13 +114,13 @@ async function requestAction(
     });
     const body = record(await parseConsoleJson(response));
     if (!response.ok || body.ok !== true)
-      throw new Error(typeof body.message === 'string' ? body.message : 'Billing action failed');
+      throw new Error(typeof body.message === 'string' ? body.message : t('billingActionFailed'));
     await refresh(setState, new AbortController().signal);
   } catch (error) {
     setState({
       kind: 'ready',
       account: state.account,
-      message: error instanceof Error ? error.message : 'Billing action failed',
+      message: error instanceof Error ? error.message : t('billingActionFailed'),
     });
   }
 }
@@ -132,10 +133,10 @@ function renderInvoice(item: MonthlyInvoice) {
       <td>
         {item.url ? (
           <a href={item.url} target="_blank" rel="noreferrer">
-            Open invoice or pay
+            {t('billingOpenInvoiceOrPay')}
           </a>
         ) : item.status === 'carried' ? (
-          'Carried to next month'
+          t('billingCarriedToNextMonth')
         ) : (
           '—'
         )}
@@ -149,47 +150,42 @@ export function PaymentAccountPanel(props: {
 }): React.JSX.Element {
   const [state, setState] = React.useState<PanelState>({ kind: 'loading' });
   React.useEffect(startLoad.bind(null, setState), []);
-  if (state.kind === 'loading') return <p>Loading payment account…</p>;
+  if (state.kind === 'loading') return <p>{t('billingPaymentLoading')}</p>;
   if (state.kind === 'error') return <p role="alert">{state.message}</p>;
   if (state.account.kind === 'prepaid') return <>{props.children}</>;
   const account = state.account;
   return (
-    <section className="dashboard-view__section" aria-label="Monthly billing">
-      <h2>Monthly billing</h2>
+    <section className="dashboard-view__section" aria-label={t('billingMonthlyBilling')}>
+      <h2>{t('billingMonthlyBilling')}</h2>
       <p>
-        Approved credit: {formatUsdMinor(account.limit)}. Unpaid charges:{' '}
-        {formatUsdMinor(account.unpaid)}. Execution commitments: {formatUsdMinor(account.held)}.
-        Available credit: {formatUsdMinor(account.available)}.
+        {t('billingMonthlyCreditSummary', {
+          limit: formatUsdMinor(account.limit),
+          unpaid: formatUsdMinor(account.unpaid),
+          held: formatUsdMinor(account.held),
+          available: formatUsdMinor(account.available),
+        })}
       </p>
-      <p>
-        Invoices close after each UTC month. Amounts below $0.50 carry to the next invoice. Contact
-        support to request a credit limit change.
-      </p>
+      <p>{t('billingMonthlyInvoiceNote')}</p>
       {account.grace ? (
         <p role="status">
-          Payment grace ends {new Date(account.grace).toLocaleString()}. Replace your card above,
-          then pay the open invoice.
+          {t('billingGraceEnds', { time: new Date(account.grace).toLocaleString() })}
         </p>
       ) : null}
-      {account.blocked ? (
-        <p role="alert">
-          Invoice collection requires support review before new paid work can resume.
-        </p>
-      ) : null}
+      {account.blocked ? <p role="alert">{t('billingCollectionBlocked')}</p> : null}
       {account.invoices.length ? (
         <table className="dashboard-data-table">
           <thead>
             <tr>
-              <th>Month</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Payment</th>
+              <th>{t('billingColMonth')}</th>
+              <th>{t('billingColAmount')}</th>
+              <th>{t('billingColStatus')}</th>
+              <th>{t('billingColPayment')}</th>
             </tr>
           </thead>
           <tbody>{account.invoices.map(renderInvoice)}</tbody>
         </table>
       ) : (
-        <p>No monthly invoices yet.</p>
+        <p>{t('billingNoMonthlyInvoices')}</p>
       )}
       {props.canManage ? (
         <div className="dashboard-form-actions">
@@ -203,10 +199,10 @@ export function PaymentAccountPanel(props: {
               state,
             )}
           >
-            Refresh payment status
+            {t('billingRefreshPaymentStatus')}
           </button>
           <a className="dashboard-pagination-button" href="/dashboard/billing/plan">
-            Manage plan
+            {t('billingManagePlan')}
           </a>
         </div>
       ) : null}

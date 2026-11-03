@@ -1,7 +1,6 @@
 import React from 'react';
 import { Activity, Croissant, Inbox, Slack, Store } from 'lucide-react';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
-import { EcosystemKites } from '@/components/h2/EcosystemKites';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
 import {
   loavesScene,
@@ -9,7 +8,6 @@ import {
   pillowGoatScene,
   whiskGoatScene,
   windScene,
-  wireScene,
 } from '@/components/h2/ink/scenes';
 import {
   H2SceneHero,
@@ -21,7 +19,6 @@ import {
   H2Bento,
   H2Cases,
   H2Cta,
-  H2Ecosystem,
   H2Footer,
   H2Pillars,
   H2Production,
@@ -107,11 +104,6 @@ export function EcommercePage(): React.JSX.Element {
         <H2Pillars
           link={false}
           drawing={<InkDrawing scene={windScene} className="h2-ink--banner" />}
-        />
-        <H2Ecosystem
-          drawing={<InkDrawing scene={wireScene} className="h2-ink--banner" />}
-          tools={<EcosystemKites />}
-          linkToSatyr={false}
         />
         <H2Cases drawing={<InkDrawing scene={whiskGoatScene} className="h2-ink--banner" />} />
         <H2Production drawing={<InkDrawing scene={loavesScene} className="h2-ink--banner" />} />

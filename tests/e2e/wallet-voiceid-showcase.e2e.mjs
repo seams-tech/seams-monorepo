@@ -41,7 +41,7 @@ const themes = [
 ];
 
 function blockDemoMicrophone() {
-  if (/\/showcase\/voiceid(?:-reverse)?\//.test(location.pathname)) {
+  if (/\/showcase\/voiceid\//.test(location.pathname)) {
     Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
       value: window.reportVoiceDemoMicrophoneRequest,
     });
@@ -62,7 +62,7 @@ function recordRequest(request) {
     modelRequests.push(request.url());
   }
   if (
-    /\/showcase\/voiceid(?:-reverse)?\//.test(request.frame().url()) &&
+    /\/showcase\/voiceid\//.test(request.frame().url()) &&
     (request.resourceType() === 'fetch' ||
       request.resourceType() === 'xhr' ||
       request.method() !== 'GET')
@@ -79,12 +79,33 @@ function getLayout(gallery) {
   };
 }
 
-async function capture(gallery, name) {
-  const layout = await gallery.evaluate(getLayout);
-  const card = await gallery
-    .frameLocator('iframe[title="VoiceID"]')
-    .locator('.seams-confirmation-modal--hosted')
-    .boundingBox();
+function pageLayout() {
+  return {
+    viewport: { left: 0, top: 0, right: innerWidth, bottom: innerHeight },
+    pageFits: document.documentElement.scrollWidth <= innerWidth,
+  };
+}
+
+/** The gallery frame on the wallet page, or the showcase page opened on its own. */
+function galleryView(gallery) {
+  return {
+    root: gallery.frameLocator('iframe[title="VoiceID"]'),
+    layout: () => gallery.evaluate(getLayout),
+    screenshot: (path) => gallery.screenshot({ path }),
+  };
+}
+
+function pageView(page) {
+  return {
+    root: page,
+    layout: () => page.evaluate(pageLayout),
+    screenshot: (path) => page.screenshot({ path }),
+  };
+}
+
+async function capture(view, name, selector = '.seams-confirmation-modal--hosted') {
+  const layout = await view.layout();
+  const card = await view.root.locator(selector).boundingBox();
   assert.ok(card);
   assert.ok(
     card.x >= layout.viewport.left && card.x + card.width <= layout.viewport.right,
@@ -95,7 +116,7 @@ async function capture(gallery, name) {
     JSON.stringify({ card, layout }),
   );
   assert.equal(layout.pageFits, true);
-  await gallery.screenshot({ path: `${artifacts}/${name}.png` });
+  await view.screenshot(`${artifacts}/${name}.png`);
   return { card, ...layout };
 }
 
@@ -110,10 +131,29 @@ async function checkTheme(voiceId, theme) {
   );
 }
 
-async function approve(gallery, name, theme) {
-  const voiceId = gallery.frameLocator('iframe[title="VoiceID"]');
-  const confirm = voiceId.getByRole('button', { name: 'Confirm with VoiceID', exact: true });
-  await expect(confirm).toBeVisible();
+async function checkUnlockTheme(voiceId, theme) {
+  const prompt = voiceId.locator('.seams-voiceid-prompt');
+  await expect(prompt).toHaveCSS('background-color', theme.background);
+  await expect(voiceId.locator('[data-voiceid-phrase]')).toHaveCSS('color', theme.text);
+}
+
+// A VoiceID unlock opens a signing session; the trade then needs only its Confirm.
+async function unlockAndSign(view, name, theme) {
+  const voiceId = view.root;
+  const unlock = voiceId.getByRole('dialog', { name: 'Unlock with VoiceID', exact: true });
+  await expect(unlock).toBeVisible();
+  const phrase = voiceId.locator('[data-voiceid-phrase]');
+  await expect(phrase).toHaveText('The market is open.');
+  await expect(voiceId.getByRole('status')).toHaveText('Listening');
+  await checkUnlockTheme(voiceId, theme);
+  await capture(view, `${name}-unlock`, '.seams-voiceid-prompt');
+  await expect(voiceId.getByRole('status')).toHaveText('Checking your voice…', { timeout: 10000 });
+  await expect(voiceId.getByText('Your wallet is unlocked.', { exact: true })).toBeVisible({
+    timeout: 10000,
+  });
+  const confirm = voiceId.getByRole('button', { name: 'Confirm trade', exact: true });
+  await expect(confirm).toBeVisible({ timeout: 10000 });
+  await expect(unlock).toHaveCount(0);
   await checkTheme(voiceId, theme);
   await expect(voiceId.locator('.seams-review-eyebrow')).toHaveText('Swap NEAR for USDC');
   await expect(
@@ -125,17 +165,9 @@ async function approve(gallery, name, theme) {
     voiceId.locator('.seams-review-fields').getByText('NEAR', { exact: true }),
   ).toBeVisible();
   await expect(voiceId.getByText('0.00005 NEAR', { exact: true })).toBeVisible();
-  const review = await capture(gallery, `${name}-review`);
+  const review = await capture(view, `${name}-review`);
   await confirm.click();
-  const phrase = voiceId.locator('[data-voiceid-phrase]');
-  await expect(phrase).toBeVisible();
-  await expect(phrase).toHaveCSS('color', theme.text);
-  const phraseText = await phrase.textContent();
-  assert.equal(phraseText, 'Swap ten NEAR.');
-  await expect(voiceId.getByRole('status')).toHaveText('Listening');
-  await checkTheme(voiceId, theme);
-  await capture(gallery, `${name}-prompt`);
-  await expect(voiceId.getByRole('status')).toHaveText('Checking your voice…', { timeout: 10000 });
+  await expect(voiceId.locator('.seams-voiceid-prompt')).toHaveCount(0);
   await expect(voiceId.getByRole('status')).toContainText('Transaction complete', {
     timeout: 15000,
   });
@@ -150,23 +182,36 @@ async function approve(gallery, name, theme) {
   assert.match(transactionId, /^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
   await expect(voiceId.getByText('alex.near', { exact: true })).toBeVisible();
   await voiceId.getByText('Receipt details', { exact: true }).click();
-  await capture(gallery, `${name}-receipt`);
+  await capture(view, `${name}-receipt`);
   await voiceId.getByRole('button', { name: 'Done', exact: true }).click();
-  await expect(confirm).toBeVisible();
-  return { phrase: phraseText, ...review };
+  await expect(unlock).toBeVisible();
+  return { phrase: await phrase.textContent(), ...review };
 }
 
-async function cancelAttempt(page, gallery, phase) {
+async function cancelUnlock(page, gallery) {
   const voiceId = gallery.frameLocator('iframe[title="VoiceID"]');
-  const confirm = voiceId.getByRole('button', { name: 'Confirm with VoiceID', exact: true });
-  await confirm.click();
-  await expect(voiceId.locator('.seams-voiceid-prompt')).toHaveAttribute('data-trade-stage', phase);
+  for (const phase of ['listening', 'checking']) {
+    await expect(voiceId.locator('.seams-voiceid-prompt')).toHaveAttribute(
+      'data-trade-stage',
+      phase,
+      { timeout: 10000 },
+    );
+    await voiceId.getByRole('button', { name: 'Cancel', exact: true }).click();
+    const retry = voiceId.getByRole('button', { name: 'Try again', exact: true });
+    await expect(retry).toBeVisible();
+    // An old callback must not unlock after its attempt was cancelled.
+    await page.waitForTimeout(5000);
+    await expect(retry).toBeVisible();
+    await expect(
+      voiceId.getByRole('heading', { name: 'Review your trade', exact: true }),
+    ).toHaveCount(0);
+    await retry.click();
+  }
+  const confirm = voiceId.getByRole('button', { name: 'Confirm trade', exact: true });
+  await expect(confirm).toBeVisible({ timeout: 10000 });
+  // Cancelling the trade locks the wallet again.
   await voiceId.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(confirm).toBeVisible();
-  // An old callback must not publish a receipt after its attempt was cancelled.
-  await page.waitForTimeout(6500);
-  await expect(confirm).toBeVisible();
-  await expect(voiceId.locator('.seams-voiceid-prompt')).toHaveCount(0);
+  await expect(voiceId.getByRole('status')).toHaveText('Listening');
   await expect(voiceId.getByRole('status').filter({ hasText: 'Transaction complete' })).toHaveCount(
     0,
   );
@@ -185,80 +230,10 @@ async function checkPlaybackPause(page, gallery) {
   await expect(voiceId.getByRole('status')).toHaveText('Listening');
   await gallery.getByRole('button', { name: 'Play playback', exact: true }).click();
   await page.mouse.move(5, 5);
-  await expect(voiceId.getByText('Swap ten NEAR.', { exact: true })).toBeVisible();
+  await expect(voiceId.getByText('The market is open.', { exact: true })).toBeVisible();
   await expect(voiceId.getByRole('status')).toContainText('Transaction complete', {
-    timeout: 15000,
+    timeout: 20000,
   });
-}
-
-async function checkReverse(page, url, theme, name) {
-  url.searchParams.set('theme', theme.id);
-  await page.goto(url.href);
-  await expect(page.locator('[data-voiceid-phrase]')).toHaveText('Swap ten NEAR for USDC.');
-  await expect(page.getByRole('status')).toHaveText('Listening');
-  await expect(page.getByRole('heading', { name: 'Review your trade', exact: true })).toHaveCount(
-    0,
-  );
-  await checkTheme(page, theme);
-  await page.screenshot({ path: `${artifacts}/${name}-voice.png` });
-  await expect(page.getByRole('status')).toHaveText('Checking your voice…');
-  await page.screenshot({ path: `${artifacts}/${name}-checking.png` });
-  await expect(page.getByRole('heading', { name: 'Review your trade', exact: true })).toBeVisible();
-  const confirm = page.getByRole('button', { name: 'Confirm trade', exact: true });
-  await expect(confirm).toBeVisible();
-  await expect(page.locator('.seams-voiceid-prompt')).toHaveCount(0);
-  await expect(page.locator('.seams-review-amount')).toHaveText('10 NEAR');
-  await expect(page.getByRole('button', { name: 'Confirm with VoiceID', exact: true })).toHaveCount(
-    0,
-  );
-  await page.waitForTimeout(700);
-  await expect(page.locator('.seams-transaction-receipt')).toHaveCount(0);
-  const layout = await page.evaluate(reverseLayout);
-  assert.equal(layout.fits, true, JSON.stringify(layout));
-  await page.screenshot({ path: `${artifacts}/${name}-review.png` });
-  await confirm.click();
-  await expect(page.locator('.seams-transaction-receipt')).toBeVisible({ timeout: 1500 });
-  await expect(page.locator('.seams-voiceid-prompt')).toHaveCount(0);
-  await expect(page.getByRole('status')).toContainText('Transaction complete');
-  await page.screenshot({ path: `${artifacts}/${name}-receipt.png` });
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('Listening');
-  return { theme: theme.id, layout, oneVoicePrompt: true, explicitTradeConfirmation: true };
-}
-
-function reverseLayout() {
-  const card = document.querySelector('.seams-confirmation-modal--hosted').getBoundingClientRect();
-  return {
-    card: card.toJSON(),
-    width: innerWidth,
-    height: innerHeight,
-    fits:
-      card.left >= 0 &&
-      card.right <= innerWidth &&
-      card.top >= 0 &&
-      card.bottom <= innerHeight &&
-      document.documentElement.scrollWidth <= innerWidth,
-  };
-}
-
-async function cancelReverse(page, url) {
-  await page.goto(url.href);
-  for (const phase of ['listening', 'checking']) {
-    await expect(page.locator('.seams-voiceid-prompt')).toHaveAttribute('data-trade-stage', phase);
-    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-    const retry = page.getByRole('button', { name: 'Try again', exact: true });
-    await expect(retry).toBeVisible();
-    await page.waitForTimeout(5000);
-    await expect(retry).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Review your trade', exact: true })).toHaveCount(
-      0,
-    );
-    await expect(page.locator('.seams-transaction-receipt')).toHaveCount(0);
-    await retry.click();
-  }
-  await expect(page.getByRole('button', { name: 'Confirm trade', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('Listening');
 }
 
 await mkdir(artifacts, { recursive: true });
@@ -280,46 +255,45 @@ try {
     exact: true,
   });
   await gallery.getByRole('radio', { name: 'VoiceID', exact: true }).locator('..').click();
-  const themedApprovals = [];
-  for (const theme of themes) {
-    await page
-      .getByRole('group', { name: 'Preview theme', exact: true })
-      .getByRole('button', { name: theme.label, exact: true })
-      .click();
-    await gallery.scrollIntoViewIfNeeded();
-    await expect(gallery.locator('iframe[title="VoiceID"]')).toHaveAttribute(
-      'src',
-      new RegExp(`theme=${theme.id}$`),
-    );
-    const approval = await approve(gallery, `desktop-${theme.id}`, theme);
-    themedApprovals.push({ theme: theme.id, ...approval });
-  }
+  const view = galleryView(gallery);
+  await gallery.scrollIntoViewIfNeeded();
+  const source = await gallery.locator('iframe[title="VoiceID"]').getAttribute('src');
+  const showcaseUrl = new URL(source, origin);
+  const galleryTheme =
+    themes.find((theme) => theme.id === showcaseUrl.searchParams.get('theme')) ?? themes[0];
+  const galleryRun = await unlockAndSign(view, `gallery-${galleryTheme.id}`, galleryTheme);
 
-  await cancelAttempt(page, gallery, 'listening');
-  await cancelAttempt(page, gallery, 'checking');
+  await cancelUnlock(page, gallery);
 
   const layouts = [];
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 1100 });
     await gallery.scrollIntoViewIfNeeded();
-    const approval = await approve(gallery, `mobile-${width}`, pastelDarkTheme);
-    layouts.push({ width, ...approval });
+    const run = await unlockAndSign(view, `mobile-${width}`, galleryTheme);
+    layouts.push({ width, ...run });
   }
   await checkPlaybackPause(page, gallery);
-  const source = await gallery.locator('iframe[title="VoiceID"]').getAttribute('src');
-  const reverseUrl = new URL(source, origin);
-  reverseUrl.pathname = reverseUrl.pathname.replace('/voiceid/', '/voiceid-reverse/');
+
+  // Each theme on the showcase page that the gallery frames.
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  const reversed = [];
   await page.setViewportSize({ width: 1440, height: 1100 });
+  const themedRuns = [];
   for (const theme of themes) {
-    reversed.push(await checkReverse(page, reverseUrl, theme, `reverse-${theme.id}`));
+    showcaseUrl.searchParams.set('theme', theme.id);
+    await page.goto(showcaseUrl.href);
+    themedRuns.push({
+      theme: theme.id,
+      ...(await unlockAndSign(pageView(page), `page-${theme.id}`, theme)),
+    });
   }
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 1100 });
-    reversed.push(await checkReverse(page, reverseUrl, pastelDarkTheme, `reverse-${width}`));
+    await page.goto(showcaseUrl.href);
+    themedRuns.push({
+      width,
+      ...(await unlockAndSign(pageView(page), `page-${width}`, pastelDarkTheme)),
+    });
   }
-  await cancelReverse(page, reverseUrl);
   assert.deepEqual(errors, []);
   assert.deepEqual(modelRequests, []);
   assert.deepEqual(apiRequests, []);
@@ -330,7 +304,8 @@ try {
       {
         passed: true,
         origin,
-        voiceIdApprovalToReceipt: true,
+        voiceIdUnlockThenConfirmToReceipt: true,
+        voiceCheckPerTransaction: false,
         trade: {
           network: 'NEAR',
           sell: '10 NEAR',
@@ -338,12 +313,12 @@ try {
           minimumReceived: '28.40 USDC',
           signer: 'alex.near',
         },
-        themedApprovals,
+        galleryRun,
+        themedRuns,
         cancelledDuringCaptureAndChecking: true,
+        tradeCancelLocksAgain: true,
         playbackPauseAndResume: true,
         layouts,
-        reversed,
-        reverseCancellationAndReplay: true,
         errors,
         modelRequests,
         apiRequests,
@@ -354,7 +329,7 @@ try {
     ) + '\n',
   );
   console.log(
-    'Passed both VoiceID demo orders, single voice prompts, explicit trade confirmation, cancellation, playback, themes, and mobile layouts without model or microphone use.',
+    'Passed the VoiceID unlock, the plain trade confirmation, cancellation, playback, themes, and mobile layouts without model or microphone use.',
   );
 } finally {
   await context.tracing.stop({ path: `${artifacts}/trace.zip` });

@@ -62,6 +62,9 @@ Keep gold to a few marks in each drawing. Gold is what the eye finds first.
   loaves, brioches, cups, steam, flour sacks, order slips and bakery robots.
 - The baby goat is the main character. Reuse its parts from `goatScene` (the
   parts with ids that start with `kid-`) and scale them. Do not draw a new goat.
+  For a goat that walks with something in its mouth, reuse the walking kid of
+  `whiskGoatScene` (parts `far-legs`, `tail`, `kid` and `ear`); its mouth is at
+  `kidAt(250, 408)`. Mirror its x values to turn it around.
 - Sparrows give life to a still object: one perches on a wire, an oven or a rack,
   or rides on a robot arm.
 - Robots are dark machine masses with `machineJoint` joints and a gold band. Keep

@@ -313,7 +313,7 @@ export function wheat(
         { kind: 'sway', amount: '0.8deg', seconds: 3.7 + (seed % 7) * 0.31, origin: base },
         { kind: 'sway', amount: '0.3deg', seconds: 1.73, delay: -(seed % 5) * 0.3, origin: base },
       ],
-      strokes: [{ pts: stem, dry: 0.5, rough: 0.9, pace: 1.6 }],
+      strokes: [{ pts: stem, dry: 0.5, rough: 0.9, pace: 1.6, keepLine: true }],
     },
     {
       id: `${id}-ear`,

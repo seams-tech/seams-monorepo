@@ -22,6 +22,8 @@ export type InkStroke = {
   readonly pace?: number;
   /* square ends, for a box or a sack, in place of round ones */
   readonly flat?: boolean;
+  /* the middle bristle stays down, so a thin part of the stroke keeps its line */
+  readonly keepLine?: boolean;
 };
 
 const COLORS: Record<InkColor, string> = {
@@ -181,6 +183,13 @@ export function prepareStroke(stroke: InkStroke, scale: number, noise: InkNoise)
     rank[b] = noise.random();
     seed[b] = noise.random() * 1000;
     rate[b] = 0.018 + noise.random() * 0.07;
+  }
+  if (stroke.keepLine) {
+    let middle = 0;
+    for (let b = 1; b < count; b += 1) {
+      if (Math.abs(offset[b]) < Math.abs(offset[middle])) middle = b;
+    }
+    rank[middle] = 0;
   }
   const leftEdge = noise.random() * 1000;
   const rightEdge = noise.random() * 1000;

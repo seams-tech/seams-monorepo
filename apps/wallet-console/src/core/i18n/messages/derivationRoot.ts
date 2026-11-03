@@ -7,10 +7,10 @@ export const derivationRootMessages = {
   derivationPhaseActivating: { en: 'Activating new shares', ja: '新しいシェアを有効化中' },
   derivationPhaseRetiring: { en: 'Retiring previous shares', ja: '以前のシェアを廃止中' },
   derivationPhaseComplete: { en: 'Rotation complete', ja: 'ローテーション完了' },
-  derivationActiveSharesLabel: { en: 'Active operational shares', ja: '有効な運用シェア' },
+  derivationActiveSharesLabel: { en: 'Active operational shares', ja: '有効な運用鍵シェア' },
   derivationActiveSharesDetail: {
     en: 'Deriver A and Deriver B hold epoch {epoch} operational shares.',
-    ja: 'Deriver A と Deriver B がエポック {epoch} の運用シェアを保持しています。',
+    ja: 'Deriver A と Deriver B がエポック {epoch} の運用鍵シェアを保持しています。',
   },
   derivationRotationInProgress: { en: 'Rotation in progress', ja: 'ローテーション実行中' },
   derivationRotationInProgressDetail: {
@@ -51,17 +51,20 @@ export const derivationRootMessages = {
   },
   derivationRetiredClaimNotVerified: {
     en: 'Operational shares rotate, but this deployment has not verified cryptographic erasure of retired shares.',
-    ja: '運用シェアはローテーションされますが、このデプロイメントでは廃止されたシェアの暗号的な消去は検証されていません。',
+    ja: '運用鍵シェアはローテーションされますが、このデプロイメントでは廃止されたシェアの暗号的な消去は検証されていません。',
   },
   derivationNoBackupLabel: { en: 'No recovery backup', ja: 'リカバリーバックアップがありません' },
   derivationNoBackupDetail: {
     en: 'Choose a recovery governance policy and enrol both wrapper keys.',
-    ja: 'リカバリーガバナンスポリシーを選択し、両方のラッパー鍵を登録してください。',
+    ja: 'リカバリーガバナンスポリシーを選択し、両方のラッピング鍵を登録してください。',
   },
-  derivationWrapperIncompleteLabel: { en: 'Wrapper keys incomplete', ja: 'ラッパー鍵が未完了です' },
+  derivationWrapperIncompleteLabel: {
+    en: 'Wrapper keys incomplete',
+    ja: 'ラッピング鍵が未完了です',
+  },
   derivationWrapperNeitherDetail: {
     en: 'Neither Deriver A nor Deriver B has proved control of a wrapper key.',
-    ja: 'Deriver A も Deriver B も、ラッパー鍵を管理していることをまだ証明していません。',
+    ja: 'Deriver A も Deriver B も、ラッピング鍵を管理していることをまだ証明していません。',
   },
   derivationWrapperOneDetail: {
     en: 'One role has proved control. Both are required before a backup can be created.',
@@ -203,7 +206,7 @@ export const derivationRootMessages = {
   derivationReadyToActivate: { en: 'Ready to activate', ja: '有効化の準備完了' },
   derivationRefreshingSharesLabel: {
     en: 'Refreshing operational shares',
-    ja: '運用シェアをリフレッシュ中',
+    ja: '運用鍵シェアをリフレッシュ中',
   },
   derivationRefreshingSharesDetail: {
     en: 'The restored root is being forward-refreshed before activation.',
@@ -245,7 +248,7 @@ export const derivationRootMessages = {
   },
   derivationHolderRestoreNote: {
     en: 'Run inside your extracted recovery folder. Use your actual wrapper-key file path. Approve the matching code in your browser when prompted. The CLI registers the manifest and saves retry state automatically; rerun this command to retry.',
-    ja: '展開したリカバリーフォルダー内で実行してください。実際のラッパー鍵ファイルのパスを指定してください。確認を求められたら、ブラウザーで対応するコードを承認してください。CLIはマニフェストを登録し、再試行用の状態を自動的に保存します。再試行するには、このコマンドをもう一度実行してください。',
+    ja: '展開したリカバリーフォルダー内で実行してください。実際のラッピング鍵ファイルのパスを指定してください。確認を求められたら、ブラウザーで対応するコードを承認してください。CLIはマニフェストを登録し、再試行用の状態を自動的に保存します。再試行するには、このコマンドをもう一度実行してください。',
   },
   derivationCheckImportsLabel: { en: 'Check both imports', ja: '両方のインポートを確認' },
   derivationCheckImportsNote: {
@@ -268,11 +271,11 @@ export const derivationRootMessages = {
   },
   derivationActivateRestoredNote: {
     en: 'Keep the private session file for retries. Activation verifies the root commitment, refreshes operational shares, and destroys imported material. Add --acknowledge-offline-trust only if current trust could not be confirmed and you accept offline verification.',
-    ja: '再試行に備えて、非公開のセッションファイルを保管してください。有効化ではルートのコミットメントを検証し、運用シェアをリフレッシュし、インポートされた素材を破棄します。--acknowledge-offline-trust は、最新の信頼を確認できず、オフライン検証を受け入れる場合にのみ追加してください。',
+    ja: '再試行に備えて、非公開のセッションファイルを保管してください。有効化ではルートのコミットメントを検証し、運用鍵シェアをリフレッシュし、インポートされた素材を破棄します。--acknowledge-offline-trust は、最新の信頼を確認できず、オフライン検証を受け入れる場合にのみ追加してください。',
   },
   derivationGovernanceNotChosen: {
     en: 'Recovery governance has not been chosen. Choose it before enrolling wrapper keys.',
-    ja: 'リカバリーガバナンスが選択されていません。ラッパー鍵を登録する前に選択してください。',
+    ja: 'リカバリーガバナンスが選択されていません。ラッピング鍵を登録する前に選択してください。',
   },
   derivationGovernanceSingle: {
     en: 'Single owner: one organization owner can change recovery custody alone. Warning acknowledged by {owner} on {date}.',
@@ -282,18 +285,21 @@ export const derivationRootMessages = {
     en: "Two-person: recovery custody changes need a second owner's approval. Selected by {owner} on {date}.",
     ja: '2人承認：リカバリーのカストディを変更するには、2人目のオーナーの承認が必要です。{owner} が {date} に選択しました。',
   },
-  derivationWrapperSetup: { en: '{role} wrapper key setup', ja: '{role} ラッパー鍵のセットアップ' },
+  derivationWrapperSetup: {
+    en: '{role} wrapper key setup',
+    ja: '{role} ラッピング鍵のセットアップ',
+  },
   derivationWrapperSetupCompleted: {
     en: '{role} wrapper key setup (completed)',
-    ja: '{role} ラッパー鍵のセットアップ（完了）',
+    ja: '{role} ラッピング鍵のセットアップ（完了）',
   },
   derivationWrapperSetupNote: {
     en: 'Requires Node.js 22 or later. Run in a macOS or Linux terminal, then approve the matching code in the dashboard. The CLI creates the wrapper key file at ./{role}-wrapper.key. Keep this file for step 4.',
-    ja: 'Node.js 22 以降が必要です。macOS または Linux のターミナルで実行し、ダッシュボードで対応するコードを承認してください。CLIは ./{role}-wrapper.key にラッパー鍵ファイルを作成します。このファイルはステップ4で使うため保管してください。',
+    ja: 'Node.js 22 以降が必要です。macOS または Linux のターミナルで実行し、ダッシュボードで対応するコードを承認してください。CLIは ./{role}-wrapper.key にラッピング鍵ファイルを作成します。このファイルはステップ4で使うため保管してください。',
   },
   derivationConflictPairNotCommitted: {
     en: 'Both wrapper keys must be enrolled and committed before a backup can be created. Commit the pair in step 2.',
-    ja: 'バックアップを作成する前に、両方のラッパー鍵を登録してコミットする必要があります。ステップ2でペアをコミットしてください。',
+    ja: 'バックアップを作成する前に、両方のラッピング鍵を登録してコミットする必要があります。ステップ2でペアをコミットしてください。',
   },
   derivationConflictGovernance: {
     en: 'Save an approval policy in step 1 before creating a backup.',
@@ -424,7 +430,7 @@ export const derivationRootMessages = {
   derivationRecoverySet: { en: 'Recovery set', ja: 'リカバリーセット' },
   derivationBackupCliDownloads: {
     en: 'The CLI downloads this backup. Your private wrapper keys and ZIP password stay in Terminal.',
-    ja: 'CLIがこのバックアップをダウンロードします。非公開のラッパー鍵とZIPパスワードはターミナルから出ません。',
+    ja: 'CLIがこのバックアップをダウンロードします。非公開のラッピング鍵とZIPパスワードはターミナルから出ません。',
   },
   derivationApproveDownload: { en: 'Approve download', ja: 'ダウンロードを承認' },
   derivationBackupApproved: {
@@ -452,18 +458,18 @@ export const derivationRootMessages = {
     en: 'Approve terminal enrollment',
     ja: 'ターミナルからの登録を承認',
   },
-  derivationWrapperConnected: { en: 'Wrapper key connected', ja: 'ラッパー鍵を接続しました' },
-  derivationWrapperEnrollment: { en: 'Wrapper key enrollment', ja: 'ラッパー鍵の登録' },
+  derivationWrapperConnected: { en: 'Wrapper key connected', ja: 'ラッピング鍵を接続しました' },
+  derivationWrapperEnrollment: { en: 'Wrapper key enrollment', ja: 'ラッピング鍵の登録' },
   derivationEnrollCompare: {
     en: 'Compare this code with Terminal. Approve only if you started this setup.',
     ja: 'このコードをターミナルと照合してください。このセットアップを開始した場合にのみ承認してください。',
   },
   derivationHolder: { en: 'Holder', ja: '保持者' },
   derivationKeyFingerprint: { en: 'Key fingerprint', ja: '鍵のフィンガープリント' },
-  derivationPublicWrapperKey: { en: 'Public wrapper key', ja: '公開ラッパー鍵' },
+  derivationPublicWrapperKey: { en: 'Public wrapper key', ja: '公開ラッピング鍵' },
   derivationEnrollPrivateStays: {
     en: 'Your private wrapper key stays on your computer. Approval registers this public key only.',
-    ja: '非公開のラッパー鍵はお使いのコンピューターから出ません。承認によって登録されるのは、この公開鍵のみです。',
+    ja: '非公開のラッピング鍵はお使いのコンピューターから出ません。承認によって登録されるのは、この公開鍵のみです。',
   },
   derivationApproveEnrollment: { en: 'Approve enrollment', ja: '登録を承認' },
   derivationRefreshRequest: { en: 'Refresh request', ja: 'リクエストを更新' },
@@ -475,7 +481,7 @@ export const derivationRootMessages = {
     en: 'Request expired. Run setup again using your saved key.',
     ja: 'リクエストの有効期限が切れました。保存したキーを使って、セットアップをもう一度実行してください。',
   },
-  derivationWrapperEnrolled: { en: 'Wrapper key enrolled.', ja: 'ラッパー鍵を登録しました。' },
+  derivationWrapperEnrolled: { en: 'Wrapper key enrolled.', ja: 'ラッピング鍵を登録しました。' },
   derivationRestoreParseRead: {
     en: 'Unable to read restore approval',
     ja: '復元の承認を読み取れません',
@@ -515,7 +521,7 @@ export const derivationRootMessages = {
   derivationRecoveryDestination: { en: 'Recovery destination', ja: 'リカバリーの復元先' },
   derivationRestoreGrantAccess: {
     en: 'Grant temporary restore access with your passkey. Your private wrapper keys stay on your device.',
-    ja: 'パスキーで一時的な復元アクセスを許可します。非公開のラッパー鍵はお使いのデバイスから出ません。',
+    ja: 'パスキーで一時的な復元アクセスを許可します。非公開のラッピング鍵はお使いのデバイスから出ません。',
   },
   derivationApproveRestore: { en: 'Approve restore', ja: '復元を承認' },
   derivationTryAgain: { en: 'Try again', ja: 'もう一度試す' },
@@ -653,10 +659,10 @@ export const derivationRootMessages = {
     en: 'Recovery governance recorded failed',
     ja: 'リカバリーガバナンスを記録できませんでした',
   },
-  derivationKeysCommitted: { en: 'Wrapper keys committed', ja: 'ラッパー鍵をコミットしました' },
+  derivationKeysCommitted: { en: 'Wrapper keys committed', ja: 'ラッピング鍵をコミットしました' },
   derivationKeysCommittedFailed: {
     en: 'Wrapper keys committed failed',
-    ja: 'ラッパー鍵をコミットできませんでした',
+    ja: 'ラッピング鍵をコミットできませんでした',
   },
   derivationBackupCreated: {
     en: 'Recovery backup created',
@@ -698,7 +704,7 @@ export const derivationRootMessages = {
   },
   derivationStatusEnrolledCommit: {
     en: 'Wrapper keys enrolled · commit required',
-    ja: 'ラッパー鍵を登録済み · コミットが必要です',
+    ja: 'ラッピング鍵を登録済み · コミットが必要です',
   },
   derivationStatusEnrolledCommitDetail: {
     en: 'Both holders have proved control of their keys. Commit the pair in step 2; no backup is ready yet.',
@@ -706,7 +712,7 @@ export const derivationRootMessages = {
   },
   derivationStatusCommittedNoBackup: {
     en: 'Wrapper keys committed · backup not created',
-    ja: 'ラッパー鍵をコミット済み · バックアップ未作成',
+    ja: 'ラッピング鍵をコミット済み · バックアップ未作成',
   },
   derivationStatusCommittedNoBackupDetail: {
     en: 'The enrolled pair is committed. Create a backup in step 3, then download and verify it in step 4.',
@@ -719,7 +725,7 @@ export const derivationRootMessages = {
   derivationStep1Title: { en: 'Choose who approves changes', ja: '変更を承認する人を選択' },
   derivationStep1Subtitle: {
     en: 'Set the approval policy for wrapper keys and backups.',
-    ja: 'ラッパー鍵とバックアップの承認ポリシーを設定します。',
+    ja: 'ラッピング鍵とバックアップの承認ポリシーを設定します。',
   },
   derivationSaved: { en: 'Saved', ja: '保存済み' },
   derivationStep1Choose: {
@@ -760,36 +766,36 @@ export const derivationRootMessages = {
   derivationOneOwner: { en: 'One owner', ja: '1人のオーナー' },
   derivationOneOwnerDescription: {
     en: 'One organization owner can change wrapper keys and backups.',
-    ja: '組織のオーナー1人だけで、ラッパー鍵とバックアップを変更できます。',
+    ja: '組織のオーナー1人だけで、ラッピング鍵とバックアップを変更できます。',
   },
   derivationOneOwnerAcknowledge: {
     en: 'I understand that one owner alone can replace wrapper keys and backups.',
-    ja: 'オーナー1人だけでラッパー鍵とバックアップを置き換えられることを理解しました。',
+    ja: 'オーナー1人だけでラッピング鍵とバックアップを置き換えられることを理解しました。',
   },
   derivationVerifyAndSavePolicy: { en: 'Verify and save policy', ja: '検証してポリシーを保存' },
   derivationVerifyingAndSaving: { en: 'Verifying and saving…', ja: '検証して保存中…' },
   derivationCheckPolicyApproval: { en: 'Check policy approval', ja: 'ポリシーの承認を確認' },
   derivationApprovalPolicySaved: { en: 'Approval policy saved', ja: '承認ポリシーを保存済み' },
   derivationSaveApprovalPolicy: { en: 'Save approval policy', ja: '承認ポリシーを保存' },
-  derivationStep2Title: { en: 'Enroll public wrapper keys', ja: '公開ラッパー鍵を登録' },
+  derivationStep2Title: { en: 'Enroll public wrapper keys', ja: '公開ラッピング鍵を登録' },
   derivationStep2Subtitle: {
     en: 'Generate wrapper keypairs to encrypt and decrypt the recovery packages.',
-    ja: 'リカバリーパッケージの暗号化と復号に使用するラッパー鍵ペアを生成します。',
+    ja: 'リカバリーパッケージの暗号化と復号に使用するラッピング鍵ペアを生成します。',
   },
   derivationCommitted: { en: 'Committed', ja: 'コミット済み' },
   derivationEnrolledNotCommitted: { en: 'Enrolled · not committed', ja: '登録済み · 未コミット' },
   derivationSetUp: { en: 'Set up', ja: 'セットアップ' },
   derivationStep2Body: {
     en: 'Generate wrapper keypairs to encrypt the server recovery material in step 3. The private wrapper keys stay on the holders’ devices and decrypt those packages during restoration.',
-    ja: 'ステップ3で、サーバーのリカバリー素材を暗号化するラッパー鍵ペアを生成します。非公開のラッパー鍵は保持者のデバイスに残り、復元時にそれらのパッケージを復号します。',
+    ja: 'ステップ3で、サーバーのリカバリー素材を暗号化するラッピング鍵ペアを生成します。非公開のラッピング鍵は保持者のデバイスに残り、復元時にそれらのパッケージを復号します。',
   },
   derivationStep2NeedPolicy: {
     en: 'Save an approval policy to enroll public wrapper keys.',
-    ja: '公開ラッパー鍵を登録するには、承認ポリシーを保存してください。',
+    ja: '公開ラッピング鍵を登録するには、承認ポリシーを保存してください。',
   },
   derivationStep2DoneLabel: {
     en: 'Both public wrapper keys are registered and approved for this backup.',
-    ja: '両方の公開ラッパー鍵がこのバックアップ用に登録され、承認されました。',
+    ja: '両方の公開ラッピング鍵がこのバックアップ用に登録され、承認されました。',
   },
   derivationStep2DoneDetail: {
     en: 'Create your backup in step 3, then save the recovery ZIP in step 4.',
@@ -797,7 +803,7 @@ export const derivationRootMessages = {
   },
   derivationStep2Folder: {
     en: 'Start in a new, empty folder on each holder’s device. Each command creates the named wrapper key file there. Keep that file for step 4.',
-    ja: '各保持者のデバイスで、新しい空のフォルダーから始めてください。各コマンドは、そこに指定された名前のラッパー鍵ファイルを作成します。そのファイルはステップ4で使うため保管してください。',
+    ja: '各保持者のデバイスで、新しい空のフォルダーから始めてください。各コマンドは、そこに指定された名前のラッピング鍵ファイルを作成します。そのファイルはステップ4で使うため保管してください。',
   },
   derivationStep2Approve: {
     en: 'Approve the matching code in this dashboard. In step 4, the CLI includes these key files in your recovery ZIP and prompts for an optional ZIP password.',
@@ -806,10 +812,10 @@ export const derivationRootMessages = {
   derivationRestartStep2: { en: 'Restart from step 2', ja: 'ステップ2からやり直す' },
   derivationStep2ReadyToCommit: {
     en: 'Both public wrapper keys are enrolled: each holder has proved control of the matching private wrapper key. Commit this pair to authorize backup creation.',
-    ja: '両方の公開ラッパー鍵が登録されました。各保持者が、対応する非公開のラッパー鍵を管理していることを証明しました。このペアをコミットして、バックアップの作成を許可してください。',
+    ja: '両方の公開ラッピング鍵が登録されました。各保持者が、対応する非公開のラッピング鍵を管理していることを証明しました。このペアをコミットして、バックアップの作成を許可してください。',
   },
   derivationCheckKeyPairApproval: { en: 'Check key-pair approval', ja: '鍵ペアの承認を確認' },
-  derivationCommitWrapperKeys: { en: 'Commit wrapper keys', ja: 'ラッパー鍵をコミット' },
+  derivationCommitWrapperKeys: { en: 'Commit wrapper keys', ja: 'ラッピング鍵をコミット' },
   derivationWaitingRecipients: {
     en: 'Waiting for a second owner to approve operation {digest}.',
     ja: '2人目のオーナーが操作 {digest} を承認するのを待っています。',
@@ -830,7 +836,7 @@ export const derivationRootMessages = {
   derivationNotReady: { en: 'Not ready', ja: '未準備' },
   derivationStep3PairCommitted: {
     en: 'The wrapper key pair is committed. No backup is ready to download yet.',
-    ja: 'ラッパー鍵ペアはコミットされています。ダウンロードできるバックアップはまだありません。',
+    ja: 'ラッピング鍵ペアはコミットされています。ダウンロードできるバックアップはまだありません。',
   },
   derivationStep3NoAccess: {
     en: 'Your account does not have access to download a recovery package. Each designated holder must sign in to save their own kit.',
@@ -842,11 +848,11 @@ export const derivationRootMessages = {
   },
   derivationStep3ReplacementFailed: {
     en: 'The replacement failed. Step 4 still contains your previous backup and its original wrapper keys are required to open it.',
-    ja: '置き換えに失敗しました。ステップ4には以前のバックアップが残っており、開くには元のラッパー鍵が必要です。',
+    ja: '置き換えに失敗しました。ステップ4には以前のバックアップが残っており、開くには元のラッピング鍵が必要です。',
   },
   derivationStep3FinishEnrollments: {
     en: 'Finish both enrollments, then select Commit wrapper keys in step 2 before creating the new backup.',
-    ja: '新しいバックアップを作成する前に、両方の登録を完了し、ステップ2で「ラッパー鍵をコミット」を選択してください。',
+    ja: '新しいバックアップを作成する前に、両方の登録を完了し、ステップ2で「ラッピング鍵をコミット」を選択してください。',
   },
   derivationCreatingBackup: { en: 'Creating backup…', ja: 'バックアップを作成中…' },
   derivationGenerateNewBackup: {
@@ -876,30 +882,30 @@ export const derivationRootMessages = {
   },
   derivationStep4KitSplit: {
     en: 'Each holder saves a recovery kit containing the manifest, their encrypted package, their private wrapper key, and instructions.',
-    ja: '各保持者は、マニフェスト、自分の暗号化パッケージ、自分の非公開ラッパー鍵、および手順を含むリカバリーキットを保存します。',
+    ja: '各保持者は、マニフェスト、自分の暗号化パッケージ、自分の非公開ラッピング鍵、および手順を含むリカバリーキットを保存します。',
   },
   derivationStep4KitBoth: {
     en: 'Save a recovery kit containing the manifest, both encrypted packages, both private wrapper keys, and instructions.',
-    ja: 'マニフェスト、両方の暗号化パッケージ、両方の非公開ラッパー鍵、および手順を含むリカバリーキットを保存します。',
+    ja: 'マニフェスト、両方の暗号化パッケージ、両方の非公開ラッピング鍵、および手順を含むリカバリーキットを保存します。',
   },
   derivationStep4Run: {
     en: 'Run this command from the same Terminal folder you used for enrollment to create and save your recovery ZIP. Approve the matching code in your browser. The CLI downloads the encrypted recovery packages, verifies them with your local wrapper keys, and combines those files into a ZIP. Enter a ZIP password when prompted, or press Enter to skip encryption.',
-    ja: '登録時に使用したものと同じターミナルのフォルダーでこのコマンドを実行し、リカバリーZIPを作成して保存します。ブラウザーで対応するコードを承認してください。CLIは暗号化されたリカバリーパッケージをダウンロードし、ローカルのラッパー鍵で検証して、それらのファイルをZIPにまとめます。プロンプトが表示されたらZIPパスワードを入力してください。暗号化しない場合は Enter を押します。',
+    ja: '登録時に使用したものと同じターミナルのフォルダーでこのコマンドを実行し、リカバリーZIPを作成して保存します。ブラウザーで対応するコードを承認してください。CLIは暗号化されたリカバリーパッケージをダウンロードし、ローカルのラッピング鍵で検証して、それらのファイルをZIPにまとめます。プロンプトが表示されたらZIPパスワードを入力してください。暗号化しない場合は Enter を押します。',
   },
   derivationSaveKitLabel: { en: 'Save your recovery kit', ja: 'リカバリーキットを保存' },
   derivationSaveKitNoteBoth: {
     en: 'Your private wrapper keys and password stay in Terminal. The ZIP includes both wrapper keys, both encrypted recovery packages, the manifest and restore instructions.',
-    ja: '非公開のラッパー鍵とパスワードはターミナルから出ません。ZIPには、両方のラッパー鍵、両方の暗号化されたリカバリーパッケージ、マニフェスト、復元の手順が含まれます。',
+    ja: '非公開のラッピング鍵とパスワードはターミナルから出ません。ZIPには、両方のラッピング鍵、両方の暗号化されたリカバリーパッケージ、マニフェスト、復元の手順が含まれます。',
   },
   derivationSaveKitNoteOwn: {
     en: 'Your private wrapper key and password stay in Terminal. The ZIP includes your wrapper key, your encrypted recovery package, the manifest and restore instructions.',
-    ja: '非公開のラッパー鍵とパスワードはターミナルから出ません。ZIPには、自分のラッパー鍵、自分の暗号化されたリカバリーパッケージ、マニフェスト、復元の手順が含まれます。',
+    ja: '非公開のラッピング鍵とパスワードはターミナルから出ません。ZIPには、自分のラッピング鍵、自分の暗号化されたリカバリーパッケージ、マニフェスト、復元の手順が含まれます。',
   },
   derivationReplaceWarning: {
     en: 'Replacing this recovery backup cannot revoke copies you previously downloaded. Securely destroy old files and wrapper keys when you no longer need them.',
-    ja: 'このリカバリーバックアップを置き換えても、以前にダウンロードしたコピーを無効にすることはできません。不要になった古いファイルとラッパー鍵は、安全に破棄してください。',
+    ja: 'このリカバリーバックアップを置き換えても、以前にダウンロードしたコピーを無効にすることはできません。不要になった古いファイルとラッピング鍵は、安全に破棄してください。',
   },
-  derivationOperationalShares: { en: 'Operational shares', ja: '運用シェア' },
+  derivationOperationalShares: { en: 'Operational shares', ja: '運用鍵シェア' },
   derivationShareVersion: { en: 'Share version {epoch}', ja: 'シェアバージョン {epoch}' },
   derivationTwoServices: {
     en: 'Two services each hold a share of this root.',
@@ -948,7 +954,7 @@ export const derivationRootMessages = {
   },
   derivationApproveAccessBody: {
     en: 'Each holder runs the commands below, then approves the matching Terminal code in this dashboard. Use the organization and environment shown above. Your wrapper keys stay on your device.',
-    ja: '各保持者は以下のコマンドを実行し、このダッシュボードで対応するターミナルのコードを承認します。上に表示されている組織と環境を使用してください。ラッパー鍵はお使いのデバイスから出ません。',
+    ja: '各保持者は以下のコマンドを実行し、このダッシュボードで対応するターミナルのコードを承認します。上に表示されている組織と環境を使用してください。ラッピング鍵はお使いのデバイスから出ません。',
   },
   derivationConnectTrustLabel: { en: 'Connect recovery trust', ja: 'リカバリーの信頼を接続' },
   derivationConnectTrustNote: {
@@ -994,7 +1000,7 @@ export const derivationRootMessages = {
   },
   derivationRotateSharesQuestion: {
     en: 'Rotate operational shares?',
-    ja: '運用シェアをローテーションしますか？',
+    ja: '運用鍵シェアをローテーションしますか？',
   },
   derivationRotateSharesDescription: {
     en: 'Deriver A and Deriver B will replace their current shares while keeping the derivation root unchanged. Normal signing will continue. New derivation ceremonies may pause briefly. Verify your identity to authorize this rotation.',
@@ -1007,6 +1013,6 @@ export const derivationRootMessages = {
   derivationRetryRotation: { en: 'Retry rotation', ja: 'ローテーションを再試行' },
   derivationRotateSharesButton: {
     en: 'Rotate operational shares',
-    ja: '運用シェアをローテーション',
+    ja: '運用鍵シェアをローテーション',
   },
 } as const satisfies Record<string, Entry>;

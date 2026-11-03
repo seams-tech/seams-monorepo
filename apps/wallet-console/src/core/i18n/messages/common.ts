@@ -108,6 +108,7 @@ export const commonMessages = {
   commonNetworkTestnet: { en: 'Testnet', ja: 'テストネット' },
   commonNetworkMainnet: { en: 'Mainnet', ja: 'メインネット' },
   commonNetworkLabel: { en: 'Network', ja: 'ネットワーク' },
+  commonLanguageLabel: { en: 'Language', ja: '言語' },
   commonTopbarSearchPages: { en: 'Search pages', ja: 'ページを検索' },
   commonTopbarSearchPagesPlaceholder: { en: 'Search pages...', ja: 'ページを検索…' },
   commonTopbarNoMatches: { en: 'No matching pages.', ja: '一致するページがありません。' },

@@ -81,10 +81,6 @@ export const shellMessages = {
   menuAccountSettings: { en: 'Account Settings', ja: 'アカウント設定' },
   menuSignOut: { en: 'Sign out', ja: 'サインアウト' },
   menuSigningOut: { en: 'Signing out...', ja: 'サインアウトしています…' },
-  menuNetworkMainnet: { en: 'Network: Mainnet', ja: 'ネットワーク: メインネット' },
-  menuNetworkTestnet: { en: 'Network: Testnet', ja: 'ネットワーク: テストネット' },
-  menuSwitchToMainnet: { en: 'Switch to Mainnet', ja: 'メインネットに切り替え' },
-  menuSwitchToTestnet: { en: 'Switch to Testnet', ja: 'テストネットに切り替え' },
   menuAccountFallback: { en: 'Account', ja: 'アカウント' },
 
   // Loading

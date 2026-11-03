@@ -99,6 +99,7 @@ export function DashboardNavigation<Route extends string, GroupKey extends strin
       <DashboardSidebar
         accountLabel={accountLabel}
         accountOptions={dropdownOptions.accountSettings}
+        network={network}
         onSelectAccount={selectContextOption.bind(null, onSelectContext, 'accountSettings')}
         groups={groups}
         externalLinks={externalLinks}

@@ -62,10 +62,10 @@
 }
 
 .h2-cta__banner.company-banner--ink {
-  background: #faf8f3;
+  background: transparent;
 }
 
-.company-banner--ink > :not(.h2-ink) {
+.company-banner--ink > :not(.h2-ink, .h2-swatch) {
   position: relative;
   z-index: 1;
 }

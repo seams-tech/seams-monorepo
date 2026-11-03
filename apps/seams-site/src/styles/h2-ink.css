@@ -229,7 +229,37 @@
   background-color: #faf8f3;
 }
 
-.h2-banner--ink > :not(.h2-ink) {
+/* the brush stroke is the card: the paper shows around it */
+.h2-banner--ink:has(> .h2-swatch) {
+  background-color: transparent;
+}
+
+.h2-swatch {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.h2-swatch__paint {
+  position: absolute;
+  top: 6px;
+  right: -12px;
+  bottom: 6px;
+  width: min(620px, 58%);
+  mask-mode: alpha;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: 100% 100%;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+}
+
+.h2-swatch__paint--mirrored {
+  transform: scaleX(-1);
+}
+
+.h2-banner--ink > :not(.h2-ink, .h2-swatch) {
   position: relative;
   z-index: 1;
 }
@@ -258,6 +288,10 @@
 }
 
 @media (max-width: 1040px) {
+  .h2-swatch__paint {
+    width: min(480px, 58%);
+  }
+
   .h2-ink--banner {
     width: 480px;
   }
@@ -279,6 +313,10 @@
 }
 
 @media (min-width: 761px) and (max-width: 900px) {
+  .h2-swatch__paint {
+    width: 360px;
+  }
+
   .h2-ink--banner {
     width: 360px;
   }
@@ -290,6 +328,15 @@
 
 /* the actions drop under the copy, so the drawing takes its own row under them */
 @media (max-width: 760px) {
+  .h2-swatch__paint {
+    top: auto;
+    right: -12px;
+    bottom: 0;
+    left: -24px;
+    width: auto;
+    height: min(38vw, 150px);
+  }
+
   .h2-banner--ink {
     padding-bottom: 0;
   }

@@ -18,6 +18,7 @@ import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
+import { BrushSwatch, type SwatchColour, type SwatchPaint } from '@/components/h2/ink/BrushSwatch';
 import { tileSignScenes, type TileSign } from '@/components/h2/ink/tileSignScenes';
 import { PortalShot, type PortalShotName } from '@/components/h2/SceneHero';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
@@ -352,6 +353,9 @@ function BannerSection({
   anchor,
   field,
   drawing,
+  swatch,
+  paint,
+  mirrored,
   title,
   sub,
   children,
@@ -363,6 +367,10 @@ function BannerSection({
   /* a drawing on paper in place of the gradient field: the home page brings it,
      so the ink code and styles stay out of the pages that share these sections */
   drawing?: React.ReactNode;
+  /* the brush stroke of paint under the drawing */
+  swatch: SwatchColour;
+  paint: SwatchPaint;
+  mirrored: boolean;
   title: string;
   sub?: string;
   children?: React.ReactNode;
@@ -383,6 +391,7 @@ function BannerSection({
     <section id={anchor} className="h2-section h2-section--banner h2-rule" aria-labelledby={id}>
       {drawing ? (
         <div className="h2-banner h2-banner--ink">
+          <BrushSwatch colour={swatch} paint={paint} mirrored={mirrored} />
           {drawing}
           {content}
         </div>
@@ -409,6 +418,9 @@ export function H2Ecosystem({
     <>
       <BannerSection
         id="h2-eco-title"
+        swatch="seaglass"
+        paint={{ finish: 'wet', stroke: 1 }}
+        mirrored={false}
         anchor="integrations"
         field="teal-peach"
         drawing={drawing}
@@ -623,6 +635,9 @@ export function H2Pillars({
     <>
       <BannerSection
         id="h2-pillars-title"
+        swatch="blush"
+        paint={{ finish: 'dry', stroke: 2 }}
+        mirrored={true}
         anchor="suite"
         field="azure-coral"
         drawing={drawing}
@@ -727,6 +742,9 @@ export function H2Bento({ drawing }: { drawing?: React.ReactNode } = {}): React.
     <>
       <BannerSection
         id="h2-bento-title"
+        swatch="clay"
+        paint={{ finish: 'dry', stroke: 5 }}
+        mirrored={false}
         anchor="control"
         field="mauve-ember"
         drawing={drawing}
@@ -914,6 +932,9 @@ export function H2Cases({ drawing }: { drawing?: React.ReactNode } = {}): React.
     <>
       <BannerSection
         id="h2-cases-title"
+        swatch="sky"
+        paint={{ finish: 'dry', stroke: 3 }}
+        mirrored={false}
         anchor="workflows"
         field="mauve-ember"
         drawing={drawing}
@@ -961,6 +982,9 @@ export function H2Production({ drawing }: { drawing?: React.ReactNode } = {}): R
     <>
       <BannerSection
         id="h2-production-title"
+        swatch="gold"
+        paint={{ finish: 'wet', stroke: 3 }}
+        mirrored={true}
         anchor="kitchen"
         field="apricot-beam"
         drawing={drawing}
@@ -988,6 +1012,9 @@ export function H2WalletBand({ drawing }: { drawing?: React.ReactNode } = {}): R
   return (
     <BannerSection
       id="h2-wallet-title"
+      swatch="lavender"
+      paint={{ finish: 'wet', stroke: 2 }}
+      mirrored={true}
       field="teal-peach"
       drawing={drawing}
       title="Also from Seams: Seams Wallet"
@@ -2074,6 +2101,9 @@ export function H2Cta({
   return (
     <BannerSection
       id="h2-cta-title"
+      swatch="peach"
+      paint={{ finish: 'dry', stroke: 4 }}
+      mirrored={false}
       field={copy.field}
       drawing={drawing}
       title={copy.title}

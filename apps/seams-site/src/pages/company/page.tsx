@@ -5,6 +5,7 @@ import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
+import { BrushSwatch } from '@/components/h2/ink/BrushSwatch';
 import { cupSparrowScene, parcelSparrowScene } from '@/components/h2/ink/scenes';
 import { H2Footer } from '@/components/h2/sections';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
@@ -219,6 +220,7 @@ export function CompanyPage(): React.JSX.Element {
 
           <section className="h2-cta h2-cta--banner h2-rule" aria-labelledby="company-banner-title">
             <div className="h2-shell h2-cta__banner company-banner company-banner--ink">
+              <BrushSwatch colour="seaglass" paint={{ finish: 'wet', stroke: 1 }} mirrored={true} />
               <InkDrawing scene={cupSparrowScene} className="h2-ink--banner" />
               <div>
                 <h2 id="company-banner-title" className="h2-display h2-cta__title">

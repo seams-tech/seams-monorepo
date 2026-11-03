@@ -716,7 +716,7 @@ async function walletDocsIsReady(response) {
   if (!response.ok) return false;
   if (!response.headers.get('content-type')?.includes('text/html')) return false;
   const html = await response.text();
-  return html.includes('<meta name="generator" content="VitePress">');
+  return html.includes('name="generator" content="VitePress');
 }
 
 async function stagingWalletDocsIsReady(response) {

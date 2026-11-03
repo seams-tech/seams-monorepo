@@ -19,17 +19,18 @@ All paths are in `apps/seams-site/src/`.
 | `components/h2/ink/scenes.ts`            | The shared helpers and most scenes: the hero goat, the banners and the cobot                               |
 | `components/h2/ink/wheatFieldScene.ts`   | The integrations wheat field, which times its own stalks                                                   |
 | `components/h2/ink/bakeryRobotScenes.ts` | The oven arm and the rack runner                                                                           |
+| `components/h2/ink/butterflyScenes.ts`   | The butterflies: the palmier that flies out of the oven, and two spares, a still robot hand and a gift box |
 | `components/h2/ink/conceptScenes.ts`     | Spare drawings that no page uses yet                                                                       |
 | `components/h2/ink/tileSignScenes.ts`    | The ink tiles that stand over the gradient tiles on the front page: a rounded square with the sign cut out |
 | `components/h2/EcosystemField.tsx`       | The SVG layer of tool logos and gold grains over the wheat field                                           |
 | `styles/h2-ink.css`                      | The motion keyframes, the resting state and reduced motion                                                 |
 
-| Page                      | Drawings                                                                                               |
-| ------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Home (`pages/home2`)      | Hero `goatScene` (drawn on load), `wireScene`, the wheat field, `stalkScene`, `keyScene`, `carryScene` |
-| Satyr (`pages/ecommerce`) | `windScene`, `rackRunnerScene`, `cobotScene`, `ovenArmScene`, `pillowGoatScene`                        |
-| Company                   | `parcelSparrowScene`, `cupSparrowScene`                                                                |
-| Not found                 | `flourGoatScene`                                                                                       |
+| Page                      | Drawings                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Home (`pages/home2`)      | Hero `goatScene` (drawn on load), `wireScene`, the wheat field, `stalkScene`, `keyScene`, `palmierOvenScene` |
+| Satyr (`pages/ecommerce`) | `windScene`, `rackRunnerScene`, `cobotScene`, `ovenArmScene`, `pillowGoatScene`                              |
+| Company                   | `parcelSparrowScene`, `cupSparrowScene`                                                                      |
+| Not found                 | `flourGoatScene`                                                                                             |
 
 ## Aesthetics
 
@@ -70,6 +71,10 @@ Keep gold to a few marks in each drawing. Gold is what the eye finds first.
   or rides on a robot arm.
 - Robots are dark machine masses with `machineJoint` joints and a gold band. Keep
   a robot arm short and close to its work.
+- A butterfly in flight is seen from above, and its wings fold toward its body
+  together (`fold`). A butterfly at rest is seen from the side: one upright set
+  of wings, the forewing to the front and the hindwing behind. Two pairs of wings
+  that lean apart in a V read as a flower.
 - Keep the drawings abstract and warm. Do not draw a dashboard, a product screen,
   a diagram, a grid or an isometric scene.
 
@@ -79,6 +84,9 @@ Keep gold to a few marks in each drawing. Gold is what the eye finds first.
   put the subject in the middle or on the right, on a dry ground line near y 184.
 - The hero uses the 760 by 520 grid. The wheat field uses 1400 by 520 on a wide
   screen and 620 by 560 on a narrow screen.
+- A banner with two buttons, such as the closing banner of the home page, has its
+  buttons over x 289 to 564, between y 83 and 129. Keep its subject between x 92
+  and 285, as `carryScene` and `palmierOvenScene` do.
 - Leave air around the subject. A banner holds one small story, not a scene full
   of objects.
 - Keep the steam and the birds inside the grid, so that no mark is cut off.
@@ -150,6 +158,7 @@ so a finished drawing costs no script.
 | `bob`     | Moves up and down                       | 0.8 to 2.5 px                                                        |
 | `drift`   | Moves sideways and a little up and down | 4 to 26 px                                                           |
 | `flap`    | Scales a wing on y                      | 0.4 to 0.45                                                          |
+| `fold`    | Scales a wing on x, toward the body     | 0.22 to 0.3, for a butterfly seen from above                         |
 | `breathe` | Scales a body on y, for a sleeping goat | 1.03                                                                 |
 | `rise`    | Rises and fades, for steam              | 10 to 14 px                                                          |
 | `fall`    | Falls and fades, for flour              | 20 px                                                                |

@@ -48,6 +48,10 @@
   animation-name: h2-ink-flap;
 }
 
+.h2-ink__move--fold {
+  animation-name: h2-ink-fold;
+}
+
 .h2-ink__move--breathe {
   animation-name: h2-ink-breathe;
 }
@@ -97,6 +101,15 @@
   }
   to {
     transform: scaleY(var(--ink-a));
+  }
+}
+
+@keyframes h2-ink-fold {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(var(--ink-a));
   }
 }
 

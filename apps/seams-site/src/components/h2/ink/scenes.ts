@@ -3,7 +3,7 @@ import type { InkColor, InkPoint, InkStroke } from './brush';
 /* The site's drawings, in the style of a croissant that flies itself over wheat. */
 
 export type InkMotion = {
-  readonly kind: 'sway' | 'bob' | 'drift' | 'flap' | 'breathe' | 'rise' | 'fall';
+  readonly kind: 'sway' | 'bob' | 'drift' | 'flap' | 'fold' | 'breathe' | 'rise' | 'fall';
   readonly amount: string;
   readonly seconds: number;
   readonly delay?: number;

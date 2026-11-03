@@ -38,8 +38,8 @@ const settingsPresentations: readonly {
   label: MessageKey;
   icon: LucideIcon;
 }[] = [
-  { id: 'dropdown', label: 'settingsDropdown', icon: ChevronDown },
   { id: 'drawer', label: 'settingsDrawer', icon: PanelRight },
+  { id: 'dropdown', label: 'settingsDropdown', icon: ChevronDown },
 ];
 type WalletDemoProps = { authDefaultModeWhenNoDetectedAccount?: HostedAuthMenuMode };
 
@@ -115,7 +115,7 @@ function WalletDemoContent({
   const [demoPage, setDemoPage] = React.useState(0);
   const { theme: demoTheme, setTheme: setDemoTheme } = useDemoTheme();
   const [settingsPresentation, setSettingsPresentation] =
-    React.useState<SettingsPresentation>('dropdown');
+    React.useState<SettingsPresentation>('drawer');
   const themeTrackRef = useDragScroll<HTMLDivElement>();
   const activePreset = demoThemePreset(demoTheme);
   const activeWalletId = loginState?.isLoggedIn ? loginState.walletId || '' : '';

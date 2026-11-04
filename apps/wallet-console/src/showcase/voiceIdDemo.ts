@@ -109,6 +109,7 @@ export class VoiceIdDemo {
       appearance: showcaseAppearance(locale),
       content: {
         kind: 'transaction',
+        capture: null,
         review: {
           model: transaction,
           tree: buildDisplayTreeFromModel(transaction),

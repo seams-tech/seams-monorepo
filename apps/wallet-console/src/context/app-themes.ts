@@ -147,6 +147,10 @@ const CARBON_FRAME_COLORS: Record<string, string> = {
   ...CARBON_DARK_COLORS,
   colorBackground: '#252f37',
   surface: '#303c45',
+  // the halo behind the passkey ring and the result check: one step above
+  // the slate, as #1a2329 sat above the page's #12171a; the page value is
+  // darker than the slate and read as a black ring
+  passkeyHaloBackground: '#303c45',
   secondaryButtonBackground: '#303c45',
   secondaryButtonHoverBackground: '#3c4a54',
 };

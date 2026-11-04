@@ -82,9 +82,13 @@
 }
 
 /* The track and arc take the SDK passkey ring's colors, so the ring keeps
-   its colors as it passes from the busy spinner to the result. */
+   its colors as it passes from the busy spinner to the result. The seal's
+   edge lies on the ring's outer edge, so the two antialiased edges let the
+   light ring show through as a rough line; the ring leaves once the seal
+   covers it. */
 .authentication-result__track {
   stroke: color-mix(in srgb, var(--seams-colors-textPrimary) 10%, transparent);
+  animation: authentication-result-ring-out 120ms linear 820ms both;
 }
 
 .authentication-result__arc {
@@ -96,7 +100,8 @@
   transform-origin: center;
   animation:
     authentication-result-spin 650ms cubic-bezier(0.45, 0, 0.2, 1) both,
-    authentication-result-close 500ms cubic-bezier(0.65, 0, 0.35, 1) 150ms both;
+    authentication-result-close 500ms cubic-bezier(0.65, 0, 0.35, 1) 150ms both,
+    authentication-result-ring-out 120ms linear 820ms both;
 }
 
 .authentication-result__seal {
@@ -271,6 +276,12 @@ html[data-showcase-clock='paused'] .authentication-result__icon::after {
   }
 }
 
+@keyframes authentication-result-ring-out {
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes authentication-result-seal {
   from {
     transform: scale(0);
@@ -297,5 +308,11 @@ html[data-showcase-clock='paused'] .authentication-result__icon::after {
   .authentication-result [data-showcase-next] svg {
     animation: none;
     transition: none;
+  }
+
+  /* Without motion the seal shows at once, so the ring under it stays out. */
+  .authentication-result__track,
+  .authentication-result__arc {
+    opacity: 0;
   }
 }

@@ -140,6 +140,17 @@ export const CARBON_DARK_COLORS: Record<string, string> = {
   highlightAmount: '#f4f5f6',
 };
 
+// Carbon inside the wallet frames (the settings drawer, the hosted menu and
+// the component canvas). Those cards take the hero demo card's slate, so the
+// slabs that sat on `surface` move one step up to stay visible on it.
+const CARBON_FRAME_COLORS: Record<string, string> = {
+  ...CARBON_DARK_COLORS,
+  colorBackground: '#252f37',
+  surface: '#303c45',
+  secondaryButtonBackground: '#303c45',
+  secondaryButtonHoverBackground: '#3c4a54',
+};
+
 // "Pastel Dark" — warm charcoal with peach and lilac accents.
 const PASTEL_DARK_COLORS: Record<string, string> = {
   primary: '#f3e5f5',
@@ -266,6 +277,8 @@ export interface DemoThemePreset {
   swatch: string;
   /** The active mode's color token map (source of truth for both consumers below). */
   colors: Record<string, string>;
+  /** The wallet frames' token map, when it differs from the page's `colors`. */
+  frameColors?: Record<string, string>;
   /** Component geometry selected with the theme. */
   shape: WalletShapeId;
 }
@@ -283,8 +296,9 @@ export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
     id: 'carbon',
     label: 'Carbon',
     mode: 'dark',
-    swatch: '#12171a',
+    swatch: '#252f37',
     colors: CARBON_DARK_COLORS,
+    frameColors: CARBON_FRAME_COLORS,
     shape: 'square',
   },
   {
@@ -330,7 +344,7 @@ export function demoIframeAppearance(
     theme: {
       id: preset.id,
       mode: preset.mode,
-      colors: preset.colors,
+      colors: preset.frameColors ?? preset.colors,
       shape: { ...SHAPE_PRESETS[preset.shape] },
     },
     palette: 'default',

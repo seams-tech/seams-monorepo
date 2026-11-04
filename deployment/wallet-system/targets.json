@@ -10,8 +10,7 @@
       "availableNetworks": ["testnet"],
       "pagesProjectEnv": "CF_PAGES_PROJECT_VITE",
       "walletSitePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_SITE",
-      "docsPagesProjectEnv": "CF_PAGES_PROJECT_WALLET_DOCS",
-      "legacyDocsPagesProjectEnv": "CF_PAGES_PROJECT_LEGACY_DOCS"
+      "docsPagesProjectEnv": "CF_PAGES_PROJECT_WALLET_DOCS"
     },
     "lanes": {
       "testnet": {
@@ -260,8 +259,7 @@
       "availableNetworks": ["testnet", "mainnet"],
       "pagesProjectEnv": "CF_PAGES_PROJECT_VITE",
       "walletSitePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_SITE",
-      "docsPagesProjectEnv": "CF_PAGES_PROJECT_WALLET_DOCS",
-      "legacyDocsPagesProjectEnv": "CF_PAGES_PROJECT_LEGACY_DOCS"
+      "docsPagesProjectEnv": "CF_PAGES_PROJECT_WALLET_DOCS"
     },
     "lanes": {
       "testnet": {

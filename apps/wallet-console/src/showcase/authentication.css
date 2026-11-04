@@ -81,12 +81,14 @@
   overflow: visible;
 }
 
+/* The track and arc take the SDK passkey ring's colors, so the ring keeps
+   its colors as it passes from the busy spinner to the result. */
 .authentication-result__track {
-  stroke: var(--seams-colors-borderPrimary);
+  stroke: color-mix(in srgb, var(--seams-colors-textPrimary) 10%, transparent);
 }
 
 .authentication-result__arc {
-  stroke: var(--seams-colors-buttonBackground);
+  stroke: var(--seams-colors-textPrimary);
   stroke-dasharray: 100;
   stroke-dashoffset: 0;
   transform: rotate(-90deg);

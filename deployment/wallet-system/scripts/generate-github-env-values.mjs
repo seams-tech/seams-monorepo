@@ -983,9 +983,6 @@ function buildProductionSiteEnvironment(input) {
       CF_PAGES_PROJECT_WALLET_DOCS: manual(
         `${input.environmentPrefix}-cloudflare-pages-wallet-docs-project`,
       ),
-      CF_PAGES_PROJECT_LEGACY_DOCS: manual(
-        `${input.environmentPrefix}-cloudflare-pages-legacy-docs-project`,
-      ),
       CF_PAGES_PROJECT_WALLET_TESTNET: manual(
         `${input.environmentPrefix}-cloudflare-pages-wallet-testnet-project`,
       ),

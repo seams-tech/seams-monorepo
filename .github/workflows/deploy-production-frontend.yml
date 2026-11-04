@@ -23,7 +23,6 @@ on:
           - company
           - wallet-docs
           - wallet-host
-          - legacy-docs-redirect
           - all
   workflow_call:
     inputs:
@@ -65,7 +64,6 @@ jobs:
       CF_PAGES_PROJECT_WALLET_CONSOLE: ${{ secrets.CF_PAGES_PROJECT_WALLET_CONSOLE }}
       CF_PAGES_PROJECT_WALLET_SITE: ${{ secrets.CF_PAGES_PROJECT_WALLET_SITE }}
       CF_PAGES_PROJECT_WALLET_DOCS: ${{ secrets.CF_PAGES_PROJECT_WALLET_DOCS }}
-      CF_PAGES_PROJECT_LEGACY_DOCS: ${{ secrets.CF_PAGES_PROJECT_LEGACY_DOCS }}
       CF_PAGES_PROJECT_WALLET_TESTNET: ${{ secrets.CF_PAGES_PROJECT_WALLET_TESTNET }}
       CF_PAGES_PROJECT_WALLET_MAINNET: ${{ secrets.CF_PAGES_PROJECT_WALLET_MAINNET }}
       VITE_TESTNET_NEAR_NETWORK: ${{ vars.VITE_TESTNET_NEAR_NETWORK }}

@@ -1057,7 +1057,6 @@ test('frontend workflows contain one environment-bound deployment job', () => {
       expect(workflowSource).toContain('CF_PAGES_PROJECT_WALLET:');
       expect(workflowSource).not.toContain('CF_PAGES_PROJECT_WALLET_TESTNET:');
     } else {
-      expect(workflowSource).toContain('CF_PAGES_PROJECT_LEGACY_DOCS:');
       expect(workflowSource).toContain('CF_PAGES_PROJECT_WALLET_TESTNET:');
       expect(workflowSource).toContain('CF_PAGES_PROJECT_WALLET_MAINNET:');
     }

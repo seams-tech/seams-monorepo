@@ -27,7 +27,7 @@ const themes = [
     id: 'carbon',
     label: 'Carbon',
     mode: 'dark',
-    background: 'rgb(18, 23, 26)',
+    background: 'rgb(37, 47, 55)',
     text: 'rgb(244, 245, 246)',
   },
   {
@@ -131,29 +131,13 @@ async function checkTheme(voiceId, theme) {
   );
 }
 
-async function checkUnlockTheme(voiceId, theme) {
-  const prompt = voiceId.locator('.seams-voiceid-prompt');
-  await expect(prompt).toHaveCSS('background-color', theme.background);
+async function checkVoiceTheme(voiceId, theme) {
+  await checkTheme(voiceId, theme);
   await expect(voiceId.locator('[data-voiceid-phrase]')).toHaveCSS('color', theme.text);
 }
 
-// A VoiceID unlock opens a signing session; the trade then needs only its Confirm.
-async function unlockAndSign(view, name, theme) {
+async function checkReview(view, name, theme) {
   const voiceId = view.root;
-  const unlock = voiceId.getByRole('dialog', { name: 'Unlock with VoiceID', exact: true });
-  await expect(unlock).toBeVisible();
-  const phrase = voiceId.locator('[data-voiceid-phrase]');
-  await expect(phrase).toHaveText('The market is open.');
-  await expect(voiceId.getByRole('status')).toHaveText('Listening');
-  await checkUnlockTheme(voiceId, theme);
-  await capture(view, `${name}-unlock`, '.seams-voiceid-prompt');
-  await expect(voiceId.getByRole('status')).toHaveText('Checking your voice…', { timeout: 10000 });
-  await expect(voiceId.getByText('Your wallet is unlocked.', { exact: true })).toBeVisible({
-    timeout: 10000,
-  });
-  const confirm = voiceId.getByRole('button', { name: 'Confirm trade', exact: true });
-  await expect(confirm).toBeVisible({ timeout: 10000 });
-  await expect(unlock).toHaveCount(0);
   await checkTheme(voiceId, theme);
   await expect(voiceId.locator('.seams-review-eyebrow')).toHaveText('Swap NEAR for USDC');
   await expect(
@@ -165,12 +149,34 @@ async function unlockAndSign(view, name, theme) {
     voiceId.locator('.seams-review-fields').getByText('NEAR', { exact: true }),
   ).toBeVisible();
   await expect(voiceId.getByText('0.00005 NEAR', { exact: true })).toBeVisible();
-  const review = await capture(view, `${name}-review`);
-  await confirm.click();
+  // No voice check runs before the visitor confirms the trade.
   await expect(voiceId.locator('.seams-voiceid-prompt')).toHaveCount(0);
+  return capture(view, `${name}-review`);
+}
+
+// The demo's VoiceID session has run out, so Confirm with VoiceID steps it up inside the
+// confirm card, and the receipt then takes over the same card.
+async function confirmWithVoice(view, name, theme) {
+  const voiceId = view.root;
+  const confirm = voiceId.getByRole('button', { name: 'Confirm with VoiceID', exact: true });
+  await expect(confirm).toBeVisible({ timeout: 10000 });
+  const review = await checkReview(view, name, theme);
+  await confirm.click();
+  const stepUp = voiceId.locator('.seams-confirmation-modal .seams-voiceid-prompt');
+  await expect(stepUp).toBeVisible();
+  await expect(voiceId.getByText('Read aloud', { exact: true })).toBeVisible();
+  await expect(voiceId.getByText('shop.example.com', { exact: true })).toBeVisible();
+  const phrase = voiceId.locator('[data-voiceid-phrase]');
+  await expect(phrase).toHaveText('The market is open.');
+  const spoken = await phrase.textContent();
+  await expect(voiceId.getByRole('status')).toHaveText('Listening');
+  await checkVoiceTheme(voiceId, theme);
+  await capture(view, `${name}-voice`);
+  await expect(voiceId.getByRole('status')).toHaveText('Checking your voice…', { timeout: 10000 });
   await expect(voiceId.getByRole('status')).toContainText('Transaction complete', {
     timeout: 15000,
   });
+  await expect(stepUp).toHaveCount(0);
   await checkTheme(voiceId, theme);
   await expect(voiceId.locator('.seams-review-amount')).toHaveText('10 NEAR');
   await expect(voiceId.getByRole('link', { name: 'View transaction' })).toHaveAttribute(
@@ -184,46 +190,47 @@ async function unlockAndSign(view, name, theme) {
   await voiceId.getByText('Receipt details', { exact: true }).click();
   await capture(view, `${name}-receipt`);
   await voiceId.getByRole('button', { name: 'Done', exact: true }).click();
-  await expect(unlock).toBeVisible();
-  return { phrase: await phrase.textContent(), ...review };
+  await expect(confirm).toBeVisible();
+  return { phrase: spoken, ...review };
 }
 
-async function cancelUnlock(page, gallery) {
+async function cancelVoice(page, gallery) {
   const voiceId = gallery.frameLocator('iframe[title="VoiceID"]');
+  const confirm = voiceId.getByRole('button', { name: 'Confirm with VoiceID', exact: true });
   for (const phase of ['listening', 'checking']) {
+    await confirm.click();
     await expect(voiceId.locator('.seams-voiceid-prompt')).toHaveAttribute(
       'data-trade-stage',
       phase,
       { timeout: 10000 },
     );
-    await voiceId.getByRole('button', { name: 'Cancel', exact: true }).click();
-    const retry = voiceId.getByRole('button', { name: 'Try again', exact: true });
-    await expect(retry).toBeVisible();
-    // An old callback must not unlock after its attempt was cancelled.
+    await voiceId.locator('.seams-review-toolbar button').last().click();
+    // Closing the card during the voice check returns to the review and leaves the trade unsigned.
+    await expect(confirm).toBeVisible();
     await page.waitForTimeout(5000);
-    await expect(retry).toBeVisible();
+    await expect(voiceId.locator('.seams-voiceid-prompt')).toHaveCount(0);
     await expect(
-      voiceId.getByRole('heading', { name: 'Review your trade', exact: true }),
+      voiceId.getByRole('status').filter({ hasText: 'Transaction complete' }),
     ).toHaveCount(0);
-    await retry.click();
   }
-  const confirm = voiceId.getByRole('button', { name: 'Confirm trade', exact: true });
-  await expect(confirm).toBeVisible({ timeout: 10000 });
-  // Cancelling the trade locks the wallet again.
-  await voiceId.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(voiceId.getByRole('status')).toHaveText('Listening');
-  await expect(voiceId.getByRole('status').filter({ hasText: 'Transaction complete' })).toHaveCount(
-    0,
-  );
+  // Closing the review opens a fresh one.
+  await voiceId.locator('.seams-review-toolbar button').last().click();
+  await expect(confirm).toBeVisible();
+  await expect(voiceId.locator('.seams-voiceid-prompt')).toHaveCount(0);
 }
 
 async function checkPlaybackPause(page, gallery) {
   await page.setViewportSize({ width: 1440, height: 1100 });
+  // The canvas clock runs only while 30% of its viewport is visible, and the resize can move it out.
+  const canvas = gallery.locator('.component-showcase__viewport');
+  await canvas.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+  await expect(canvas).toHaveAttribute('data-in-view', 'true');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await gallery.getByRole('button', { name: 'Play playback', exact: true }).click();
   await page.mouse.move(5, 5);
   const voiceId = gallery.frameLocator('iframe[title="VoiceID"]');
-  await expect(voiceId.getByRole('status')).toHaveText('Listening');
+  // Playback presses Confirm with VoiceID first; the voice check follows in the card.
+  await expect(voiceId.getByRole('status')).toHaveText('Listening', { timeout: 10000 });
   await gallery.getByRole('button', { name: 'Pause playback', exact: true }).click();
   await expect(voiceId.locator('html')).toHaveAttribute('data-showcase-clock', 'paused');
   await page.waitForTimeout(1800);
@@ -261,15 +268,15 @@ try {
   const showcaseUrl = new URL(source, origin);
   const galleryTheme =
     themes.find((theme) => theme.id === showcaseUrl.searchParams.get('theme')) ?? themes[0];
-  const galleryRun = await unlockAndSign(view, `gallery-${galleryTheme.id}`, galleryTheme);
+  const galleryRun = await confirmWithVoice(view, `gallery-${galleryTheme.id}`, galleryTheme);
 
-  await cancelUnlock(page, gallery);
+  await cancelVoice(page, gallery);
 
   const layouts = [];
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 1100 });
     await gallery.scrollIntoViewIfNeeded();
-    const run = await unlockAndSign(view, `mobile-${width}`, galleryTheme);
+    const run = await confirmWithVoice(view, `mobile-${width}`, galleryTheme);
     layouts.push({ width, ...run });
   }
   await checkPlaybackPause(page, gallery);
@@ -283,7 +290,7 @@ try {
     await page.goto(showcaseUrl.href);
     themedRuns.push({
       theme: theme.id,
-      ...(await unlockAndSign(pageView(page), `page-${theme.id}`, theme)),
+      ...(await confirmWithVoice(pageView(page), `page-${theme.id}`, theme)),
     });
   }
   for (const width of [390, 320]) {
@@ -291,7 +298,7 @@ try {
     await page.goto(showcaseUrl.href);
     themedRuns.push({
       width,
-      ...(await unlockAndSign(pageView(page), `page-${width}`, pastelDarkTheme)),
+      ...(await confirmWithVoice(pageView(page), `page-${width}`, pastelDarkTheme)),
     });
   }
   assert.deepEqual(errors, []);
@@ -304,8 +311,8 @@ try {
       {
         passed: true,
         origin,
-        voiceIdUnlockThenConfirmToReceipt: true,
-        voiceCheckPerTransaction: false,
+        reviewThenInCardVoiceStepUpToReceipt: true,
+        voiceStepUpOnlyForExpiredSession: true,
         trade: {
           network: 'NEAR',
           sell: '10 NEAR',
@@ -316,7 +323,7 @@ try {
         galleryRun,
         themedRuns,
         cancelledDuringCaptureAndChecking: true,
-        tradeCancelLocksAgain: true,
+        voiceCancelReturnsToReview: true,
         playbackPauseAndResume: true,
         layouts,
         errors,
@@ -329,7 +336,7 @@ try {
     ) + '\n',
   );
   console.log(
-    'Passed the VoiceID unlock, the plain trade confirmation, cancellation, playback, themes, and mobile layouts without model or microphone use.',
+    'Passed the trade review, the in-card VoiceID step-up after Confirm, the receipt hand-over, cancellation, playback, themes, and mobile layouts without model or microphone use.',
   );
 } finally {
   await context.tracing.stop({ path: `${artifacts}/trace.zip` });

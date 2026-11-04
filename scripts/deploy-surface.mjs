@@ -18,11 +18,6 @@ const WALLET_SITE_ROOT = path.join(REPOSITORY_ROOT, 'apps', 'wallet-console');
 const WALLET_SITE_OUTPUT = path.join(WALLET_SITE_ROOT, 'dist');
 const WALLET_HOST_OUTPUT = path.join(REPOSITORY_ROOT, '.release-artifacts', 'wallet-host');
 const WALLET_DOCS_OUTPUT = path.join(REPOSITORY_ROOT, '.release-artifacts', 'wallet-docs');
-const LEGACY_DOCS_REDIRECT_OUTPUT = path.join(
-  REPOSITORY_ROOT,
-  '.release-artifacts',
-  'legacy-docs-redirect',
-);
 const PUBLIC_DOCS_ARTIFACT_ROOT = path.join(REPOSITORY_ROOT, '.artifacts', 'wallet-docs');
 const PUBLIC_WALLET_DOCS_ORIGIN = 'https://docs.wallet.seams.sh';
 const SURFACES = Object.freeze([
@@ -32,7 +27,6 @@ const SURFACES = Object.freeze([
   'wallet-docs',
   'wallet-site',
   'wallet-host',
-  'legacy-docs-redirect',
 ]);
 const COMPONENTS = Object.freeze(['all', ...SURFACES]);
 
@@ -73,12 +67,11 @@ async function main(args) {
           site.docsPagesProjectEnv,
           site.walletSitePagesProjectEnv,
           ...walletLanes.map(walletPagesProjectEnvironment),
-          ...legacyDocsRedirectProjectEnvironment(site),
         ],
         process.env,
       );
     }
-    for (const surface of deploymentSurfaces(site)) {
+    for (const surface of SURFACES) {
       if (surface === 'platform-console' || surface === 'wallet-console') {
         await runConsoleOperation(
           options.operation,
@@ -91,28 +84,11 @@ async function main(args) {
     }
     return;
   }
-  assertComponentIsAvailableForSite(site, options.component);
   await runOperation(options.operation, site, options.component, walletLanes);
 }
 
 function walletPagesProjectEnvironment(lane) {
   return lane.walletPagesProjectEnv;
-}
-
-function legacyDocsRedirectProjectEnvironment(site) {
-  return site.id === 'production' ? [site.legacyDocsPagesProjectEnv] : [];
-}
-
-function deploymentSurfaces(site) {
-  return SURFACES.filter((surface) => {
-    return surface !== 'legacy-docs-redirect' || site.id === 'production';
-  });
-}
-
-function assertComponentIsAvailableForSite(site, component) {
-  if (component === 'legacy-docs-redirect' && site.id !== 'production') {
-    throw new Error('legacy-docs-redirect is available only for the production site');
-  }
 }
 
 async function runConsoleOperation(operation, site, component) {
@@ -237,7 +213,7 @@ function parseArguments(args) {
 }
 
 function usage() {
-  return 'usage: deploy-surface.mjs <plan|build|deploy|smoke> --site <site> --component <all|company|wallet-docs|wallet-site|wallet-host|legacy-docs-redirect|platform-console|wallet-console> [--lane <lane>]';
+  return 'usage: deploy-surface.mjs <plan|build|deploy|smoke> --site <site> --component <all|company|wallet-docs|wallet-site|wallet-host|platform-console|wallet-console> [--lane <lane>]';
 }
 
 function selectWalletLanes(site, options) {
@@ -281,12 +257,6 @@ function printPlan(site, component, walletLanes) {
       `Hosted wallet (${lane.network}): ${lane.walletOrigin}`,
       `Pages project environment (${lane.network}): ${lane.walletPagesProjectEnv}`,
     ]),
-    'legacy-docs-redirect': [
-      `Origin: ${site.legacyDocsOrigin}`,
-      `Destination: ${site.docsOrigin}/`,
-      `Pages project environment: ${site.legacyDocsPagesProjectEnv}`,
-      'Artifact: permanent redirect only',
-    ],
   }[component];
   process.stdout.write(
     `${[`Frontend deployment plan: ${site.id}/${component}`, `Branch: ${site.branch}`, ...lines].join('\n')}\n`,
@@ -346,10 +316,6 @@ function buildFrontend(site, component, walletLanes) {
       'Japanese Wallet features entry',
     );
     assertFile(path.join(WALLET_SITE_OUTPUT, 'sitemap.xml'), 'Wallet site sitemap');
-    return;
-  }
-  if (component === 'legacy-docs-redirect') {
-    writeLegacyDocsRedirects(site);
     return;
   }
   assertWalletSettingsExport();
@@ -419,19 +385,6 @@ function writeWalletDocsHeaders(site) {
   const lines = ['/*', '  Cache-Control: public, max-age=0, must-revalidate, no-transform'];
   if (site.id === 'staging') lines.push('  X-Robots-Tag: noindex');
   fs.writeFileSync(path.join(WALLET_DOCS_OUTPUT, '_headers'), `${lines.join('\n')}\n`);
-}
-
-function writeLegacyDocsRedirects(site) {
-  fs.rmSync(LEGACY_DOCS_REDIRECT_OUTPUT, { recursive: true, force: true });
-  fs.mkdirSync(LEGACY_DOCS_REDIRECT_OUTPUT, { recursive: true });
-  const lines = [
-    `/docs ${site.docsOrigin}/ 301`,
-    `/docs/ ${site.docsOrigin}/ 301`,
-    `/docs/* ${site.docsOrigin}/:splat 301`,
-    `/ ${site.docsOrigin}/ 301`,
-    `/* ${site.docsOrigin}/:splat 301`,
-  ];
-  fs.writeFileSync(path.join(LEGACY_DOCS_REDIRECT_OUTPUT, '_redirects'), `${lines.join('\n')}\n`);
 }
 
 function writeCompanyCutoverFiles(site) {
@@ -573,14 +526,6 @@ async function deployFrontend(site, component, walletLanes) {
     const project = process.env[site.walletSitePagesProjectEnv];
     deployPagesProject(WALLET_SITE_OUTPUT, site, project);
     await ensurePagesCustomDomain(site.walletSiteOrigin, project);
-  } else if (component === 'legacy-docs-redirect') {
-    requireEnvironmentValues([site.legacyDocsPagesProjectEnv], process.env);
-    assertDirectory(LEGACY_DOCS_REDIRECT_OUTPUT, 'Legacy docs redirect Pages output');
-    deployPagesProject(
-      LEGACY_DOCS_REDIRECT_OUTPUT,
-      site,
-      process.env[site.legacyDocsPagesProjectEnv],
-    );
   } else {
     const projectEnvironments = [...new Set(walletLanes.map((lane) => lane.walletPagesProjectEnv))];
     requireEnvironmentValues(projectEnvironments, process.env);
@@ -678,15 +623,6 @@ function buildSmokeChecks(site, component, walletLanes) {
       '/sitemap.xml',
       '/seams-wallet-docs-artifact.json',
     ]);
-  }
-  if (component === 'legacy-docs-redirect') {
-    return [
-      docsRedirectCheck(
-        'legacy-docs-redirect',
-        site.legacyDocsOrigin,
-        '/guides/transaction-review',
-      ),
-    ];
   }
   return walletLanes.flatMap((lane) =>
     smokeChecks(`wallet-${lane.network}`, lane.walletOrigin, [

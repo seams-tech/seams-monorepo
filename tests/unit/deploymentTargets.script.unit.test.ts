@@ -87,13 +87,11 @@ type FrontendSite = {
   readonly origin: string;
   readonly walletSiteOrigin: string;
   readonly docsOrigin: string;
-  readonly legacyDocsOrigin: string;
   readonly defaultNetwork: string;
   readonly availableNetworks: readonly string[];
   readonly pagesProjectEnv: string;
   readonly walletSitePagesProjectEnv: string;
   readonly docsPagesProjectEnv: string;
-  readonly legacyDocsPagesProjectEnv: string;
   readonly lanes: readonly BackendLane[];
 };
 

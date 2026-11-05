@@ -6,7 +6,7 @@ import { PAPER_LIGHT_COLORS } from '@/context/app-themes';
 import { ContactModalHost } from '@/components/contact/ContactModal';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 import { SitePageContext } from '@/i18n/browser';
-import { parseSitePage, type Locale } from '@/i18n/locale';
+import { pagePath, parseSitePage, type Locale } from '@/i18n/locale';
 import { updateDocumentMetadata } from '@/i18n/metadata';
 import '@/i18n/styles.css';
 
@@ -42,11 +42,12 @@ function WalletPricingRedirect({ locale }: { locale: Locale }): React.JSX.Elemen
 }
 
 /* The contact page became a modal; old links open it over the home page. */
-function ContactRedirect(): null {
+function ContactRedirect({ locale }: { locale: Locale }): null {
   React.useEffect(() => {
-    window.history.replaceState(window.history.state, '', `/${CONTACT_LINK_TARGET}`);
+    const home = pagePath('home', locale);
+    window.history.replaceState(window.history.state, '', `${home}${CONTACT_LINK_TARGET}`);
     window.dispatchEvent(new Event('site:navigate'));
-  }, []);
+  }, [locale]);
   return null;
 }
 
@@ -90,7 +91,12 @@ function usePathname(): string {
 export const App: React.FC = () => {
   const pathname = usePathname();
   const sitePage = React.useMemo(() => parseSitePage(pathname), [pathname]);
-  const route = sitePage.kind === 'translated' ? `/${sitePage.page}` : pathname;
+  const route =
+    sitePage.kind === 'translated'
+      ? sitePage.page === 'home'
+        ? '/'
+        : `/${sitePage.page}`
+      : pathname;
 
   React.useEffect(() => {
     updateDocumentMetadata(sitePage, import.meta.env.VITE_SITE_ORIGIN || 'https://seams.sh/');
@@ -111,7 +117,9 @@ export const App: React.FC = () => {
       case '/company':
         return <CompanyPage />;
       case '/contact':
-        return <ContactRedirect />;
+        return <ContactRedirect locale="en" />;
+      case '/ja/contact':
+        return <ContactRedirect locale="ja" />;
       default:
         return <NotFoundPage />;
     }

@@ -50,8 +50,15 @@ export function resolveHref(target: string, locale: Locale): string {
   const docsHref = maybeDocsHref(target, locale);
   if (docsHref) return docsHref;
 
+  // a fragment such as #suite stays on the current page
+  if (target.startsWith('#')) return toSiteAbsolutePath(target);
+
   const url = new URL(target, window.location.origin);
   switch (normalizePathname(url.pathname)) {
+    case '/':
+      return `${pagePath('home', locale)}${url.search}${url.hash}`;
+    case '/ecommerce':
+      return `${pagePath('ecommerce', locale)}${url.search}${url.hash}`;
     case '/company':
       return `${pagePath('company', locale)}${url.search}${url.hash}`;
     case '/wallet':

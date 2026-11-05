@@ -4,7 +4,10 @@
    tail breaks up as real brush ink does. No two page loads draw the same marks.
    A stroke draws in slices, so a frame only pays for the new marks. */
 
-export type InkColor = 'ink' | 'accent' | 'gold' | 'paper' | 'clear';
+/* the pastels paint only the hover copy of an ink tile */
+export type InkPastel = 'peach' | 'blush' | 'butter' | 'sage' | 'sky' | 'lavender';
+
+export type InkColor = 'ink' | 'accent' | 'gold' | 'paper' | 'clear' | InkPastel;
 
 /* scene x, scene y, brush width at that point */
 export type InkPoint = readonly [number, number, number];
@@ -32,6 +35,12 @@ const COLORS: Record<InkColor, string> = {
   gold: '#d98f24',
   paper: '#f9f7f2',
   clear: '#000000',
+  peach: '#f2bf9f',
+  blush: '#eeb1ab',
+  butter: '#e9c473',
+  sage: '#b3cfbc',
+  sky: '#abcbdc',
+  lavender: '#c9bce0',
 };
 
 const TABLE_SIZE = 1024;

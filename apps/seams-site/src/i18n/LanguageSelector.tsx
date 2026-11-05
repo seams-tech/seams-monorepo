@@ -1,26 +1,26 @@
 import React from 'react';
 import { LanguageSelector as SiteLanguageSelector } from '@seams-internal/site-navbar';
-import { useLocale, useTranslation } from './browser';
-import { languageUrl, type Locale, type TranslatedPage } from './locale';
-
-function changeLanguage(page: TranslatedPage, locale: Locale): void {
-  window.location.assign(languageUrl(new URL(window.location.href), page, locale));
-}
+import { useSitePage, useTranslation } from './browser';
+import { languageUrl, type Locale } from './locale';
 
 export function LanguageSelector({
-  page,
   placement,
 }: {
-  page: TranslatedPage;
   placement: 'navbar' | 'footer';
 }): React.JSX.Element {
-  const locale = useLocale();
+  const page = useSitePage();
   const t = useTranslation();
+  const changeLanguage = React.useCallback(
+    (locale: Locale) => {
+      window.location.assign(languageUrl(new URL(window.location.href), page, locale));
+    },
+    [page],
+  );
   return (
     <SiteLanguageSelector
-      locale={locale}
+      locale={page.locale}
       label={t('language')}
-      onChange={changeLanguage.bind(null, page)}
+      onChange={changeLanguage}
       placement={placement}
     />
   );

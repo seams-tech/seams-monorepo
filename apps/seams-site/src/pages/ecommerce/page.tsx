@@ -3,7 +3,8 @@ import { Activity, Croissant, Inbox, Slack, Store } from 'lucide-react';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import { ovenArmScene, rackRunnerScene } from '@/components/h2/ink/bakeryRobotScenes';
 import { InkDrawing } from '@/components/h2/ink/InkScene';
-import { cobotScene, pillowGoatScene, windScene } from '@/components/h2/ink/scenes';
+import { goatWalkScene } from '@/components/h2/ink/ledRobotScene';
+import { cobotScene, windScene } from '@/components/h2/ink/scenes';
 import {
   H2SceneHero,
   IntegrationsWindow,
@@ -19,6 +20,8 @@ import {
   H2Production,
 } from '@/components/h2/sections';
 import { startSiteAnchorScroll } from '@/app/router/siteRouting';
+import { useSiteCopy } from '@/i18n/browser';
+import type { SiteCopy } from '@/i18n/siteCopy';
 import '@/styles/h2.css';
 import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
 
@@ -28,71 +31,57 @@ import { CONTACT_LINK_TARGET } from '@/components/contact/contactLink';
    drawing. Each band has an anchor
    (#suite, #workflows, #kitchen, #control) that the navbar and footer use. */
 
-const heroScenes: readonly HeroScene[] = [
-  {
-    id: 'portal',
-    label: 'Portal',
-    icon: Store,
-    view: (
-      <PortalShot
-        shot="agents"
-        alt="The Agents page of the Satyr Portal: the café's merchant agent has a suggested change for review"
-        className="h2-shot--card"
-        eager
-      />
-    ),
-  },
-  {
-    id: 'activity',
-    label: 'Activity',
-    icon: Activity,
-    view: (
-      <PortalShot
-        shot="activity"
-        alt="The Activity timeline of the Satyr Portal: three Cases wait for a person, and a card shows the steps of a refund request"
-        className="h2-shot--card"
-      />
-    ),
-  },
-  {
-    id: 'inbox',
-    label: 'Inbox',
-    icon: Inbox,
-    view: (
-      <PortalShot
-        shot="inbox-draft"
-        alt="A reply that an agent drafted for a customer, with Approve and send, Edit and Reject"
-        className="h2-shot--card h2-shot--tall"
-      />
-    ),
-  },
-  { id: 'slack', label: 'Slack', icon: Slack, view: <IntegrationsWindow /> },
-  {
-    id: 'kitchen',
-    label: 'Kitchen',
-    icon: Croissant,
-    view: (
-      <PortalShot
-        shot="bakery-details"
-        alt="Satyr Kitchen: a 3D view of the bakery with the details of one batch of financiers"
-        className="h2-shot--card"
-      />
-    ),
-  },
-];
+function getHeroScenes(copy: SiteCopy): readonly HeroScene[] {
+  const views = copy.ecommerceHero.views;
+  return [
+    {
+      id: 'portal',
+      label: views.portal.label,
+      icon: Store,
+      view: <PortalShot shot="agents" alt={views.portal.alt} className="h2-shot--card" eager />,
+    },
+    {
+      id: 'activity',
+      label: views.activity.label,
+      icon: Activity,
+      view: <PortalShot shot="activity" alt={views.activity.alt} className="h2-shot--card" />,
+    },
+    {
+      id: 'inbox',
+      label: views.inbox.label,
+      icon: Inbox,
+      view: (
+        <PortalShot
+          shot="inbox-draft"
+          alt={views.inbox.alt}
+          className="h2-shot--card h2-shot--tall"
+        />
+      ),
+    },
+    { id: 'slack', label: views.slack.label, icon: Slack, view: <IntegrationsWindow /> },
+    {
+      id: 'kitchen',
+      label: views.kitchen.label,
+      icon: Croissant,
+      view: <PortalShot shot="bakery-details" alt={views.kitchen.alt} className="h2-shot--card" />,
+    },
+  ];
+}
 
 export function EcommercePage(): React.JSX.Element {
   React.useEffect(startSiteAnchorScroll, []);
+  const copy = useSiteCopy();
+  const heroScenes = React.useMemo(() => getHeroScenes(copy), [copy]);
   return (
     <div className="h2-page">
       <NavbarCompact />
       <div className="h2-col">
         <H2SceneHero
           titleId="h2-eco-hero-title"
-          title="Agents that run your café’s shop, inside your rules"
-          sub="Satyr connects the online shop, menus, payments, the inbox and the kitchen plan. Agents work with your team in Slack and in the Portal. Each change that matters waits for your approval, and every action leaves a receipt."
-          primary={{ label: 'Talk to us', to: CONTACT_LINK_TARGET }}
-          secondary={{ label: 'See the suite', to: '#suite' }}
+          title={copy.ecommerceHero.title}
+          sub={copy.ecommerceHero.sub}
+          primary={{ label: copy.common.talkToUs, to: CONTACT_LINK_TARGET }}
+          secondary={{ label: copy.ecommerceHero.secondary, to: '#suite' }}
           field="mauve-ember"
           scenes={heroScenes}
         />
@@ -106,7 +95,7 @@ export function EcommercePage(): React.JSX.Element {
         <H2Cta
           audience="ecommerce"
           drawing={
-            <InkDrawing scene={pillowGoatScene} className="h2-ink--banner h2-ink--beside-actions" />
+            <InkDrawing scene={goatWalkScene} className="h2-ink--banner h2-ink--beside-actions" />
           }
         />
         <H2Footer faq="ecommerce" />

@@ -2,10 +2,26 @@ import type { Locale } from './locale';
 
 export const messages = {
   companyName: { en: 'Company', ja: '会社名' },
+  homePageTitle: {
+    en: 'Satyr by Seams | Ecommerce suite for cafés and pâtisseries',
+    ja: 'Satyr by Seams | カフェとパティスリーのためのECスイート',
+  },
+  homeDescription: {
+    en: 'Satyr agents run the online shop, the inbox and the bake plan for cafés and pâtisseries. Changes that matter wait for your approval.',
+    ja: 'Satyrのエージェントが、カフェとパティスリーのオンラインショップ、受信箱、生産計画を運営します。重要な変更はあなたの承認を待ちます。',
+  },
+  ecommercePageTitle: {
+    en: 'Satyr | Agents that run your café’s shop',
+    ja: 'Satyr | カフェのショップを運営するエージェント',
+  },
+  ecommerceDescription: {
+    en: 'Satyr connects the online shop, menus, payments, the inbox and the kitchen plan. Agents work in Slack and in the Portal, and every action leaves a receipt.',
+    ja: 'Satyrは、オンラインショップ、メニュー、決済、受信箱、キッチンの計画をつなぎます。エージェントはSlackとポータルで働き、すべての操作に記録が残ります。',
+  },
   companyPageTitle: { en: 'Company | Seams', ja: '企業情報 | Seams' },
   companyTitle: {
     en: 'We build agents that run cafés and pâtisseries.',
-    ja: 'カフェとパティスリーを運営するエージェントをつくる。',
+    ja: 'カフェと\u200bパティスリーを\u200b運営する\u200bエージェントを\u200bつくる。',
   },
   companyDescription: {
     en: 'Seams makes Satyr, an ecommerce suite in which agents run the online shop, the inbox and the bake plan. The owner approves each change that matters, and every action leaves a receipt.',
@@ -72,9 +88,12 @@ export const messages = {
   readDocs: { en: 'Read the docs', ja: 'ドキュメントを読む' },
   productsTitle: {
     en: 'What we build',
-    ja: '私たちがつくるもの',
+    ja: '私たちが\u200bつくるもの',
   },
-  principlesTitle: { en: 'Three rules behind every feature', ja: 'すべての機能を支える3つの原則' },
+  principlesTitle: {
+    en: 'Three rules behind every feature',
+    ja: 'すべての機能を\u200b支える\u200b3つの原則',
+  },
   teamReply: {
     en: 'Tell us about your shop. We reply by email.',
     ja: 'お店についてお聞かせください。メールでお返事します。',
@@ -165,7 +184,7 @@ export const messages = {
   close: { en: 'Close', ja: '閉じる' },
   contactTitle: {
     en: 'Tell us about your business',
-    ja: 'ビジネスについてお聞かせください',
+    ja: 'ビジネスについて\u200bお聞かせください',
   },
   contactCopy: {
     en: 'The form opens your email app with the message ready to send. You can also write to',

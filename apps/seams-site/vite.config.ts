@@ -2,11 +2,8 @@ import { fileURLToPath } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { parseSitePage, pagePath, type TranslatedPage, type Locale } from './src/i18n/locale';
+import { parseSitePage, pagePath, translatedPages, locales } from './src/i18n/locale';
 import { languageHtml, escapeHtml } from './src/i18n/metadata';
-
-const translatedPages: readonly TranslatedPage[] = ['company'];
-const locales: readonly Locale[] = ['en', 'ja'];
 
 function normalizePageRoute(
   request: IncomingMessage,
@@ -42,18 +39,18 @@ function siteLanguagePages(origin: string): Plugin {
       if (!entry || entry.type !== 'asset' || typeof entry.source !== 'string') {
         throw new Error('Company site build requires index.html');
       }
-      const urls = [`<url><loc>${escapeHtml(new URL('/', origin).href)}</loc></url>`];
+      const template = entry.source;
+      const urls: string[] = [];
       for (const page of translatedPages) {
         const english = escapeHtml(new URL(pagePath(page, 'en'), origin).href);
         const japanese = escapeHtml(new URL(pagePath(page, 'ja'), origin).href);
         const alternates = `<xhtml:link rel="alternate" hreflang="en" href="${english}"/><xhtml:link rel="alternate" hreflang="ja" href="${japanese}"/><xhtml:link rel="alternate" hreflang="x-default" href="${english}"/>`;
         for (const locale of locales) {
           const path = pagePath(page, locale);
-          this.emitFile({
-            type: 'asset',
-            fileName: `${path.slice(1)}index.html`,
-            source: languageHtml(entry.source, page, locale, origin),
-          });
+          const source = languageHtml(template, page, locale, origin);
+          // the English home page is the root entry itself
+          if (path === '/') entry.source = source;
+          else this.emitFile({ type: 'asset', fileName: `${path.slice(1)}index.html`, source });
           urls.push(`<url><loc>${locale === 'ja' ? japanese : english}</loc>${alternates}</url>`);
         }
       }

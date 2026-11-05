@@ -1,0 +1,50 @@
+/* The "From the shop to the oven" tiles: real Portal cards stacked on a
+   dot-cloud tile. The stage keeps its design size and scales to the panel, so
+   the cards keep their places at every width. */
+
+.h2-duotile {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 470 / 360;
+}
+
+.h2-duotile__stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 470px;
+  height: 360px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #ece9e4;
+  transform-origin: 0 0;
+}
+
+/* dithered dot clouds, as on the Portal's Paper texture */
+.h2-duotile__stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(176, 152, 118, 0.9) 1px, transparent 1.4px) 0 0 / 7px 7px;
+  -webkit-mask:
+    radial-gradient(38% 46% at 74% 30%, #000 0 40%, transparent 72%),
+    radial-gradient(30% 34% at 18% 82%, #000 0 30%, transparent 70%);
+  mask:
+    radial-gradient(38% 46% at 74% 30%, #000 0 40%, transparent 72%),
+    radial-gradient(30% 34% at 18% 82%, #000 0 30%, transparent 70%);
+  opacity: 0.9;
+}
+
+.h2-duotile__card {
+  position: absolute;
+  display: block;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px -18px rgba(28, 22, 14, 0.42);
+}
+
+.h2-duotile__card--fade {
+  border-radius: 12px 12px 0 0;
+  -webkit-mask-image: linear-gradient(#000 78%, transparent);
+  mask-image: linear-gradient(#000 78%, transparent);
+}

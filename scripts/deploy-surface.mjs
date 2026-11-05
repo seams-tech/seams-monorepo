@@ -270,6 +270,9 @@ function buildFrontend(site, component, walletLanes) {
     });
     writeCompanyCutoverFiles(site);
     assertFile(path.join(COMPANY_OUTPUT, 'index.html'), 'Company site entry');
+    assertFile(path.join(COMPANY_OUTPUT, 'ja', 'index.html'), 'Japanese home entry');
+    assertFile(path.join(COMPANY_OUTPUT, 'ecommerce', 'index.html'), 'Satyr page entry');
+    assertFile(path.join(COMPANY_OUTPUT, 'ja', 'ecommerce', 'index.html'), 'Japanese Satyr entry');
     assertFile(path.join(COMPANY_OUTPUT, 'ja', 'company', 'index.html'), 'Japanese company entry');
     assertFile(path.join(COMPANY_OUTPUT, 'sitemap.xml'), 'Company site sitemap');
     return;
@@ -595,7 +598,15 @@ async function smokeFrontend(site, component, walletLanes) {
 
 function buildSmokeChecks(site, component, walletLanes) {
   if (component === 'company')
-    return smokeChecks('company', site.origin, ['/', '/company/', '/ja/company/', '/sitemap.xml']);
+    return smokeChecks('company', site.origin, [
+      '/',
+      '/ja/',
+      '/ecommerce/',
+      '/ja/ecommerce/',
+      '/company/',
+      '/ja/company/',
+      '/sitemap.xml',
+    ]);
   if (component === 'wallet-site') {
     return [
       ...smokeChecks('wallet-site', site.walletSiteOrigin, [

@@ -65,7 +65,7 @@
   background: #faf8f3;
 }
 
-.company-banner--ink > :not(.h2-ink) {
+.company-banner--ink > :not(.h2-ink, .h2-swatch) {
   position: relative;
   z-index: 1;
 }

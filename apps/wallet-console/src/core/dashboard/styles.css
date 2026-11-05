@@ -1351,7 +1351,11 @@ textarea {
   padding: 0 8px 16px;
   /* The fill carries the separation; the hairline just sharpens the edge. */
   border-right: 1px solid var(--dashboard-border);
+  /* The rail still scrolls on short viewports, but shows no scroll bar:
+     a bar in a 64px collapsed rail eats the icon column. */
+  overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: none;
   /* flex column so the context card can dock at the bottom via margin-top */
   display: flex;
   flex-direction: column;
@@ -1360,6 +1364,10 @@ textarea {
   transition:
     padding var(--dashboard-motion-sidebar) var(--dashboard-ease-layout),
     gap var(--dashboard-motion-item) var(--dashboard-ease-layout);
+}
+
+.dashboard-sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Pinned head: the wordmark + product/workspace switchers stay fixed at the

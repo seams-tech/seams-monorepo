@@ -48,6 +48,10 @@
   animation-name: h2-ink-flap;
 }
 
+.h2-ink__move--fold {
+  animation-name: h2-ink-fold;
+}
+
 .h2-ink__move--breathe {
   animation-name: h2-ink-breathe;
 }
@@ -97,6 +101,15 @@
   }
   to {
     transform: scaleY(var(--ink-a));
+  }
+}
+
+@keyframes h2-ink-fold {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(var(--ink-a));
   }
 }
 
@@ -152,8 +165,8 @@
   background-color: #faf8f3;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .28 0 0 0 0 .22 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23p)'/%3E%3C/svg%3E");
   /* room over the copy for the kite, and under it for the ground */
-  padding-top: 128px;
-  padding-bottom: 84px;
+  padding-top: 136px;
+  padding-bottom: 80px;
 }
 
 .h2-hero-simple--ink .h2-hero-simple__copy {
@@ -182,14 +195,14 @@
 
 /* with no card, the panel keeps the height of the whole drawing */
 .h2-hero-simple--ink > .h2-shell {
-  min-height: 600px;
+  min-height: 520px;
 }
 
 .h2-ink--hero {
   position: absolute;
-  right: 0;
+  right: 1rem;
   bottom: 0;
-  width: 760px;
+  width: 669px;
 }
 
 @media (max-width: 1000px) {
@@ -229,7 +242,38 @@
   background-color: #faf8f3;
 }
 
-.h2-banner--ink > :not(.h2-ink) {
+/* Cream paper holds the drawing and paint. */
+.h2-banner--ink:has(> .h2-swatch) {
+  background-color: #faf8f3;
+}
+
+.h2-swatch {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.h2-swatch__paint {
+  position: absolute;
+  top: 6px;
+  right: -12px;
+  bottom: 6px;
+  width: min(620px, 58%);
+  mask-mode: alpha;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: 100% 100%;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  transform-origin: center;
+}
+
+.h2-swatch__paint--back {
+  opacity: 0.82;
+}
+
+.h2-banner--ink > :not(.h2-ink, .h2-swatch) {
   position: relative;
   z-index: 1;
 }
@@ -252,18 +296,28 @@
   max-width: 400px;
 }
 
-.h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--beside-actions {
-  right: 176px;
-  width: 460px;
+/* the one button sits at the right edge, so the drawing stands to the left of it */
+.h2-banner--ink .h2-ink--beside-actions {
+  right: 300px;
+}
+
+@media (min-width: 761px) {
+  .h2-banner--ink:has(#h2-cta-title) .h2-swatch {
+    transform: translateY(12px);
+  }
 }
 
 @media (max-width: 1040px) {
+  .h2-swatch__paint {
+    width: min(480px, 58%);
+  }
+
   .h2-ink--banner {
     width: 480px;
   }
 
-  .h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--beside-actions {
-    display: none;
+  .h2-banner--ink .h2-ink--beside-actions {
+    right: 270px;
   }
 
   .h2-banner--ink .h2-banner__title,
@@ -279,8 +333,16 @@
 }
 
 @media (min-width: 761px) and (max-width: 900px) {
+  .h2-swatch__paint {
+    width: 360px;
+  }
+
   .h2-ink--banner {
     width: 360px;
+  }
+
+  .h2-banner--ink .h2-ink--beside-actions {
+    right: 225px;
   }
 
   .h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--banner {
@@ -290,6 +352,15 @@
 
 /* the actions drop under the copy, so the drawing takes its own row under them */
 @media (max-width: 760px) {
+  .h2-swatch__paint {
+    top: auto;
+    right: -12px;
+    bottom: 0;
+    left: -24px;
+    width: auto;
+    height: min(38vw, 150px);
+  }
+
   .h2-banner--ink {
     padding-bottom: 0;
   }
@@ -301,7 +372,7 @@
 
   .h2-banner--ink .h2-ink--banner,
   .h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--banner,
-  .h2-banner--ink:has(.h2-banner__actions > :nth-child(2)) .h2-ink--beside-actions {
+  .h2-banner--ink .h2-ink--beside-actions {
     display: block;
     position: relative;
     right: auto;
@@ -314,8 +385,8 @@
   }
 }
 
-/* a tile painted in ink over a gold copy of itself; the gold shows while the
-   link, tab or card that holds the tile is under the pointer or has focus */
+/* a tile painted in ink over a pastel copy of itself; the pastel shows while
+   the link, tab or card that holds the tile is under the pointer or has focus */
 .h2-inktile {
   display: inline-grid;
   flex: none;
@@ -337,13 +408,13 @@
 }
 
 /* the two copies cross over: the brush paints each one a little differently,
-   so the gold must not show at the edges of the ink */
+   so the pastel must not show at the edges of the ink */
 .h2-inktile__ink,
-.h2-inktile__gold {
+.h2-inktile__hover {
   transition: opacity 220ms ease;
 }
 
-.h2-inktile__gold {
+.h2-inktile__hover {
   opacity: 0;
 }
 
@@ -351,7 +422,7 @@
   opacity: 0;
 }
 
-:is(a, button):focus-visible .h2-inktile__gold {
+:is(a, button):focus-visible .h2-inktile__hover {
   opacity: 1;
 }
 
@@ -360,14 +431,14 @@
     opacity: 0;
   }
 
-  :is(a, button, .h2-bento__card):hover .h2-inktile__gold {
+  :is(a, button, .h2-bento__card):hover .h2-inktile__hover {
     opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .h2-inktile__ink,
-  .h2-inktile__gold {
+  .h2-inktile__hover {
     transition: none;
   }
 }

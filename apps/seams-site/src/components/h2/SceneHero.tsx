@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronLeft, ChevronRight, Hash } from 'lucide-react';
 import { GrainField, type GrainFieldName } from '@seams-internal/grain-field';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
+import { useSiteCopy } from '@/i18n/browser';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import '@/styles/h2.css';
 
@@ -66,12 +67,9 @@ export function PortalShot({
 /* Satyr in the café's Slack: an approval card in the thread, then the
    on-demand brief. */
 export function IntegrationsWindow(): React.JSX.Element {
+  const text = useSiteCopy().slackWindow;
   return (
-    <div
-      className="h2-window"
-      role="img"
-      aria-label="Satyr asks for a menu approval in a Slack channel"
-    >
+    <div className="h2-window" role="img" aria-label={text.label}>
       <div className="h2-window__side h2-window__side--slack">
         <div className="h2-window__brand">Kanda Bakery</div>
         <div className="h2-window__navitem">
@@ -92,19 +90,16 @@ export function IntegrationsWindow(): React.JSX.Element {
         <div className="h2-chat">
           <div className="h2-chat__bubble">
             <small>Satyr · APP · 09:14</small>
-            Approval needed: the shop agent wants to publish the autumn menu, with 14 items and 3
-            new prices.
+            {text.request}
           </div>
           <div className="h2-chat__bubble">
             <small>Satyr · APP · 09:14</small>
-            An owner or admin can approve it on this card. Nothing goes live before that.
+            {text.rule}
           </div>
-          <div className="h2-chat__bubble h2-chat__bubble--reply">
-            Approved ✓ the menu is live on the storefront
-          </div>
+          <div className="h2-chat__bubble h2-chat__bubble--reply">{text.approved}</div>
           <div className="h2-chat__bubble">
             <small>Satyr · APP · 09:31</small>
-            Morning brief: 1 failed payment and 2 late orders. Each item links to its order.
+            {text.brief}
           </div>
         </div>
       </div>
@@ -155,6 +150,7 @@ export function H2SceneHero({
   scenes,
 }: H2SceneHeroProps): React.JSX.Element {
   const { linkProps } = useSiteRouter();
+  const copy = useSiteCopy();
   const primaryProps = linkProps(primary.to);
   const secondaryProps = linkProps(secondary.to);
   const [page, setPage] = React.useState(0);
@@ -186,7 +182,7 @@ export function H2SceneHero({
               <ArrowRightAnim size={12} />
             </a>
           </div>
-          <div className="h2-hero__forks" aria-label="Products">
+          <div className="h2-hero__forks" aria-label={copy.common.products}>
             {productForks.map((fork) => {
               const forkProps = linkProps(fork.to);
               return (
@@ -212,7 +208,11 @@ export function H2SceneHero({
             {scene.view}
           </div>
           <div className="h2-themeswitch">
-            <div className="h2-themeswitch__track" role="group" aria-label="Product views">
+            <div
+              className="h2-themeswitch__track"
+              role="group"
+              aria-label={copy.common.productViews}
+            >
               {scenes.map((s, i) => (
                 <button
                   key={s.id}
@@ -230,11 +230,11 @@ export function H2SceneHero({
         </div>
 
         {/* the pager sits on the junction of the divider and the bottom rule */}
-        <div className="h2-pager" role="group" aria-label="Product scenes">
+        <div className="h2-pager" role="group" aria-label={copy.ecommerceHero.scenes}>
           <button
             type="button"
             className="h2-pager__btn"
-            aria-label="Previous product scene"
+            aria-label={copy.ecommerceHero.previous}
             disabled={page === 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
           >
@@ -252,7 +252,7 @@ export function H2SceneHero({
           <button
             type="button"
             className="h2-pager__btn"
-            aria-label="Next product scene"
+            aria-label={copy.ecommerceHero.next}
             disabled={page >= scenes.length - 1}
             onClick={() => setPage((p) => Math.min(scenes.length - 1, p + 1))}
           >

@@ -8,6 +8,8 @@ html:lang(ja) .h2-page {
 html:lang(ja) .h2-display {
   letter-spacing: -0.025em;
   line-height: 1.4;
+  /* break only at the zero-width spaces between phrases (see siteCopy.ts) */
+  word-break: keep-all;
 }
 
 html:lang(ja) :is(.h2-hero-simple__sub, .company-card__copy, .company-principles p) {

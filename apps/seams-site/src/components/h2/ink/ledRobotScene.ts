@@ -2,6 +2,7 @@ import type { InkPoint, InkStroke } from './brush';
 import {
   ARM_LINE,
   blob,
+  loaf,
   roundBlob,
   SOLID_LINE,
   whiskGoatScene,
@@ -392,12 +393,26 @@ const WALK_SHIFT = 260;
 const WALK_MOUTH: Pt = [WHISK_MOUTH[0] + WALK_SHIFT, WHISK_MOUTH[1]];
 const ROPE_HAND: Pt = fromRef(REF_HAND);
 
+/* the hanging hand carries a baguette across its pincer, and it swings with the arm */
+const WALK_ROBOT = robot();
+const HANGING_ARM = WALK_ROBOT.find((part) => part.id === 'hanging-arm');
+const BAGUETTE_AT: Pt = fromRef([1240, 960]);
+
+function baguette(): InkPart {
+  return {
+    id: 'baguette',
+    ...(HANGING_ARM?.motions ? { motions: HANGING_ARM.motions } : {}),
+    strokes: loaf(BAGUETTE_AT[0] - 9, BAGUETTE_AT[1] - 1, 42, 7),
+  };
+}
+
 export const goatWalkScene: InkScene = {
   width: 620,
   height: 196,
   parts: [
     groundLine(350, 606),
-    ...robot(),
+    baguette(),
+    ...WALK_ROBOT,
     ...movedGoat((x) => x + WALK_SHIFT),
     rope(
       'rope',

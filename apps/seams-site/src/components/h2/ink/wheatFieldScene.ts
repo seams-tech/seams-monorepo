@@ -1,4 +1,4 @@
-import type { InkPoint, InkStroke } from './brush';
+import type { InkColor, InkPoint, InkStroke } from './brush';
 import { goatScene, wheat, wireScene, type InkMotion, type InkPart, type InkScene } from './scenes';
 
 /* The integrations drawing: one close field of wheat, with a connected tool over
@@ -24,6 +24,15 @@ export type WheatFieldLayout = {
   readonly stalks: readonly ToolStalk[];
   /* a gold grain drifts along each of these, from one ear to another */
   readonly grains: readonly string[];
+  /* small gold motes that rise from the tops of the stalks */
+  readonly motes: readonly Mote[];
+};
+
+export type Mote = {
+  readonly path: string;
+  readonly radius: number;
+  readonly seconds: number;
+  readonly begin: number;
 };
 
 type ToolPlace = readonly [tool: string, x: number, y: number, lean: number];
@@ -77,9 +86,10 @@ function stalk(
   seed: number,
   size: number,
   at: number,
+  color: InkColor = 'ink',
 ): InkPart[] {
   const bend: Pt = [base[0] + lean * 0.45, (base[1] + tip[1]) / 2];
-  const parts = wheat(id, base, bend, tip, seed, size).map((part) =>
+  const parts = wheat(id, base, bend, tip, seed, size, color).map((part) =>
     part.id.endsWith('-stem')
       ? { ...part, strokes: part.strokes.map((stroke) => ({ ...stroke, dry: 0.08, rough: 0.6 })) }
       : part,
@@ -124,7 +134,15 @@ function layout(
     return { parts, stalk: { tool, x, y, logoSize, base, shown: at + EAR_SECONDS, motions } };
   });
   const bareParts = bare.flatMap(([x, tipY, lean, size], index) =>
-    stalk(`bare-${index}`, [x - lean, ground], [x, tipY], lean, 211 + index * 89, size, waveAt(x)),
+    stalk(
+      `bare-${index}`,
+      [x - lean, ground],
+      [x, tipY],
+      lean,
+      211 + index * 89,
+      size,
+      waveAt(x),
+    ),
   );
   const stalks = toolParts.map((entry) => entry.stalk);
   const grains = grainPairs.flatMap(([a, b]) => {
@@ -135,9 +153,20 @@ function layout(
     const by = to.y + gap + 8;
     return [`M${from.x} ${ay} Q${(from.x + to.x) / 2} ${Math.min(ay, by) - 46} ${to.x} ${by}`];
   });
+  /* motes rise from the ears of the bare stalks, in a stable order */
+  const motes = bare.flatMap(([x, tipY, lean], index): Mote[] => {
+    const drift = (index % 2 === 0 ? 1 : -1) * (14 + (index % 3) * 8);
+    return [0].map((n) => ({
+      path: `M${x} ${tipY - 6} Q${x + drift} ${tipY - 60 - n * 26} ${x + drift * 0.4 + lean} ${tipY - 120 - n * 40}`,
+      radius: 1.6 + ((index + n) % 3) * 0.7,
+      seconds: 4.2 + ((index * 7 + n * 5) % 9) * 0.45,
+      begin: 1.8 + ((index * 3 + n * 4) % 11) * 0.5,
+    }));
+  });
   return {
     stalks,
     grains,
+    motes,
     scene: {
       width,
       height,
@@ -189,6 +218,8 @@ export const wideField: WheatFieldLayout = layout(
     [0, 1],
     [2, 3],
     [4, 5],
+    [1, 2],
+    [3, 4],
   ],
 );
 
@@ -216,5 +247,7 @@ export const narrowField: WheatFieldLayout = layout(
   [
     [0, 1],
     [2, 3],
+    [1, 2],
+    [3, 0],
   ],
 );

@@ -1,6 +1,8 @@
 import React from 'react';
 import { InkTile } from '@/components/h2/sections';
 import type { TileSign } from '@/components/h2/ink/tileSignScenes';
+import { useSiteCopy } from '@/i18n/browser';
+import { fill, type SiteCopy } from '@/i18n/siteCopy';
 import '@/styles/h2-tour.css';
 
 /* Front-page product tour: two tabs (Satyr, Satyr Kitchen), each with three features. A
@@ -28,31 +30,39 @@ type Place = 'left' | 'right' | 'bottom';
 /** A zoomed card of a region of a shot, laid over the main screen. */
 type Overlap = { kind: 'crop'; shot: Shot; crop: Crop; place: Place; width?: number };
 
-type Feature = {
-  id: string;
-  title: string;
-  body: string;
+type TourCopy = SiteCopy['tour'];
+type FeatureId = keyof TourCopy['items'];
+type TabId = keyof TourCopy['tabs'];
+
+/* The shots and marks of one feature; its words come from the site copy. */
+type FeatureLayout = {
+  id: FeatureId;
   main: Shot;
   /** Part of the main shot to show; the whole shot when absent. */
   mainCrop?: Crop;
-  alt: string;
   mark: Mark;
   overlap: Overlap;
 };
-type Tab = { id: string; label: string; sign: TileSign; features: Feature[] };
+type Feature = FeatureLayout & TourCopy['items'][FeatureId];
+type TabLayout = { id: TabId; sign: TileSign; features: FeatureLayout[] };
+type Tab = Omit<TabLayout, 'features'> & { label: string; features: Feature[] };
 
-const TABS: Tab[] = [
+function localizeTabs(copy: TourCopy): Tab[] {
+  return TAB_LAYOUTS.map((tab) => ({
+    ...tab,
+    label: copy.tabs[tab.id],
+    features: tab.features.map((feature) => ({ ...feature, ...copy.items[feature.id] })),
+  }));
+}
+
+const TAB_LAYOUTS: TabLayout[] = [
   {
     id: 'satyr',
-    label: 'Satyr Shop',
     sign: 'shop',
     features: [
       {
         id: 'inbox',
-        title: 'Replies wait for you',
-        body: 'An agent drafts each customer reply and shows its sources. Nothing is sent until you approve it.',
         main: 'tour-inbox',
-        alt: 'The Satyr Inbox with a reply that an agent drafted for a customer',
         mark: { x: 39.5, y: 62.5, w: 58.5, h: 36 },
         overlap: {
           kind: 'crop',
@@ -64,10 +74,7 @@ const TABS: Tab[] = [
       },
       {
         id: 'activity',
-        title: 'Every Case of the day',
-        body: 'See what each agent works on, and which Cases wait for a person.',
         main: 'tour-activity',
-        alt: 'The Activity timeline of the Satyr Portal with three Cases that wait for a person',
         mark: { x: 17.5, y: 41, w: 80.5, h: 13.5 },
         overlap: {
           kind: 'crop',
@@ -78,10 +85,7 @@ const TABS: Tab[] = [
       },
       {
         id: 'orders',
-        title: 'Orders that need you',
-        body: 'Agents check each order against your rules. When one fails, you see why, with an email ready to approve.',
         main: 'tour-orders',
-        alt: 'The Orders page of the Satyr Portal with two orders that need a person',
         mark: { x: 17.2, y: 36, w: 55, h: 10.2 },
         overlap: {
           kind: 'crop',
@@ -95,15 +99,11 @@ const TABS: Tab[] = [
   },
   {
     id: 'kitchen',
-    label: 'Satyr Kitchen',
     sign: 'croissant',
     features: [
       {
         id: 'plan',
-        title: 'Orders become a bake plan',
-        body: 'Satyr turns the day’s orders into batches, steps and times for the kitchen.',
         main: 'tour-kitchen-timeline',
-        alt: 'Satyr Kitchen: the 3D bakery above the production timeline',
         mark: { x: 16.5, y: 76, w: 55.5, h: 23.5 },
         overlap: {
           kind: 'crop',
@@ -114,10 +114,7 @@ const TABS: Tab[] = [
       },
       {
         id: 'batch',
-        title: 'Each batch, step by step',
-        body: 'Open a batch to see its current step, its baker and when it will finish.',
         main: 'tour-kitchen-details',
-        alt: 'Satyr Kitchen: the details of one batch of 48 financiers',
         mark: { x: 75.8, y: 7.5, w: 23.2, h: 65 },
         overlap: {
           kind: 'crop',
@@ -129,10 +126,7 @@ const TABS: Tab[] = [
       },
       {
         id: 'floor',
-        title: 'Rehearse the shift',
-        body: 'Play the morning in the floor plan and the 3D kitchen before the shift starts.',
         main: 'tour-kitchen-plan',
-        alt: 'Satyr Kitchen: the floor plan and the 3D view of the bakery',
         mark: { x: 15.5, y: 19.5, w: 27.5, h: 59 },
         overlap: {
           kind: 'crop',
@@ -146,7 +140,7 @@ const TABS: Tab[] = [
   },
 ];
 
-const ORDER = TABS.flatMap((tab, t) => tab.features.map((_, f) => ({ t, f })));
+const ORDER = TAB_LAYOUTS.flatMap((tab, t) => tab.features.map((_, f) => ({ t, f })));
 const DWELL_MS = 6500;
 /* Within one feature: the gold mark appears, then the screen dims and the card enters. */
 const MARK_AT = 0.12;
@@ -312,8 +306,10 @@ export function ProductTour({
   const [hovered, setHovered] = React.useState(false);
   const [focused, setFocused] = React.useState(false);
   const { step, setStep, progress } = useTour(hovered || focused, reduced, hold, initialStep);
+  const copy = useSiteCopy().tour;
+  const tabs = React.useMemo(() => localizeTabs(copy), [copy]);
   const { t, f } = ORDER[step];
-  const tab = TABS[t];
+  const tab = tabs[t];
   const feature = tab.features[f];
   const jump = (tabIndex: number, featureIndex: number) =>
     setStep(ORDER.findIndex((o) => o.t === tabIndex && o.f === featureIndex));
@@ -321,7 +317,7 @@ export function ProductTour({
   return (
     <section
       className={still ? 'h2-tour h2-tour--still' : 'h2-tour'}
-      aria-label="Product tour"
+      aria-label={copy.label}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
       onFocus={() => setFocused(true)}
@@ -329,8 +325,8 @@ export function ProductTour({
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false);
       }}
     >
-      <div className="h2-tour-tabs" role="tablist" aria-label="Products">
-        {TABS.map((item, i) => {
+      <div className="h2-tour-tabs" role="tablist" aria-label={copy.tabsLabel}>
+        {tabs.map((item, i) => {
           const active = i === t;
           const fill = active ? (f + progress) / item.features.length : 0;
           return (
@@ -355,7 +351,7 @@ export function ProductTour({
           className="h2-tour-stage-link"
           href={links[tab.id]!.href}
           onClick={links[tab.id]!.onClick}
-          aria-label={`Explore ${tab.label}`}
+          aria-label={fill(copy.explore, { name: tab.label })}
         >
           <Stage feature={feature} progress={progress} />
         </a>
@@ -365,7 +361,7 @@ export function ProductTour({
 
       <div className="h2-tour-pager-line">
         {/* Pager sits on the line between the stage and the features. */}
-        <div className="h2-pager" role="group" aria-label="Product views">
+        <div className="h2-pager" role="group" aria-label={copy.views}>
           <span className="h2-pager__dots">
             {tab.features.map((item, i) => (
               <span
@@ -378,7 +374,11 @@ export function ProductTour({
         </div>
       </div>
 
-      <div className="h2-tour-features" role="tablist" aria-label={`${tab.label} features`}>
+      <div
+        className="h2-tour-features"
+        role="tablist"
+        aria-label={fill(copy.features, { name: tab.label })}
+      >
         {tab.features.map((item, i) => {
           const active = i === f;
           return (

@@ -1,5 +1,6 @@
-import { useSitePage, useTranslation } from '@/i18n/browser';
+import { useSiteCopy, useTranslation } from '@/i18n/browser';
 import type { Translate } from '@/i18n/catalog';
+import type { SiteCopy } from '@/i18n/siteCopy';
 import { LanguageSelector } from '@/i18n/LanguageSelector';
 import React from 'react';
 import {
@@ -414,6 +415,7 @@ export function H2Ecosystem({
   tools?: React.ReactNode;
 } = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
+  const copy = useSiteCopy();
   const satyrProps = linkProps('/ecommerce');
 
   return (
@@ -429,11 +431,11 @@ export function H2Ecosystem({
         anchor="integrations"
         field="teal-peach"
         drawing={drawing}
-        title="Connects to the tools a café already uses"
-        sub="Slack, Gmail, Shopify, Square, Stripe and your files. Each connection has its own access, and you can disconnect it at any time."
+        title={copy.ecosystem.title}
+        sub={copy.ecosystem.sub}
       >
         <a className="h2-btn h2-btn--primary" href={satyrProps.href} onClick={satyrProps.onClick}>
-          Explore Satyr
+          {copy.common.exploreSatyr}
           <ArrowRightAnim size={12} />
         </a>
       </BannerSection>
@@ -534,98 +536,76 @@ type Pillar = {
 
 /* The suite's areas, one tab each, with the Portal's own screen for each
    area. */
-const pillars: Pillar[] = [
-  {
-    id: 'shop',
-    label: 'Shop and menus',
-    sign: 'shop',
-    copy: (
-      <>
-        <strong>Menus, products and the storefront.</strong> Agents draft menus and product
-        descriptions with you, and publish a menu when you approve it.
-      </>
-    ),
-    mock: (
-      <PortalShot
-        shot="checkout"
-        alt="The Checkout page of the Satyr Portal: how customers buy from the café’s storefront"
-        className="h2-shot--card"
-      />
-    ),
-  },
-  {
-    id: 'orders',
-    label: 'Orders and payments',
-    sign: 'bag',
-    copy: (
-      <>
-        <strong>Orders, payments, refunds and gift cards.</strong> Card payments go to your own
-        Stripe or Square account. Ask in Slack for a brief on failed payments and late orders.
-      </>
-    ),
-    mock: (
-      <PortalShot
-        shot="orders"
-        alt="The Orders page of the Satyr Portal: two orders that a shop rule holds, each with one action, above the orders that are on track"
-        className="h2-shot--card"
-      />
-    ),
-  },
-  {
-    id: 'inbox',
-    label: 'Inbox',
-    sign: 'inbox',
-    copy: (
-      <>
-        <strong>Customer and supplier mail, answered.</strong> The inbox agent drafts each reply
-        with the sources it used, and links each sender to the right customer or supplier.
-      </>
-    ),
-    mock: (
-      <PortalShot
-        shot="inbox"
-        alt="The Satyr Inbox: a reply that an agent drafted waits for approval"
-        className="h2-shot--card"
-      />
-    ),
-  },
-  {
-    id: 'production',
-    label: 'Production',
-    sign: 'croissant',
-    copy: (
-      <>
-        <strong>Satyr Kitchen turns orders into a bake plan.</strong> One production run shows as a
-        workflow, a timeline of ovens and staff, and a 3D view of the bakery.
-      </>
-    ),
-    mock: (
-      <PortalShot
-        shot="bakery-timeline"
-        alt="Satyr Kitchen: a 3D view of the bakery above the timeline of three batches"
-        className="h2-shot--card h2-shot--bottom"
-      />
-    ),
-  },
-  {
-    id: 'vault',
-    label: 'Vault',
-    sign: 'key',
-    copy: (
-      <>
-        <strong>Logins and keys that agents use but never see.</strong> Keep them in the Satyr Vault
-        or in your own 1Password.
-      </>
-    ),
-    mock: (
-      <PortalShot
-        shot="vault"
-        alt="The Vault page of the Satyr Portal: logins and API keys that agents use"
-        className="h2-shot--card"
-      />
-    ),
-  },
-];
+function getPillars(text: SiteCopy['pillars']['items']): Pillar[] {
+  return [
+    {
+      id: 'shop',
+      label: text.shop.label,
+      sign: 'shop',
+      copy: (
+        <>
+          <strong>{text.shop.lead}</strong>
+          {text.shop.rest}
+        </>
+      ),
+      mock: <PortalShot shot="checkout" alt={text.shop.alt} className="h2-shot--card" />,
+    },
+    {
+      id: 'orders',
+      label: text.orders.label,
+      sign: 'bag',
+      copy: (
+        <>
+          <strong>{text.orders.lead}</strong>
+          {text.orders.rest}
+        </>
+      ),
+      mock: <PortalShot shot="orders" alt={text.orders.alt} className="h2-shot--card" />,
+    },
+    {
+      id: 'inbox',
+      label: text.inbox.label,
+      sign: 'inbox',
+      copy: (
+        <>
+          <strong>{text.inbox.lead}</strong>
+          {text.inbox.rest}
+        </>
+      ),
+      mock: <PortalShot shot="inbox" alt={text.inbox.alt} className="h2-shot--card" />,
+    },
+    {
+      id: 'production',
+      label: text.production.label,
+      sign: 'croissant',
+      copy: (
+        <>
+          <strong>{text.production.lead}</strong>
+          {text.production.rest}
+        </>
+      ),
+      mock: (
+        <PortalShot
+          shot="bakery-timeline"
+          alt={text.production.alt}
+          className="h2-shot--card h2-shot--bottom"
+        />
+      ),
+    },
+    {
+      id: 'vault',
+      label: text.vault.label,
+      sign: 'key',
+      copy: (
+        <>
+          <strong>{text.vault.lead}</strong>
+          {text.vault.rest}
+        </>
+      ),
+      mock: <PortalShot shot="vault" alt={text.vault.alt} className="h2-shot--card" />,
+    },
+  ];
+}
 
 export function H2Pillars({
   link = true,
@@ -633,6 +613,8 @@ export function H2Pillars({
 }: { link?: boolean; drawing?: React.ReactNode } = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const satyrProps = linkProps('/ecommerce');
+  const copy = useSiteCopy();
+  const pillars = React.useMemo(() => getPillars(copy.pillars.items), [copy]);
   const [active, setActive] = React.useState(0);
   const pillar = pillars[active];
 
@@ -649,12 +631,12 @@ export function H2Pillars({
         anchor="suite"
         field="azure-coral"
         drawing={drawing}
-        title="One suite for the whole business"
-        sub="The online shop, the inbox and the kitchen work from the same orders."
+        title={copy.pillars.title}
+        sub={copy.pillars.sub}
       >
         {link ? (
           <a className="h2-btn h2-btn--primary" href={satyrProps.href} onClick={satyrProps.onClick}>
-            Explore Satyr
+            {copy.common.exploreSatyr}
             <ArrowRightAnim size={12} />
           </a>
         ) : null}
@@ -662,7 +644,7 @@ export function H2Pillars({
       <section className="h2-section h2-section--band h2-rule" aria-labelledby="h2-pillars-title">
         <div className="h2-shell">
           <div className="h2-pillars">
-            <div className="h2-pillars__list" role="tablist" aria-label="Suite areas">
+            <div className="h2-pillars__list" role="tablist" aria-label={copy.pillars.tablist}>
               {pillars.map((p, i) => (
                 <button
                   key={p.id}
@@ -691,61 +673,65 @@ export function H2Pillars({
 /* ---------- bento band (approvals and receipts) ---------- */
 
 function SlackApprovalMock(): React.JSX.Element {
+  const text = useSiteCopy().bento.slack;
   return (
-    <div className="h2-mockcard" role="img" aria-label="Approval card in a Slack thread">
-      <p className="h2-mockcard__title">Approval card · #cafe-ops</p>
+    <div className="h2-mockcard" role="img" aria-label={text.label}>
+      <p className="h2-mockcard__title">{text.title}</p>
       <div className="h2-mockrow">
         <span className="h2-mockrow__main">
-          Publish the autumn menu
-          <small>prepared by the shop agent · 14 items</small>
+          {text.change}
+          <small>{text.changeNote}</small>
         </span>
-        <span className="h2-chip h2-chip--amber">Approval needed</span>
+        <span className="h2-chip h2-chip--amber">{text.needed}</span>
       </div>
       <div className="h2-mockrow">
         <span className="h2-mockrow__main">
-          Who can approve
-          <small>an owner or an admin</small>
+          {text.who}
+          <small>{text.whoNote}</small>
         </span>
-        <span className="h2-chip h2-chip--plain">2 people</span>
+        <span className="h2-chip h2-chip--plain">{text.people}</span>
       </div>
       <div className="h2-mockbtns" aria-hidden>
-        <span className="h2-mockbtn h2-mockbtn--approve">Approve</span>
-        <span className="h2-mockbtn h2-mockbtn--cancel">Decline</span>
+        <span className="h2-mockbtn h2-mockbtn--approve">{text.approve}</span>
+        <span className="h2-mockbtn h2-mockbtn--cancel">{text.decline}</span>
       </div>
     </div>
   );
 }
 
 function MoneyGateMock(): React.JSX.Element {
+  const text = useSiteCopy().bento.money;
   return (
-    <div className="h2-mockcard" role="img" aria-label="A refund held for approval in the Portal">
-      <p className="h2-mockcard__title">Refund ¥4,200 · order #2377</p>
+    <div className="h2-mockcard" role="img" aria-label={text.label}>
+      <p className="h2-mockcard__title">{text.title}</p>
       <div className="h2-mockrow">
         <span className="h2-mockrow__main">
-          Moves money
-          <small>a chat card cannot approve it</small>
+          {text.moves}
+          <small>{text.movesNote}</small>
         </span>
-        <span className="h2-chip h2-chip--amber">Held</span>
+        <span className="h2-chip h2-chip--amber">{text.held}</span>
       </div>
       <div className="h2-mockrow">
         <span className="h2-mockrow__main">
-          Approve in the Portal
-          <small>owner</small>
+          {text.portal}
+          <small>{text.portalNote}</small>
         </span>
-        <span className="h2-chip h2-chip--plain">Waiting</span>
+        <span className="h2-chip h2-chip--plain">{text.waiting}</span>
       </div>
       <div className="h2-mockrow">
         <span className="h2-mockrow__main">
-          Receipt
-          <small>the provider's confirmation is kept</small>
+          {text.receipt}
+          <small>{text.receiptNote}</small>
         </span>
-        <span className="h2-chip h2-chip--plain">Auto</span>
+        <span className="h2-chip h2-chip--plain">{text.auto}</span>
       </div>
     </div>
   );
 }
 
 export function H2Bento({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
+  const text = useSiteCopy().bento;
+  const cards = text.cards;
   return (
     <>
       <BannerSection
@@ -760,8 +746,8 @@ export function H2Bento({ drawing }: { drawing?: React.ReactNode } = {}): React.
         anchor="control"
         field="mauve-ember"
         drawing={drawing}
-        title="Agents act inside your rules"
-        sub="Agents prepare the work. People approve the changes that matter, and every action leaves a receipt."
+        title={text.title}
+        sub={text.sub}
       />
       <section className="h2-section h2-section--bento h2-rule" aria-labelledby="h2-bento-title">
         <div className="h2-shell">
@@ -771,11 +757,8 @@ export function H2Bento({ drawing }: { drawing?: React.ReactNode } = {}): React.
                 <SlackApprovalMock />
               </div>
               <div>
-                <h3 className="h2-bento__title">Approve in the thread</h3>
-                <p className="h2-bento__copy">
-                  An agent posts each change to the shop as a card in Slack. An owner or admin
-                  approves it there, and the agent goes on.
-                </p>
+                <h3 className="h2-bento__title">{cards.thread.title}</h3>
+                <p className="h2-bento__copy">{cards.thread.copy}</p>
               </div>
             </div>
             <div className="h2-bento__card h2-bento__card--lg">
@@ -783,40 +766,29 @@ export function H2Bento({ drawing }: { drawing?: React.ReactNode } = {}): React.
                 <MoneyGateMock />
               </div>
               <div>
-                <h3 className="h2-bento__title">Money moves only from the Portal</h3>
-                <p className="h2-bento__copy">
-                  A chat card cannot approve a refund or a payment. The approval happens in the
-                  Portal, and Satyr keeps the provider&rsquo;s confirmation.
-                </p>
+                <h3 className="h2-bento__title">{cards.money.title}</h3>
+                <p className="h2-bento__copy">{cards.money.copy}</p>
               </div>
             </div>
             <div className="h2-bento__card h2-bento__card--sm">
               <InkTile sign="list" />
               <div>
-                <h3 className="h2-bento__title">Roles</h3>
-                <p className="h2-bento__copy">
-                  Owners, admins and members each get their own access to each connected tool.
-                </p>
+                <h3 className="h2-bento__title">{cards.roles.title}</h3>
+                <p className="h2-bento__copy">{cards.roles.copy}</p>
               </div>
             </div>
             <div className="h2-bento__card h2-bento__card--sm">
               <InkTile sign="receipt" />
               <div>
-                <h3 className="h2-bento__title">Receipts</h3>
-                <p className="h2-bento__copy">
-                  Each action records who asked for it, what changed and what the provider
-                  confirmed.
-                </p>
+                <h3 className="h2-bento__title">{cards.receipts.title}</h3>
+                <p className="h2-bento__copy">{cards.receipts.copy}</p>
               </div>
             </div>
             <div className="h2-bento__card h2-bento__card--sm">
               <InkTile sign="key" />
               <div>
-                <h3 className="h2-bento__title">Secrets stay out</h3>
-                <p className="h2-bento__copy">
-                  Agents use logins and API keys from the Vault, but no key enters a prompt or a
-                  transcript.
-                </p>
+                <h3 className="h2-bento__title">{cards.secrets.title}</h3>
+                <p className="h2-bento__copy">{cards.secrets.copy}</p>
               </div>
             </div>
           </div>
@@ -836,29 +808,20 @@ type UseCase = {
   copy: string;
 };
 
-const useCases: readonly UseCase[] = [
-  {
-    title: 'Run the online shop',
-    field: 'sky-sand',
-    coverLabel: 'Shop',
-    cover: 'cover-shop',
-    copy: 'Agents draft menus and product descriptions with you, and publish each menu to the storefront when you approve it.',
-  },
-  {
-    title: 'Answer the inbox',
-    field: 'aqua-evergreen',
-    coverLabel: 'Inbox',
-    cover: 'cover-inbox',
-    copy: 'The inbox agent reads customer and supplier mail, drafts each reply with its sources, and moves spam out of the way.',
-  },
-  {
-    title: 'Watch payments and orders',
-    field: 'azure-coral',
-    coverLabel: 'Orders',
-    cover: 'cover-orders',
-    copy: 'Ask in Slack for a brief on failed payments and late orders. Each item links to its order, and an agent can look into it for you.',
-  },
-];
+type CaseLayout = Omit<UseCase, 'title' | 'coverLabel' | 'copy'>;
+
+function withText<K extends string>(
+  layouts: Record<K, CaseLayout>,
+  text: Record<K, { title: string; coverLabel: string; copy: string }>,
+): UseCase[] {
+  return (Object.keys(layouts) as K[]).map((key) => ({ ...layouts[key], ...text[key] }));
+}
+
+const useCaseLayouts: Record<keyof SiteCopy['cases']['items'], CaseLayout> = {
+  shop: { field: 'sky-sand', cover: 'cover-shop' },
+  inbox: { field: 'aqua-evergreen', cover: 'cover-inbox' },
+  orders: { field: 'azure-coral', cover: 'cover-orders' },
+};
 
 function UseCaseCards({ cases }: { cases: readonly UseCase[] }): React.JSX.Element {
   return (
@@ -879,58 +842,55 @@ function UseCaseCards({ cases }: { cases: readonly UseCase[] }): React.JSX.Eleme
 }
 
 export function H2WorkflowCanvas(): React.JSX.Element {
+  const text = useSiteCopy().cases.flow;
   return (
     <div className="h2-flow">
-      <div
-        className="h2-flow__canvas"
-        role="img"
-        aria-label="A gift box order flowing through checks into the bake plan and a confirmation email"
-      >
-        <span className="h2-flow__tag">Satyr &middot; gift box order</span>
+      <div className="h2-flow__canvas" role="img" aria-label={text.label}>
+        <span className="h2-flow__tag">{text.tag}</span>
         <div className="h2-flow__row">
           <div className="h2-mockcard h2-flow__node h2-flow__node--first">
-            <p className="h2-mockcard__title">New order</p>
+            <p className="h2-mockcard__title">{text.newOrder}</p>
             <div className="h2-mockrow">
               <span className="h2-mockrow__main">
-                Gift boxes ×12
-                <small>¥64,800 &middot; pickup Sat 10:30</small>
+                {text.giftBoxes}
+                <small>{text.giftNote}</small>
               </span>
-              <span className="h2-chip h2-chip--plain">New</span>
+              <span className="h2-chip h2-chip--plain">{text.new}</span>
             </div>
           </div>
           <span className="h2-flow__link" aria-hidden />
           <div className="h2-mockcard h2-flow__node">
-            <p className="h2-mockcard__title">Checks</p>
+            <p className="h2-mockcard__title">{text.checks}</p>
             <div className="h2-mockrow">
-              <span className="h2-mockrow__main">Stock for Saturday</span>
-              <span className="h2-chip h2-chip--green">Pass</span>
+              <span className="h2-mockrow__main">{text.stock}</span>
+              <span className="h2-chip h2-chip--green">{text.pass}</span>
             </div>
             <div className="h2-mockrow">
-              <span className="h2-mockrow__main">Pickup slot</span>
-              <span className="h2-chip h2-chip--green">Pass</span>
+              <span className="h2-mockrow__main">{text.pickup}</span>
+              <span className="h2-chip h2-chip--green">{text.pass}</span>
             </div>
             <div className="h2-mockrow">
-              <span className="h2-mockrow__main">Company discount 10%</span>
-              <span className="h2-chip h2-chip--amber">Owner approval</span>
+              <span className="h2-mockrow__main">{text.discount}</span>
+              <span className="h2-chip h2-chip--amber">{text.ownerApproval}</span>
             </div>
           </div>
           <span className="h2-flow__link" aria-hidden />
           <div className="h2-mockcard h2-flow__node h2-flow__node--last">
-            <p className="h2-mockcard__title">Actions</p>
+            <p className="h2-mockcard__title">{text.actions}</p>
             <div className="h2-mockrow">
               <span className="h2-mockrow__main">
-                Added to the bake plan
-                <small>Satyr Kitchen &middot; 2 trays</small>
+                {text.planned}
+                <small>{text.plannedNote}</small>
               </span>
-              <span className="h2-chip h2-chip--green">Planned</span>
+              <span className="h2-chip h2-chip--green">{text.plannedChip}</span>
             </div>
             <div className="h2-mockrow">
-              <span className="h2-mockrow__main">Confirmation email</span>
-              <span className="h2-chip h2-chip--green">Sent</span>
+              <span className="h2-mockrow__main">{text.email}</span>
+              <span className="h2-chip h2-chip--green">{text.sent}</span>
             </div>
             <div className="h2-mockrow">
-              <span className="h2-mockrow__main">Receipt recorded</span>
-              <span className="h2-chip h2-chip--plain">Auto</span>
+              <span className="h2-mockrow__main">{text.receipt}</span>
+              <span className="h2-chip h2-chip--plain">{text.auto}</span>
             </div>
           </div>
         </div>
@@ -940,6 +900,7 @@ export function H2WorkflowCanvas(): React.JSX.Element {
 }
 
 export function H2Cases({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
+  const text = useSiteCopy().cases;
   return (
     <>
       <BannerSection
@@ -953,13 +914,13 @@ export function H2Cases({ drawing }: { drawing?: React.ReactNode } = {}): React.
         anchor="workflows"
         field="mauve-ember"
         drawing={drawing}
-        title="Turn café work into agent workflows"
-        sub="Agents watch the shop and the inbox, prepare the work, and act inside the limits that you set."
+        title={text.title}
+        sub={text.sub}
       />
       <section className="h2-section h2-section--band h2-rule" aria-labelledby="h2-cases-title">
         <div className="h2-shell">
           <H2WorkflowCanvas />
-          <UseCaseCards cases={useCases} />
+          <UseCaseCards cases={withText(useCaseLayouts, text.items)} />
         </div>
       </section>
     </>
@@ -968,31 +929,14 @@ export function H2Cases({ drawing }: { drawing?: React.ReactNode } = {}): React.
 
 /* ---------- Satyr Kitchen (production inside the suite) ---------- */
 
-const productionViews: readonly UseCase[] = [
-  {
-    title: 'Workflow canvas',
-    field: 'apricot-beam',
-    coverLabel: 'Workflow',
-    cover: 'cover-workflow',
-    copy: 'Draw each recipe as steps: mix, rest, fill, bake, cool and pack. Each step names its equipment and its time.',
-  },
-  {
-    title: 'Resource timeline',
-    field: 'slate-amber',
-    coverLabel: 'Timeline',
-    cover: 'cover-timeline',
-    copy: 'See which oven, mixer and person each run uses, hour by hour, and find clashes before the shift starts.',
-  },
-  {
-    title: '3D bakery',
-    field: 'copper-mist',
-    coverLabel: '3D view',
-    cover: 'cover-floor',
-    copy: 'Watch the run move through a 3D model of your kitchen before you bake it for real.',
-  },
-];
+const productionLayouts: Record<keyof SiteCopy['production']['items'], CaseLayout> = {
+  workflow: { field: 'apricot-beam', cover: 'cover-workflow' },
+  timeline: { field: 'slate-amber', cover: 'cover-timeline' },
+  floor: { field: 'copper-mist', cover: 'cover-floor' },
+};
 
 export function H2Production({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
+  const text = useSiteCopy().production;
   return (
     <>
       <BannerSection
@@ -1006,15 +950,15 @@ export function H2Production({ drawing }: { drawing?: React.ReactNode } = {}): R
         anchor="kitchen"
         field="apricot-beam"
         drawing={drawing}
-        title="Satyr Kitchen: from orders to the oven"
-        sub="Satyr Kitchen is the production workspace inside Satyr. It turns orders and preorders into production runs, and it shows one run in three views."
+        title={text.title}
+        sub={text.sub}
       />
       <section
         className="h2-section h2-section--band h2-rule"
         aria-labelledby="h2-production-title"
       >
         <div className="h2-shell">
-          <UseCaseCards cases={productionViews} />
+          <UseCaseCards cases={withText(productionLayouts, text.items)} />
         </div>
       </section>
     </>
@@ -1026,6 +970,7 @@ export function H2Production({ drawing }: { drawing?: React.ReactNode } = {}): R
 export function H2WalletBand({ drawing }: { drawing?: React.ReactNode } = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const walletProps = linkProps('/wallet');
+  const copy = useSiteCopy();
 
   return (
     <BannerSection
@@ -1038,11 +983,11 @@ export function H2WalletBand({ drawing }: { drawing?: React.ReactNode } = {}): R
       mirrored={true}
       field="teal-peach"
       drawing={drawing}
-      title="Also from Seams: Seams Wallet"
-      sub="A stablecoin wallet that opens with a passkey. Keys are split between the device and the server, so neither side can sign alone."
+      title={copy.walletBand.title}
+      sub={copy.walletBand.sub}
     >
       <a className="h2-btn h2-btn--primary" href={walletProps.href} onClick={walletProps.onClick}>
-        Explore Seams Wallet
+        {copy.common.exploreWallet}
         <ArrowRightAnim size={12} />
       </a>
     </BannerSection>
@@ -1650,18 +1595,16 @@ export function H2Duo(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const satyrProps = linkProps('/ecommerce');
   const bakeryProps = linkProps('/ecommerce#kitchen');
+  const copy = useSiteCopy();
 
   return (
     <section className="h2-section h2-section--snug h2-rule" aria-labelledby="h2-duo-title">
       <div className="h2-shell">
         <div className="h2-duo__head">
           <h2 id="h2-duo-title" className="h2-display">
-            From the shop to the oven
+            {copy.duo.title}
           </h2>
-          <p className="h2-duo__copy">
-            Satyr runs the sales side of the business, and Satyr Kitchen plans what you bake. Both
-            work from the same orders.
-          </p>
+          <p className="h2-duo__copy">{copy.duo.copy}</p>
         </div>
         <div className="h2-duo__grid">
           <a className="h2-duo__panel" href={satyrProps.href} onClick={satyrProps.onClick}>
@@ -1669,15 +1612,12 @@ export function H2Duo(): React.JSX.Element {
               <InkTile sign="shop" />
               Satyr
             </h3>
-            <p className="h2-duo__panel-copy">
-              Agents run the online shop, menus, orders, payments and the inbox. Changes wait for
-              your approval in Slack or in the Portal.
-            </p>
+            <p className="h2-duo__panel-copy">{copy.duo.satyr}</p>
             <div className="h2-duo__visual">
               <ShopTile />
             </div>
             <span className="h2-duo__cta">
-              Explore Satyr
+              {copy.common.exploreSatyr}
               <ArrowRightAnim size={12} />
             </span>
           </a>
@@ -1686,15 +1626,12 @@ export function H2Duo(): React.JSX.Element {
               <InkTile sign="croissant" />
               Satyr Kitchen
             </h3>
-            <p className="h2-duo__panel-copy">
-              Orders and preorders become production runs. See each run as a workflow, a timeline of
-              ovens and staff, and a 3D view of the bakery.
-            </p>
+            <p className="h2-duo__panel-copy">{copy.duo.kitchen}</p>
             <div className="h2-duo__visual">
               <KitchenTile />
             </div>
             <span className="h2-duo__cta">
-              Explore Satyr Kitchen
+              {copy.common.exploreKitchen}
               <ArrowRightAnim size={12} />
             </span>
           </a>
@@ -1718,58 +1655,42 @@ type FaqGroup = {
   items: readonly FaqItem[];
 };
 
-const whatIsSatyr: FaqItem = {
-  q: 'What is Satyr?',
-  a: 'Satyr is an ecommerce suite for cafés and pâtisseries. Agents run the online shop, menus, orders, payments, the inbox and the bake plan, and they work with your team in Slack and in the Portal.',
-  more: { label: 'Explore Satyr', to: '/ecommerce' },
+type FaqKey = keyof SiteCopy['faq']['items'];
+
+/* where each answer's link leads; an answer with no entry has no link */
+const faqLinks: Partial<Record<FaqKey, string>> = {
+  whatIsSatyr: '/ecommerce',
+  agents: '/ecommerce#workflows',
+  control: '/ecommerce#control',
+  tools: '/#integrations',
+  start: CONTACT_LINK_TARGET,
 };
 
-const agentsFaq: FaqItem = {
-  q: 'What can the agents do?',
-  a: 'They draft and publish menus and product descriptions, answer customer and supplier mail with drafts that cite their sources, report failed payments and late orders, and turn orders into a bake plan. They act only through the access that you give them.',
-  more: { label: 'Agent workflows', to: '/ecommerce#workflows' },
-};
-
-const controlFaq: FaqItem = {
-  q: 'How do I stay in control?',
-  a: 'Agents prepare changes, and an owner or admin approves them from a Slack card or in the Portal. A change that moves money is approved only in the Portal. Every action leaves a receipt.',
-  more: { label: 'Approvals and receipts', to: '/ecommerce#control' },
-};
-
-const secretsFaq: FaqItem = {
-  q: 'Do agents see our passwords and keys?',
-  a: 'No. Logins and API keys stay in the Vault: the Satyr Vault or your own 1Password. Agents use them without seeing them, and no key enters a prompt or a transcript.',
-};
-
-const toolsFaq: FaqItem = {
-  q: 'Which tools does Satyr connect to?',
-  a: 'Slack, Gmail, Shopify, Square, Stripe, Google Drive, Dropbox, Notion and Airtable. Card payments go to your own Stripe or Square account.',
-  more: { label: 'Integrations', to: '/#integrations' },
-};
-
-const modelsFaq: FaqItem = {
-  q: 'Which AI models does Satyr use?',
-  a: 'You choose. Sign in with your ChatGPT account, add your own OpenAI API key, or use the models that Satyr provides.',
-};
-
-const startFaq: FaqItem = {
-  q: 'How do we get started?',
-  a: 'Talk to us. We connect your shop, your Slack workspace and your mailbox with you, and we set the first approval rules together.',
-  more: { label: 'Contact us', to: CONTACT_LINK_TARGET },
-};
+type GroupKey = keyof SiteCopy['faq']['groups'];
 
 const footerFaqs = {
   home: [
-    { heading: 'Product', items: [whatIsSatyr, agentsFaq] },
-    { heading: 'Control', items: [controlFaq, secretsFaq] },
-    { heading: 'Getting started', items: [startFaq, modelsFaq] },
+    ['product', ['whatIsSatyr', 'agents']],
+    ['control', ['control', 'secrets']],
+    ['start', ['start', 'models']],
   ],
   ecommerce: [
-    { heading: 'Agents', items: [agentsFaq, toolsFaq] },
-    { heading: 'Control', items: [controlFaq, secretsFaq] },
-    { heading: 'Getting started', items: [startFaq, modelsFaq] },
+    ['agents', ['agents', 'tools']],
+    ['control', ['control', 'secrets']],
+    ['start', ['start', 'models']],
   ],
-} satisfies Record<string, readonly FaqGroup[]>;
+} satisfies Record<string, readonly (readonly [GroupKey, readonly FaqKey[]])[]>;
+
+function faqGroups(audience: FooterFaqAudience, faq: SiteCopy['faq']): FaqGroup[] {
+  return footerFaqs[audience].map(([group, keys]) => ({
+    heading: faq.groups[group],
+    items: keys.map((key) => {
+      const { q, a, more } = faq.items[key];
+      const to = faqLinks[key];
+      return to ? { q, a, more: { label: more, to } } : { q, a };
+    }),
+  }));
+}
 
 type FooterFaqAudience = keyof typeof footerFaqs;
 
@@ -1780,7 +1701,13 @@ type FaqPopFrame = { left: number; top: number; w: number; h: number };
    below its question in one shared popover that moves and resizes between
    questions, as the navbar menus do. A hover opens the card and the
    pointer can move into it to reach its link; a click pins it open. */
-function H2FooterFaq({ groups }: { groups: readonly FaqGroup[] }): React.JSX.Element {
+function H2FooterFaq({
+  title,
+  groups,
+}: {
+  title: string;
+  groups: readonly FaqGroup[];
+}): React.JSX.Element {
   const CLOSE_DELAY_MS = 120;
   /* the card's inner padding, so the answer text lines up with the question */
   const POP_INSET_PX = 20;
@@ -1894,7 +1821,7 @@ function H2FooterFaq({ groups }: { groups: readonly FaqGroup[] }): React.JSX.Ele
       }}
     >
       <h2 id={`${baseId}-title`} className="h2-footer__faq-title">
-        FAQs
+        {title}
       </h2>
 
       <div className="h2-footer__links">
@@ -2067,39 +1994,22 @@ function getFooterGroups(t: Translate): { heading: string; links: H2FooterLink[]
 
 /* ---------- closing call to action: the shared banner ---------- */
 
-const ctaCopy = {
-  home: {
-    field: 'azure-coral',
-    title: 'Put agents to work in your café',
-    sub: 'We connect the shop, Slack and your mailbox with you, and we set the first approval rules together.',
-    secondary: { label: 'Explore Satyr', to: '/ecommerce' },
-  },
-  ecommerce: {
-    field: 'mauve-ember',
-    title: 'See Satyr run your shop',
-    sub: 'Tell us what you sell and where. We show you Satyr on your own shop.',
-    secondary: { label: 'See the integrations', to: '/#integrations' },
-  },
-} satisfies Record<
-  string,
-  {
-    field: GrainFieldName;
-    title: string;
-    sub: string;
-    secondary: { label: string; to: string };
-  }
->;
+const ctaLayout = {
+  home: { field: 'azure-coral', to: '/ecommerce' },
+  ecommerce: { field: 'mauve-ember', to: '/#integrations' },
+} satisfies Record<keyof SiteCopy['cta'], { field: GrainFieldName; to: string }>;
 
 export function H2Cta({
   audience,
   drawing,
 }: {
-  audience: keyof typeof ctaCopy;
+  audience: keyof typeof ctaLayout;
   drawing?: React.ReactNode;
 }): React.JSX.Element {
   const { linkProps } = useSiteRouter();
-  const copy = ctaCopy[audience];
-  const secondaryProps = linkProps(copy.secondary.to);
+  const layout = ctaLayout[audience];
+  const copy = useSiteCopy().cta[audience];
+  const secondaryProps = linkProps(layout.to);
 
   return (
     <BannerSection
@@ -2111,7 +2021,7 @@ export function H2Cta({
         foreground: { paint: { finish: 'dry', stroke: 4 }, angle: -1, offset: 0 },
       }}
       mirrored={false}
-      field={copy.field}
+      field={layout.field}
       drawing={drawing}
       title={copy.title}
       sub={copy.sub}
@@ -2121,7 +2031,7 @@ export function H2Cta({
         href={secondaryProps.href}
         onClick={secondaryProps.onClick}
       >
-        {copy.secondary.label}
+        {copy.secondary}
         <ArrowRightAnim size={12} />
       </a>
     </BannerSection>
@@ -2130,7 +2040,7 @@ export function H2Cta({
 
 export function H2Footer({ faq }: { faq?: FooterFaqAudience } = {}): React.JSX.Element {
   const t = useTranslation();
-  const page = useSitePage();
+  const copy = useSiteCopy();
   const footerGroups = getFooterGroups(t);
   const { linkProps } = useSiteRouter();
   const homeProps = linkProps('/');
@@ -2142,12 +2052,10 @@ export function H2Footer({ faq }: { faq?: FooterFaqAudience } = {}): React.JSX.E
           <a href={homeProps.href} onClick={homeProps.onClick} aria-label={t('seamsHome')}>
             <SeamsWordmark height={20} />
           </a>
-          {page.kind === 'translated' ? (
-            <LanguageSelector page={page.page} placement="footer" />
-          ) : null}
+          <LanguageSelector placement="footer" />
         </div>
 
-        {faq ? <H2FooterFaq groups={footerFaqs[faq]} /> : null}
+        {faq ? <H2FooterFaq title={copy.faq.title} groups={faqGroups(faq, copy.faq)} /> : null}
 
         <nav className="h2-footer__main h2-footer__links" aria-label={t('footerNavigation')}>
           {footerGroups.map((group) => (

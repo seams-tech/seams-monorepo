@@ -1,4 +1,6 @@
 import React from 'react';
+import { useSiteCopy } from '@/i18n/browser';
+import { fill } from '@/i18n/siteCopy';
 import { ECOSYSTEM_LOGO_MARKS } from './ecosystemLogoTiles';
 import { InkDrawing } from './ink/InkScene';
 import type { InkMotion } from './ink/scenes';
@@ -117,6 +119,7 @@ function GoldMote({ mote }: { mote: Mote }): React.JSX.Element {
 }
 
 export function EcosystemField(): React.JSX.Element {
+  const copy = useSiteCopy();
   const narrow = useNarrow();
   const { scene, stalks, grains, motes }: WheatFieldLayout = narrow ? narrowField : wideField;
   const rootRef = React.useRef<HTMLDivElement>(null);
@@ -141,11 +144,13 @@ export function EcosystemField(): React.JSX.Element {
 
   const still =
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const label = `A field of wheat with a connected tool over some of the stalks: ${stalks
-    .map(
-      (stalk) => ECOSYSTEM_LOGO_MARKS.find((mark) => mark.id === stalk.tool)?.label ?? stalk.tool,
-    )
-    .join(', ')}`;
+  const label = fill(copy.ecosystem.fieldLabel, {
+    tools: stalks
+      .map(
+        (stalk) => ECOSYSTEM_LOGO_MARKS.find((mark) => mark.id === stalk.tool)?.label ?? stalk.tool,
+      )
+      .join(', '),
+  });
 
   return (
     <div
@@ -177,9 +182,7 @@ export function EcosystemField(): React.JSX.Element {
         {!still && awake
           ? grains.map((path, order) => <Grain key={path} path={path} order={order} />)
           : null}
-        {!still && awake
-          ? motes.map((mote) => <GoldMote key={mote.path} mote={mote} />)
-          : null}
+        {!still && awake ? motes.map((mote) => <GoldMote key={mote.path} mote={mote} />) : null}
       </svg>
     </div>
   );

@@ -5,6 +5,8 @@ import { InkDrawing } from '@/components/h2/ink/InkScene';
 import { flourGoatScene } from '@/components/h2/ink/scenes';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
+import { useSiteCopy } from '@/i18n/browser';
+import type { SiteCopy } from '@/i18n/siteCopy';
 import { H2Footer } from '@/components/h2/sections';
 import '@/styles/h2.css';
 import './styles.css';
@@ -12,15 +14,22 @@ import './styles.css';
 /* Unknown routes: the wallet hero's layout, copy on the left and a panel on the
    right where a baby goat has tipped over a flour sack, with the same product forks under the actions. */
 
-const destinations: readonly { label: string; to: string; field: GrainFieldName }[] = [
-  { label: 'Wallet', to: '/wallet', field: 'teal-peach' },
-  { label: 'Harness', to: '/ecommerce', field: 'mauve-ember' },
-  { label: 'Pricing', to: '/pricing', field: 'sky-sand' },
-  { label: 'API', to: '/docs/concepts/', field: 'azure-coral' },
-];
+function getDestinations(
+  copy: SiteCopy,
+): readonly { label: string; to: string; field: GrainFieldName }[] {
+  return [
+    { label: 'Wallet', to: '/wallet', field: 'teal-peach' },
+    { label: 'Harness', to: '/ecommerce', field: 'mauve-ember' },
+    { label: copy.notFound.pricing, to: '/pricing', field: 'sky-sand' },
+    { label: 'API', to: '/docs/concepts/', field: 'azure-coral' },
+  ];
+}
 
 export function NotFoundPage(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
+  const copy = useSiteCopy();
+  const text = copy.notFound;
+  const destinations = getDestinations(copy);
   const homeProps = linkProps('/');
   const docsProps = linkProps('/docs/');
   const pathname = typeof window === 'undefined' ? '' : window.location.pathname;
@@ -32,17 +41,14 @@ export function NotFoundPage(): React.JSX.Element {
         <main className="not-found" aria-labelledby="not-found-title">
           <div className="h2-shell not-found__grid">
             <div className="not-found__copy">
-              <p className="h2-kicker">Error 404</p>
+              <p className="h2-kicker">{text.kicker}</p>
               <h1 id="not-found-title" className="h2-display not-found__title">
-                This page does not exist
+                {text.title}
               </h1>
-              <p className="not-found__sub">
-                The link can be old, or the address can have a typo. Go back to the home page, or
-                open one of the pages below.
-              </p>
+              <p className="not-found__sub">{text.sub}</p>
               {pathname ? (
                 <p className="not-found__path">
-                  <span>Requested</span>
+                  <span>{text.requested}</span>
                   <code>{pathname}</code>
                 </p>
               ) : null}
@@ -52,7 +58,7 @@ export function NotFoundPage(): React.JSX.Element {
                   href={homeProps.href}
                   onClick={homeProps.onClick}
                 >
-                  Go to home
+                  {text.home}
                   <ArrowRightAnim size={12} />
                 </a>
                 <a
@@ -60,10 +66,10 @@ export function NotFoundPage(): React.JSX.Element {
                   href={docsProps.href}
                   onClick={docsProps.onClick}
                 >
-                  Read the docs
+                  {copy.common.readDocs}
                 </a>
               </div>
-              <nav className="not-found__forks" aria-label="Popular pages">
+              <nav className="not-found__forks" aria-label={text.popular}>
                 {destinations.map((destination) => {
                   const destinationProps = linkProps(destination.to);
                   return (

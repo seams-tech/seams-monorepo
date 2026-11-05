@@ -10,6 +10,8 @@ export function escapeHtml(value: string): string {
 }
 
 const PAGE_TEXT: Record<TranslatedPage, { title: MessageKey; description: MessageKey }> = {
+  home: { title: 'homePageTitle', description: 'homeDescription' },
+  ecommerce: { title: 'ecommercePageTitle', description: 'ecommerceDescription' },
   company: { title: 'companyPageTitle', description: 'companyDescription' },
 };
 
@@ -46,8 +48,8 @@ export function languageHtml(
 export function updateDocumentMetadata(page: SitePage, origin: string): void {
   document.documentElement.lang = page.locale;
   for (const element of document.head.querySelectorAll('[data-site-meta]')) element.remove();
-  if (page.kind === 'english') {
-    document.title = 'Satyr by Seams | Ecommerce suite for cafés and pâtisseries';
+  if (page.kind === 'untranslated') {
+    document.title = translate(page.locale, 'homePageTitle');
     return;
   }
   document.title = pageTitle(page.page, page.locale);

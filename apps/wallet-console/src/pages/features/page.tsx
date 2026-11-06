@@ -53,9 +53,9 @@ const BIOMETRICS: readonly Feature[] = [
 ];
 
 const SELF_HOSTED: readonly Feature[] = [
+  { icon: Unlock, title: 'openSource', copy: 'openSourceCopy' },
   { icon: Cloud, title: 'cloudflare', copy: 'cloudflareCopy' },
   { icon: Server, title: 'virtualMachines', copy: 'virtualMachinesCopy' },
-  { icon: Unlock, title: 'openSource', copy: 'openSourceCopy' },
 ];
 
 // About one play of the front page's figures.

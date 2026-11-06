@@ -8,8 +8,8 @@ export const messages = {
   },
   featuresTitle: { en: 'Everything in Seams Wallet', ja: 'Seams Walletのすべての機能' },
   featuresDescription: {
-    en: 'Passkeys, email recovery, device linking, regional infrastructure, and self-hosting.',
-    ja: 'パスキー、メールでの復元、デバイスのリンク、リージョンごとの基盤、セルフホスト。',
+    en: 'Passkeys, email recovery, device linking, regional infrastructure, and open source you can host yourself.',
+    ja: 'パスキー、メールでの復元、デバイスのリンク、リージョンごとの基盤、自社で運用できるオープンソース。',
   },
   sections: { en: 'On this page', ja: 'このページの内容' },
 
@@ -77,29 +77,32 @@ export const messages = {
     ja: 'アジア太平洋、ヨーロッパ、米国のリージョンを示す地球儀。再生すると各リージョンへ回転します。',
   },
 
-  selfHostedKicker: { en: 'Self-hosted', ja: 'セルフホスト' },
+  selfHostedKicker: { en: 'Open source and self-hosted', ja: 'オープンソース・セルフホスト' },
   selfHostedTitle: {
-    en: 'Run Seams on your own cloud.',
-    ja: '自社のクラウドでSeamsを運用。',
+    en: 'Open source. Run it on your own cloud.',
+    ja: 'オープンソース。自社のクラウドで運用。',
   },
   selfHostedCopy: {
     en: 'Keep the wallet servers in your own accounts. We help you set them up. Self-serve tooling is still coming.',
     ja: 'ウォレットのサーバーを自社のアカウントで運用できます。導入は当社がサポートします。セルフサービスのツールは準備中です。',
   },
-  cloudflare: { en: 'Cloudflare Workers', ja: 'Cloudflare Workers' },
-  cloudflareCopy: {
-    en: 'Deploy the serverless wallet services to your own Cloudflare account.',
-    ja: 'サーバーレスのウォレットサービスを、自社のCloudflareアカウントにデプロイ。',
-  },
-  virtualMachines: { en: 'Google Cloud and AWS', ja: 'Google CloudとAWS' },
-  virtualMachinesCopy: {
-    en: 'Our runtime build runs on Google Cloud and AWS virtual machines.',
-    ja: '当社のランタイムビルドは、Google CloudとAWSの仮想マシンで動作します。',
-  },
   openSource: { en: 'Open source, no lock-in', ja: 'オープンソースでロックインなし' },
   openSourceCopy: {
-    en: 'Apache-2.0 source with key export. Your users can leave with their keys at any time.',
-    ja: 'Apache-2.0で公開し、鍵のエクスポートにも対応。ユーザーはいつでも鍵を持って移行できます。',
+    en: 'The wallet SDK and servers are Apache-2.0 open source. With key export, your users can leave with their keys at any time.',
+    ja: 'ウォレットのSDKとサーバーはApache-2.0のオープンソース。鍵のエクスポートにも対応し、ユーザーはいつでも鍵を持って移行できます。',
+  },
+  cloudflare: {
+    en: 'Cloudflare Workers and Durable Objects',
+    ja: 'Cloudflare WorkersとDurable Objects',
+  },
+  cloudflareCopy: {
+    en: 'The hosted service runs on Workers, Durable Objects, D1, KV, and R2. Deploy the same services to your own Cloudflare account.',
+    ja: 'ホスト型サービスはWorkers、Durable Objects、D1、KV、R2で稼働。同じサービスを自社のCloudflareアカウントにデプロイできます。',
+  },
+  virtualMachines: { en: 'Your own VMs on AWS or Google Cloud', ja: 'AWSやGoogle Cloudの仮想マシン' },
+  virtualMachinesCopy: {
+    en: 'Self-host on ordinary cloud VMs with our build of Deno’s open-source celld runtime. It runs the same Worker code and keeps state in S3 or Cloud Storage.',
+    ja: 'Denoのオープンソースランタイムcelldをもとにした当社のビルドで、通常のクラウド仮想マシンにセルフホスト。同じWorkerコードを実行し、状態はS3またはCloud Storageに保存します。',
   },
   contactUs: { en: 'Contact us', ja: 'お問い合わせ' },
   seePricing: { en: 'See pricing', ja: '料金を見る' },

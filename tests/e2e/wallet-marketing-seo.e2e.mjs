@@ -224,7 +224,10 @@ try {
   );
   const receipt = JSON.parse(await saveResponse(receiptResponse, 'docs-receipt'));
   assert.equal(receipt.repository, 'seams-tech/seams-wallet');
-  assert.equal(receipt.revision, process.env.SEAMS_WALLET_DOCS_REVISION);
+  // Only a production deploy publishes docs.wallet.seams.sh. A staging deploy
+  // publishes its docs to its own Pages project, so the public host can still
+  // serve the previous release while staging is verified.
+  if (!noindex) assert.equal(receipt.revision, process.env.SEAMS_WALLET_DOCS_REVISION);
   const docsSitemap = await context.request.get(`${docsOrigin}/sitemap.xml`);
   assert.equal(docsSitemap.status(), 200);
   assert.match(await docsSitemap.text(), /<urlset\b/);

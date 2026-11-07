@@ -27,15 +27,6 @@ export const GATEWAY_RUNTIME_PROFILE_KINDS = {
   mainnetService: 'mainnet_service',
 };
 const BACKEND_LANE_DEFINITIONS = Object.freeze({
-  'getsignal-testnet': Object.freeze({
-    runtimeProfileKind: 'testnet_service',
-    serviceNames: Object.freeze({
-      deriverA: 'router-ab-deriver-a-getsignal',
-      deriverB: 'router-ab-deriver-b-getsignal',
-      signingWorker: 'router-ab-signing-worker-getsignal',
-      mpcRouter: 'router-ab-mpc-router-getsignal',
-    }),
-  }),
   'staging-testnet': Object.freeze({
     runtimeProfileKind: 'testnet_live_demo',
     serviceNames: Object.freeze({

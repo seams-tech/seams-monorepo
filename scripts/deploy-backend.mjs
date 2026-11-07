@@ -100,7 +100,6 @@ const PRIVATE_D1_DEPLOYMENTS = Object.freeze({
       'staging-testnet': '__STAGING_TESTNET_SIGNING_WORKER_PRIVATE_D1_ID__',
       'production-testnet': '__PRODUCTION_TESTNET_SIGNING_WORKER_PRIVATE_D1_ID__',
       'production-mainnet': '__PRODUCTION_MAINNET_SIGNING_WORKER_PRIVATE_D1_ID__',
-      'getsignal-testnet': '__GETSIGNAL_TESTNET_SIGNING_WORKER_PRIVATE_D1_ID__',
     }),
   }),
   'deriver-a': Object.freeze({
@@ -110,7 +109,6 @@ const PRIVATE_D1_DEPLOYMENTS = Object.freeze({
       'staging-testnet': '__STAGING_TESTNET_DERIVER_A_PRIVATE_D1_ID__',
       'production-testnet': '__PRODUCTION_TESTNET_DERIVER_A_PRIVATE_D1_ID__',
       'production-mainnet': '__PRODUCTION_MAINNET_DERIVER_A_PRIVATE_D1_ID__',
-      'getsignal-testnet': '__GETSIGNAL_TESTNET_DERIVER_A_PRIVATE_D1_ID__',
     }),
   }),
   'deriver-b': Object.freeze({
@@ -120,7 +118,6 @@ const PRIVATE_D1_DEPLOYMENTS = Object.freeze({
       'staging-testnet': '__STAGING_TESTNET_DERIVER_B_PRIVATE_D1_ID__',
       'production-testnet': '__PRODUCTION_TESTNET_DERIVER_B_PRIVATE_D1_ID__',
       'production-mainnet': '__PRODUCTION_MAINNET_DERIVER_B_PRIVATE_D1_ID__',
-      'getsignal-testnet': '__GETSIGNAL_TESTNET_DERIVER_B_PRIVATE_D1_ID__',
     }),
   }),
 });
@@ -179,9 +176,6 @@ async function main(args) {
     case 'build':
       buildBackend(lane, options.component);
       return;
-    case 'bootstrap':
-      await bootstrapCustomerBackend(lane);
-      return;
     case 'preflight':
       preflightBackend(lane, options.component);
       return;
@@ -218,9 +212,7 @@ function parseArguments(args) {
       `usage: deploy-backend.mjs <plan|build|preflight|migrate|deploy|smoke> --lane <lane>`,
     );
   }
-  if (
-    !['plan', 'build', 'bootstrap', 'preflight', 'migrate', 'deploy', 'smoke'].includes(operation)
-  ) {
+  if (!['plan', 'build', 'preflight', 'migrate', 'deploy', 'smoke'].includes(operation)) {
     throw new Error(
       'usage: deploy-backend.mjs <plan|build|preflight|migrate|deploy|smoke> --lane <lane>',
     );
@@ -232,15 +224,12 @@ function parseArguments(args) {
     if (!BACKEND_COMPONENTS.includes(options.component)) {
       throw new Error(`unknown component: ${options.component}`);
     }
-  } else if (['plan', 'build', 'migrate', 'smoke', 'bootstrap'].includes(operation)) {
+  } else if (['plan', 'build', 'migrate', 'smoke'].includes(operation)) {
     if (!['console', 'wallet-system'].includes(options.component)) {
       throw new Error(`--component must be console or wallet-system for ${operation}`);
     }
   } else if (options.component) {
     throw new Error('--component is not allowed for this operation');
-  }
-  if (operation === 'bootstrap' && options.component !== 'wallet-system') {
-    throw new Error('bootstrap requires --component wallet-system');
   }
   return options;
 }
@@ -274,10 +263,6 @@ function requireProvisionedLane(lane) {
     case 'pending':
       throw new Error(
         `lane ${lane.id} is pending provisioning; required values: ${lane.provisioning.requiredValues.join(', ')}`,
-      );
-    case 'allocated':
-      throw new Error(
-        `lane ${lane.id} has allocated resources; prepare its deployment keys before deployment`,
       );
     default:
       throw new Error(`Unsupported provisioning state for lane ${lane.id}`);
@@ -320,9 +305,6 @@ function printPlan(lane, component) {
     '',
     'Order:',
     '  1. build the Wallet-system artifacts once and require the lane branch',
-    ...(lane.kind === 'customer'
-      ? ['     bootstrap missing customer services and the Router-owned namespaces']
-      : []),
     `  2. migrate ${signerD1Names} (signer D1)`,
     '  3. migrate and deploy signing-worker, deriver-a, and deriver-b concurrently',
     '  4. deploy tenant-root-control-plane after the three workers',
@@ -348,11 +330,6 @@ function provisioningPlanLines(lane) {
         `Runtime profile: ${lane.provisioning.runtimeProfileKind}`,
         `Required values: ${lane.provisioning.requiredValues.join(', ')}`,
       ];
-    case 'allocated':
-      return [
-        'Provisioning: allocated; deployment keys pending',
-        `Runtime profile: ${lane.provisioning.runtimeProfileKind}`,
-      ];
     default:
       throw new Error(`Unsupported provisioning state for lane ${lane.id}`);
   }
@@ -362,8 +339,6 @@ function signerDatabaseNamesForProvisioning(provisioning) {
   switch (provisioning.kind) {
     case 'pending':
       return 'pending allocation';
-    case 'allocated':
-      return Object.values(provisioning.resources.regions).map(signerDatabaseName).join(', ');
     case 'provisioned':
       return Object.values(provisioning.gatewayDeploymentConfig.resources.regions)
         .map(signerDatabaseName)
@@ -418,12 +393,6 @@ function buildConsoleArtifact(lane) {
 
 function buildWalletSystemArtifacts(lane) {
   stageRouterRuntimeArtifact(lane);
-  if (lane.kind === 'customer') {
-    const bootstrap = writeCustomerRouterBootstrap(lane, RELEASE_ROUTER_ROOT);
-    runCommand('pnpm', ['exec', 'wrangler', 'deploy', '--dry-run', '--config', bootstrap], {
-      cwd: RELEASE_ROUTER_ROOT,
-    });
-  }
   runCommand('pnpm', ['-C', 'packages/wallet-console-server-ts', 'run', 'd1:local:ensure-wasm']);
   writeGatewayBuildConfig(lane.id);
   fs.mkdirSync(path.dirname(GATEWAY_BUNDLE), { recursive: true });
@@ -486,59 +455,6 @@ function stageRouterRuntimeArtifact(lane) {
   }
   fs.rmSync(RELEASE_ROUTER_ROOT, { recursive: true, force: true });
   fs.cpSync(PACKAGED_ROUTER_ROOT, RELEASE_ROUTER_ROOT, { recursive: true });
-  if (lane.kind === 'customer') stageCustomerRouterConfigurations(lane);
-}
-
-function stageCustomerRouterConfigurations(lane) {
-  for (const role of [
-    'router',
-    'deriverA',
-    'deriverB',
-    'signingWorker',
-    'tenantRootControlPlane',
-  ]) {
-    const resource = lane.resources[role];
-    const file = path.join(RELEASE_ROUTER_ROOT, path.basename(resource.configPath));
-    const source = fs.readFileSync(file, 'utf8');
-    const template = readWranglerWorkerSection(source, {
-      kind: 'named',
-      name: 'production-testnet',
-    });
-    const observability = template.indexOf('\n[observability]');
-    let customer = observability < 0 ? template : template.slice(0, observability);
-    customer = customer.replaceAll('env.production-testnet', `env.${lane.id}`);
-    for (const key of [
-      'router',
-      'deriverA',
-      'deriverB',
-      'signingWorker',
-      'tenantRootControlPlane',
-    ]) {
-      const templateName = readBackendLane('production-testnet').resources[key].workerName;
-      customer = customer.replaceAll(
-        `"${templateName}"`,
-        JSON.stringify(lane.resources[key].workerName),
-      );
-    }
-    customer = customer.replaceAll(
-      'router-ab-deriver-a-testnet-private',
-      'seams-private-getsignal-deriver-a',
-    );
-    customer = customer.replaceAll(
-      'router-ab-deriver-b-testnet-private',
-      'seams-private-getsignal-deriver-b',
-    );
-    customer = customer.replaceAll(
-      'router-ab-signing-worker-testnet-private',
-      'seams-private-getsignal-signing-worker',
-    );
-    customer = customer.replaceAll('__PRODUCTION_TESTNET_', '__GETSIGNAL_TESTNET_');
-    customer = customer.replaceAll(
-      '-testnet-tenant-root-managed-backup',
-      '-getsignal-tenant-root-managed-backup',
-    );
-    fs.writeFileSync(file, `${source.trimEnd()}\n\n${customer.trimEnd()}\n`);
-  }
 }
 
 function routerConfigPath(resource) {
@@ -878,10 +794,7 @@ function assertExpectedPrivateD1Binding(lane, component, section) {
   }[lane.id];
   const componentName =
     component === 'signing-worker' ? 'signing-worker' : `deriver-${component.slice(-1)}`;
-  const expectedDatabaseName =
-    lane.kind === 'customer'
-      ? `seams-private-getsignal-${componentName}`
-      : `router-ab-${componentName}${suffix}-private`;
+  const expectedDatabaseName = `router-ab-${componentName}${suffix}-private`;
   requireConfigLine(
     section,
     'database_name',
@@ -1656,113 +1569,6 @@ async function bootstrapRegionalGateways(resources) {
   }
 }
 
-async function bootstrapCustomerBackend(lane) {
-  if (lane.kind !== 'customer')
-    throw new Error('Fresh bootstrap requires an isolated customer lane');
-  const accountId = requireEnvironmentValue('CLOUDFLARE_ACCOUNT_ID');
-  const apiToken = requireEnvironmentValue('CLOUDFLARE_API_TOKEN');
-  const deployment = requireProvisionedLane(lane);
-  const names = [lane.console.workerName];
-  for (const role of ['deriverA', 'deriverB', 'signingWorker', 'tenantRootControlPlane']) {
-    names.push(lane.resources[role].workerName);
-  }
-  for (const resource of Object.values(deployment.resources.regions)) {
-    names.push(resource.workerName, resource.workerName.replace('gateway', 'wallet-runtime'));
-  }
-  for (const name of names) {
-    if (!(await workerScriptExists(accountId, apiToken, name))) deployInertWorker(name);
-  }
-  await bootstrapCustomerRouter(lane, accountId, apiToken);
-  for (const role of ['a', 'b']) {
-    const bucket = `router-ab-deriver-${role}-getsignal-tenant-root-managed-backup`;
-    const base = `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets`;
-    const headers = { authorization: `Bearer ${apiToken}`, 'content-type': 'application/json' };
-    const existing = await fetch(`${base}/${bucket}`, { headers, redirect: 'error' });
-    if (existing.ok) continue;
-    if (existing.status !== 404)
-      throw new Error(`R2 lookup failed for ${bucket}: HTTP ${existing.status}`);
-    const created = await fetch(base, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ name: bucket }),
-      redirect: 'error',
-    });
-    if (!created.ok) throw new Error(`R2 creation failed for ${bucket}: HTTP ${created.status}`);
-    process.stdout.write(`Created GetSignal encrypted backup bucket: ${bucket}\n`);
-  }
-}
-
-async function bootstrapCustomerRouter(lane, accountId, apiToken) {
-  const name = lane.resources.router.workerName;
-  const settingsUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${name}/settings`;
-  const response = await fetch(settingsUrl, {
-    headers: { authorization: `Bearer ${apiToken}` },
-    redirect: 'error',
-  });
-  const classes = ['RouterAbTenantRootCreationDurableObject', 'RouterAbRouterWalletDurableObject'];
-  if (response.ok) {
-    const settings = await response.json();
-    const bindings = settings?.result?.bindings;
-    if (
-      !Array.isArray(bindings) ||
-      !classes.every((className) =>
-        bindings.some(
-          (binding) =>
-            binding.type === 'durable_object_namespace' &&
-            binding.class_name === className &&
-            typeof binding.namespace_id === 'string' &&
-            !binding.script_name,
-        ),
-      )
-    ) {
-      throw new Error(
-        'Existing GetSignal Router does not own the expected Durable Object namespaces',
-      );
-    }
-    process.stdout.write('Preserved existing GetSignal Router namespaces\n');
-    return;
-  }
-  if (response.status !== 404)
-    throw new Error(`GetSignal Router lookup failed: HTTP ${response.status}`);
-  const config = writeCustomerRouterBootstrap(lane, ROUTER_ROOT);
-  runCommand('pnpm', ['exec', 'wrangler', 'deploy', '--config', config], { cwd: ROUTER_ROOT });
-}
-
-function writeCustomerRouterBootstrap(lane, root) {
-  const classes = ['RouterAbTenantRootCreationDurableObject', 'RouterAbRouterWalletDurableObject'];
-  const entry = path.join(root, '.bootstrap-getsignal-router.mjs');
-  const config = path.join(root, '.bootstrap-getsignal-router.jsonc');
-  fs.writeFileSync(
-    entry,
-    'export { RouterAbTenantRootCreationDurableObject, RouterAbRouterWalletDurableObject } from "./build/router/worker/shim.mjs";\n' +
-      'export default { fetch() { return new Response(null, { status: 503 }); } };\n',
-  );
-  fs.writeFileSync(
-    config,
-    JSON.stringify(
-      {
-        name: lane.resources.router.workerName,
-        main: entry,
-        compatibility_date: '2026-06-12',
-        workers_dev: false,
-        durable_objects: {
-          bindings: [
-            { name: 'ROUTER_TENANT_ROOT_CREATION_DO', class_name: classes[0] },
-            { name: 'ROUTER_WALLET_DO', class_name: classes[1] },
-          ],
-        },
-        migrations: [
-          { tag: 'router_ab_router_tenant_root_creation_v1', new_sqlite_classes: [classes[0]] },
-          { tag: 'router_ab_router_wallet_v1', new_sqlite_classes: [classes[1]] },
-        ],
-      },
-      null,
-      2,
-    ) + '\n',
-  );
-  return config;
-}
-
 async function workerScriptExists(accountId, apiToken, workerName) {
   const response = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/settings`,
@@ -1889,16 +1695,6 @@ function renderPrivateD1WorkerConfig(lane, resource, component) {
     requireEnvironmentValue(deployment.databaseIdEnvironment),
     deployment.databaseIdEnvironment,
   );
-  if (lane.kind === 'customer') {
-    const role = {
-      'deriver-a': 'deriverA',
-      'deriver-b': 'deriverB',
-      'signing-worker': 'signingWorker',
-    }[component];
-    if (databaseId !== lane.provisioning.privateRoles.databases[role].id) {
-      throw new Error(`${lane.id}/${component} private D1 differs from its verified allocation`);
-    }
-  }
   const source = fs.readFileSync(sourcePath, 'utf8');
   if (!source.includes(`database_id = "${placeholder}"`)) {
     throw new Error(`${sourcePath} is missing the ${lane.id} private D1 placeholder`);

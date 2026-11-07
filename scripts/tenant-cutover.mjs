@@ -67,13 +67,6 @@ async function requestGithubOidcToken() {
 async function run() {
   const options = parseArguments(process.argv.slice(2));
   const lane = readBackendLane(options.lane);
-  if (
-    lane.kind === 'customer' &&
-    options.kind === 'cutover' &&
-    options.body.environmentId !== lane.identity.environmentId
-  ) {
-    throw new Error('GetSignal activation requires its exact recorded project environment');
-  }
   const token = await requestGithubOidcToken();
   if (options.kind === 'verify_resource') {
     const result = await verifyTenantResourceChallenges(lane, token);

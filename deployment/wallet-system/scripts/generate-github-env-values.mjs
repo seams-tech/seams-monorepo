@@ -481,10 +481,6 @@ function assertProvisionedDeployment(identityId, provisioningKind) {
       throw new Error(
         `${identityId} is pending provisioning; generation and GitHub environment updates are blocked`,
       );
-    case 'allocated':
-      throw new Error(
-        `${identityId} requires a prepared deployment configuration before GitHub environment updates`,
-      );
     default:
       throw new Error('Unknown deployment provisioning state');
   }
@@ -579,53 +575,27 @@ function buildTargetConfiguration(targetName, suppliedValues) {
   const nearExplorerUrl =
     readSuppliedValue(suppliedValues, targetName, targetName, 'VITE_NEAR_EXPLORER') ||
     (nearNetwork === 'mainnet' ? 'https://nearblocks.io' : 'https://testnet.nearblocks.io');
-  const deriverAPrivateDatabaseId = privateDatabaseIdFromSource(
-    lane.provisioning.privateRoles,
-    'deriverA',
+  const deriverAPrivateDatabaseId =
     readSuppliedValue(
       suppliedValues,
       targetName,
       deriverAEnvironment,
       'ROUTER_AB_DERIVER_A_PRIVATE_D1_ID',
-    ),
-    `${identityPrefix}-deriver-a-private-d1-database-id`,
-  );
-  const deriverBPrivateDatabaseId = privateDatabaseIdFromSource(
-    lane.provisioning.privateRoles,
-    'deriverB',
+    ) || manual(`${identityPrefix}-deriver-a-private-d1-database-id`);
+  const deriverBPrivateDatabaseId =
     readSuppliedValue(
       suppliedValues,
       targetName,
       deriverBEnvironment,
       'ROUTER_AB_DERIVER_B_PRIVATE_D1_ID',
-    ),
-    `${identityPrefix}-deriver-b-private-d1-database-id`,
-  );
-  const signingWorkerPrivateDatabaseId = privateDatabaseIdFromSource(
-    lane.provisioning.privateRoles,
-    'signingWorker',
+    ) || manual(`${identityPrefix}-deriver-b-private-d1-database-id`);
+  const signingWorkerPrivateDatabaseId =
     readSuppliedValue(
       suppliedValues,
       targetName,
       signingWorkerEnvironment,
       'ROUTER_AB_SIGNING_WORKER_PRIVATE_D1_ID',
-    ),
-    `${identityPrefix}-signing-worker-private-d1-database-id`,
-  );
-  if (
-    lane.kind === 'customer' &&
-    (orgId !== checkedInTenant.orgId ||
-      projectId !== checkedInTenant.projectId ||
-      environmentId !== checkedInTenant.environmentId ||
-      tenantNamespace !== checkedInTenant.namespace ||
-      gatewayOrigin !== lane.gatewayOrigin ||
-      appOrigin !== lane.applicationOrigin ||
-      walletOrigin !== lane.walletOrigin)
-  ) {
-    throw new Error(
-      'GetSignal preparation must preserve its recorded project, account authority and origins',
-    );
-  }
+    ) || manual(`${identityPrefix}-signing-worker-private-d1-database-id`);
   return {
     suppliedValues,
     runtimeProfile,
@@ -673,45 +643,10 @@ function keyGenerationFoundation(lane) {
         emailOtpAcceptedWarmKeyVersions: config.emailOtpServerSeal.acceptedWarmKeyVersions,
       };
     }
-    case 'allocated':
-      return {
-        runtimeProfile: buildGatewayRuntimeProfile(
-          lane.provisioning.runtimeProfileKind,
-          lane.emailOtpDelivery.kind,
-        ),
-        origins: { gateway: lane.gatewayOrigin, allowedCors: lane.allowedOrigins },
-        tenant: {
-          namespace: lane.accountNamespace,
-          orgId: lane.identity.organizationId,
-          projectId: lane.identity.projectId,
-          environmentId: lane.identity.environmentId,
-        },
-        resources: lane.provisioning.resources,
-        nearRelayer: null,
-        ceremonyJwtKeyId: `router-ab-ceremony-${lane.id}-r1`,
-        signerSetId: `router-ab-${lane.id}-signers-r1`,
-        relaySessionIssuer: `seams-gateway-${lane.id}`,
-        emailOtpAcceptedWarmKeyVersions: [],
-      };
     case 'pending':
       throw new Error(`Allocate and verify ${lane.id} resources before preparing deployment keys`);
     default:
       throw new Error('Unknown deployment provisioning state');
-  }
-}
-
-function privateDatabaseIdFromSource(source, role, supplied, label) {
-  switch (source.kind) {
-    case 'recorded': {
-      const id = source.databases[role].id;
-      if (supplied && supplied !== id)
-        throw new Error(`Private database identity differs: ${role}`);
-      return id;
-    }
-    case 'operator_environment':
-      return supplied || manual(label);
-    default:
-      throw new Error('Unknown private database authority');
   }
 }
 
@@ -828,7 +763,7 @@ function buildDeploymentDigestPayload(output) {
 
 function buildEnvironments(input) {
   return Object.fromEntries([
-    ...(deploymentIdentity.lane.kind === 'customer' ? [] : [buildGeneralEnvironment(input)]),
+    buildGeneralEnvironment(input),
     buildGatewayEnvironment(input),
     buildMpcRouterEnvironment(input),
     buildDeriverAEnvironment(input),
@@ -1687,10 +1622,6 @@ function loadSuppliedValues(valuesFilePath) {
 }
 
 function findDefaultValuesFile(identity) {
-  if (identity.kind === 'lane' && identity.lane.kind === 'customer') {
-    const customerPath = join(homedir(), '.seams', `${identity.id}-deployment.env`);
-    return existsSync(customerPath) ? customerPath : undefined;
-  }
   const fileName =
     identity.kind === 'lane' && identity.id === 'production-testnet'
       ? 'production-testnet-deployment.env'
@@ -1712,7 +1643,6 @@ function loadValuesFile(valuesFilePath) {
 
 async function discoverCloudflareValues(lane, environmentPrefix, suppliedValues, progressLogger) {
   const accountId = discoverCloudflareAccountId(environmentPrefix, suppliedValues, progressLogger);
-  if (lane.kind === 'customer') return;
   ensureD1Database({
     environmentPrefix,
     suppliedValues,
@@ -2077,7 +2007,7 @@ function assertCompleteApplyInput(outputDocument, shouldApply, incompleteAllowed
 
 function validateOutput(outputDocument) {
   const expectedEnvironmentNames = [
-    ...(deploymentIdentity.lane.kind === 'customer' ? [] : [outputDocument.environmentPrefix]),
+    outputDocument.environmentPrefix,
     `${outputDocument.environmentPrefix}-gateway`,
     `${outputDocument.environmentPrefix}-mpc-router`,
     `${outputDocument.environmentPrefix}-deriver-a`,
@@ -2187,9 +2117,7 @@ function collectWorkflowRequirements(workflowSource) {
   const secrets = new Set();
   const referencePattern = /\b(vars|secrets)\.([A-Z][A-Z0-9_]*)/g;
   for (const match of workflowSource.matchAll(referencePattern)) {
-    const name =
-      deploymentIdentity.lane.kind === 'customer' ? match[2].replace(/^GETSIGNAL_/u, '') : match[2];
-    (match[1] === 'vars' ? variables : secrets).add(name);
+    (match[1] === 'vars' ? variables : secrets).add(match[2]);
   }
   return { variables, secrets };
 }
@@ -2433,7 +2361,6 @@ function validateSigningSessionConsistency(outputDocument) {
   if (!gateway.secrets.SIGNING_SESSION_SEAL_ROOT_SECRET_B64U) {
     throw new Error('Gateway signing-session seal root secret is missing');
   }
-  if (deploymentIdentity.lane.kind === 'customer') return;
   for (const name of [
     'VITE_SIGNING_SESSION_SEAL_KEY_VERSION',
     'VITE_SIGNING_SESSION_SHAMIR_P_B64U',

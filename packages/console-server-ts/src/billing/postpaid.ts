@@ -164,6 +164,172 @@ export async function approveCreditLimit(
   return readBillingPaymentPolicy(runtime.database, runtime.namespace, approval.orgId);
 }
 
+/** Plan 88 D12: the one credit limit that a billing manager may grant without support. */
+export const SATYR_SELF_SERVE_CREDIT_LIMIT = Object.freeze({
+  creditLimitMinor: 1000,
+  actorUserId: 'system:satyr-self-serve-paid-use',
+  reason: 'satyr_self_serve_paid_use',
+} as const);
+
+export class SatyrPaidUseRequest {
+  private constructor(readonly operationId: string) {
+    this.seal();
+  }
+
+  private seal(): void {
+    Object.freeze(this);
+  }
+
+  static parse(input: unknown): SatyrPaidUseRequest {
+    try {
+      const row = object(input, 'Satyr paid use request');
+      exactKeys(row, ['operationId']);
+      return new SatyrPaidUseRequest(textValue(row.operationId, 'operationId'));
+    } catch (error: unknown) {
+      throw new ConsoleBillingError(
+        'invalid_satyr_paid_use',
+        400,
+        error instanceof Error ? error.message : 'Satyr paid use request is invalid',
+      );
+    }
+  }
+}
+
+export type SatyrPaidUseResult = {
+  readonly outcome:
+    | 'converted'
+    | 'already_converted'
+    | 'existing_postpaid_kept'
+    | 'prepaid_credit_kept';
+  readonly policy: BillingPaymentPolicy;
+};
+
+/**
+ * Turns on Satyr paid use with postpaid billing. A prepaid account with no credit left,
+ * no unsettled obligations and a usable card becomes postpaid with the self-serve limit.
+ * An existing postpaid limit and a prepaid account with credit left never change.
+ */
+export async function enableSatyrSelfServePostpaid(
+  runtime: ConsoleBillingD1Runtime,
+  orgId: string,
+  request: SatyrPaidUseRequest,
+): Promise<SatyrPaidUseResult> {
+  const limit = SATYR_SELF_SERVE_CREDIT_LIMIT;
+  const recorded = await queryD1One(
+    runtime.database,
+    'SELECT * FROM billing_credit_limit_changes WHERE namespace=? AND operation_id=?',
+    [runtime.namespace, request.operationId],
+  );
+  if (recorded) return selfServeReplay(runtime, orgId, recorded);
+  const satyr = await queryD1One(
+    runtime.database,
+    `SELECT 1 AS enabled FROM platform_service_instances WHERE namespace=? AND org_id=? AND service_id='satyr'
+      AND phase='active' AND desired_state='enabled'`,
+    [runtime.namespace, orgId],
+  );
+  if (!satyr)
+    throw new ConsoleBillingError(
+      'satyr_service_required',
+      409,
+      'Satyr paid use needs an enabled Satyr service on the account',
+    );
+  const current = await readBillingPaymentPolicy(runtime.database, runtime.namespace, orgId);
+  if (current.kind === 'postpaid') return { outcome: 'existing_postpaid_kept', policy: current };
+  const prepaid = await queryD1One(
+    runtime.database,
+    `SELECT COALESCE(SUM(CASE direction WHEN 'CREDIT' THEN amount_minor ELSE -amount_minor END), 0) AS balance
+      FROM billing_ledger_postings WHERE namespace=? AND org_id=? AND account_code='org_prepaid_liability'`,
+    [runtime.namespace, orgId],
+  );
+  if (Number(prepaid?.balance) > 0) return { outcome: 'prepaid_credit_kept', policy: current };
+  const plan = await queryD1One(
+    runtime.database,
+    'SELECT plan FROM billing_account_plans WHERE namespace=? AND org_id=?',
+    [runtime.namespace, orgId],
+  );
+  if (plan?.plan === 'enterprise')
+    throw new ConsoleBillingError(
+      'postpaid_contract_required',
+      409,
+      'Enterprise postpaid billing requires configured contract pricing',
+    );
+  const nowMs = runtime.now().getTime();
+  try {
+    await runtime.database.batch([
+      runtime.database
+        .prepare(
+          `INSERT INTO billing_credit_limit_changes(namespace,org_id,operation_id,credit_limit_minor,actor_user_id,reason,created_at_ms)
+        VALUES(?,?,?,?,?,?,?)`,
+        )
+        .bind(
+          runtime.namespace,
+          orgId,
+          request.operationId,
+          limit.creditLimitMinor,
+          limit.actorUserId,
+          limit.reason,
+          nowMs,
+        ),
+      // Only a prepaid account converts, so a limit that support set never changes here.
+      runtime.database
+        .prepare(
+          `UPDATE billing_payment_policies SET payment_model='postpaid', credit_limit_minor=?, approved_by=?, approved_at_ms=?
+        WHERE namespace=? AND org_id=? AND payment_model='prepaid'`,
+        )
+        .bind(limit.creditLimitMinor, limit.actorUserId, nowMs, runtime.namespace, orgId),
+      runtime.database.prepare(
+        'INSERT INTO billing_funds_transition_checks (valid) VALUES (changes() = 1)',
+      ),
+      runtime.database.prepare('DELETE FROM billing_funds_transition_checks'),
+    ]);
+  } catch (error) {
+    const raced = await queryD1One(
+      runtime.database,
+      'SELECT * FROM billing_credit_limit_changes WHERE namespace=? AND operation_id=?',
+      [runtime.namespace, request.operationId],
+    );
+    if (raced) return selfServeReplay(runtime, orgId, raced);
+    if (String(error).includes('postpaid_conversion_ineligible'))
+      throw new ConsoleBillingError(
+        'postpaid_conversion_ineligible',
+        409,
+        'Postpaid needs a usable card, zero prepaid balance, and no unsettled obligations',
+      );
+    if (String(error).includes('funds_operation_conflict')) {
+      const latest = await readBillingPaymentPolicy(runtime.database, runtime.namespace, orgId);
+      if (latest.kind === 'postpaid') return { outcome: 'existing_postpaid_kept', policy: latest };
+    }
+    throw error;
+  }
+  return {
+    outcome: 'converted',
+    policy: await readBillingPaymentPolicy(runtime.database, runtime.namespace, orgId),
+  };
+}
+
+async function selfServeReplay(
+  runtime: ConsoleBillingD1Runtime,
+  orgId: string,
+  change: import('../boundary/d1').D1Row,
+): Promise<SatyrPaidUseResult> {
+  const limit = SATYR_SELF_SERVE_CREDIT_LIMIT;
+  if (
+    change.org_id !== orgId ||
+    change.credit_limit_minor !== limit.creditLimitMinor ||
+    change.actor_user_id !== limit.actorUserId ||
+    change.reason !== limit.reason
+  )
+    throw new ConsoleBillingError(
+      'credit_approval_conflict',
+      409,
+      'The operation already has different values',
+    );
+  return {
+    outcome: 'already_converted',
+    policy: await readBillingPaymentPolicy(runtime.database, runtime.namespace, orgId),
+  };
+}
+
 export async function getPostpaidAccount(runtime: ConsoleBillingD1Runtime, orgId: string) {
   const payer = await queryD1One(
     runtime.database,

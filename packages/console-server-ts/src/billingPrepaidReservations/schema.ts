@@ -60,7 +60,7 @@ export const BILLING_FUNDS_D1_SCHEMA_SQL = Object.freeze([
     project_id TEXT NOT NULL,
     billing_account_id TEXT NOT NULL,
     instance_id TEXT NOT NULL,
-    meter_id TEXT NOT NULL CHECK (meter_id IN ('wallet.execution', 'satyr.completed_turn.test')),
+    meter_id TEXT NOT NULL CHECK (meter_id IN ('wallet.execution', 'satyr.completed_turn.test', 'satyr.jev_input_tokens')),
     execution_id TEXT NOT NULL,
     ledger_entry_id TEXT,
     source_event_id TEXT NOT NULL,

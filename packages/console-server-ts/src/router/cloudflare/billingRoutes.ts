@@ -3,8 +3,11 @@ import { reconcileInvoiceEvent } from '../../billing/invoiceRecovery';
 import {
   approveCreditLimit,
   CreditLimitApproval,
+  enableSatyrSelfServePostpaid,
   getPostpaidAccount,
   requestFreeDowngrade,
+  SATYR_SELF_SERVE_CREDIT_LIMIT,
+  SatyrPaidUseRequest,
 } from '../../billing/postpaid';
 import { runD1ConsoleBillingMonthlyFinalization } from '../../billing/d1';
 import type { ConsoleBillingService, ConsoleBillingContext } from '../../billing/service';
@@ -165,6 +168,7 @@ function isSharedBillingPath(pathname: string): boolean {
     pathname === '/console/billing/plan/free' ||
     pathname === '/console/billing/plan' ||
     pathname === '/console/billing/plan/start' ||
+    pathname === '/console/billing/satyr-paid-use/postpaid' ||
     pathname === '/console/billing/card-setup' ||
     pathname === '/console/billing/card-setup/reconcile'
   );
@@ -435,6 +439,27 @@ export async function handleConsoleBillingRoutes(
         });
       }
       return json({ ok: true, account: await getPostpaidAccount(runtime, billingCtx.orgId) });
+    }
+    if (ctx.pathname === '/console/billing/satyr-paid-use/postpaid' && ctx.method === 'POST') {
+      const policy = requireConsoleRoutePolicy(ctx, auth.claims);
+      if (policy) return policy;
+      const runtime = getConsoleBillingD1Runtime(billing);
+      if (!runtime) return json({ ok: false, code: 'billing_not_configured' }, { status: 503 });
+      const request = SatyrPaidUseRequest.parse(await readJson(ctx.request));
+      const result = await enableSatyrSelfServePostpaid(runtime, billingCtx.orgId, request);
+      if (result.outcome === 'converted')
+        await emitConsoleAuditEvent(ctx, auth.claims, {
+          category: 'BILLING',
+          action: 'billing.credit_limit.self_serve',
+          summary: 'Turned on Satyr paid use with the self-serve postpaid credit limit',
+          metadata: {
+            orgId: billingCtx.orgId,
+            creditLimitMinor: SATYR_SELF_SERVE_CREDIT_LIMIT.creditLimitMinor,
+            reason: SATYR_SELF_SERVE_CREDIT_LIMIT.reason,
+            operationId: request.operationId,
+          },
+        });
+      return json({ ok: true, ...result });
     }
     if (ctx.pathname === '/console/billing/plan/free' && ctx.method === 'POST') {
       const policy = requireConsoleRoutePolicy(ctx, auth.claims);

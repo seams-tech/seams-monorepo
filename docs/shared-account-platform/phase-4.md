@@ -292,6 +292,12 @@ and the accepted model route's funding selection and digest.
 Customer funding selections remain OpenAI key, Anthropic key, Claude OAuth, or Codex subscription.
 Platform funding remains `satyr_platform`.
 
+The Satyr catalogue also lists `satyr.jev_input_tokens` (Plan 88). Each record holds the
+input tokens of one Jev feature for one UTC hour, on Satyr's key only. Its price version
+`satyr-jev-input-tokens-v1` is also available only to isolated test accounts. The fee
+policy above does not change: it covers completed turns, not Jev use. See
+`docs/feat-3-platform-billing.md` for the price, the rounding, and the reservation rule.
+
 ## Configuration and restart procedure
 
 Inbound account configuration is explicit:

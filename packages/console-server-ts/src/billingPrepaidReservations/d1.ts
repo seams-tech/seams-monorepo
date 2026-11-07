@@ -24,6 +24,7 @@ import type { ConsoleBillingService } from '../billing/service';
 import {
   BILLING_EXECUTION_PRICE_ELIGIBILITY_SQL,
   billingExecutionPriceEligibilityBindings,
+  billingFundsMeterId,
   isRegisteredBillingPriceAvailable,
   registerWalletExecutionPriceVersion,
 } from '../billing/pricing';
@@ -170,7 +171,11 @@ function reservationOf(row: D1Row): FundsReservationV1 {
 }
 
 function chargeOf(row: D1Row): ExecutionChargeV1 {
-  if (row.meter_id !== 'wallet.execution' && row.meter_id !== 'satyr.completed_turn.test')
+  if (
+    row.meter_id !== 'wallet.execution' &&
+    row.meter_id !== 'satyr.completed_turn.test' &&
+    row.meter_id !== 'satyr.jev_input_tokens'
+  )
     throw new Error('Invalid execution meter');
   if (row.terminal_outcome !== 'settled' && row.terminal_outcome !== 'released')
     throw new Error('Invalid execution outcome');
@@ -376,8 +381,7 @@ export class D1ConsoleBillingPrepaidReservationService implements ConsoleBilling
     );
     if (instance.kind === 'rejected') return rejected('scope_forbidden');
     const scope = instance.value.scope;
-    const meterId =
-      authority.serviceId === 'wallet' ? 'wallet.execution' : 'satyr.completed_turn.test';
+    const meterId = billingFundsMeterId(authority.serviceId, request.priceVersion);
     if (authority.serviceId === 'wallet')
       await registerWalletExecutionPriceVersion(this.runtime.database, request.priceVersion);
     const priceInput = {
@@ -608,8 +612,15 @@ export class D1ConsoleBillingPrepaidReservationService implements ConsoleBilling
       outcome.kind === 'settled'
         ? outcome.priceVersion
         : textValue(row.price_version, 'price_version');
-    const meterId =
-      authority.serviceId === 'wallet' ? 'wallet.execution' : 'satyr.completed_turn.test';
+    const meterId = billingFundsMeterId(
+      authority.serviceId,
+      textValue(row.price_version, 'price_version'),
+    );
+    if (
+      outcome.kind === 'settled' &&
+      billingFundsMeterId(authority.serviceId, priceVersion) !== meterId
+    )
+      return rejected('operation_conflict');
     const priceAmount =
       outcome.kind === 'settled' ? amount : integer(row.requested_minor, 'requested_minor', 0);
     if (authority.serviceId === 'wallet' && outcome.kind === 'settled')

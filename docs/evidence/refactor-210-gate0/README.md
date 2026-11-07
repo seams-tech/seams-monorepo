@@ -215,7 +215,15 @@ key `1f704027…35e3`. Attestation:
 ReDimNet hash)`; measured `compose-hash` `8429e4c7…1bab` equals the
   platform's, and that compose pins the image digest; `os-image-hash` equals
   production `dstack-0.6.1`; `dev` is false.
-- Not checked: Intel's DCAP signature on the quote.
+- DCAP: the quote verifies against Intel's PCS collateral
+  (`api.trustedservices.intel.com`, not Phala's PCCS) with `dcap-qvl` 0.7.1:
+  TCB status `UpToDate`, no advisories, `td_attributes` debug bit 0
+  (2026-11-07).
+- Limit: dstack derives the service key per app ID, not per compose hash. The
+  owner of the Phala app (the Seams Phala account) can deploy a new compose
+  file and keep the same key, so the pinned key does not pin the code. An
+  on-chain KMS with an allowlist of compose hashes (`--kms ethereum` or
+  `base`) would close this; the default Phala KMS does not.
 - The first deployment got `dstack-dev-0.5.12`, which has no `/v1` guest API.
   Its container restarted in a loop, and it was deleted.
 
@@ -436,3 +444,28 @@ Found and fixed during the run:
 Open items: owner-authorized enrollment; the 1.1 s of storage could overlap
 the parallel calls; the vault transaction waits for three receipts; the
 Phala CVM is stopped after the run.
+
+### Second run: owner-authorized enrollment and overlapped storage (2026-11-07)
+
+Verifier version `1e79327b0afa2a0f026aee519bd0d1801272e21cb21205d31788e4d1452231f0`
+(314 KB; storage reads overlap the network calls; `enroll` needs a pending
+digest that the owner set with `authorize_enrollment`, read over FastNEAR RPC;
+spoken-intent slot rules). The vault code on `seams-wallet.testnet` was
+upgraded in place; its balance and nonce were kept.
+
+- Enrollment: `authorize_enrollment`
+  ([GvQiiEg8…](https://testnet.nearblocks.io/txns/GvQiiEg8fsAcS8D5A5y2qFM6VE9UMpN8j6hkMJdF2xTU),
+  final in 3.8 s), then `enroll` (8.2 s client wall, three Phala calls).
+- Payment "Send 0.1 NEAR to seams dash v1 dot testnet." (4.14 s of speech)
+  ([4RMXYX1X…](https://testnet.nearblocks.io/txns/4RMXYX1XkCdKJAWf4atVh9zS2kb5oJWC1K63GpoUNpTH)):
+
+| Stage                           | First demo   | Second run                                |
+| ------------------------------- | ------------ | ----------------------------------------- |
+| Worker total                    | 2,682 ms     | 1,884 ms (storage 811 ms inside the wait) |
+| Speaker round trip              | 1,388 ms     | 1,712 ms (ReDimNet 666 ms)                |
+| Verify over HTTPS               | 5,668 ms     | 5,342 ms                                  |
+| Vault accepted / settled        | — / 3,534 ms | 3,391 / 3,854 ms                          |
+| End of speech to vault accepted | —            | 8,734 ms                                  |
+
+- `say` rounds rates: 140 equals 150 and 110 equals 120, so a retry needs a
+  rate that gives a new clip.

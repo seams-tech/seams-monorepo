@@ -18,6 +18,42 @@ These concepts check the voice for each transfer. For this hackathon, the
 user set aside the 2026-11-04 decision (a VoiceID unlock opens a session with
 no voice check for each transaction). That decision still applies to releases.
 
+## 0. Current design (2026-11-07)
+
+Gate 0 and the 10 s latency rule changed the design. This section replaces
+the on-chain flow in Sections 1, 3, 4.5–4.6 and 7.2–7.4 where they differ.
+Those sections stay as the record of the first design.
+
+- **Path.** The Wallet calls the verifier through OutLayer's HTTPS API
+  (`POST /call/seams-v1.testnet/voice-verifier`, payment key, `version_key`,
+  `secrets_ref`). The audio travels inside the request. There is no
+  `request_execution`, no yield and no blob relay. The on-chain path took
+  25–35 s (Section 11.5).
+- **Verifier.** A 302 KB OutLayer worker without `tract`. It calls the Phala
+  speaker service (ReDimNet in a dstack CVM, signed embeddings, pinned key)
+  and NEAR AI Whisper large-v3 at the same time. It compares the embedding
+  with the template in OutLayer storage (cutoff 0.45), checks the words with
+  `spoken_intent::normalize_punctuated` against `render` of the request, and
+  marks the audio digest used. It returns a verdict signed with a
+  project-bound signing key.
+- **Vault.** One transaction, `transfer_with_verdict`. The vault rebuilds the
+  request digest from its state and the arguments, checks the signature
+  against the verifier key that it pinned at init, the nonce, the contact,
+  the limits and audio reuse, and pays.
+- **What OutLayer still adds.** The TEE run of pinned code, its storage of
+  the template and used audio, its signing key, and the secret for NEAR AI.
+  This meets the hackathon rule. Yield/resume is no longer used; the spoken
+  multisig (Section 5) would need it again.
+- **New trusted parties.** NEAR AI's gateway for the transcript
+  (transcriptions carry no signature), Phala's dstack KMS and gateway for
+  the speaker embedding, and the project owner, who can deploy a version
+  that signs with the project-bound key. The Phala app owner can also change
+  the speaker service code without changing its pinned key, because dstack
+  derives the key per app, not per compose hash.
+- **Measured** (testnet, [evidence](evidence/refactor-210-gate0/README.md)):
+  end of speech to receipt 9.2 s; verification 5.7 s; vault transaction
+  3.5 s. All six refusal cases held.
+
 ## 1. Result
 
 - Both concepts put the decision in a NEAR contract. The contract sends the

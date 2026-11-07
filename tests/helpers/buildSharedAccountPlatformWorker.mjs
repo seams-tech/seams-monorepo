@@ -6,7 +6,10 @@ import { unstable_splitSqlQuery } from 'wrangler';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const directory = path.join(repository, 'packages/console-server-ts/migrations/d1-console-core');
-const output = path.join(repository, '.artifacts/shared-account-platform/account-worker/index.mjs');
+// An optional first argument names another output file, for a consumer outside this checkout.
+const output = process.argv[2]
+  ? path.resolve(process.argv[2])
+  : path.join(repository, '.artifacts/shared-account-platform/account-worker/index.mjs');
 const migrations = [];
 for (const name of (await readdir(directory)).sort()) {
   if (!name.endsWith('.sql')) continue;

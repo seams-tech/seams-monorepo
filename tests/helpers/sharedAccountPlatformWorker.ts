@@ -716,6 +716,14 @@ class AccountWorkerFixture {
       note: 'Isolated composed Satyr and account acceptance',
       idempotencyKey: 'shared-account-e2e-funding',
     });
+    // Free, Growth and Pro bill Wallet by MAU. This account keeps the fixed resource
+    // contract, so the Wallet usage mutation records a resource charge.
+    await this.bindings.ACCOUNT_DB.prepare(
+      `UPDATE billing_account_plans SET plan='enterprise', plan_started_at_ms=?, price_version='wallet-monthly-active-resource-v1'
+      WHERE namespace=? AND org_id=?`,
+    )
+      .bind(Date.now(), namespace, primaryOrgId)
+      .run();
     const deliveries = await this.core.accountPlatform.pendingProvision(satyr, 100);
     const envelopes: Record<string, unknown> = {};
     for (const delivery of deliveries) {

@@ -26,8 +26,8 @@ use std::io::{BufRead, BufWriter, Write};
 use anyhow::{Context, Result};
 use serde_json::{json, Value};
 use spoken_intent::{
-    normalize, parse_transfer, phonetic_key, render, NearAmount, Network, ParseResult,
-    SpokenAccount, SpokenRequestV1,
+    normalize, normalize_punctuated, parse_transfer, phonetic_key, render, NearAmount, Network,
+    ParseResult, PunctuatedRefusal, SpokenAccount, SpokenRequestV1,
 };
 
 fn join(words: &[&str]) -> String {
@@ -528,6 +528,146 @@ pub fn run2(corpus_path: &str, cases_path: &str, heard_path: &str, out_path: &st
     }
     out.flush()?;
     println!("rulew2: {rows} rows");
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Rule W2 from the crate
+//
+// ```text
+// txg-text rulecrate <corpus.json> <cases.jsonl> <heard.jsonl> <out.jsonl>
+// ```
+//
+// The shipped text step: `spoken_intent::normalize_punctuated` with the valid
+// vault of `vault_for` (transfers) or no contacts (multisig approvals), then
+// `parse_transfer` and `render` (transfers) or word equality (approvals).
+// Each row also carries the Rule W2 decision of `rule_w2` above, so the two
+// can be compared case by case. The expected text is the corpus `spoken`
+// text, as the audio was made from it.
+
+fn rule_crate(heard: &str, expected: &str, is_transfer: bool, vault: &[SpokenAccount]) -> Decision {
+    let contacts: &[SpokenAccount] = if is_transfer { vault } else { &[] };
+    let tokens = match normalize_punctuated(heard, contacts) {
+        Ok(tokens) => tokens,
+        Err(refusal) => {
+            let stage = match refusal {
+                PunctuatedRefusal::NotNormalizable => "normalize",
+                PunctuatedRefusal::RecipientUnkeyable => "recipient_unkeyable",
+                PunctuatedRefusal::RecipientNotContact => "recipient_no_key_match",
+                PunctuatedRefusal::RecipientAmbiguous => "recipient_ambiguous",
+            };
+            let recipient = heard.to_lowercase().split_once(" to ").map(|(_, rest)| rest.to_owned());
+            return Decision {
+                accepted: false,
+                stage,
+                detail: json!({"cleaned": heard.to_lowercase(), "recipient": recipient, "refusal": format!("{refusal:?}")}),
+            };
+        }
+    };
+    let normalized = tokens.iter().map(|t| t.as_str()).collect::<Vec<_>>().join(" ");
+    let mut detail = json!({"normalized": normalized});
+    if !is_transfer {
+        let accepted = normalized == expected;
+        return Decision { accepted, stage: if accepted { "accepted" } else { "words" }, detail };
+    }
+    match parse_transfer(&tokens, vault) {
+        ParseResult::Transfer(p) => {
+            let rendered = render(&SpokenRequestV1::VaultTransfer {
+                network: Network::Testnet,
+                vault: SpokenAccount::new("vault.testnet").unwrap(),
+                owner: SpokenAccount::new("owner.testnet").unwrap(),
+                receiver: p.receiver.clone(),
+                amount: p.amount,
+                nonce: 0,
+            })
+            .spoken_text;
+            let accepted = rendered == expected;
+            detail["rendered"] = json!(rendered);
+            detail["parsedReceiver"] = json!(p.receiver.as_str());
+            detail["parsedHundredths"] = json!(p.amount.hundredths());
+            Decision { accepted, stage: if accepted { "accepted" } else { "render_differs" }, detail }
+        }
+        ParseResult::Refused(reason) => {
+            detail["parseRefusal"] = json!(format!("{reason:?}"));
+            Decision { accepted: false, stage: "parse", detail }
+        }
+    }
+}
+
+pub fn run_crate(corpus_path: &str, cases_path: &str, heard_path: &str, out_path: &str) -> Result<()> {
+    let corpus: Value = serde_json::from_slice(&std::fs::read(corpus_path)?)?;
+    let contacts: Vec<Contact> = corpus["contacts"]
+        .as_array()
+        .context("contacts")?
+        .iter()
+        .map(|c| {
+            let a = SpokenAccount::new(c.as_str().unwrap()).expect("speakable contact");
+            let words: Vec<String> = normalize(a.as_str()).unwrap().iter().map(|t| t.as_str().to_owned()).collect();
+            Contact { key: phonetic_key(&a).as_str().to_owned(), account: a, words }
+        })
+        .collect();
+    let index_of: HashMap<&str, usize> = contacts.iter().enumerate().map(|(i, c)| (c.account.as_str(), i)).collect();
+    let by_words: HashMap<String, usize> = contacts.iter().enumerate().map(|(i, c)| (c.words.join(" "), i)).collect();
+    let requests: HashMap<String, &Value> =
+        corpus["requests"].as_array().context("requests")?.iter().map(|r| (r["id"].as_str().unwrap().to_owned(), r)).collect();
+    let mut heard: HashMap<String, Value> = HashMap::new();
+    for line in std::io::BufReader::new(std::fs::File::open(heard_path)?).lines() {
+        let row: Value = serde_json::from_str(&line?)?;
+        heard.insert(row["caseId"].as_str().context("caseId")?.to_owned(), row);
+    }
+    let mut out = BufWriter::new(std::fs::File::create(out_path)?);
+    let (mut rows, mut differ) = (0usize, 0usize);
+    for line in std::io::BufReader::new(std::fs::File::open(cases_path)?).lines() {
+        let case: Value = serde_json::from_str(&line?)?;
+        let case_id = case["caseId"].as_str().context("caseId")?;
+        let request_id = case["requestId"].as_str().context("requestId")?;
+        let request = requests.get(request_id).context("request")?;
+        let expected = request["spoken"].as_str().context("spoken")?;
+        let receiver = request["receiver"].as_str().map(|a| *index_of.get(a).expect("receiver is a contact"));
+        let is_transfer = request_id.starts_with('t');
+        let vault: Vec<&Contact> = match receiver {
+            Some(rc) if is_transfer => vault_for(rc, &contacts).into_iter().map(|i| &contacts[i]).collect(),
+            _ => contacts.iter().collect(),
+        };
+        let vault_accounts: Vec<SpokenAccount> = vault.iter().map(|c| c.account.clone()).collect();
+        let audio_text = case["text"].as_str().unwrap_or_default();
+        let mut row = json!({
+            "caseId": case_id, "requestId": request_id, "role": case["role"], "missKind": case["missKind"],
+            "voice": case["voice"], "rate": case["rate"], "audioText": audio_text, "expected": expected,
+            "requestKindDetail": request["kind"],
+        });
+        if let (true, Some(rc)) = (is_transfer, receiver) {
+            let audio_rec = audio_text.split_once(" to ").and_then(|(_, rest)| by_words.get(rest).copied());
+            row["receiver"] = json!(contacts[rc].account.as_str());
+            row["audioRecipient"] = json!(audio_rec.map(|i| contacts[i].account.as_str()));
+            row["audioNamesConfusableOfReceiver"] = json!(audio_rec.is_some_and(|i| i != rc
+                && phonetic_key(&contacts[i].account).is_confusable_with(&phonetic_key(&contacts[rc].account))));
+            row["expectedHundredths"] = request["amountHundredths"].clone();
+        }
+        match heard.get(case_id) {
+            None => row["error"] = json!("no transcript"),
+            Some(h) if h.get("error").is_some() => row["error"] = h["error"].clone(),
+            Some(h) => {
+                let text = h["heard"].as_str().unwrap_or_default();
+                row["heard"] = json!(text);
+                let plain = normalize(text).map(|t| t.iter().map(|w| w.as_str()).collect::<Vec<_>>().join(" "));
+                row["ruleA"] = json!(plain.as_deref() == Some(expected));
+                let w2 = rule_w2(text, expected, is_transfer, &vault);
+                let c = rule_crate(text, expected, is_transfer, &vault_accounts);
+                row["ruleW2"] = json!(w2.accepted);
+                row["ruleW2Detail"] = w2.detail;
+                row["ruleCrate"] = json!(c.accepted);
+                row["stage"] = json!(c.stage);
+                row["detail"] = c.detail;
+                differ += usize::from(w2.accepted != c.accepted);
+            }
+        }
+        serde_json::to_writer(&mut out, &row)?;
+        out.write_all(b"\n")?;
+        rows += 1;
+    }
+    out.flush()?;
+    println!("rulecrate: {rows} rows, {differ} decisions differ from rule_w2");
     Ok(())
 }
 

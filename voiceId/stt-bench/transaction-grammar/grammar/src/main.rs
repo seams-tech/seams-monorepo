@@ -35,6 +35,7 @@ fn main() -> Result<()> {
         Some("decide") if args.len() == 5 => decide(&args[2], &args[3], &args[4]),
         Some("rulew") if args.len() == 6 => rulew::run(&args[2], &args[3], &args[4], &args[5]),
         Some("rulew2") if args.len() == 7 => rulew::run2(&args[2], &args[3], &args[4], &args[5], &args[6]),
+        Some("rulecrate") if args.len() == 6 => rulew::run_crate(&args[2], &args[3], &args[4], &args[5]),
         _ => bail!("usage: txg-text corpus <seed> <out.json> | txg-text decide <corpus.json> <scores.jsonl> <out.jsonl> | txg-text rulew <corpus.json> <cases.jsonl> <heard.jsonl> <out.jsonl>"),
     }
 }

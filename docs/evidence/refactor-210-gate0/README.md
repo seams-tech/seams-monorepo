@@ -161,6 +161,106 @@ Records: [`tee-verify.jsonl`](tee-verify.jsonl).
   instructions for 4 s. ReDimNet as an NNEF archive fails `tract`'s declutter
   pass again when it loads with `into_optimized`.
 
+## HTTPS path latency (2026-11-07)
+
+The user chose OutLayer's HTTPS API, which skips the on-chain queue, and set a
+rule: the whole Speak-to-Sign experience must take at most 10 s. Calls go to
+`https://testnet-api.outlayer.ai/call/seams-v1.testnet/voice-probe` with a
+payment key, `version_key` and `secrets_ref`. Each input carries a 3.5 s WAV.
+
+Fixed cost of the worker (no NEAR AI call):
+
+| Worker                                    | OutLayer `time_ms` | Client wall time | Guest work |
+| ----------------------------------------- | ------------------ | ---------------- | ---------- |
+| Full, 8,225,899 bytes (`tract`, ReDimNet) | 14,243             | 20,144           | 880 ms     |
+| Tiny, 205,618 bytes (no `tract`)          | 452–464            | 2,876–5,688      | 9 ms       |
+
+The fixed cost comes from the large `tract` worker, not from the HTTPS path.
+ReDimNet inside the worker cannot meet the rule.
+
+20 runs of the tiny worker with the real Whisper call to NEAR AI and an
+ed25519 signature (records: [`https-latency-tiny.jsonl`](https-latency-tiny.jsonl)):
+
+| Measure                                                      | p50      | p95      | Max      |
+| ------------------------------------------------------------ | -------- | -------- | -------- |
+| Client wall time of the HTTPS call                           | 3,812 ms | 4,147 ms | 4,405 ms |
+| OutLayer `time_ms`                                           | 1,239 ms | 1,419 ms | 1,492 ms |
+| NEAR AI transcription inside the guest                       | 753 ms   | 813 ms   | 861 ms   |
+| Transfer to executed receipt, direct RPC `send_tx` (20 runs) | 1,719 ms | 2,115 ms | 2,521 ms |
+| Transfer to finality, direct RPC                             | 3,540 ms | 3,988 ms | 4,285 ms |
+
+- End of speech to executed receipt: about 5.5 s at p50 and at most 6.3 s at
+  p95 (the sum of the two p95 values). With 3–4 s of speech, the whole
+  experience is about 9–10 s. It meets the rule with almost no margin.
+- These runs have **no speaker check**. A speaker embedding from another TEE
+  must run at the same time as the NEAR AI call, or the flow passes 10 s.
+- The client waits about 2.6 s more than OutLayer's `time_ms`: upload of the
+  about 150 KB request, dispatch and the reply. Its parts are not measured.
+- The `near` CLI adds about 3 s to a transaction (start-up and signing), so
+  its timings are not used for the Wallet estimate.
+- Word check: one of the two voices was heard as "send to near to alice
+  testnet" in all 10 of its runs, and failed. That is accuracy, not time.
+
+### With the speaker check on Phala (variant b)
+
+ReDimNet runs in a Phala Cloud dstack CVM (`tdx.medium`, `dstack-0.6.1`, app
+`627a3cc63411c2f454cb43695a3747f54618482c`, image
+`ghcr.io/seams-tech/speaker-service@sha256:2f3475cd…fdfd`). It signs each
+embedding with a dstack `GetKey` ed25519 key. The 250 KB OutLayer worker calls
+it and NEAR AI at the same time and checks the signature against the pinned
+key `1f704027…35e3`. Attestation:
+[`phala-speaker-attestation.json`](phala-speaker-attestation.json).
+
+- Checked: TDX `report_data` = `sha256("seams:speaker-service:v1" || key ||
+ReDimNet hash)`; measured `compose-hash` `8429e4c7…1bab` equals the
+  platform's, and that compose pins the image digest; `os-image-hash` equals
+  production `dstack-0.6.1`; `dev` is false.
+- Not checked: Intel's DCAP signature on the quote.
+- The first deployment got `dstack-dev-0.5.12`, which has no `/v1` guest API.
+  Its container restarted in a loop, and it was deleted.
+
+20 runs (records: [`https-latency-speaker.jsonl`](https-latency-speaker.jsonl)):
+
+| Measure                            | p50      | p95      | Max      |
+| ---------------------------------- | -------- | -------- | -------- |
+| Client wall time of the HTTPS call | 4,624 ms | 5,172 ms | 8,246 ms |
+| OutLayer `time_ms`                 | 1,983 ms | 2,179 ms | 2,196 ms |
+| Speaker round trip from the worker | 1,417 ms | 1,508 ms | 1,529 ms |
+| ReDimNet time inside the CVM       | 360 ms   | 466 ms   | 481 ms   |
+| NEAR AI transcription (parallel)   | 753 ms   | 790 ms   | 801 ms   |
+
+- End of speech to executed receipt, with the direct RPC transfer: about
+  6.3 s at p50 and about 7.3 s at p95. With 3–4 s of speech: about 9.6–11.3 s.
+  **This fails the 10 s rule at p95.**
+- The speaker call sets the pace: about 1.05 s of its 1.42 s is network and
+  TLS between the OutLayer worker and the Phala gateway.
+- The client waits about 2.6 s more than OutLayer's `time_ms`; OutLayer's
+  `time_ms` is about 0.55 s more than the guest's own time.
+
+### Where the HTTPS call loses time
+
+Five calls each with a 1 s clip and a 3.5 s clip (tiny worker, NEAR AI call):
+
+| Clip  | Request | Client wall p50 | OutLayer `time_ms` p50 | Wall minus `time_ms` |
+| ----- | ------- | --------------- | ---------------------- | -------------------- |
+| 1 s   | 43 KB   | 3,269 ms        | 1,009 ms               | 2,236 ms             |
+| 3.5 s | 150 KB  | 3,637 ms        | 1,219 ms               | 2,423 ms             |
+
+- About 2.2 s is a fixed OutLayer cost outside the run. The upload of 107 KB
+  more costs only about 0.19 s, so compressing the audio cannot remove it.
+- The worker source (`worker/src/main.rs`) shows the steps of one HTTPS job,
+  one after another: coordinator queue and claim (60 s long poll, so pickup
+  is at once), two NEAR RPC reads of the project and its version, the WASM
+  cache check, the keystore round trip for secrets, the run, a TDX task
+  attestation (`store_attestation`), and the completion back to the
+  coordinator. The public jobs API keeps only `created_at` and the run time,
+  so the steps cannot be timed from outside.
+- Testnet has two executors (`4cbb7459…`, `c2649920…`) for all users.
+- OutLayer `time_ms` is about 0.45–0.55 s more than the guest's own time:
+  instantiation and host setup inside the run.
+- Verification time (client wall) by variant, p50 / p95: no speaker check
+  3.6 s / 4.1 s; speaker check on Phala 4.6 s / 5.2 s.
+
 ## Item 4: latency on testnet
 
 20 contract runs of `echo` between blocks 276,567,063 and 276,568,191
@@ -283,3 +383,56 @@ From `seams-voice-intents/gate0`:
 2. Compare with `node compare-ort.mjs <onnxruntime-web dir> <models dir> <dump dir> <models>`.
 3. Run testnet probes with `scripts/probe-call.sh` and read them with
    `python3 -I scripts/tx_record.py <tx>`.
+
+## End-to-end demo on testnet (2026-11-07)
+
+The HTTPS design ran end to end on testnet:
+
+- Verifier `seams-v1.testnet/voice-verifier`, version
+  `0f3a6e1bb020a8d871032e88899f3ecf360c441adbe7595842ea96fc0cb579b1` (302 KB,
+  no `tract`).
+- Speaker service on Phala, pinned key `1f704027…35e3`.
+- Vault contract on `seams-wallet.testnet` (258 KB), with the verifier key
+  `ed25519:E8E53ydtc9LRvVz9xBCRrSzyBa5nh1gK1ts53Aoo751U` pinned at init.
+- Owner `w3a-dev-1766307589.testnet`, contact `seams-v1.testnet`.
+- Client `seams-voice-intents/demo/demo.py`, with macOS `say` (Samantha) in
+  place of a microphone.
+
+Enrollment: three clips, agreement 806 (cutoff 450).
+
+The accepted payment, "Send 0.1 NEAR to seams dash v1 dot testnet."
+([EDWp8R5e…](https://testnet.nearblocks.io/txns/EDWp8R5ebZuFvyYrF44pa7D9cYkgSK9fZY6k5xQ3yWzC)):
+
+| Stage                                                 | Time                                                    |
+| ----------------------------------------------------- | ------------------------------------------------------- |
+| Speech                                                | 3.80 s                                                  |
+| Verify over HTTPS                                     | 5,668 ms (OutLayer `time_ms` 3,310)                     |
+| ↳ Phala speaker and NEAR AI, in parallel              | 1,388 ms (speaker 897; ReDimNet 338 ms; Whisper 802 ms) |
+| ↳ OutLayer storage (template read, used-audio record) | 1,121 ms, after the parallel calls                      |
+| Vault transaction to executed receipt                 | 3,534 ms (function call, transfer, callback)            |
+| End of speech to receipt                              | 9,203 ms                                                |
+
+Refusals on testnet (nothing was sent in any of them):
+
+| Case                                           | Result                                        |
+| ---------------------------------------------- | --------------------------------------------- |
+| Another voice (Daniel) says the right words    | `speaker`, score 112                          |
+| The same recording sent again                  | `audio_reused`                                |
+| Request 0.1, the owner says 0.5                | `words` (heard "send zero point five near …") |
+| Request 0.1, the owner says 1                  | `words`                                       |
+| The owner names `alice.testnet`, not a contact | `words`                                       |
+| The accepted verdict sent to the vault again   | vault panic: "nonce is not the next nonce"    |
+
+Found and fixed during the run:
+
+- `spoken-intent` refused every recipient with a one-letter word, also the
+  contact's own spoken form ("seams dash **v** one dot testnet"). The crate
+  now accepts one-letter words. One vector changed, and it stays a refusal
+  (`RecipientUnkeyable` → `RecipientNotContact`). Readings that drop "dot"
+  are still refused.
+- A refused attempt also uses up its recording. So `say` at one rate cannot
+  try twice, and `say` rounds rates (168 and 175 give identical audio).
+
+Open items: owner-authorized enrollment; the 1.1 s of storage could overlap
+the parallel calls; the vault transaction waits for three receipts; the
+Phala CVM is stopped after the run.

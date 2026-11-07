@@ -489,7 +489,7 @@ step is the inverse of the render step on the grammar:
   form. The contracts refuse a contact or member whose key equals, or is one
   edit from, another key.
 - **Proposals**: one template for each typed kind. `SetVerifierVersion` speaks
-  the first five decimal digits of the new hash, one word for each digit.
+  the first eight decimal digits of the new hash, one word for each digit.
   Members compare them with the published release.
 - **Challenge words**: a list of 64 nouns. The list has no number words, no
   homophones and no words from the rest of the grammar.
@@ -925,7 +925,23 @@ Rules:
   nothing until a spoken payment starts. The VoiceID package has the same
   kind of check.
 
-### 11.5 Work items
+### 11.5 Latency gate (user rule, 2026-11-07)
+
+The whole Speak-to-Sign experience must take at most 10 s. If it cannot, do
+not build it. Measured on testnet on 2026-11-07, the on-chain design takes
+about 25–35 s, with a tail near 60 s:
+
+- OutLayer queue and pickup: median about 6 s, p95 about 50 s (20 runs).
+- Fixed cost of the 8 MB worker: 8–13 s, cause not measured.
+- Model download, ReDimNet and NEAR AI Whisper: about 2.5 s.
+- Speech 3–4 s, confirm and upload about 1 s, chain receipts about 2.5 s.
+
+The only path that might meet the rule is the HTTPS API with a signed verdict
+(Section 7.5) and a worker without the fixed cost: about 7–10 s, not
+measured. Build nothing further until a latency test of that path shows a
+p95 of at most 10 s for the whole flow.
+
+### 11.6 Work items
 
 The sizes are rough estimates.
 
@@ -1041,9 +1057,7 @@ The tampered build runs on its own demo host. It never runs on a production
 13. **Device binding**: should the verifier also check the device intent
     statement against a device key in the vault? It adds little against a
     compromised `walletOrigin`.
-14. **Spoken verifier version**: the `spoken-intent` draft speaks the first
-    five decimal digits of a verifier hash in a "set verifier version"
-    proposal. An attacker needs about 100,000 builds to find another hash
-    with the same five digits, so the words alone cannot tell the two
-    versions apart. Should members check the hash outside the spoken text,
-    or should the text carry more of the hash?
+14. **Spoken verifier version**: the crate now speaks eight decimal digits
+    (it spoke five). An attacker needs about 10^8 builds to match them. Members
+    should still check the full hash against the published release, outside
+    the spoken text.

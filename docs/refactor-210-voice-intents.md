@@ -1,0 +1,981 @@
+# Refactor 210 — voice intents with OutLayer and yield/resume
+
+Status: plan only, written 2026-11-06. It changes no production code. All work
+runs on NEAR testnet.
+
+This plan covers two VoiceID concepts for the NEAR team:
+
+1. **Speak-to-Sign vault**: the main concept.
+2. **Spoken multisig**: a follow-up.
+
+VoiceID source lives in `seams-wallet`. This plan builds on
+`docs/voiceid-current-state.md`,
+`packages/shared-ts/src/authorization/voiceIdDeviceAssertion.ts` and
+`packages/wallet-server/src/authorization/voiceIdDeviceProof.ts` in that
+repository.
+
+These concepts check the voice for each transfer. For this hackathon, the
+user set aside the 2026-11-04 decision (a VoiceID unlock opens a session with
+no voice check for each transaction). That decision still applies to releases.
+
+## 1. Result
+
+- Both concepts put the decision in a NEAR contract. The contract sends the
+  request from its own state to a pinned OutLayer verifier through
+  `request_execution`. The verifier hears the raw audio. It checks the speaker
+  against a template that it seals in OutLayer storage. It compares the words
+  with its own text of the request. The result returns through the
+  yield/resume inside `outlayer.near`. The contract acts only on that result.
+- Speak-to-Sign needs one transaction. The audio exists before the
+  transaction, so the vault needs no yield of its own. The yield inside
+  `outlayer.near` does the work.
+- The spoken multisig adds its own yield. `approve` issues two fresh words and
+  waits up to 200 blocks (about 2 minutes) for the spoken answer. The protocol
+  sets this time bound. No server clock sets it.
+- What this adds: Seams serves the Wallet origin and runs the co-signer. Today,
+  an attacker who controls the code at `walletOrigin` can sign any operation
+  in a session that the user opens. With the vault, funds move only after code
+  that the vault pins hears the owner say the text of the request.
+- What this does not add: protection against a good voice clone that a
+  compromised device plays, and protection if OutLayer's TEE or its governance
+  fails. Section 8 gives the threat model.
+
+## 2. Facts checked on 2026-11-06
+
+### NEAR
+
+| Fact                                                                                                                                                                                                                                                                                                                                                  | Source                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `yield_timeout_length_in_blocks` is 200 and `max_yield_payload_size` is 1024 bytes on mainnet and testnet, protocol 88.                                                                                                                                                                                                                               | `EXPERIMENTAL_protocol_config` on `rpc.mainnet.near.org` and `rpc.testnet.near.org`      |
+| Mean block time over the last 1,000 heights: 0.58 s on mainnet and 0.60 s on testnet. 200 blocks is about 2 minutes. At 1.2 s blocks it is about 4 minutes.                                                                                                                                                                                           | `block` RPC, two heights 1,000 apart                                                     |
+| `max_transaction_size` is 1,572,864 bytes. `max_arguments_length` is 4,194,304 bytes. `max_total_prepaid_gas` is 1,000 Tgas.                                                                                                                                                                                                                          | `EXPERIMENTAL_protocol_config`                                                           |
+| near-sdk 5.29: `Promise::new_yield(...)` returns a promise and a `YieldId`. `YieldId::resume(...)` resumes it. After 200 blocks the callback gets `Err(PromiseError::Failed)`. A callback that panics reverts its own state cleanup, so a callback must return a value. Anyone can call a public resume method unless the contract checks the caller. | [docs.near.org yield/resume](https://docs.near.org/smart-contracts/anatomy/yield-resume) |
+
+### OutLayer
+
+| Fact                                                                                                                                                                                                                                                                                                                                                                                              | Source                                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A contract calls `request_execution` on `outlayer.testnet` or `outlayer.near`. Arguments: `source`, `input_data`, `resource_limits`, `response_format`, `secrets_ref`, `payer_account_id`, `params`. The WASM runs in an Intel TDX enclave.                                                                                                                                                       | [NEAR integration](https://app.outlayer.ai/docs/near-integration), [docs.near.org OutLayer](https://docs.near.org/primitives/off-chain-compute/outlayer) |
+| `source` is `Project { project_id, version_key }` or `WasmUrl { url, hash, build_target }`. `version_key` is the WASM hash of a version. Null runs the active version. The worker refuses bytes that do not match the hash.                                                                                                                                                                       | NEAR integration                                                                                                                                         |
+| `request_execution` creates a yield. A registered worker key resumes it with `resolve_execution` (at most 1024 bytes) or `submit_execution_output_and_resolve` (larger output). The caller's callback gets the output as a JSON value, or null when the run failed. A run that outlives 200 blocks pays only the base fee. The sender can call `cancel_stale_execution` after 10 minutes.         | [contract README](https://github.com/fastnear/near-outlayer/blob/main/contract/README.md)                                                                |
+| Input of 10,000 bytes or more is left out of the `execution_requested` event, and the worker reads it from state. Above 32 KB, each extra byte costs 0.00001 NEAR of held deposit and 25 MGas.                                                                                                                                                                                                    | contract README                                                                                                                                          |
+| The limits differ between pages. HTTPS API: `max_instructions` default 1 billion, maximum 500 billion; `max_memory_mb` default 128, maximum 512; `max_execution_seconds` default 60, maximum 180. The contract README: `get_max_limits` returns `[500000000000, 180, 300]` and memory is capped at 4096 MB. The WASI page: up to 100 billion instructions and 60 s. Gate 0 reads the live values. | [HTTPS API](https://app.outlayer.ai/docs/https-api), contract README, [WASI](https://app.outlayer.ai/docs/wasi)                                          |
+| Storage, NEAR RPC, signing keys and encryption keys need `wasm32-wasip2`. Outbound HTTP is P2 only, through `wasi-http-client`. Output is JSON on stdout. The WASI page says at most 900 bytes; Gate 0 received 3,061 bytes through the two-call path. A P2 run has no files.                                                                                                                     | WASI, [docs.rs/outlayer](https://docs.rs/outlayer/latest/outlayer/) 0.2.1                                                                                |
+| Storage is per project and per account. The manifest field `storage_account` is `signer` (default) or `predecessor`. Over HTTPS the account is the payment-key owner. All versions of a project share storage. `get-by-version` reads data that one WASM hash wrote. `set-if-absent`, `set-if-equals` and `increment` are atomic. The keystore encrypts records.                                  | [Storage](https://app.outlayer.ai/docs/storage)                                                                                                          |
+| Signing keys: `ed25519` or `secp256k1`, at most 3. `bind: "project"` keeps the key across code upgrades. `bind: "wasm"` ties the key to one WASM hash and the caller.                                                                                                                                                                                                                             | [Signing keys](https://app.outlayer.ai/docs/signing-keys)                                                                                                |
+| Encryption keys are symmetric only (XChaCha20-Poly1305). There is no public key for outside clients. The verifier must make its own key pair to receive audio.                                                                                                                                                                                                                                    | [Encryption keys](https://app.outlayer.ai/docs/encryption-keys)                                                                                          |
+| An Intel TDX quote covers a task hash over fields that include `wasm_hash`, `input_hash`, `output_hash` and `block_height`. The chain checks quotes only when a worker registers. A result is trusted through the registered worker key.                                                                                                                                                          | [TEE attestation](https://app.outlayer.ai/docs/tee-attestation)                                                                                          |
+| OutLayer says that its operator can refuse or stop work. It says that the operator cannot change results without a registered key or run unapproved worker builds. The README says that governance uses single keys: a DAO full-access key, owner-only measurement approval and key-based contract upgrades. No page documents a GPU.                                                             | [Trust and verification](https://app.outlayer.ai/docs/trust-verification), [repository README](https://github.com/fastnear/near-outlayer)                |
+| HTTPS API: `POST /call/{owner}/{project}` with an `X-Payment-Key` header. `version_key` pins a version. Each call has an `attestation_url`.                                                                                                                                                                                                                                                       | HTTPS API                                                                                                                                                |
+
+## 3. What OutLayer and yield/resume add
+
+### 3.1 Plain Speak-to-Sign needs neither
+
+The user's Speak-to-Sign flow works inside the Wallet iframe alone:
+
+1. An app button opens the Seams modal with voice capture and a suggested
+   sentence.
+2. The user says "Send 25 NEAR to alice dot near". Words light up as the user
+   speaks.
+3. The device runs VAD, the speaker check and speech-to-text, then parses the
+   words into an intent.
+4. The Wallet builds the transaction. The confirm modal shows it with the words
+   that the Wallet heard.
+5. Dispatch happens by auto-dispatch, by "continue" or by a click.
+6. The device key signs the digest, the challenge and the intent text.
+7. The Seams server turns the transaction back into text and compares the two
+   texts.
+
+The server check in step 7 is useful, but both texts come from code that Seams
+serves at `walletOrigin`. The check shows that this code agrees with itself. It
+does not show that anybody heard a voice.
+
+### 3.2 Comparison
+
+| Question                                          | Wallet iframe and Seams server                                                    | Vault or multisig with the OutLayer verifier                                            |
+| ------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Who hears the audio?                              | `walletOrigin` code only                                                          | `walletOrigin` code, then the pinned verifier                                           |
+| Who makes the text that the words must match?     | `walletOrigin` code; the server compares it with a second text from the same code | The contract sends its own state; the verifier renders it                               |
+| Who can change the request after the user speaks? | Compromised `walletOrigin` code                                                   | Nobody. A changed request gives a different text, and the words do not match            |
+| What can control of `walletOrigin` do?            | Sign any operation in an open session                                             | It must also produce the owner's voice saying the exact text; contacts and limits apply |
+| What can a compromised Seams server do?           | With `walletOrigin`: everything in a session                                      | Refuse service; read ciphertext only                                                    |
+| Where is the voice template?                      | The enrolled browser                                                              | Sealed in OutLayer storage, in the contract's namespace                                 |
+| Who delivers the decision to the chain?           | The Seams co-signer                                                               | `outlayer.near` resumes its yield; no Seams key is in the path                          |
+| What bounds freshness?                            | A 60 s device statement window, set by the Seams server clock                     | Multisig: 200 blocks after the fresh words, set by the protocol                         |
+
+### 3.3 Why the Seams server cannot do this
+
+- The Seams server could run the same models. The contract would then trust a
+  Seams key, and Seams would keep a voice database. That design moves the
+  models. It does not add an independent check.
+- The audio cannot go through a NEAR transaction. Eight seconds of 16 kHz mono
+  PCM16 is 256,000 bytes. At 25 MGas for each byte above 32 KB, the input alone
+  needs more than 5,000 Tgas. A transaction gets at most 1,000 Tgas. So the audio
+  goes through an HTTPS blob relay that sees only ciphertext.
+
+## 4. Concept 1: Speak-to-Sign vault
+
+### 4.1 Scope
+
+- In scope: native NEAR transfers from a vault to a saved contact, one pending
+  request for each owner, testnet.
+- Out of scope: fungible tokens, swaps, function calls, other chains, mainnet.
+
+### 4.2 Components
+
+1. **Wallet iframe** (`walletOrigin`, `seams-wallet`): capture, live word
+   highlight, local VAD, ReDimNet and speech-to-text, intent parse, confirm
+   modal, device statement, audio encryption and upload.
+2. **Seams server** (`wallet-server`): co-signs the NEAR transaction through
+   threshold signing after its policy and text check. It also serves the blob
+   relay.
+3. **Blob relay**: an HTTPS endpoint that keeps one ciphertext for at most 5
+   minutes. The vault pins its host name.
+4. **`voice-vault` contract** (Rust, near-sdk): balances, contacts, limits,
+   nonces, the pinned verifier version and the verifier audio key. It requests
+   verifier runs and moves funds in the callback.
+5. **`seams-voice-verifier`** (Rust, `wasm32-wasip2`, OutLayer project
+   `seams.testnet/voice-verifier`): operations `audio_key`, `enroll` and
+   `verify`. Its manifest sets `storage_account: "predecessor"`, so each
+   calling contract has its own storage namespace. The manifest also sets
+   `callers.contract.only` to the vault contracts, which refuses direct and
+   HTTPS runs, and `network` to the relay host alone (Gate 0, item 6).
+6. **`outlayer.testnet`**: queue, workers, yield/resume and refunds.
+
+### 4.3 Who trusts what
+
+| Component    | Trusts                                     | For                                                           | If that party lies                                                                                             |
+| ------------ | ------------------------------------------ | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Vault        | `outlayer.near` and its registered workers | The pinned WASM ran on the vault's input                      | False verdicts. This is the root trust.                                                                        |
+| Vault        | Verifier code at the pinned hash           | Speaker and word decisions                                    | Wrong decisions. Audit the code and measure the models.                                                        |
+| Vault        | Nothing off chain                          | —                                                             | —                                                                                                              |
+| Verifier     | Its input                                  | The request fields                                            | The input comes from the calling contract. Another caller gets its own empty namespace, with no templates.     |
+| Verifier     | Blob relay                                 | Availability only                                             | The digest check fails, and the verifier refuses.                                                              |
+| Verifier     | Sealed template                            | The owner's voice                                             | Section 4.4 limits who can enroll.                                                                             |
+| Wallet       | NEAR RPC node                              | Contacts, limits and the audio key for display and encryption | A wrong display gives a word mismatch, and the vault refuses. A false audio key leaks the audio (Section 8.3). |
+| Seams server | Device intent statement                    | Its co-sign policy                                            | No effect on vault safety                                                                                      |
+| Owner        | Confirm modal                              | What the Wallet shows                                         | The verifier catches a changed amount or recipient.                                                            |
+
+### 4.4 Setup and enrollment
+
+1. The deployer initializes the vault contract. The vault requests the
+   verifier operation `audio_key`. The verifier makes an X25519 key pair with
+   `set-if-absent`, keeps the private key in storage, and returns the public
+   key. The callback stores it. Clients read it with
+   `get_verifier_audio_key()`.
+2. The owner calls `create_vault()` with a deposit. The vault records the
+   owner, an empty contact list and default limits.
+3. The owner calls `add_contact(account_id)`. The vault renders the spoken
+   name with the shared `spoken-intent` crate. It refuses an account that is
+   not speakable. It refuses a contact whose `phonetic_key` equals, or is one
+   edit from, the key of another contact. The contact becomes active after a
+   delay (2 minutes on testnet for the demo).
+4. The owner reads three fixed phrases. The Wallet encrypts each recording and
+   uploads it. The owner calls `enroll_voice(audio_refs)`. The vault requests
+   the operation `enroll`. The verifier computes three ReDimNet embeddings,
+   checks that they agree, and stores the template at `template:<owner>` with
+   `set-if-absent`. The callback records the template epoch.
+5. In the MVP the vault refuses a second enrollment. To start again, the owner
+   withdraws and makes a new vault.
+
+The vault keeps one recipient list. It never adds a recipient automatically.
+An earlier recipient can receive a voice transfer only after the owner adds it
+as a contact.
+
+The verifier namespace is the calling contract, so the HTTPS API cannot reach
+the templates. Every `enroll` and `verify` run must come from the vault.
+
+### 4.5 Transfer sequence
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as Owner
+    participant W as Wallet iframe
+    participant S as Seams server
+    participant R as Blob relay
+    participant V as voice-vault
+    participant O as outlayer.testnet
+    participant X as Verifier in TDX
+    U->>W: "Send 25 NEAR to alice dot testnet"
+    W->>W: VAD, speaker, STT, parse, confirm modal
+    W->>R: Upload encrypted audio
+    W->>S: Intent statement and transaction
+    S->>S: Render text, compare, co-sign
+    W->>V: request_transfer(receiver, amount, nonce, audio ref)
+    V->>O: request_execution(pinned version, input from vault state)
+    Note over O: Yield opens. 200 blocks, about 2 minutes
+    O-->>X: A worker runs the pinned WASM
+    X->>R: Fetch ciphertext
+    X->>X: Decrypt, speaker against template, words against render(request)
+    X->>O: resolve_execution(verdict)
+    O->>V: on_transfer_verdict(verdict or null)
+    V->>U: Transfer to alice.testnet, or release the reservation
+```
+
+1. The app opens the Seams modal with a suggested sentence. The Wallet uses
+   that sentence only for display and for the live highlight. It never builds
+   a transaction from it.
+2. The user says "Send 25 NEAR to alice dot testnet". About every 0.3 s, the
+   Wallet aligns the CTC output with the suggested sentence and highlights the
+   words.
+3. The Wallet runs VAD, the speaker check and speech-to-text. `spoken-intent`
+   parses the transcript into an intent. The recipient must be an active vault
+   contact, read through RPC.
+4. The Wallet builds a `request_transfer` call with `receiver_id`,
+   `amount_yocto`, `nonce` and `audio { url, digest }`. The confirm modal shows
+   the transaction and the heard words.
+5. Dispatch: auto-dispatch (active contact, amount below the auto limit, 3 s
+   countdown), "continue" or a click. The Wallet encrypts and uploads the audio
+   during the countdown.
+6. The device key signs `voiceid_intent_statement_v1` (Section 7.1). The Seams
+   server renders the text from the transaction arguments, compares it with the
+   heard text in the statement, and co-signs.
+7. The vault checks the transaction. The caller must be the owner. The receiver
+   must be an active contact. The amount must be within the transfer limit and
+   the daily limit. The nonce must be new, and no other request may be pending.
+   The vault reserves the amount, stores `PendingTransfer` and computes
+   `request_digest`.
+8. The vault calls `request_execution` with
+   `source: Project { project_id: "seams.testnet/voice-verifier", version_key: <pinned hash> }`,
+   the input in Section 7.2, `payer_account_id: <owner>` and the callback
+   `on_transfer_verdict(request_id)`. The 200-block window starts here.
+9. A worker runs the verifier:
+   1. Fetch the ciphertext from the pinned relay host and check its digest.
+   2. Open it with HPKE.
+   3. Refuse an audio digest that was used before (`set-if-absent audio:<digest>`).
+   4. Check speech activity and audio quality.
+   5. Compare a ReDimNet embedding with `template:<owner>`.
+   6. Compare the words with `render(request)` (Section 9.3).
+   7. Write the verdict (Section 7.3).
+10. The worker resolves the request. `outlayer.testnet` resumes its yield.
+    `on_transfer_verdict` gets the verdict, or null.
+11. The callback checks `request_digest`, `request_id` and the outcome. If the
+    outcome is `accept`, it calls `Promise::new(receiver).transfer(amount)`. For
+    every other result it releases the reservation. It always deletes
+    `PendingTransfer` and never panics.
+12. The Wallet reads the transaction outcome. It shows the receipt or the
+    reason for the refusal.
+
+| Stage                    | Expected                     | Measured in Gate 0 |
+| ------------------------ | ---------------------------- | ------------------ |
+| Transaction to the vault | 2 blocks, about 1.2 s        | Yes                |
+| Worker pickup            | Unknown                      | Yes                |
+| Verifier run             | Unknown; target at most 10 s | Yes                |
+| Resolve and callbacks    | 3–4 blocks, about 2.4 s      | Yes                |
+| Window                   | 200 blocks, about 2 minutes  | —                  |
+| Dispatch to receipt      | Target at most 15 s          | Yes                |
+
+Failure handling:
+
+- If no worker resolves within 200 blocks, the callback gets null and releases
+  the reservation. The owner pays the base fee.
+- If the relay loses the blob, the verifier refuses with `audio_unavailable`.
+- If the local check passes but the verifier refuses, the Wallet says that
+  nothing was sent and shows the reason.
+
+### 4.6 Why the vault has no yield of its own
+
+The audio exists before the transaction, so one transaction carries every
+input. A second yield in the vault would wait for nothing. The yield inside
+`outlayer.testnet` does the work: it brings the TEE result back to the
+contract that asked for it.
+
+### 4.7 Option: fresh words above the auto limit (not in the MVP)
+
+For an amount above the auto-dispatch limit, the vault can yield its own
+request. It issues two fresh words from `env::random_seed()`. The owner says
+"Confirm two thousand five hundred near to alice dot testnet, river lantern"
+within 200 blocks. This uses the same mechanism as Section 5.3. It conflicts
+with the "no pass code" rule, so it is open question 4.
+
+### 4.8 Vault rules for the owner key
+
+- `add_contact`, `set_limits` and `set_verifier_version` take effect after a
+  delay. The owner can cancel during the delay.
+- `withdraw` to the owner's own account needs no voice, but it waits for a
+  delay (10 minutes on testnet).
+- So a stolen key alone cannot empty the vault before the owner notices. A
+  voice alone cannot sign a transaction.
+
+## 5. Concept 2: spoken multisig (follow-up)
+
+### 5.1 Scope
+
+A minimal multisig contract with typed proposals: `Transfer`, `AddMember`,
+`RemoveMember`, `SetThreshold` and `SetVerifierVersion`. It has no free
+`FunctionCall` proposal, because a free call has no exact text that a person
+can say. Sputnik DAO v2 support is open question 7.
+
+### 5.2 Components and trust
+
+The multisig uses the same verifier and relay as the vault. Templates live at
+`template:<member>` in the multisig namespace. Each member enrolls once at
+setup. A new enrollment needs a proposal.
+
+The Seams server is not in the trust path. Members do not need a Seams
+wallet: any NEAR wallet can call the methods. The trust table in Section 4.3
+applies, with the multisig in place of the vault and without the Seams server
+row.
+
+The contract sends the proposal from its own state to the verifier. This is
+stronger than an RPC read: no RPC node and no signer computer is between the
+chain and the verifier.
+
+### 5.3 Approval sequence
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor B as Member B
+    participant W as B's wallet
+    participant R as Blob relay
+    participant M as Multisig
+    participant O as outlayer.testnet
+    participant X as Verifier in TDX
+    W->>M: approve(proposal 42)
+    M->>M: Fresh words, render text, store PendingApproval
+    Note over M: Own yield opens. 200 blocks
+    M-->>W: Event voice_approval_requested(display text)
+    B->>W: Reads the text aloud
+    W->>R: Upload encrypted audio
+    W->>M: submit_spoken_approval(request id, audio ref)
+    M->>O: request_execution(pinned version, input from multisig state)
+    Note over O: OutLayer yield opens
+    O-->>X: A worker runs the pinned WASM
+    X->>O: resolve_execution(verdict)
+    O->>M: on_verifier_result(verdict)
+    M->>M: YieldId.resume(VoiceResumeV1)
+    M->>M: on_approval_verdict counts the approval
+```
+
+1. A member creates a proposal. The contract stores it. It cannot change.
+2. Member B calls `approve(proposal_id)`. The contract checks that B is a
+   member, that the proposal is open, and that B has no approval or pending
+   request for it. It takes two words from `env::random_seed()` and a list of
+   64 words. It renders the expected text from the proposal and the words. It
+   stores a `PendingApproval` record with `request_id`, `proposal_id`,
+   `member`, `expected_digest`, `yield_id` and `start_height`. It emits the
+   event `voice_approval_requested` with `request_id` and `display_text`. Then
+   it yields with the callback `on_approval_verdict(request_id)`. The 200-block
+   window starts here.
+3. B's screen shows the text from the event, for example: "Approve proposal 42:
+   send 10 NEAR to payroll.testnet. Then say: river lantern."
+4. B reads the text aloud. The wallet encrypts and uploads the audio.
+5. B calls `submit_spoken_approval(request_id, audio)`. The contract checks that
+   B made the request and that at least 60 blocks of the window remain. It calls
+   `request_execution` with the input from its own state and the callback
+   `on_verifier_result(request_id)`.
+6. A worker runs the same checks as in step 9 of Section 4.5, against
+   `template:<B>`.
+7. `on_verifier_result` builds `VoiceResumeV1` (Section 7.4) and calls
+   `yield_id.resume(payload)`. If the yield has already ended, it logs the
+   result and stops.
+8. `on_approval_verdict` runs with the payload, or with `PromiseError` after 200
+   blocks. If the outcome is `accept`, it counts B's approval. When the
+   threshold is met, it executes the proposal. It always deletes the pending
+   record.
+
+Time budget: B has about 60 s from step 2 to step 5. The verifier run must end
+before the window ends, so the contract sets `max_execution_seconds` to at most 30.
+
+### 5.4 Where the yields do work
+
+- The yield inside `outlayer.testnet` brings the verdict back to the contract,
+  as in concept 1.
+- The `approve` yield issues fresh words and accepts an answer only within 200
+  blocks. A recording made before the words existed cannot match. The protocol
+  sets this bound.
+- The `approve` yield also gives one final result for the call and a sure
+  cleanup. These two are conveniences: a map with expiry heights could do the
+  same.
+- The fresh words do not stop a real-time voice clone, which can say new words
+  in seconds. They stop replay and splice attacks with real recordings, and
+  they limit an attacker to about 2 minutes.
+- If the user does not want fresh words, the proposal id already makes each
+  text unique. The outer yield then adds only convenience. In that case, use one
+  transaction: speak, then call `approve(proposal_id, audio)`.
+
+### 5.5 The Bybit-style attack
+
+In February 2025, injected code in the Safe web app showed signers a normal
+transaction while they signed a malicious one. The attackers took about
+$1.5B.
+
+| What the injected code does                                                           | Result                                                                                                                   |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| It shows "send 10 NEAR to payroll", but the proposal moves all funds to the attacker. | B reads the false text. The verifier renders the real proposal. The words do not match, and the approval does not count. |
+| It makes B sign `approve(43)` while it shows proposal 42.                             | The contract expects the text of proposal 43. The words do not match.                                                    |
+| It shows the true text, and B reads it without attention.                             | The approval counts. Reading aloud makes this less likely, but it does not prevent it.                                   |
+| It plays a real-time clone of B's voice and controls B's signing.                     | The approval can count. The speaker check is the only barrier, and it is weak against a good clone.                      |
+
+## 6. Shared text function: `spoken-intent`
+
+### 6.1 One source, four builds
+
+`spoken-intent` is a Rust crate with `#![no_std]` and `alloc`. It uses no floats,
+no locale, no clock and no randomness. The caller passes the challenge words
+in. Its proposed home is `seams-wallet/crates/spoken-intent` (open question 1).
+
+| Consumer           | Target                                                           | Use                              |
+| ------------------ | ---------------------------------------------------------------- | -------------------------------- |
+| Wallet iframe      | `wasm32-unknown-unknown` with wasm-bindgen, beside `near_signer` | Parse, render, display           |
+| Seams server       | The same wasm module, loaded in the Worker                       | Render for the co-sign check     |
+| Verifier           | `wasm32-wasip2`, linked                                          | Render, normalize, confusion set |
+| Vault and multisig | `wasm32-unknown-unknown` through near-sdk, linked                | Render, digest, phonetic key     |
+
+### 6.2 API sketch
+
+```rust
+pub enum SpokenRequestV1 {
+    VaultTransfer {
+        network: Network,
+        vault: SpokenAccount,
+        owner: SpokenAccount,
+        receiver: SpokenAccount,
+        amount_yocto: u128,
+        nonce: u64,
+    },
+    MultisigApproval {
+        network: Network,
+        multisig: SpokenAccount,
+        proposal_id: u64,
+        proposal: ProposalV1, // typed kinds only; no free FunctionCall
+        challenge: [ChallengeWord; 2],
+    },
+}
+
+pub struct RenderedIntentV1 {
+    pub display_text: String,
+    pub spoken: Vec<SpokenToken>,
+    pub spoken_text: String,
+}
+
+pub enum RenderResult {
+    Rendered(RenderedIntentV1),
+    Unsupported(UnsupportedReason),
+}
+
+pub fn render(request: &SpokenRequestV1) -> RenderResult;
+/// sha256("seams:spoken-intent:request:v1" || borsh(request))
+pub fn request_digest(request: &SpokenRequestV1) -> [u8; 32];
+/// sha256("seams:spoken-intent:spoken:v1" || spoken_text)
+pub fn spoken_text_digest(rendered: &RenderedIntentV1) -> [u8; 32];
+pub fn normalize(transcript: &str) -> Option<Vec<SpokenToken>>;
+pub fn parse_transfer(tokens: &[SpokenToken], contacts: &[SpokenAccount]) -> ParseResult;
+pub fn confusion_set(request: &SpokenRequestV1, contacts: &[SpokenAccount]) -> Vec<Vec<SpokenToken>>;
+pub fn phonetic_key(account: &SpokenAccount) -> PhoneticKey;
+```
+
+`SpokenAccount` can hold only an account that the grammar can speak. The parse
+step is the inverse of the render step on the grammar:
+`render(parse(tokens)).spoken == tokens` for each accepted token list.
+
+### 6.3 Grammar rules
+
+- **Amounts are exact.** A NEAR amount must be a whole multiple of 0.01 NEAR
+  (10^22 yoctoNEAR) and at most 1,000,000 NEAR. Any other amount gives
+  `Unsupported(AmountNotSpeakable)`. The crate never rounds.
+- **Number words**: "twenty five", "two point five", "zero point two five",
+  "one thousand two hundred fifty". After "point", each digit is one word.
+  `normalize` maps "and" inside a number, "a hundred" and numerals in the
+  speech-to-text output ("25") to the same tokens.
+- **Accounts**: named accounts with lowercase letters and digits. The
+  separators `.`, `-` and `_` become "dot", "dash" and "underscore". Each digit
+  is one word. Implicit 64-character hex accounts and `0x` accounts give
+  `Unsupported(AccountNotSpeakable)`.
+- **Sound-alike accounts**: `phonetic_key` maps a spoken account to a reduced
+  form. The contracts refuse a contact or member whose key equals, or is one
+  edit from, another key.
+- **Proposals**: one template for each typed kind. `SetVerifierVersion` speaks
+  the first five decimal digits of the new hash, one word for each digit.
+  Members compare them with the published release.
+- **Challenge words**: a list of 64 nouns. The list has no number words, no
+  homophones and no words from the rest of the grammar.
+- **No free text**: no output contains text from the app, the proposer or a
+  proposal description.
+
+| Request                                                                            | Display text                                                                   | Spoken form                                                                   |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Transfer 25 NEAR to `alice.testnet`                                                | Send 25 NEAR to alice.testnet                                                  | send twenty five near to alice dot testnet                                    |
+| Transfer 2.5 NEAR to `bob-1.testnet`                                               | Send 2.5 NEAR to bob-1.testnet                                                 | send two point five near to bob dash one dot testnet                          |
+| Transfer 1,250 NEAR to `alice.testnet`                                             | Send 1,250 NEAR to alice.testnet                                               | send one thousand two hundred fifty near to alice dot testnet                 |
+| Transfer 0.001 NEAR                                                                | —                                                                              | `Unsupported(AmountNotSpeakable)`                                             |
+| Approve proposal 42 (transfer 10 NEAR to `payroll.testnet`), words "river lantern" | Approve proposal 42: send 10 NEAR to payroll.testnet. Then say: river lantern. | approve proposal forty two send ten near to payroll dot testnet river lantern |
+
+### 6.4 Same output in every build
+
+- The crate's generator writes `spoken_intent_vectors_v1.json`: each request as
+  Borsh hex, its display text, spoken text and digests, each unsupported case,
+  `normalize` cases and phonetic keys. Never edit this file by hand.
+- Each build checks every vector in CI: the native Rust build; the wasm-bindgen
+  build under Node, as the Wallet and the Worker load it; the `wasm32-wasip2`
+  build under wasmtime; and the contract build in the NEAR sandbox. In the
+  AGENTS.md authority map, these are tier-2 vector tests.
+- Types carry the rules. `SpokenRequestV1` has only speakable kinds. The
+  TypeScript wrapper types are generated, as `pnpm generate:signer-core-types`
+  does for signer types.
+- A change to the text is a new version (`spoken-intent/2`). Each statement and
+  verdict names its version. Each contract pins the version that it accepts.
+
+## 7. Statement formats
+
+### 7.1 Device intent statement
+
+The existing `voiceid_operation_statement_v1` carries the wallet identity, the
+device key id, an `operationKind` (`near.export_key` or `evm.export_key`), an
+`operationChallenge` digest, `requestOrigin` and a window of at most 60 s. The
+device key signs `seams:wallet-operation:voiceid-device:v1|` followed by the
+alphabetized JSON.
+
+The intent statement keeps those identity, origin and window fields. It adds
+the renderer version, the spoken-text digest, the heard text and the audio
+digest:
+
+```ts
+const INTENT_DOMAIN = 'seams:wallet-operation:voiceid-intent:v1';
+
+export type VoiceIdIntentOperationKind =
+  | 'near.voice_vault_transfer'
+  | 'near.voice_multisig_approval';
+
+export type VoiceIdIntentStatement = Readonly<{
+  kind: 'voiceid_intent_statement_v1';
+  walletId: WalletId;
+  walletAuthMethodId: WalletAuthMethodId;
+  walletAuthorityId: WalletAuthorityId;
+  deviceKeyId: DigestB64u;
+  operationKind: VoiceIdIntentOperationKind;
+  operationChallenge: DigestB64u; // request_digest from spoken-intent
+  rendererVersion: 'spoken-intent/1';
+  spokenTextDigest: DigestB64u; // spoken_text_digest(render(request))
+  heardText: string; // normalized local transcript, at most 256 characters
+  audioDigest: DigestB64u; // SHA-256 of the uploaded ciphertext
+  requestOrigin: string;
+  issuedAtMs: number;
+  expiresAtMs: number; // at most 60 s after issuedAtMs
+}>;
+
+// Signed bytes: `${INTENT_DOMAIN}|${alphabetizeStringify(statement)}`
+```
+
+Rules:
+
+- The statement has a new kind and a new domain. It is not a new
+  `VoiceIdOperationKind`, because its fields differ and `exactKeys` parsing must
+  refuse a mix. No conversion exists to `VerifiedVoiceIdOperationProof` or to
+  the session proof.
+- The server adds `verifyVoiceIdIntentAssertion` beside
+  `verifyVoiceIdOperationAssertion`. It recomputes `request_digest` from the
+  transaction arguments and renders the spoken text. It checks
+  `spokenTextDigest` and checks that `normalize(heardText)` equals the rendered
+  tokens. It checks that `audioDigest` equals the transaction's `audio.digest`.
+  It verifies the device signature and consumes the statement once. Its result
+  is a new branded class, `VerifiedVoiceIdIntentProof`.
+- The vault, the multisig and the verifier do not check this statement. They do
+  not trust `walletOrigin`. The statement serves the Seams co-sign policy and
+  the plain Wallet flow.
+- `heardText` is the text that the user saw in the confirm modal. The
+  statement holds no audio.
+
+### 7.2 Verifier input (`input_data`)
+
+```json
+{
+  "kind": "seams_voice_verify_input_v1",
+  "op": "verify",
+  "renderer": "spoken-intent/1",
+  "request_id": "17",
+  "request": "<base64url Borsh SpokenRequestV1>",
+  "subject": "owner.testnet",
+  "template_epoch": 1,
+  "contacts": ["alice.testnet", "bob.testnet"],
+  "audio": {
+    "url": "https://<pinned relay host>/v1/blob/<id>",
+    "digest": "<base64url SHA-256 of the ciphertext>",
+    "bytes": 182344
+  }
+}
+```
+
+- The contract writes every field from its own state, except `audio`, which the
+  caller supplies. The URL host must equal the pinned relay host.
+- The verifier recomputes `request_digest` from `request`. It uses `contacts`
+  only for the confusion set. The MVP allows at most 32 contacts.
+- The input stays below 10,000 bytes, so it stays in the
+  `execution_requested` event.
+- The audio is PCM16, 16 kHz mono, at most 8 s, after VAD trimming. The Wallet
+  seals it with HPKE (RFC 9180: X25519, HKDF-SHA256, ChaCha20-Poly1305) to the
+  verifier audio key. The associated data is
+  `seams:voice-audio:v1|<contract>|<subject>`, so a blob cannot move to another
+  subject.
+
+### 7.3 Verifier verdict (OutLayer output)
+
+```json
+{
+  "kind": "seams_voice_verdict_v1",
+  "renderer": "spoken-intent/1",
+  "verifier": "0.1.0",
+  "request_id": "17",
+  "request_digest": "<base64url>",
+  "spoken_text_digest": "<base64url>",
+  "audio_digest": "<base64url>",
+  "template_epoch": 1,
+  "outcome": "accept",
+  "reason": null,
+  "speaker_score_milli": 612,
+  "word_margin_milli": 214,
+  "heard": "send twenty five near to alice dot testnet"
+}
+```
+
+- Keep the verdict under 1024 bytes, so that the worker resolves it in one
+  call. Gate 0 showed that larger output also arrives, through the two-call
+  path. Refusal reasons: `quality`, `speaker`,
+  `words`, `audio_reused`, `audio_unavailable`, `audio_invalid`,
+  `template_missing` and `unsupported`.
+- The verdict JSON has no signature of its own. OutLayer signs it in two other
+  ways: the registered worker key signs the `resolve_execution` transaction, and
+  the TDX quote binds the output hash.
+- The contract trusts the callback path: `env::promise_result(0)` is the result
+  of the call that the contract itself made to `outlayer.testnet`.
+- Off chain, anyone can check the TDX attestation of the run
+  (`/attestations/by-tx/{tx_hash}`) with `outlayer-verify`. It binds the WASM
+  hash, the input hash and the output hash.
+- `heard` is public on chain. Use it on testnet for the demo. On mainnet,
+  publish only its digest.
+
+### 7.4 Multisig resume payload
+
+```rust
+#[derive(BorshSerialize, BorshDeserialize)]
+pub struct VoiceResumeV1 {
+    pub request_id: u64,
+    pub outcome: u8, // 0 accept, 1 refuse
+    pub reason: u8,
+    pub verdict_digest: [u8; 32], // sha256 of the verdict JSON bytes
+}
+```
+
+The payload is 42 bytes, below the limit of 1024. `on_approval_verdict` checks
+`request_id` against its own argument.
+
+### 7.5 Fallback: signed verdict over HTTPS
+
+Use this path only if Gate 0 rejects the on-chain path, for example if a worker
+cannot fetch the blob.
+
+- The Wallet calls the HTTPS API. The verifier signs the verdict with a
+  signing key (`ed25519`, `bind: "project"`). The signed bytes are
+  `"seams:outlayer:voice-verdict:v1|" || borsh(verdict)`.
+- The contract checks the signature with `env::ed25519_verify` against a public
+  key that it stores.
+- The trust changes. A project-bound key survives code upgrades, so the project
+  owner can change the code under the same key. The contract must then trust
+  the project owner too.
+- Over HTTPS the storage namespace is the payment-key owner, not the contract.
+  Templates must move to that namespace, and the verifier must check who may
+  write them.
+
+## 8. Threat model
+
+### 8.1 What each proof shows
+
+| Proof                                    | Shows                                                                                                                                                                                                                                | Does not show                                                                                                                                                                                               |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Device intent statement                  | Code at `walletOrigin` on the enrolled browser signed this request digest and heard text within 60 s.                                                                                                                                | That a voice was heard; that the code was honest; what the screen showed                                                                                                                                    |
+| Seams co-signature                       | The server policy and the text comparison passed.                                                                                                                                                                                    | Anything about the audio                                                                                                                                                                                    |
+| Verifier verdict through `outlayer.near` | A registered worker ran the pinned WASM on the contract's own request and on audio with this digest. The speaker score passed the cutoff against the sealed template. The words matched the rendered text. The audio digest was new. | That a live person spoke now; that the voice was not a clone; that the models are accurate (Section 9); that OutLayer governance is honest                                                                  |
+| TDX attestation                          | An approved worker build ran this WASM hash on this input and gave this output at this block height.                                                                                                                                 | That the build came from the published source; that the program is correct; safety against physical attacks such as TEE.fail (October 2025), where researchers with physical access forged TDX attestations |
+| `approve` yield window                   | The answer arrived within 200 blocks after the fresh words existed.                                                                                                                                                                  | That a person, not real-time speech synthesis, spoke                                                                                                                                                        |
+
+### 8.2 Attackers
+
+| Attacker                                          | Plain Speak-to-Sign                                                                                                                                | Vault or multisig with the verifier                                                                                                                                                        |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Malicious app that embeds the Wallet              | It can suggest any sentence. The Wallet renders text from the transaction, so the app cannot change the amount or recipient after the user speaks. | Same                                                                                                                                                                                       |
+| Control of `walletOrigin` code                    | It can sign any operation in the session.                                                                                                          | It must also produce the owner's voice saying the exact text. The recipient must be an active contact, and limits apply.                                                                   |
+| Control of `walletOrigin` with stored owner audio | Same as above                                                                                                                                      | It can replay an earlier utterance for the same amount and contact. The used-digest check stops only identical bytes. The daily limit and the fresh-word option (Section 4.7) reduce this. |
+| Voice clone made from collected audio             | —                                                                                                                                                  | ReDimNet probably accepts a good clone. The MVP has no anti-spoofing model. Contacts and limits bound the loss.                                                                            |
+| Seams operator or server                          | With `walletOrigin`: everything in a session                                                                                                       | It can refuse service. It reads ciphertext only.                                                                                                                                           |
+| Blob relay                                        | —                                                                                                                                                  | It can refuse service. Changed bytes fail the digest check.                                                                                                                                |
+| NEAR RPC node that lies to the Wallet             | —                                                                                                                                                  | A wrong display gives a word mismatch, and the contract refuses.                                                                                                                           |
+| OutLayer operator                                 | —                                                                                                                                                  | It can refuse or delay runs. The owner pays the base fee.                                                                                                                                  |
+| OutLayer governance, which uses single keys       | —                                                                                                                                                  | It can approve a malicious worker build. That build can return any verdict and read templates and audio in flight. This is the root trust.                                                 |
+| Physical TDX attack (TEE.fail)                    | —                                                                                                                                                  | Forged attestations could register a malicious worker.                                                                                                                                     |
+| Sound-alike recipient                             | Only the Wallet resolves it.                                                                                                                       | The contract refuses near-duplicate contacts and contacts in their delay.                                                                                                                  |
+| Verdict replay                                    | —                                                                                                                                                  | Each verdict names one request digest and one request id. The callback deletes the pending record.                                                                                         |
+| Prompt injection                                  | —                                                                                                                                                  | Applies only to the bets extension (Section 13).                                                                                                                                           |
+
+### 8.3 Privacy
+
+- The public VoiceID guide says that audio and voiceprints stay in
+  `walletOrigin`. Vault mode changes this: encrypted audio leaves the device,
+  and a template lives in OutLayer storage. A release would need consent text
+  and a guide change (open question 2).
+- The relay keeps ciphertext for at most 5 minutes. It cannot decrypt it.
+- OutLayer storage is per project and per calling contract. Project storage
+  survives code upgrades, but the contract pins the version. So only versions
+  that the contract selects can read the templates.
+- A false audio key from an RPC node would let its owner decrypt the audio. The
+  verifier would then refuse, but the audio has leaked. The demo Wallet pins
+  the vault's audio key in its configuration and compares it with the RPC value.
+- If the OutLayer keystore or a worker is broken, templates and the audio of
+  runs in flight are exposed. The verifier does not store audio after a run.
+
+## 9. Measurement plan: speech-to-text on the transaction grammar
+
+Nobody has measured Citrinet or Aurora on amounts, digits or account names.
+Nobody has measured ReDimNet or a speech model inside OutLayer.
+
+### 9.1 Questions
+
+1. Do Citrinet INT8 and Aurora INT8 recognize amounts, digits and account names
+   in this grammar?
+2. Does the chosen rule refuse every near miss?
+3. Do the models give the same results in the verifier runtime and in the
+   browser?
+4. What does one verifier run cost in instructions, time and memory?
+
+### 9.2 Corpus
+
+- Generate every text with `spoken-intent` from a seeded sampler. Do not type
+  texts by hand.
+- Amounts: 200 values from 0.01 to 1,000,000, with one and two decimals,
+  teens and tens (13 and 30, 15 and 50), and repeated digits.
+- Accounts: 60 named accounts with confusable pairs (alice and alicia, jon and
+  john, rob and bob, payroll and payrolls), digits, dashes and underscores.
+- Proposals: ids from 1 to 999, every proposal kind, and words from the
+  challenge list.
+- Near misses for each correct text: a changed amount (one digit, ten times,
+  a moved decimal point), the closest other contact, a changed verb, a negation
+  ("do not send"), an added clause ("and send 100 to bob"), a missing amount and
+  swapped challenge words.
+- Voices: first the macOS voices that `voiceId/stt-bench` uses. Then at least 10
+  people with 40 texts each, with consent, two microphones, a quiet room and
+  DEMAND noise at 10, 5 and 0 dB.
+- Tools: add a bank `tx_grammar_en_v1` to `voiceId/stt-bench`. `prepare.py` and
+  `score.py` read the crate's exported vectors and use its `normalize` cases.
+
+### 9.3 Candidate decision rules
+
+- **Rule A, strict decode**: greedy CTC decode, then `normalize`, then an exact
+  token match with `render(request).spoken`. This is the default, because it
+  needs no threshold.
+- **Rule B, forced alignment**: the CTC log-likelihood of the expected tokens,
+  minus that of the best near miss from `confusion_set`, must reach a margin.
+  The decoded word count must also be within one word of the expected count, to
+  catch added clauses.
+
+The measurement selects one rule. A zero near-miss acceptance is the hard gate
+for both.
+
+### 9.4 Metrics and gates
+
+- **Owner acceptance**: the correct text from the enrolled speaker, by field and
+  by noise level.
+- **Near-miss acceptance**: the count, with its 95% upper bound. For example,
+  0 of 3,000 gives at most 0.1%.
+- **Speaker**: owner rejection and other-speaker acceptance at cutoff 0.45, on
+  the same recordings.
+- **Runtime parity**: a cosine of at least 0.999 between browser and verifier
+  embeddings on every recording, and the same decision for every case.
+- **Cost**: instructions, memory and time for each run, from OutLayer
+  `resources_used`.
+- **Gate STT-1 (synthetic)**: owner acceptance of at least 95% on clean speech
+  and 0 near-miss acceptances.
+- **Gate STT-2 (people)**: owner acceptance of at least 90% in a quiet room and
+  0 near-miss acceptances.
+
+If Citrinet and Aurora fail STT-1 on amounts:
+
+1. Narrow the grammar, for example amounts spoken digit by digit.
+2. Measure Whisper Tiny English (40.8 MB) as a verifier candidate. In the
+   October local screen it kept all four test amounts, where Aurora failed.
+3. Use Whisper large-v3-turbo through the Cloudflare API only as an upper
+   reference. A remote model outside the TEE breaks the trust model.
+
+### 9.5 Order
+
+1. Synthetic speech in the browser runtime. This step needs no OutLayer.
+2. Synthetic speech in the verifier runtime under local wasmtime.
+3. A sample of 50 cases on OutLayer testnet.
+4. People.
+
+## 10. Gate 0: OutLayer feasibility
+
+Run Gate 0 before the build. Each item gives a yes or no and a number. Save the
+results under `docs/evidence/refactor-210-gate0/`.
+
+**Result (2026-11-07)**: see the
+[Gate 0 evidence](evidence/refactor-210-gate0/README.md). ReDimNet, Aurora and
+Citrinet run in `wasm32-wasip2` with `tract` and match ONNX Runtime Web. A
+local `verify` run with ReDimNet and Aurora needs about 15 billion instructions
+of the live 500 billion. Storage, the network allowlist, the callback values
+and the version pin work on testnet. Silero VAD does not load in `tract`.
+The OutLayer worker refuses a WASM above 10 MB, so the verifier must
+fetch the models over HTTPS with pinned digests; a size-optimized `tract`
+build is 7.9 MB. The run inside the OutLayer TEE is still open.
+
+1. **Inference runtime**: run ReDimNet B1 (8.9 MB), Silero VAD (2.3 MB), Aurora
+   (1.3 MB) and Citrinet (10.5 MB) in `wasm32-wasip2` with a pure-Rust engine,
+   for example `tract`. Record each INT8 operator that the engine does not
+   support.
+2. **Model delivery**: embed the models in the WASM, so that the WASM hash
+   covers them, or fetch them with pinned digests. Record the WASM size that
+   OutLayer accepts and the load time.
+3. **Cost of one `verify` run** on 8 s of audio: instructions, memory and time,
+   against the live `get_max_limits`.
+4. **Latency on testnet**: blocks from `request_execution` to the callback, over
+   20 runs.
+5. **Storage**: `storage_account: "predecessor"` on contract runs, and
+   `set-if-absent` for used audio digests.
+6. **Outbound HTTPS** from the worker to the relay host.
+7. **Callback format**: the output as a JSON value, null on failure, output of at
+   most 900 bytes.
+8. **Version pin**: `version_key` on a `Project` source, and refusal of an
+   unknown hash.
+9. **Cost in NEAR** for each run, from `estimate_execution_cost` and the
+   refunds.
+10. **HPKE** with the Rust `hpke` crate in both the Wallet wasm and the verifier.
+
+Pass: a p95 `verify` run of at most 30 s within the live limits, and items 5–8
+work.
+
+- If item 1 or 3 fails, try smaller models or a shorter maximum utterance.
+- If item 6 fails, use the HTTPS fallback in Section 7.5.
+- If no speech model can run, the verifier can check only the speaker, and the
+  word check stays in the Wallet. That loses the main claim. Report it to the
+  user before more work.
+
+## 11. Hackathon MVP
+
+### 11.1 In the MVP
+
+- The `spoken-intent` crate, its vectors and its four builds.
+- `seams-voice-verifier` with the operations `audio_key`, `enroll` and `verify`.
+- The `voice-vault` contract: create, deposit, contacts with a delay, limits,
+  `request_transfer`, `on_transfer_verdict` and delayed withdrawal.
+- A Wallet demo build: the intent statement, the live highlight, the parse, the
+  confirm modal, encryption and upload. It sits behind a demo flag and is not
+  part of a release.
+- Seams server: the relay endpoint with a 5-minute lifetime and the intent
+  check, on staging only.
+- A demo app page.
+- Gate STT-1.
+
+### 11.2 Stretch goals
+
+- The spoken multisig (Section 5).
+- Fresh words above the auto limit (Section 4.7).
+- Gate STT-2 with people.
+
+### 11.3 Out of scope
+
+Mainnet, tokens, swaps, function calls, anti-spoofing models, the bets
+extension and any production release.
+
+### 11.4 Work items
+
+The sizes are rough estimates.
+
+| #   | Item                                                       | Repository                                   | Needs | Days |
+| --- | ---------------------------------------------------------- | -------------------------------------------- | ----- | ---: |
+| 1   | Gate 0 probes                                              | Hackathon repository                         | —     |    2 |
+| 2   | `spoken-intent` crate, vectors, four builds                | `seams-wallet`                               | —     |    2 |
+| 3   | Verifier WASM                                              | Hackathon repository                         | 1, 2  |    4 |
+| 4   | Vault contract and sandbox tests                           | Hackathon repository                         | 2     |    2 |
+| 5   | Wallet demo flow, with the live highlight on growing audio | `seams-wallet`                               | 2     |    4 |
+| 6   | Relay endpoint and intent check                            | `seams-wallet` (`wallet-server`) and staging | 2     |  1.5 |
+| 7   | Demo page                                                  | Hackathon repository                         | 4, 5  |    1 |
+| 8   | Gate STT-1                                                 | `seams-monorepo` (`voiceId/stt-bench`)       | 2     |    2 |
+| 9   | Spoken multisig (stretch)                                  | Hackathon repository                         | 3, 4  |    3 |
+
+Items 1, 2 and 8 can start at the same time.
+
+## 12. Demo script (about 5 minutes)
+
+Before the demo: a testnet vault with 50 NEAR, active contacts `alice.testnet`
+and `bob.testnet`, an enrolled owner, and a pinned verifier hash that equals
+the published hash.
+
+1. **0:00** Show the vault on the testnet explorer: contacts, limits and the
+   pinned verifier hash.
+2. **0:30** Click "Pay by voice". Say "Send two NEAR to alice dot testnet". The
+   words light up. The confirm modal shows the transaction and the heard words.
+   The countdown ends, and the Wallet sends the transaction.
+3. **1:15** Show the receipt. Open the transaction: `request_transfer`, then
+   `request_execution`, then the callback, then the transfer. Open the OutLayer
+   attestation: its WASM hash equals the vault's pinned hash. Show the `heard`
+   field of the verdict.
+4. **2:00** Tampered Wallet: switch to the "tampered" demo build. It shows
+   2 NEAR but requests 20 NEAR. Say the same sentence. The vault refuses with
+   reason `words` and releases the reservation. No funds move.
+5. **2:45** Wrong speaker: a teammate says the sentence. The vault refuses with
+   reason `speaker`.
+6. **3:15** Sound-alike: add the contact `alicia.testnet`. The vault refuses it
+   because it is too close to `alice.testnet`.
+7. **3:45** Multisig, if it is ready: a 2-of-3 multisig. A tampered page shows a
+   false proposal text. B reads it, and the contract refuses. B reads the true
+   text with the fresh words. The approval counts, and the proposal executes.
+   Show the 200-block countdown.
+8. **4:30** One slide: what each proof shows and does not show (Section 8.1).
+
+The tampered build runs on its own demo host. It never runs on a production
+`walletOrigin`.
+
+## 13. Extension: spoken bets (not in the MVP)
+
+- The user says a belief, for example "I bet the Fed raises rates, 50 dollars".
+- An AI on a confidential GPU host proposes orders. OutLayer documents no GPU,
+  so the AI cannot run in OutLayer. The GPU host is still to be selected.
+- Market text is untrusted input to the AI, so plan for prompt injection. The
+  AI output is only a proposal of typed orders. Fixed code checks each order
+  against the event, the limit price and the amount cap.
+- Fixed code in the verifier computes a payoff sentence from the real orders,
+  for example "Confirm: I lose up to 50, and I win at least 80 if the Fed raises
+  rates in December". The user must say it, with the amount. "I confirm these 2
+  trades" is not enough.
+- Start with one event and limit prices.
+- Polymarket and Limitless are not on NEAR. Yield/resume applies only to
+  contracts on NEAR, for example an escrow on NEAR that releases funds for the
+  orders.
+- [Aomi](https://aomi.dev) already turns text into trades, Polymarket included.
+  The Seams difference is the check of the user's own words against the final
+  orders.
+
+## 14. Open questions for the user
+
+1. **Code location** (decided 2026-11-07): the verifier, the contracts and the
+   demo page go in a new repository beside `seams-wallet`. `spoken-intent`
+   goes in `seams-wallet/crates/`. The user creates the GitHub remote. Gate 0
+   signs its testnet probes with an existing `w3a-dev-*.testnet` account.
+2. **Audio egress**: vault mode sends encrypted audio to OutLayer and keeps a
+   template there. The public guide promises no audio or voiceprint egress. Is
+   this acceptable for the hackathon, with consent text?
+3. **Templates**: OutLayer only, or OutLayer and the browser? A template in
+   OutLayer works on any device that can sign vault transactions. Do you want
+   that cross-device use?
+4. **Freshness**: keep "no pass code" for all amounts, or add fresh words above
+   the auto limit (Section 4.7)?
+5. **Verifier upgrades**: who may change the pinned hash? The plan uses the
+   owner with a delay in the vault, and a proposal in the multisig. For the
+   hackathon, Seams publishes the verifier code.
+6. **Speech model in the verifier**: Aurora, Citrinet or Whisper Tiny English?
+   Gate 0 and Gate STT-1 measure them.
+7. **Multisig target**: a new typed contract, or an adapter for Sputnik DAO v2?
+8. **Vault escape**: which delay for a withdrawal without voice? The demo uses
+   10 minutes.
+9. **Payment**: does the owner's attached deposit pay for each OutLayer run, or
+   does Seams pay?
+10. **Releases**: do per-transaction voice checks stay in the hackathon only,
+    with the 2026-11-04 decision unchanged for releases?
+11. **Fallback**: is the signed-verdict HTTPS path (Section 7.5) acceptable if
+    Gate 0 rejects the on-chain path? It adds the project owner to the trust
+    set.
+12. **Demo text**: may the verdict publish the `heard` text on testnet?
+13. **Device binding**: should the verifier also check the device intent
+    statement against a device key in the vault? It adds little against a
+    compromised `walletOrigin`.

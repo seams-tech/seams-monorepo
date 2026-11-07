@@ -47,6 +47,12 @@ of Platform and Wallet entry points and the reasons for that design.
 - [Ink drawing style](drawing-style.md): how the site's brush drawings look and
   move, the draw-in timing, and the checks for a new drawing.
 
+## Concept plans
+
+- [Refactor 210 — voice intents](refactor-210-voice-intents.md): the
+  Speak-to-Sign vault and the spoken multisig with OutLayer and yield/resume.
+  Plan only; testnet.
+
 ## Historical feature records
 
 - [BYO authentication](refactor-201-BYO-auth.md): 0.28 and 0.29 implementation and release evidence.

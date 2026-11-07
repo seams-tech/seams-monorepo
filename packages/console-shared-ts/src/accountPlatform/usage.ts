@@ -17,7 +17,10 @@ import type { PlatformScopeV1, PlatformServiceIdV1 } from './scope';
 export type PlatformMeterIdV1 =
   | 'wallet.monthly_active_resource'
   | 'wallet.execution'
-  | 'satyr.completed_turn.test';
+  | 'satyr.completed_turn.test'
+  | 'satyr.jev_input_tokens';
+
+export type SatyrJevFeatureV1 = 'mail_classification' | 'related_cases' | 'screen_relevance';
 
 export type SatyrFundingSelectionV1 =
   | {
@@ -80,10 +83,32 @@ export type SatyrTurnUsageV1 = {
     }
 );
 
+/**
+ * The input-token total of one UTC hour for one Jev feature, on Satyr's key only.
+ * A record that raises the month's charge names the reservation of its feature-hour.
+ */
+export type SatyrJevInputTokensUsageV1 = {
+  readonly meterId: 'satyr.jev_input_tokens';
+  readonly unit: 'input_token';
+  readonly quantity: number;
+  readonly evidence: DurableSourceEvidenceV1 & {
+    readonly kind: 'satyr_jev_hour';
+    readonly hourStart: string;
+    readonly feature: SatyrJevFeatureV1;
+    readonly reservationId: string | null;
+  };
+};
+
 export type PlatformUsageMeasureV1 =
   | WalletMonthlyResourceUsageV1
   | WalletExecutionUsageV1
-  | SatyrTurnUsageV1;
+  | SatyrTurnUsageV1
+  | SatyrJevInputTokensUsageV1;
+
+/** One reservation holds the paid use of one feature-hour. */
+export function satyrJevExecutionIdV1(feature: SatyrJevFeatureV1, hourStart: string): string {
+  return JSON.stringify(['satyr_jev', feature, hourStart]);
+}
 
 /** Producer authority comes from authenticated transport, outside the payload. */
 export class PlatformUsageEventV1 {
@@ -208,9 +233,60 @@ function readUsageMeasure(record: Record<string, unknown>): PlatformUsageMeasure
       });
     case 'satyr.completed_turn.test':
       return readSatyrTurn(record, evidence, sourceRecordId, sourceDigest);
+    case 'satyr.jev_input_tokens':
+      return readSatyrJevHour(record, evidence, sourceRecordId, sourceDigest);
     default:
       return invalidContract('meterId');
   }
+}
+
+function readSatyrJevFeature(input: unknown): SatyrJevFeatureV1 {
+  switch (input) {
+    case 'mail_classification':
+    case 'related_cases':
+    case 'screen_relevance':
+      return input;
+    default:
+      return invalidContract('feature');
+  }
+}
+
+function readSatyrJevHour(
+  record: Record<string, unknown>,
+  evidence: Record<string, unknown>,
+  sourceRecordId: string,
+  sourceDigest: string,
+): SatyrJevInputTokensUsageV1 {
+  exactKeys(evidence, [
+    'kind',
+    'sourceRecordId',
+    'sourceDigest',
+    'hourStart',
+    'feature',
+    'reservationId',
+  ]);
+  if (evidence.kind !== 'satyr_jev_hour' || record.unit !== 'input_token')
+    return invalidContract('measure');
+  const hourStart = utcTimestamp(evidence.hourStart, 'hourStart');
+  if (Date.parse(hourStart) % 3_600_000 !== 0) return invalidContract('hourStart');
+  // The hour's charge belongs to the UTC month of the hour.
+  const occurredAt = utcTimestamp(record.occurredAt, 'occurredAt');
+  if (occurredAt < hourStart || occurredAt.slice(0, 7) !== hourStart.slice(0, 7))
+    return invalidContract('occurredAt');
+  return Object.freeze({
+    meterId: 'satyr.jev_input_tokens',
+    unit: 'input_token',
+    quantity: integer(record.quantity, 'quantity', 0),
+    evidence: Object.freeze({
+      kind: evidence.kind,
+      sourceRecordId,
+      sourceDigest,
+      hourStart,
+      feature: readSatyrJevFeature(evidence.feature),
+      reservationId:
+        evidence.reservationId === null ? null : textValue(evidence.reservationId, 'reservationId'),
+    }),
+  });
 }
 
 function readSatyrTurn(
@@ -337,7 +413,14 @@ export type PlatformUsageReceiptV1 =
 
 export type UsageRecordingResultV1 = PlatformResult<
   PlatformUsageReceiptV1,
-  { readonly code: 'scope_forbidden' | 'meter_unknown' | 'event_conflict' | 'price_unavailable' }
+  {
+    readonly code:
+      | 'scope_forbidden'
+      | 'meter_unknown'
+      | 'event_conflict'
+      | 'price_unavailable'
+      | 'insufficient_funds';
+  }
 >;
 
 export type PlatformUsageEventDataV1 = Readonly<{

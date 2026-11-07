@@ -401,7 +401,8 @@ charges use their existing developer-account/month/resource key and require no r
 
 Use `accepted` and `rejected` Result branches. Accepted outcomes distinguish
 `charged` from `recorded_without_charge`. Rejections include `scope_forbidden`,
-`meter_unknown`, `event_conflict`, and `price_unavailable`. Transient availability
+`meter_unknown`, `event_conflict`, `price_unavailable`, and `insufficient_funds`
+(a Satyr Jev hour that would raise the month's charge beyond its reservation). Transient availability
 failures remain retryable and cannot mark an event as permanently processed.
 
 The service owns billable activity semantics. Shared billing applies a registered,

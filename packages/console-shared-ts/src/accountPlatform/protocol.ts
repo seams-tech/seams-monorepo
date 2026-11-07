@@ -205,6 +205,19 @@ export type PlatformPriceV1 =
       readonly availability: 'isolated_test_accounts';
     }
   | {
+      /** The month's charge is ceil(max(0, units - includedUnits) * blockMinor / blockUnits). */
+      readonly kind: 'block_measured';
+      readonly meterId: 'satyr.jev_input_tokens';
+      readonly version: 'satyr-jev-input-tokens-v1';
+      readonly currency: 'USD';
+      readonly blockMinor: 84;
+      readonly blockUnits: 10_000_000;
+      readonly includedUnits: 23_809_523;
+      readonly timeRule: 'hour_start_utc_month';
+      readonly availability: 'isolated_test_accounts';
+      readonly unitMinor?: never;
+    }
+  | {
       readonly kind: 'quoted_execution';
       readonly meterId: 'wallet.execution';
       readonly version: string;
@@ -241,7 +254,7 @@ export const PLATFORM_SERVICE_CATALOGUE_V1: readonly PlatformServiceCatalogueEnt
       serviceId: 'satyr',
       displayName: 'Satyr',
       contractVersion: 1,
-      meters: Object.freeze(['satyr.completed_turn.test'] as const),
+      meters: Object.freeze(['satyr.completed_turn.test', 'satyr.jev_input_tokens'] as const),
       integrationEndpoints: Object.freeze({
         provision: '/account-platform/v1/provision',
         status: '/account-platform/v1/status',

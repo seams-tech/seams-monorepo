@@ -37,7 +37,7 @@ interface ExecutionChargeIdentityV1 {
   readonly scope: PlatformScopeV1;
   readonly instanceId: string;
   readonly executionId: string;
-  readonly meterId: 'wallet.execution' | 'satyr.completed_turn.test';
+  readonly meterId: 'wallet.execution' | 'satyr.completed_turn.test' | 'satyr.jev_input_tokens';
   readonly ledgerSourceEventId: string;
   readonly priceVersion: string;
   readonly sourceRecordId: string;

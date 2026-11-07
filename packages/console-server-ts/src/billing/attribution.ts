@@ -6,6 +6,8 @@ import {
 import { integer, textValue } from '@seams-internal/console-shared/accountPlatform/boundary';
 import { queryD1All, type D1DatabaseLike, type D1Row } from '../boundary/d1';
 
+export type BillingUsageChargeUnitV1 = 'resource_month' | 'execution' | 'turn' | 'input_token';
+
 interface BillingUsageChargeBaseV1 {
   readonly ledgerEntryId: string;
   readonly amountMinor: number;
@@ -20,7 +22,7 @@ export type BillingUsageChargeV1 = BillingUsageChargeBaseV1 &
         readonly meterId: PlatformMeterIdV1;
         readonly priceVersion: string;
         readonly quantity: number;
-        readonly unit: 'resource_month' | 'execution' | 'turn';
+        readonly unit: BillingUsageChargeUnitV1;
       }
     | {
         readonly kind: 'historical_organization';
@@ -40,6 +42,7 @@ function meterId(input: unknown): PlatformMeterIdV1 {
     case 'wallet.monthly_active_resource':
     case 'wallet.execution':
     case 'satyr.completed_turn.test':
+    case 'satyr.jev_input_tokens':
       return input;
     default:
       throw new Error('Invalid persisted billing meter');
@@ -56,11 +59,12 @@ function serviceId(input: unknown): 'wallet' | 'satyr' {
   }
 }
 
-function unit(input: unknown): 'resource_month' | 'execution' | 'turn' {
+function unit(input: unknown): BillingUsageChargeUnitV1 {
   switch (input) {
     case 'resource_month':
     case 'execution':
     case 'turn':
+    case 'input_token':
       return input;
     default:
       throw new Error('Invalid persisted billing unit');

@@ -37,6 +37,45 @@ The implementation now adds:
 Console migrations `0018` and `0019`, and Wallet Console migrations `0114` and `0115`,
 add these records. Applied migrations remain unchanged.
 
+### Satyr Jev use (Plan 88)
+
+The owner accepted D12 and D13 of Satyr Plan 88 on 7 November 2026.
+
+- **Meter.** `satyr.jev_input_tokens` records the input-token total of one UTC hour
+  for one Jev feature: `mail_classification`, `related_cases` or `screen_relevance`.
+  The unit is `input_token`. The evidence kind is `satyr_jev_hour`, with `hourStart`
+  on the hour. Satyr sends it only for use on Satyr's TypeSafe key.
+- **Identity.** One feature-hour of one Satyr instance is one record. A replay of the
+  same event adds nothing. Another payload for the same event or feature-hour is an
+  `event_conflict`.
+- **Price.** `satyr-jev-input-tokens-v1` is a `block_measured` price: 84 minor per
+  10,000,000 input tokens (USD 0.084 per million), after 23,809,523 included tokens
+  (USD 1.00 of TypeSafe cost) in each UTC month. The month of a record is the month of
+  its `hourStart`. Its availability is `isolated_test_accounts`. A customer version
+  needs the owner's approval of Satyr's prices.
+- **Rounding.** The month's charge is `ceil(max(0, tokens - included) × 84 / 10^7)`
+  of the account's month total, in integers. Each record charges the rise of that
+  charge, so the month's charges sum to one rounding of the month's total.
+- **Admission.** A record that raises the charge must name a reservation. Satyr
+  reserves a bound (for example 5 cents) for one feature-hour, with the execution id
+  `satyrJevExecutionIdV1(feature, hourStart)` and this price version. The record
+  settles that reservation, or releases it when the charge does not rise. This is the
+  existing prepaid and postpaid admission. A record without a reservation that would
+  raise the charge, or a rise above the reservation, fails with `insufficient_funds`
+  and records nothing.
+- **Self-serve credit limit (D12).** `POST /console/billing/satyr-paid-use/postpaid`
+  with `{ operationId }` turns on Satyr paid use with postpaid billing. It needs
+  `billing.manage` and an enabled Satyr service. A prepaid account with a usable card,
+  zero prepaid balance and no unsettled obligations becomes postpaid with a credit
+  limit of 1000 minor (USD 10.00). The change record has the actor
+  `system:satyr-self-serve-paid-use` and the reason `satyr_self_serve_paid_use`. The
+  same operation id replays. The route never changes an existing postpaid limit. An
+  account with prepaid credit stays prepaid, and its credit packs work as before. A
+  larger limit stays with Platform support.
+
+Console migration `0020` and Wallet Console migration `0116` add the price kind, the
+`billing_jev_hours` table, and the meter in the usage and charge tables.
+
 ### Pricing decision
 
 The user chose **login/session-based monthly active users (MAU)** on October 31.
@@ -147,7 +186,8 @@ Project environments retain their development/staging/production meaning.
   billing service. They are supported payment models, with one active model per
   account. Do not add a legacy mode or parallel billing implementation.
 - Require completed payment setup and a positive, explicitly approved credit limit
-  before new paid work. A saved card alone grants no credit.
+  before new paid work. A saved card alone grants no credit. The one exception is the
+  audited USD 10.00 limit for Satyr paid use (Plan 88 D12, see above).
 - Preserve existing product prices. Satyr fees charged to developer accounts remain unpriced until
   approved. Its isolated test price must remain unavailable to non-test developer accounts.
 - Defer bank debits, multiple currencies, mid-month threshold charging, custom

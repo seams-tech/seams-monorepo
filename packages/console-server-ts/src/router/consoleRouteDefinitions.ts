@@ -198,6 +198,7 @@ const BILLING_MANAGE_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_billing_plan_free', 'POST', '/console/billing/plan/free'],
   ['console_billing_payment_reconcile', 'POST', '/console/billing/payment-account/reconcile'],
   ['console_billing_plan_start', 'POST', '/console/billing/plan/start'],
+  ['console_billing_satyr_paid_use_postpaid', 'POST', '/console/billing/satyr-paid-use/postpaid'],
 ];
 
 const PLATFORM_SUPPORT_ROUTES: readonly ConsoleRouteTuple[] = [

@@ -817,7 +817,8 @@ of the live 500 billion. Storage, the network allowlist, the callback values
 and the version pin work on testnet. Silero VAD does not load in `tract`.
 The OutLayer worker refuses a WASM above 10 MB, so the verifier must
 fetch the models over HTTPS with pinned digests; a size-optimized `tract`
-build is 7.9 MB. The run inside the OutLayer TEE is still open.
+build is 7.9 MB. With that design, a ReDimNet and Aurora run inside the
+OutLayer TEE took 23.4 billion instructions, 13–18 s and about 0.003 NEAR.
 
 1. **Inference runtime**: run ReDimNet B1 (8.9 MB), Silero VAD (2.3 MB), Aurora
    (1.3 MB) and Citrinet (10.5 MB) in `wasm32-wasip2` with a pure-Rust engine,
@@ -963,8 +964,22 @@ The tampered build runs on its own demo host. It never runs on a production
 5. **Verifier upgrades**: who may change the pinned hash? The plan uses the
    owner with a delay in the vault, and a proposal in the multisig. For the
    hackathon, Seams publishes the verifier code.
-6. **Speech model in the verifier**: Aurora, Citrinet or Whisper Tiny English?
-   Gate 0 and Gate STT-1 measure them.
+6. **Speech model in the verifier** (direction chosen 2026-11-07): Aurora and
+   Citrinet fail Gate STT-1 (0.27% and 2.1% of correct readings accepted).
+   The user prefers that the OutLayer verifier sends the audio to Whisper
+   large-v3 on NEAR AI Cloud (`/v1/audio/transcriptions`, in a TEE) and keeps
+   ReDimNet for the speaker check. Open: whether transcription responses carry
+   a `provider_tee` signature that the verifier can check against a NEAR
+   model attestation. Without one, the verifier trusts the NEAR AI gateway,
+   not only the TEE. Measured 2026-11-07: a transcription returns no
+   signature (`/v1/signature/<id>` answers 404), and Whisper large-v3 accepts
+   60.0% of correct readings and 0 of 3,742 near misses on the STT-1 corpus,
+   at a median of 1.31 s per call. Most refusals come from the corpus and the
+   grammar ("approved", contact pairs that a vault refuses, digits in account
+   names), not from Whisper. With fixes for those (Rule W2, scored offline on
+   the same transcripts): 84.4% of correct readings, 94.3% of transfers,
+   44.8% of multisig approvals, and 0 false accepts. The aliases were chosen
+   on this corpus, so a new corpus must confirm them.
 7. **Multisig target**: a new typed contract, or an adapter for Sputnik DAO v2?
 8. **Vault escape**: which delay for a withdrawal without voice? The demo uses
    10 minutes.
@@ -979,3 +994,9 @@ The tampered build runs on its own demo host. It never runs on a production
 13. **Device binding**: should the verifier also check the device intent
     statement against a device key in the vault? It adds little against a
     compromised `walletOrigin`.
+14. **Spoken verifier version**: the `spoken-intent` draft speaks the first
+    five decimal digits of a verifier hash in a "set verifier version"
+    proposal. An attacker needs about 100,000 builds to find another hash
+    with the same five digits, so the words alone cannot tell the two
+    versions apart. Should members check the hash outside the spoken text,
+    or should the text carry more of the hash?

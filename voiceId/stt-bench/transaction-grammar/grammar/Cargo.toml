@@ -1,0 +1,19 @@
+[package]
+name = "tx-grammar-text"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Refactor 210 Gate STT-1: corpus and Rule A decisions from the spoken-intent crate"
+
+# Standalone: not a member of any parent workspace. It has its own lock file,
+# because spoken-intent pins borsh 1.6.1 and tract needs borsh 1.7 or later.
+[workspace]
+
+[[bin]]
+name = "txg-text"
+path = "src/main.rs"
+
+[dependencies]
+spoken-intent = { path = "../../../../../seams-wallet/crates/spoken-intent" }
+serde_json = "1"
+anyhow = "1"

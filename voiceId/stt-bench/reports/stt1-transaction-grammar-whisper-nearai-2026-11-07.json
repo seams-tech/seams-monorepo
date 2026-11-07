@@ -1,0 +1,619 @@
+{
+  "gate": "STT-1",
+  "model": "whisper-large-v3 (NEAR AI Cloud)",
+  "date": "2026-11-07",
+  "decisions": "txg-text rulew (transaction-grammar/grammar/src/rulew.rs)",
+  "ruleDefinitions": {
+    "ruleW": "text step (lowercase, trim, drop final . , ! ?, drop commas inside digit groups, '.' between letters or letter/digit -> ' dot ', '-' -> ' dash ', '_' -> ' underscore ', then normalize); transfers: words after the first 'to' must have the phonetic_key of exactly one contact, then parse_transfer + render must equal the expected spoken text; multisig: text-step words must equal the expected spoken text",
+    "ruleWLiteral": "ruleW, but a '.' between two digits also becomes ' dot '",
+    "ruleA": "normalize(transcript) equals the expected spoken text, word for word"
+  },
+  "cases": 6742,
+  "errors": 0,
+  "errorSamples": [],
+  "rules": {
+    "ruleW": {
+      "correctAccepted": 1801,
+      "correctCases": 3000,
+      "correctPercent": 60.03,
+      "correctByVoice": {
+        "Daniel": {
+          "accepted": 298,
+          "cases": 500,
+          "percent": 59.6
+        },
+        "Karen": {
+          "accepted": 304,
+          "cases": 500,
+          "percent": 60.8
+        },
+        "Moira": {
+          "accepted": 326,
+          "cases": 500,
+          "percent": 65.2
+        },
+        "Rishi": {
+          "accepted": 260,
+          "cases": 500,
+          "percent": 52.0
+        },
+        "Samantha": {
+          "accepted": 308,
+          "cases": 500,
+          "percent": 61.6
+        },
+        "Tessa": {
+          "accepted": 305,
+          "cases": 500,
+          "percent": 61.0
+        }
+      },
+      "correctByRate": {
+        "160": {
+          "accepted": 920,
+          "cases": 1500,
+          "percent": 61.33
+        },
+        "210": {
+          "accepted": 881,
+          "cases": 1500,
+          "percent": 58.73
+        }
+      },
+      "correctByRequestKind": {
+        "multisig": {
+          "accepted": 106,
+          "cases": 600,
+          "percent": 17.67
+        },
+        "transfer": {
+          "accepted": 1695,
+          "cases": 2400,
+          "percent": 70.62
+        }
+      },
+      "nearMissesAccepted": 0,
+      "nearMissCases": 3742,
+      "nearMissesByKind": {
+        "add_remove_swapped": {
+          "accepted": 0,
+          "cases": 40
+        },
+        "added_clause": {
+          "accepted": 0,
+          "cases": 500
+        },
+        "changed_verb": {
+          "accepted": 0,
+          "cases": 500
+        },
+        "missing_amount": {
+          "accepted": 0,
+          "cases": 420
+        },
+        "moved_decimal": {
+          "accepted": 0,
+          "cases": 356
+        },
+        "negation": {
+          "accepted": 0,
+          "cases": 500
+        },
+        "one_digit": {
+          "accepted": 0,
+          "cases": 418
+        },
+        "other_contact": {
+          "accepted": 0,
+          "cases": 420
+        },
+        "proposal_id": {
+          "accepted": 0,
+          "cases": 100
+        },
+        "swapped_challenge": {
+          "accepted": 0,
+          "cases": 100
+        },
+        "ten_times": {
+          "accepted": 0,
+          "cases": 348
+        },
+        "threshold_changed": {
+          "accepted": 0,
+          "cases": 20
+        },
+        "version_digit": {
+          "accepted": 0,
+          "cases": 20
+        }
+      },
+      "falseAccepts": [],
+      "pass": false
+    },
+    "ruleWLiteral": {
+      "correctAccepted": 807,
+      "correctCases": 3000,
+      "correctPercent": 26.9,
+      "correctByVoice": {
+        "Daniel": {
+          "accepted": 128,
+          "cases": 500,
+          "percent": 25.6
+        },
+        "Karen": {
+          "accepted": 134,
+          "cases": 500,
+          "percent": 26.8
+        },
+        "Moira": {
+          "accepted": 160,
+          "cases": 500,
+          "percent": 32.0
+        },
+        "Rishi": {
+          "accepted": 108,
+          "cases": 500,
+          "percent": 21.6
+        },
+        "Samantha": {
+          "accepted": 142,
+          "cases": 500,
+          "percent": 28.4
+        },
+        "Tessa": {
+          "accepted": 135,
+          "cases": 500,
+          "percent": 27.0
+        }
+      },
+      "correctByRate": {
+        "160": {
+          "accepted": 427,
+          "cases": 1500,
+          "percent": 28.47
+        },
+        "210": {
+          "accepted": 380,
+          "cases": 1500,
+          "percent": 25.33
+        }
+      },
+      "correctByRequestKind": {
+        "multisig": {
+          "accepted": 100,
+          "cases": 600,
+          "percent": 16.67
+        },
+        "transfer": {
+          "accepted": 707,
+          "cases": 2400,
+          "percent": 29.46
+        }
+      },
+      "nearMissesAccepted": 0,
+      "nearMissCases": 3742,
+      "nearMissesByKind": {
+        "add_remove_swapped": {
+          "accepted": 0,
+          "cases": 40
+        },
+        "added_clause": {
+          "accepted": 0,
+          "cases": 500
+        },
+        "changed_verb": {
+          "accepted": 0,
+          "cases": 500
+        },
+        "missing_amount": {
+          "accepted": 0,
+          "cases": 420
+        },
+        "moved_decimal": {
+          "accepted": 0,
+          "cases": 356
+        },
+        "negation": {
+          "accepted": 0,
+          "cases": 500
+        },
+        "one_digit": {
+          "accepted": 0,
+          "cases": 418
+        },
+        "other_contact": {
+          "accepted": 0,
+          "cases": 420
+        },
+        "proposal_id": {
+          "accepted": 0,
+          "cases": 100
+        },
+        "swapped_challenge": {
+          "accepted": 0,
+          "cases": 100
+        },
+        "ten_times": {
+          "accepted": 0,
+          "cases": 348
+        },
+        "threshold_changed": {
+          "accepted": 0,
+          "cases": 20
+        },
+        "version_digit": {
+          "accepted": 0,
+          "cases": 20
+        }
+      },
+      "falseAccepts": [],
+      "pass": false
+    },
+    "ruleA": {
+      "correctAccepted": 1831,
+      "correctCases": 3000,
+      "correctPercent": 61.03,
+      "correctByVoice": {
+        "Daniel": {
+          "accepted": 126,
+          "cases": 500,
+          "percent": 25.2
+        },
+        "Karen": {
+          "accepted": 363,
+          "cases": 500,
+          "percent": 72.6
+        },
+        "Moira": {
+          "accepted": 384,
+          "cases": 500,
+          "percent": 76.8
+        },
+        "Rishi": {
+          "accepted": 237,
+          "cases": 500,
+          "percent": 47.4
+        },
+        "Samantha": {
+          "accepted": 358,
+          "cases": 500,
+          "percent": 71.6
+        },
+        "Tessa": {
+          "accepted": 363,
+          "cases": 500,
+          "percent": 72.6
+        }
+      },
+      "correctByRate": {
+        "160": {
+          "accepted": 976,
+          "cases": 1500,
+          "percent": 65.07
+        },
+        "210": {
+          "accepted": 855,
+          "cases": 1500,
+          "percent": 57.0
+        }
+      },
+      "correctByRequestKind": {
+        "multisig": {
+          "accepted": 115,
+          "cases": 600,
+          "percent": 19.17
+        },
+        "transfer": {
+          "accepted": 1716,
+          "cases": 2400,
+          "percent": 71.5
+        }
+      },
+      "nearMissesAccepted": 10,
+      "nearMissCases": 3742,
+      "nearMissesByKind": {
+        "add_remove_swapped": {
+          "accepted": 0,
+          "cases": 40
+        },
+        "added_clause": {
+          "accepted": 0,
+          "cases": 500
+        },
+        "changed_verb": {
+          "accepted": 0,
+          "cases": 500
+        },
+        "missing_amount": {
+          "accepted": 0,
+          "cases": 420
+        },
+        "moved_decimal": {
+          "accepted": 0,
+          "cases": 356
+        },
+        "negation": {
+          "accepted": 0,
+          "cases": 500
+        },
+        "one_digit": {
+          "accepted": 0,
+          "cases": 418
+        },
+        "other_contact": {
+          "accepted": 10,
+          "cases": 420
+        },
+        "proposal_id": {
+          "accepted": 0,
+          "cases": 100
+        },
+        "swapped_challenge": {
+          "accepted": 0,
+          "cases": 100
+        },
+        "ten_times": {
+          "accepted": 0,
+          "cases": 348
+        },
+        "threshold_changed": {
+          "accepted": 0,
+          "cases": 20
+        },
+        "version_digit": {
+          "accepted": 0,
+          "cases": 20
+        }
+      },
+      "falseAccepts": [
+        {
+          "caseId": "t016-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send one thousand four hundred near to jon dot testnet",
+          "expected": "send one thousand four hundred near to john dot testnet",
+          "heard": " Send 1400 near to john.testnet."
+        },
+        {
+          "caseId": "t047-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send five hundred forty four thousand four hundred ninety one point zero six near to erik dot testnet",
+          "expected": "send five hundred forty four thousand four hundred ninety one point zero six near to eric dot testnet",
+          "heard": " Send 544,491.06 near to eric.testnet."
+        },
+        {
+          "caseId": "t047-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send five hundred forty four thousand four hundred ninety one point zero six near to erik dot testnet",
+          "expected": "send five hundred forty four thousand four hundred ninety one point zero six near to eric dot testnet",
+          "heard": " Send 544,491.06 near to eric.testnet."
+        },
+        {
+          "caseId": "t076-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send forty four thousand forty eight point one seven near to jon dot testnet",
+          "expected": "send forty four thousand forty eight point one seven near to john dot testnet",
+          "heard": " Send 44,048.17 near to john.testnet."
+        },
+        {
+          "caseId": "t076-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send forty four thousand forty eight point one seven near to jon dot testnet",
+          "expected": "send forty four thousand forty eight point one seven near to john dot testnet",
+          "heard": " Send 44,048.17 near to john.testnet."
+        },
+        {
+          "caseId": "t107-near_miss-other_contact-Moira-160",
+          "missKind": "other_contact",
+          "audioText": "send two hundred eleven thousand six hundred sixty two near to erik dot testnet",
+          "expected": "send two hundred eleven thousand six hundred sixty two near to eric dot testnet",
+          "heard": " Send 211,662 near to eric.testnet."
+        },
+        {
+          "caseId": "t107-near_miss-other_contact-Moira-210",
+          "missKind": "other_contact",
+          "audioText": "send two hundred eleven thousand six hundred sixty two near to erik dot testnet",
+          "expected": "send two hundred eleven thousand six hundred sixty two near to eric dot testnet",
+          "heard": " Send 211,662 near to eric.testnet."
+        },
+        {
+          "caseId": "t154-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send five thousand near to sara dot testnet",
+          "expected": "send five thousand near to sarah dot testnet",
+          "heard": " Send 5000 near to sarah.testnet."
+        },
+        {
+          "caseId": "t154-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send five thousand near to sara dot testnet",
+          "expected": "send five thousand near to sarah dot testnet",
+          "heard": " Send 5,000 near to sarah.testnet."
+        },
+        {
+          "caseId": "t196-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send one hundred forty near to jon dot testnet",
+          "expected": "send one hundred forty near to john dot testnet",
+          "heard": " Send 140 near to john.testnet."
+        }
+      ],
+      "pass": false
+    }
+  },
+  "latency": {
+    "callSecondsMedian": 1.307,
+    "callSecondsP95": 1.584,
+    "audioSecondsMedian": 3.401,
+    "ratioToAudioMedian": 0.385,
+    "ratioToAudioP95": 0.722
+  },
+  "refusedCorrectByStage": {
+    "words": 494,
+    "recipient_ambiguous": 423,
+    "recipient_no_key_match": 160,
+    "parse": 122
+  },
+  "topRefusalReasons": [
+    {
+      "reason": "words differ: 'approve' -> 'approved'",
+      "cases": 431,
+      "examples": [
+        "Approved proposal 1 send 8888 near to bob.testnet violin muffin.",
+        "Approved proposal 1 send 8888 near to bob.testnut violin muffin."
+      ]
+    },
+    {
+      "reason": "words differ: 'add' -> 'ad'",
+      "cases": 66,
+      "examples": [
+        "Approve Proposal 13 Ad Member Alice 2.Testnet Mirror Hammer",
+        "Approved Proposal 13 Ad Member Alice 2.Testnet Mirror Hammer."
+      ]
+    },
+    {
+      "reason": "parse NotTransfer: 'near' -> 'nir'",
+      "cases": 60,
+      "examples": [
+        "Send 1,300 NIR to payrolls.testnet.",
+        "Send 9.6 NIR to leo.testnet."
+      ]
+    },
+    {
+      "reason": "words differ: 'testnet' -> 'testnut'",
+      "cases": 48,
+      "examples": [
+        "Approved proposal 1 send 8888 near to bob.testnut violin muffin.",
+        "Approved proposal 1 send 8888 near to bob.testnut violin muffin."
+      ]
+    },
+    {
+      "reason": "recipient key matches several contacts: 'tim dot testnet' heard 'tim dot testnet'",
+      "cases": 42,
+      "examples": [
+        "Send 999,999.99 near to tim.testnet.",
+        "Send 999,999.99 near to tim.testnet."
+      ]
+    },
+    {
+      "reason": "recipient key matches several contacts: 'liza dot testnet' heard 'liza dot testnet'",
+      "cases": 37,
+      "examples": [
+        "Send 8.88 near to liza.testnet.",
+        "Send 8.88 near to liza.testnet."
+      ]
+    },
+    {
+      "reason": "recipient key matches several contacts: 'tom dot testnet' heard 'tom dot testnet'",
+      "cases": 33,
+      "examples": [
+        "Send 246,642 near to tom.testnet.",
+        "Send 246,642 near to tom.testnet."
+      ]
+    },
+    {
+      "reason": "recipient key matches several contacts: 'john dot testnet' heard 'john dot testnet'",
+      "cases": 33,
+      "examples": [
+        "Send 1400 near to john.testnet.",
+        "Send 1400 near to john.testnet."
+      ]
+    },
+    {
+      "reason": "recipient key matches no contact: 'rent dash two zero two six dot testnet' heard 'rent dash two thousand twenty six dot testnet'",
+      "cases": 32,
+      "examples": [
+        "Send 733,186 near to rent-2026.testnet",
+        "Send 733,186 near to rent-2026.testnet."
+      ]
+    },
+    {
+      "reason": "recipient key matches no contact: 'ops dash four two dot testnet' heard 'ops dash forty two dot testnet'",
+      "cases": 31,
+      "examples": [
+        "Send 74.15 near to ops-42.testnet.",
+        "Send 74.15 near to ops-42.testnet."
+      ]
+    },
+    {
+      "reason": "recipient key matches no contact: 'kim dash zero eight dot testnet' heard 'kim dash eight dot testnet'",
+      "cases": 31,
+      "examples": [
+        "Send 219.9 near to kim-08.testnet.",
+        "Send 219.9 near to kim-08.testnet."
+      ]
+    },
+    {
+      "reason": "recipient key matches several contacts: 'jon dot testnet' heard 'john dot testnet'",
+      "cases": 30,
+      "examples": [
+        "Send 5 near to john.testnet.",
+        "Send 5-net to john.testnet."
+      ]
+    },
+    {
+      "reason": "recipient key matches several contacts: 'lisa dot testnet' heard 'lisa dot testnet'",
+      "cases": 30,
+      "examples": [
+        "Send 3 near to lisa.testnet.",
+        "Send three near to lisa.testnet."
+      ]
+    },
+    {
+      "reason": "recipient key matches several contacts: 'erik dot testnet' heard 'eric dot testnet'",
+      "cases": 29,
+      "examples": [
+        "Send 8888 near to eric.testnet.",
+        "Send 8888 near to eric.testnet."
+      ]
+    },
+    {
+      "reason": "recipient key matches several contacts: 'sarah dot testnet' heard 'sarah dot testnet'",
+      "cases": 25,
+      "examples": [
+        "Send 42144.75 near to sarah.testnet.",
+        "Send 42144.75 near to sarah.testnet."
+      ]
+    },
+    {
+      "reason": "words differ: 'seven' -> 'hundred seventy'",
+      "cases": 24,
+      "examples": [
+        "Approve Proposal 100 Set Verifier Version 10374 Salmon Oyster.",
+        "Approved Proposal 100 Set Verifier Version 10374 Salmon Oyster."
+      ]
+    },
+    {
+      "reason": "words differ: 'five zero' -> 'fifty thousand'",
+      "cases": 24,
+      "examples": [
+        "Approved Proposal 550 Set Verifier Version 50239 Garden Needle",
+        "Approved Proposal 550 Set Verifier Version 50239 Garden Needle."
+      ]
+    },
+    {
+      "reason": "words differ: '' -> 'thousand'",
+      "cases": 24,
+      "examples": [
+        "Approved Proposal 741 Set Verifier Version 34696 Island Ladder",
+        "Approved Proposal 741 Set Verifier Version 34696 Island Ladder."
+      ]
+    },
+    {
+      "reason": "recipient key matches several contacts: 'eric dot testnet' heard 'eric dot testnet'",
+      "cases": 23,
+      "examples": [
+        "Send 544,491.06 near to eric.testnet.",
+        "Send 544,491.06 near to eric.testnet."
+      ]
+    },
+    {
+      "reason": "recipient key matches several contacts: 'sara dot testnet' heard 'sarah dot testnet'",
+      "cases": 18,
+      "examples": [
+        "Send 416,317.3 near to sarah.testnet.",
+        "Send 416,317.3 near to sarah.testnet."
+      ]
+    }
+  ]
+}

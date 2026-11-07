@@ -6,7 +6,9 @@ Section 10. Probe source: the new local repository `seams-voice-intents`
 
 ## Result
 
-Gate 0 passes for the speaker check and the word check, with four limits.
+Gate 0 passes for the speaker check and the word check, with three limits.
+A `verify`-sized run of ReDimNet and Aurora ran inside the OutLayer TEE on
+testnet: 23.4 billion instructions, 13–18 s, about 0.003 NEAR.
 
 - ReDimNet B1, Aurora INT8 and Citrinet INT8 run in `wasm32-wasip2` with
   `tract` 0.23.10. Their outputs match ONNX Runtime Web 1.30.0.
@@ -23,8 +25,6 @@ The limits:
    (max 10 MB)". The models cannot be embedded. The verifier must fetch them
    over HTTPS and check pinned SHA-256 digests. A size-optimized `tract` build
    is 7.9 MB and fits.
-4. The time of a model run inside the OutLayer TEE is not measured yet,
-   because of limit 3.
 
 ## Environment
 
@@ -123,6 +123,43 @@ WASM sizes (stripped, LTO):
   about 22.3 billion in all. This is 4.5% of the live limit.
 - wasmtime compiled each component in about 1.2 s. The OutLayer worker
   caches compiled components (`compiled_cache.rs`).
+
+## Model run inside the OutLayer TEE
+
+The worker `ea04f90a…c47757` (8,175,042 bytes, `opt-level = "z"`, manifest
+allowlist `test.sign.seams.sh`) fetches ReDimNet and Aurora from the Wallet
+host, which already serves them, and checks each pinned SHA-256. It then runs
+both on 8 s of synthetic audio. Three contract runs pinned to that version.
+Records: [`tee-verify.jsonl`](tee-verify.jsonl).
+
+| Run | Compile | Instructions   | OutLayer `time_ms` | Time inside the guest | Model fetch (ReDimNet, Aurora) | Cost (NEAR) | Blocks to callback |
+| --- | ------- | -------------- | ------------------ | --------------------- | ------------------------------ | ----------- | ------------------ |
+| 1   | fresh   | 23,429,490,489 | 18,425             | 2,715 ms              | 832 ms, 169 ms                 | 0.00305     | 48                 |
+| 2   | cached  | 23,431,537,018 | 17,985             | 3,258 ms              | 272 ms, 230 ms                 | 0.00280     | 41                 |
+| 3   | cached  | 23,428,587,533 | 13,208             | 2,198 ms              | 261 ms, 114 ms                 | 0.00232     | 31                 |
+
+- The output sums equal the local WASM run (ReDimNet 31.082746, Aurora
+  −102256.515625).
+- Inference inside the guest: ReDimNet 1.1–1.7 s, Aurora 0.1–0.2 s.
+- OutLayer's `time_ms` is 10–15 s more than the guest's own clock. Two
+  `echo` runs of the same 8.2 MB worker, with no download and no inference
+  (78,000 instructions), took 8,606 ms and 12,865 ms. The 462 KB worker's
+  `echo` takes about 0.7 s. So most of the time is a fixed cost that grows
+  with the WASM size (load, compile or instantiation in the worker), not the
+  verify work. Its parts are not measured.
+- The pass rule (p95 run of at most 30 s within the live limits) holds for
+  these three runs. Three runs give no reliable p95.
+
+### Smaller `tract` builds
+
+- `tract-nnef` with the ONNX extension ops, without the ONNX parser
+  (`gate0/nnef-probe`, `opt-level = "z"`): 6,416,147 bytes (1,731,615 gzip),
+  against 7,922,836 bytes for `tract-onnx`. Most of the size is `tract` core
+  and its kernels, not the parser.
+- Aurora as an NNEF archive (decluttered) is 7.7 MB, against 1.3 MB as INT8
+  ONNX: the archive stores float32 weights. It runs in 4.35 billion
+  instructions for 4 s. ReDimNet as an NNEF archive fails `tract`'s declutter
+  pass again when it loads with `into_optimized`.
 
 ## Item 4: latency on testnet
 
@@ -231,11 +268,8 @@ ChaCha20-Poly1305.
 
 ## Open items
 
-1. Fetch the models over HTTPS inside the worker, check their digests, and
-   time one `verify` run in the TEE: instructions, `time_ms` and compile
-   time. ReDimNet and Aurora are 10.2 MB. They need a host in the manifest
-   allowlist, for example FastFS or the Seams relay. Publishing the model
-   files to such a host needs the user's approval.
+1. Measure more TEE runs for a real p95, and split OutLayer's `time_ms`
+   into its parts.
 2. A VAD that loads in `tract`, or a decision to drop the VAD from the
    verifier.
 3. A plan built ahead of time for Citrinet, if Citrinet is chosen.

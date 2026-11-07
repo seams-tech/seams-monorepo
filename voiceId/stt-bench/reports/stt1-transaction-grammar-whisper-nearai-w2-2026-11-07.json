@@ -1,0 +1,1561 @@
+{
+  "gate": "STT-1",
+  "model": "whisper-large-v3 (NEAR AI Cloud)",
+  "date": "2026-11-07",
+  "decisions": "txg-text rulew2 (transaction-grammar/grammar/src/rulew.rs)",
+  "ruleDefinitions": {
+    "ruleW2": "ruleW, plus: whole-word aliases; account tokens (letters with - _ ., or letters with digits) spell each digit as a word; transfers match and parse against a valid vault (corpus contacts minus contacts confusable with the receiver, minus the later contact of any other confusable pair)",
+    "ruleW": "as in stt1-transaction-grammar-whisper-nearai-2026-11-07 (all 60 contacts)",
+    "ruleA": "normalize(transcript) equals the expected spoken text, word for word",
+    "homophoneOfTrueReceiver": "near miss whose audio names a contact confusable with the true receiver, accepted, and the parsed recipient and amount equal the request exactly"
+  },
+  "cases": 6742,
+  "errors": 0,
+  "vault": {
+    "aliases": [
+      {
+        "aliasIsGrammarWord": false,
+        "grammarWord": "approve",
+        "heard": "approved",
+        "targetIsGrammarWord": true
+      },
+      {
+        "aliasIsGrammarWord": false,
+        "grammarWord": "near",
+        "heard": "nir",
+        "targetIsGrammarWord": true
+      },
+      {
+        "aliasIsGrammarWord": false,
+        "grammarWord": "near",
+        "heard": "neer",
+        "targetIsGrammarWord": true
+      }
+    ],
+    "grammarWordCount": 178,
+    "contacts": 60,
+    "confusablePairs": [
+      [
+        "alice.testnet",
+        "alicia.testnet",
+        "ALASDATASTNAT",
+        "ALASADATASTNAT"
+      ],
+      [
+        "alicia.testnet",
+        "lisa.testnet",
+        "ALASADATASTNAT",
+        "LASADATASTNAT"
+      ],
+      [
+        "alicia.testnet",
+        "liza.testnet",
+        "ALASADATASTNAT",
+        "LASADATASTNAT"
+      ],
+      [
+        "jon.testnet",
+        "john.testnet",
+        "JANDATASTNAT",
+        "JANDATASTNAT"
+      ],
+      [
+        "jon.testnet",
+        "ben.testnet",
+        "JANDATASTNAT",
+        "BANDATASTNAT"
+      ],
+      [
+        "jon.testnet",
+        "ken.testnet",
+        "JANDATASTNAT",
+        "KANDATASTNAT"
+      ],
+      [
+        "jon.testnet",
+        "dan.testnet",
+        "JANDATASTNAT",
+        "DANDATASTNAT"
+      ],
+      [
+        "john.testnet",
+        "ben.testnet",
+        "JANDATASTNAT",
+        "BANDATASTNAT"
+      ],
+      [
+        "john.testnet",
+        "ken.testnet",
+        "JANDATASTNAT",
+        "KANDATASTNAT"
+      ],
+      [
+        "john.testnet",
+        "dan.testnet",
+        "JANDATASTNAT",
+        "DANDATASTNAT"
+      ],
+      [
+        "rob.testnet",
+        "bob.testnet",
+        "RABDATASTNAT",
+        "BABDATASTNAT"
+      ],
+      [
+        "bob.testnet",
+        "ben.testnet",
+        "BABDATASTNAT",
+        "BANDATASTNAT"
+      ],
+      [
+        "payroll.testnet",
+        "payrolls.testnet",
+        "PARALDATASTNAT",
+        "PARALSDATASTNAT"
+      ],
+      [
+        "sara.testnet",
+        "sarah.testnet",
+        "SARADATASTNAT",
+        "SARADATASTNAT"
+      ],
+      [
+        "eric.testnet",
+        "erik.testnet",
+        "ARAKDATASTNAT",
+        "ARAKDATASTNAT"
+      ],
+      [
+        "anna.testnet",
+        "hannah.testnet",
+        "ANADATASTNAT",
+        "HANADATASTNAT"
+      ],
+      [
+        "anna.testnet",
+        "dana.testnet",
+        "ANADATASTNAT",
+        "DANADATASTNAT"
+      ],
+      [
+        "anna.testnet",
+        "nina.testnet",
+        "ANADATASTNAT",
+        "NANADATASTNAT"
+      ],
+      [
+        "anna.testnet",
+        "tina.testnet",
+        "ANADATASTNAT",
+        "TANADATASTNAT"
+      ],
+      [
+        "anna.testnet",
+        "uma.testnet",
+        "ANADATASTNAT",
+        "AMADATASTNAT"
+      ],
+      [
+        "hannah.testnet",
+        "dana.testnet",
+        "HANADATASTNAT",
+        "DANADATASTNAT"
+      ],
+      [
+        "hannah.testnet",
+        "nina.testnet",
+        "HANADATASTNAT",
+        "NANADATASTNAT"
+      ],
+      [
+        "hannah.testnet",
+        "tina.testnet",
+        "HANADATASTNAT",
+        "TANADATASTNAT"
+      ],
+      [
+        "hannah.testnet",
+        "henry.testnet",
+        "HANADATASTNAT",
+        "HANRADATASTNAT"
+      ],
+      [
+        "mark.testnet",
+        "marco.testnet",
+        "MARKDATASTNAT",
+        "MARKADATASTNAT"
+      ],
+      [
+        "tom.testnet",
+        "tim.testnet",
+        "TAMDATASTNAT",
+        "TAMDATASTNAT"
+      ],
+      [
+        "ben.testnet",
+        "ken.testnet",
+        "BANDATASTNAT",
+        "KANDATASTNAT"
+      ],
+      [
+        "ben.testnet",
+        "dan.testnet",
+        "BANDATASTNAT",
+        "DANDATASTNAT"
+      ],
+      [
+        "ken.testnet",
+        "dan.testnet",
+        "KANDATASTNAT",
+        "DANDATASTNAT"
+      ],
+      [
+        "lisa.testnet",
+        "liza.testnet",
+        "LASADATASTNAT",
+        "LASADATASTNAT"
+      ],
+      [
+        "dan.testnet",
+        "dana.testnet",
+        "DANDATASTNAT",
+        "DANADATASTNAT"
+      ],
+      [
+        "dana.testnet",
+        "nina.testnet",
+        "DANADATASTNAT",
+        "NANADATASTNAT"
+      ],
+      [
+        "dana.testnet",
+        "tina.testnet",
+        "DANADATASTNAT",
+        "TANADATASTNAT"
+      ],
+      [
+        "nina.testnet",
+        "tina.testnet",
+        "NANADATASTNAT",
+        "TANADATASTNAT"
+      ],
+      [
+        "emma.near",
+        "maya.near",
+        "AMADATNAR",
+        "MADATNAR"
+      ],
+      [
+        "zoe.testnet",
+        "leo.testnet",
+        "SADATASTNAT",
+        "LADATASTNAT"
+      ]
+    ],
+    "transferRequests": 200,
+    "removedPerRequest": {
+      "min": 18,
+      "median": 19.0,
+      "max": 20,
+      "distribution": {
+        "18": 10,
+        "19": 187,
+        "20": 3
+      }
+    },
+    "removedConfusableWithReceiverPerRequest": {
+      "0": 93,
+      "1": 60,
+      "2": 10,
+      "3": 3,
+      "4": 18,
+      "5": 16
+    },
+    "contactsRemovedInAnyVault": [
+      "alice.testnet",
+      "alicia.testnet",
+      "anna.testnet",
+      "ben.testnet",
+      "bob.testnet",
+      "dan.testnet",
+      "dana.testnet",
+      "emma.near",
+      "eric.testnet",
+      "erik.testnet",
+      "hannah.testnet",
+      "henry.testnet",
+      "john.testnet",
+      "jon.testnet",
+      "ken.testnet",
+      "leo.testnet",
+      "lisa.testnet",
+      "liza.testnet",
+      "marco.testnet",
+      "mark.testnet",
+      "maya.near",
+      "nina.testnet",
+      "payroll.testnet",
+      "payrolls.testnet",
+      "rob.testnet",
+      "sara.testnet",
+      "sarah.testnet",
+      "tim.testnet",
+      "tina.testnet",
+      "tom.testnet",
+      "uma.testnet",
+      "zoe.testnet"
+    ]
+  },
+  "rules": {
+    "ruleW2": {
+      "correctAccepted": 2531,
+      "correctCases": 3000,
+      "correctPercent": 84.37,
+      "correctByRequestKind": {
+        "multisig": {
+          "accepted": 269,
+          "cases": 600,
+          "percent": 44.83
+        },
+        "transfer": {
+          "accepted": 2262,
+          "cases": 2400,
+          "percent": 94.25
+        }
+      },
+      "correctByVoice": {
+        "Daniel": {
+          "accepted": 423,
+          "cases": 500,
+          "percent": 84.6
+        },
+        "Karen": {
+          "accepted": 430,
+          "cases": 500,
+          "percent": 86.0
+        },
+        "Moira": {
+          "accepted": 436,
+          "cases": 500,
+          "percent": 87.2
+        },
+        "Rishi": {
+          "accepted": 372,
+          "cases": 500,
+          "percent": 74.4
+        },
+        "Samantha": {
+          "accepted": 434,
+          "cases": 500,
+          "percent": 86.8
+        },
+        "Tessa": {
+          "accepted": 436,
+          "cases": 500,
+          "percent": 87.2
+        }
+      },
+      "correctByRate": {
+        "160": {
+          "accepted": 1267,
+          "cases": 1500,
+          "percent": 84.47
+        },
+        "210": {
+          "accepted": 1264,
+          "cases": 1500,
+          "percent": 84.27
+        }
+      },
+      "nearMissCases": 3742,
+      "nearMissesAccepted": 69,
+      "homophoneOfTrueReceiver": 69,
+      "falseAccepts": 0,
+      "falseAcceptsByKind": {
+        "add_remove_swapped": {
+          "falseAccepts": 0,
+          "cases": 40
+        },
+        "added_clause": {
+          "falseAccepts": 0,
+          "cases": 500
+        },
+        "changed_verb": {
+          "falseAccepts": 0,
+          "cases": 500
+        },
+        "missing_amount": {
+          "falseAccepts": 0,
+          "cases": 420
+        },
+        "moved_decimal": {
+          "falseAccepts": 0,
+          "cases": 356
+        },
+        "negation": {
+          "falseAccepts": 0,
+          "cases": 500
+        },
+        "one_digit": {
+          "falseAccepts": 0,
+          "cases": 418
+        },
+        "other_contact": {
+          "falseAccepts": 0,
+          "cases": 420
+        },
+        "proposal_id": {
+          "falseAccepts": 0,
+          "cases": 100
+        },
+        "swapped_challenge": {
+          "falseAccepts": 0,
+          "cases": 100
+        },
+        "ten_times": {
+          "falseAccepts": 0,
+          "cases": 348
+        },
+        "threshold_changed": {
+          "falseAccepts": 0,
+          "cases": 20
+        },
+        "version_digit": {
+          "falseAccepts": 0,
+          "cases": 20
+        }
+      },
+      "falseAcceptCases": [],
+      "homophoneCases": [
+        {
+          "caseId": "t000-near_miss-other_contact-Moira-160",
+          "missKind": "other_contact",
+          "audioText": "send eight thousand eight hundred eighty eight near to eric dot testnet",
+          "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+          "heard": "Send 8888 near to eric.testnet.",
+          "audioRecipient": "eric.testnet",
+          "paid": "erik.testnet"
+        },
+        {
+          "caseId": "t000-near_miss-other_contact-Moira-210",
+          "missKind": "other_contact",
+          "audioText": "send eight thousand eight hundred eighty eight near to eric dot testnet",
+          "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+          "heard": "Send 8888 near to eric.testnet.",
+          "audioRecipient": "eric.testnet",
+          "paid": "erik.testnet"
+        },
+        {
+          "caseId": "t005-near_miss-other_contact-Tessa-160",
+          "missKind": "other_contact",
+          "audioText": "send two hundred forty six thousand six hundred forty two near to tim dot testnet",
+          "expected": "send two hundred forty six thousand six hundred forty two near to tom dot testnet",
+          "heard": "Send 246,642 near to Tim.testnet.",
+          "audioRecipient": "tim.testnet",
+          "paid": "tom.testnet"
+        },
+        {
+          "caseId": "t005-near_miss-other_contact-Tessa-210",
+          "missKind": "other_contact",
+          "audioText": "send two hundred forty six thousand six hundred forty two near to tim dot testnet",
+          "expected": "send two hundred forty six thousand six hundred forty two near to tom dot testnet",
+          "heard": "Send 246,642 near to Tim.testnet.",
+          "audioRecipient": "tim.testnet",
+          "paid": "tom.testnet"
+        },
+        {
+          "caseId": "t010-near_miss-other_contact-Karen-160",
+          "missKind": "other_contact",
+          "audioText": "send eight point eight eight near to lisa dot testnet",
+          "expected": "send eight point eight eight near to liza dot testnet",
+          "heard": "Send 8.88 near to lisa.testnet.",
+          "audioRecipient": "lisa.testnet",
+          "paid": "liza.testnet"
+        },
+        {
+          "caseId": "t010-near_miss-other_contact-Karen-210",
+          "missKind": "other_contact",
+          "audioText": "send eight point eight eight near to lisa dot testnet",
+          "expected": "send eight point eight eight near to liza dot testnet",
+          "heard": "Send 8.88 near to lisa.testnet.",
+          "audioRecipient": "lisa.testnet",
+          "paid": "liza.testnet"
+        },
+        {
+          "caseId": "t016-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send one thousand four hundred near to jon dot testnet",
+          "expected": "send one thousand four hundred near to john dot testnet",
+          "heard": "Send 1400 near to john.testnet.",
+          "audioRecipient": "jon.testnet",
+          "paid": "john.testnet"
+        },
+        {
+          "caseId": "t016-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send one thousand four hundred near to jon dot testnet",
+          "expected": "send one thousand four hundred near to john dot testnet",
+          "heard": "Send 1,400 near to john.testnut.",
+          "audioRecipient": "jon.testnet",
+          "paid": "john.testnet"
+        },
+        {
+          "caseId": "t018-near_miss-other_contact-Karen-160",
+          "missKind": "other_contact",
+          "audioText": "send nine hundred ninety nine thousand nine hundred ninety nine point nine nine near to tom dot testnet",
+          "expected": "send nine hundred ninety nine thousand nine hundred ninety nine point nine nine near to tim dot testnet",
+          "heard": "Send 999999.99 near to tom.testnet.",
+          "audioRecipient": "tom.testnet",
+          "paid": "tim.testnet"
+        },
+        {
+          "caseId": "t018-near_miss-other_contact-Karen-210",
+          "missKind": "other_contact",
+          "audioText": "send nine hundred ninety nine thousand nine hundred ninety nine point nine nine near to tom dot testnet",
+          "expected": "send nine hundred ninety nine thousand nine hundred ninety nine point nine nine near to tim dot testnet",
+          "heard": "Send 999,999.99 near to tom.testnet.",
+          "audioRecipient": "tom.testnet",
+          "paid": "tim.testnet"
+        },
+        {
+          "caseId": "t021-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send four hundred sixteen thousand three hundred seventeen point three near to sarah dot testnet",
+          "expected": "send four hundred sixteen thousand three hundred seventeen point three near to sara dot testnet",
+          "heard": "Send 416,317.3 near to sarah.testnet.",
+          "audioRecipient": "sarah.testnet",
+          "paid": "sara.testnet"
+        },
+        {
+          "caseId": "t021-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send four hundred sixteen thousand three hundred seventeen point three near to sarah dot testnet",
+          "expected": "send four hundred sixteen thousand three hundred seventeen point three near to sara dot testnet",
+          "heard": "Send 416,317.3 near to sarah.testnut.",
+          "audioRecipient": "sarah.testnet",
+          "paid": "sara.testnet"
+        },
+        {
+          "caseId": "t034-near_miss-other_contact-Rishi-160",
+          "missKind": "other_contact",
+          "audioText": "send forty two thousand one hundred forty four point seven five near to sara dot testnet",
+          "expected": "send forty two thousand one hundred forty four point seven five near to sarah dot testnet",
+          "heard": "Send 42,144.75 near to sara.testnet.",
+          "audioRecipient": "sara.testnet",
+          "paid": "sarah.testnet"
+        },
+        {
+          "caseId": "t034-near_miss-other_contact-Rishi-210",
+          "missKind": "other_contact",
+          "audioText": "send forty two thousand one hundred forty four point seven five near to sara dot testnet",
+          "expected": "send forty two thousand one hundred forty four point seven five near to sarah dot testnet",
+          "heard": "Send 42,144.75 near to sara.testnet.",
+          "audioRecipient": "sara.testnet",
+          "paid": "sarah.testnet"
+        },
+        {
+          "caseId": "t047-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send five hundred forty four thousand four hundred ninety one point zero six near to erik dot testnet",
+          "expected": "send five hundred forty four thousand four hundred ninety one point zero six near to eric dot testnet",
+          "heard": "Send 544,491.06 near to eric.testnet.",
+          "audioRecipient": "erik.testnet",
+          "paid": "eric.testnet"
+        },
+        {
+          "caseId": "t047-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send five hundred forty four thousand four hundred ninety one point zero six near to erik dot testnet",
+          "expected": "send five hundred forty four thousand four hundred ninety one point zero six near to eric dot testnet",
+          "heard": "Send 544,491.06 near to eric.testnet.",
+          "audioRecipient": "erik.testnet",
+          "paid": "eric.testnet"
+        },
+        {
+          "caseId": "t057-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send three near to liza dot testnet",
+          "expected": "send three near to lisa dot testnet",
+          "heard": "Send 3 near to Liza.testnet.",
+          "audioRecipient": "liza.testnet",
+          "paid": "lisa.testnet"
+        },
+        {
+          "caseId": "t057-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send three near to liza dot testnet",
+          "expected": "send three near to lisa dot testnet",
+          "heard": "Send three near to Liza.testnet.",
+          "audioRecipient": "liza.testnet",
+          "paid": "lisa.testnet"
+        },
+        {
+          "caseId": "t060-near_miss-other_contact-Tessa-160",
+          "missKind": "other_contact",
+          "audioText": "send one point eight near to eric dot testnet",
+          "expected": "send one point eight near to erik dot testnet",
+          "heard": "Send 1.8 near to eric.testnet.",
+          "audioRecipient": "eric.testnet",
+          "paid": "erik.testnet"
+        },
+        {
+          "caseId": "t060-near_miss-other_contact-Tessa-210",
+          "missKind": "other_contact",
+          "audioText": "send one point eight near to eric dot testnet",
+          "expected": "send one point eight near to erik dot testnet",
+          "heard": "Send 1.8 near to eric.testnet.",
+          "audioRecipient": "eric.testnet",
+          "paid": "erik.testnet"
+        },
+        {
+          "caseId": "t063-near_miss-other_contact-Tessa-160",
+          "missKind": "other_contact",
+          "audioText": "send nine thousand seven hundred forty nine point five six near to john dot testnet",
+          "expected": "send nine thousand seven hundred forty nine point five six near to jon dot testnet",
+          "heard": "Send 9749.56 near to john.testnet.",
+          "audioRecipient": "john.testnet",
+          "paid": "jon.testnet"
+        },
+        {
+          "caseId": "t063-near_miss-other_contact-Tessa-210",
+          "missKind": "other_contact",
+          "audioText": "send nine thousand seven hundred forty nine point five six near to john dot testnet",
+          "expected": "send nine thousand seven hundred forty nine point five six near to jon dot testnet",
+          "heard": "Send 9749.56 near to john.testnet.",
+          "audioRecipient": "john.testnet",
+          "paid": "jon.testnet"
+        },
+        {
+          "caseId": "t065-near_miss-other_contact-Moira-160",
+          "missKind": "other_contact",
+          "audioText": "send one point four near to tim dot testnet",
+          "expected": "send one point four near to tom dot testnet",
+          "heard": "Send 1.4 near to tim.testnet.",
+          "audioRecipient": "tim.testnet",
+          "paid": "tom.testnet"
+        },
+        {
+          "caseId": "t065-near_miss-other_contact-Moira-210",
+          "missKind": "other_contact",
+          "audioText": "send one point four near to tim dot testnet",
+          "expected": "send one point four near to tom dot testnet",
+          "heard": "Send 1.4 near to tim.testnet.",
+          "audioRecipient": "tim.testnet",
+          "paid": "tom.testnet"
+        },
+        {
+          "caseId": "t070-near_miss-other_contact-Daniel-160",
+          "missKind": "other_contact",
+          "audioText": "send forty five thousand seven hundred fifty one point two near to lisa dot testnet",
+          "expected": "send forty five thousand seven hundred fifty one point two near to liza dot testnet",
+          "heard": "Send 45,751.2 near to Lisa.testnote",
+          "audioRecipient": "lisa.testnet",
+          "paid": "liza.testnet"
+        },
+        {
+          "caseId": "t070-near_miss-other_contact-Daniel-210",
+          "missKind": "other_contact",
+          "audioText": "send forty five thousand seven hundred fifty one point two near to lisa dot testnet",
+          "expected": "send forty five thousand seven hundred fifty one point two near to liza dot testnet",
+          "heard": "Send 45,751.2 near to lisa.testnote.",
+          "audioRecipient": "lisa.testnet",
+          "paid": "liza.testnet"
+        },
+        {
+          "caseId": "t076-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send forty four thousand forty eight point one seven near to jon dot testnet",
+          "expected": "send forty four thousand forty eight point one seven near to john dot testnet",
+          "heard": "Send 44,048.17 near to john.testnet.",
+          "audioRecipient": "jon.testnet",
+          "paid": "john.testnet"
+        },
+        {
+          "caseId": "t076-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send forty four thousand forty eight point one seven near to jon dot testnet",
+          "expected": "send forty four thousand forty eight point one seven near to john dot testnet",
+          "heard": "Send 44,048.17 near to john.testnet.",
+          "audioRecipient": "jon.testnet",
+          "paid": "john.testnet"
+        },
+        {
+          "caseId": "t078-near_miss-other_contact-Moira-160",
+          "missKind": "other_contact",
+          "audioText": "send eighty four point six near to tom dot testnet",
+          "expected": "send eighty four point six near to tim dot testnet",
+          "heard": "Send 84.6 near to tom.testnet.",
+          "audioRecipient": "tom.testnet",
+          "paid": "tim.testnet"
+        },
+        {
+          "caseId": "t078-near_miss-other_contact-Moira-210",
+          "missKind": "other_contact",
+          "audioText": "send eighty four point six near to tom dot testnet",
+          "expected": "send eighty four point six near to tim dot testnet",
+          "heard": "Send 84.6 near to tom.testnet.",
+          "audioRecipient": "tom.testnet",
+          "paid": "tim.testnet"
+        },
+        {
+          "caseId": "t081-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send zero point five near to sarah dot testnet",
+          "expected": "send zero point five near to sara dot testnet",
+          "heard": "Send 0.5 near to sarah.testnet.",
+          "audioRecipient": "sarah.testnet",
+          "paid": "sara.testnet"
+        },
+        {
+          "caseId": "t081-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send zero point five near to sarah dot testnet",
+          "expected": "send zero point five near to sara dot testnet",
+          "heard": "Send 0.5 near to sarah.testnet.",
+          "audioRecipient": "sarah.testnet",
+          "paid": "sara.testnet"
+        },
+        {
+          "caseId": "t094-near_miss-other_contact-Rishi-160",
+          "missKind": "other_contact",
+          "audioText": "send three point one near to sara dot testnet",
+          "expected": "send three point one near to sarah dot testnet",
+          "heard": "Send 3.1 near to sara.testnet.",
+          "audioRecipient": "sara.testnet",
+          "paid": "sarah.testnet"
+        },
+        {
+          "caseId": "t094-near_miss-other_contact-Rishi-210",
+          "missKind": "other_contact",
+          "audioText": "send three point one near to sara dot testnet",
+          "expected": "send three point one near to sarah dot testnet",
+          "heard": "Send 3.1 near to sara.testnet.",
+          "audioRecipient": "sara.testnet",
+          "paid": "sarah.testnet"
+        },
+        {
+          "caseId": "t107-near_miss-other_contact-Moira-160",
+          "missKind": "other_contact",
+          "audioText": "send two hundred eleven thousand six hundred sixty two near to erik dot testnet",
+          "expected": "send two hundred eleven thousand six hundred sixty two near to eric dot testnet",
+          "heard": "Send 211,662 near to eric.testnet.",
+          "audioRecipient": "erik.testnet",
+          "paid": "eric.testnet"
+        },
+        {
+          "caseId": "t107-near_miss-other_contact-Moira-210",
+          "missKind": "other_contact",
+          "audioText": "send two hundred eleven thousand six hundred sixty two near to erik dot testnet",
+          "expected": "send two hundred eleven thousand six hundred sixty two near to eric dot testnet",
+          "heard": "Send 211,662 near to eric.testnet.",
+          "audioRecipient": "erik.testnet",
+          "paid": "eric.testnet"
+        },
+        {
+          "caseId": "t117-near_miss-other_contact-Tessa-160",
+          "missKind": "other_contact",
+          "audioText": "send fifty five thousand one hundred thirty three point four near to liza dot testnet",
+          "expected": "send fifty five thousand one hundred thirty three point four near to lisa dot testnet",
+          "heard": "Send 55133.4 near to liza.testnet.",
+          "audioRecipient": "liza.testnet",
+          "paid": "lisa.testnet"
+        },
+        {
+          "caseId": "t117-near_miss-other_contact-Tessa-210",
+          "missKind": "other_contact",
+          "audioText": "send fifty five thousand one hundred thirty three point four near to liza dot testnet",
+          "expected": "send fifty five thousand one hundred thirty three point four near to lisa dot testnet",
+          "heard": "Send 55133.4 near to liza.testnet.",
+          "audioRecipient": "liza.testnet",
+          "paid": "lisa.testnet"
+        },
+        {
+          "caseId": "t120-near_miss-other_contact-Tessa-160",
+          "missKind": "other_contact",
+          "audioText": "send thirty near to eric dot testnet",
+          "expected": "send thirty near to erik dot testnet",
+          "heard": "Send 30 near to eric.testnet.",
+          "audioRecipient": "eric.testnet",
+          "paid": "erik.testnet"
+        },
+        {
+          "caseId": "t120-near_miss-other_contact-Tessa-210",
+          "missKind": "other_contact",
+          "audioText": "send thirty near to eric dot testnet",
+          "expected": "send thirty near to erik dot testnet",
+          "heard": "Send 30 near to eric.testnet.",
+          "audioRecipient": "eric.testnet",
+          "paid": "erik.testnet"
+        },
+        {
+          "caseId": "t123-near_miss-other_contact-Tessa-160",
+          "missKind": "other_contact",
+          "audioText": "send seventy near to john dot testnet",
+          "expected": "send seventy near to jon dot testnet",
+          "heard": "Send 70 near to john.testnet.",
+          "audioRecipient": "john.testnet",
+          "paid": "jon.testnet"
+        },
+        {
+          "caseId": "t123-near_miss-other_contact-Tessa-210",
+          "missKind": "other_contact",
+          "audioText": "send seventy near to john dot testnet",
+          "expected": "send seventy near to jon dot testnet",
+          "heard": "Send 70 near to john.testnet.",
+          "audioRecipient": "john.testnet",
+          "paid": "jon.testnet"
+        },
+        {
+          "caseId": "t125-near_miss-other_contact-Moira-160",
+          "missKind": "other_contact",
+          "audioText": "send three thousand near to tim dot testnet",
+          "expected": "send three thousand near to tom dot testnet",
+          "heard": "Send 3000 near to tim.testnet.",
+          "audioRecipient": "tim.testnet",
+          "paid": "tom.testnet"
+        },
+        {
+          "caseId": "t125-near_miss-other_contact-Moira-210",
+          "missKind": "other_contact",
+          "audioText": "send three thousand near to tim dot testnet",
+          "expected": "send three thousand near to tom dot testnet",
+          "heard": "Send 3000 near to tim.testnet.",
+          "audioRecipient": "tim.testnet",
+          "paid": "tom.testnet"
+        },
+        {
+          "caseId": "t130-near_miss-other_contact-Daniel-160",
+          "missKind": "other_contact",
+          "audioText": "send zero point zero nine near to lisa dot testnet",
+          "expected": "send zero point zero nine near to liza dot testnet",
+          "heard": "Send 0.09 near to lisa.testnet.",
+          "audioRecipient": "lisa.testnet",
+          "paid": "liza.testnet"
+        },
+        {
+          "caseId": "t130-near_miss-other_contact-Daniel-210",
+          "missKind": "other_contact",
+          "audioText": "send zero point zero nine near to lisa dot testnet",
+          "expected": "send zero point zero nine near to liza dot testnet",
+          "heard": "Send 0.09 near to Lisa.testnote.",
+          "audioRecipient": "lisa.testnet",
+          "paid": "liza.testnet"
+        },
+        {
+          "caseId": "t136-near_miss-other_contact-Rishi-160",
+          "missKind": "other_contact",
+          "audioText": "send zero point zero five near to jon dot testnet",
+          "expected": "send zero point zero five near to john dot testnet",
+          "heard": "Send 0.05 near to john.testnut.",
+          "audioRecipient": "jon.testnet",
+          "paid": "john.testnet"
+        },
+        {
+          "caseId": "t136-near_miss-other_contact-Rishi-210",
+          "missKind": "other_contact",
+          "audioText": "send zero point zero five near to jon dot testnet",
+          "expected": "send zero point zero five near to john dot testnet",
+          "heard": "Send 0.05 near to john.testnut.",
+          "audioRecipient": "jon.testnet",
+          "paid": "john.testnet"
+        },
+        {
+          "caseId": "t138-near_miss-other_contact-Daniel-160",
+          "missKind": "other_contact",
+          "audioText": "send ninety nine thousand two hundred twenty point zero five near to tom dot testnet",
+          "expected": "send ninety nine thousand two hundred twenty point zero five near to tim dot testnet",
+          "heard": "Send 99,220.05 near to tom.testnet.",
+          "audioRecipient": "tom.testnet",
+          "paid": "tim.testnet"
+        },
+        {
+          "caseId": "t138-near_miss-other_contact-Daniel-210",
+          "missKind": "other_contact",
+          "audioText": "send ninety nine thousand two hundred twenty point zero five near to tom dot testnet",
+          "expected": "send ninety nine thousand two hundred twenty point zero five near to tim dot testnet",
+          "heard": "Send 99,220.05 near to tom.testnote.",
+          "audioRecipient": "tom.testnet",
+          "paid": "tim.testnet"
+        },
+        {
+          "caseId": "t141-near_miss-other_contact-Daniel-160",
+          "missKind": "other_contact",
+          "audioText": "send one thousand five hundred near to sarah dot testnet",
+          "expected": "send one thousand five hundred near to sara dot testnet",
+          "heard": "Send 1500 near to sarah.testnote",
+          "audioRecipient": "sarah.testnet",
+          "paid": "sara.testnet"
+        },
+        {
+          "caseId": "t141-near_miss-other_contact-Daniel-210",
+          "missKind": "other_contact",
+          "audioText": "send one thousand five hundred near to sarah dot testnet",
+          "expected": "send one thousand five hundred near to sara dot testnet",
+          "heard": "Send 1500 near to sarah.testnote.",
+          "audioRecipient": "sarah.testnet",
+          "paid": "sara.testnet"
+        },
+        {
+          "caseId": "t154-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send five thousand near to sara dot testnet",
+          "expected": "send five thousand near to sarah dot testnet",
+          "heard": "Send 5000 near to sarah.testnet.",
+          "audioRecipient": "sara.testnet",
+          "paid": "sarah.testnet"
+        },
+        {
+          "caseId": "t154-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send five thousand near to sara dot testnet",
+          "expected": "send five thousand near to sarah dot testnet",
+          "heard": "Send 5,000 near to sarah.testnet.",
+          "audioRecipient": "sara.testnet",
+          "paid": "sarah.testnet"
+        },
+        {
+          "caseId": "t167-near_miss-other_contact-Daniel-160",
+          "missKind": "other_contact",
+          "audioText": "send nineteen near to erik dot testnet",
+          "expected": "send nineteen near to eric dot testnet",
+          "heard": "Send 19 near to eric.testnote.",
+          "audioRecipient": "erik.testnet",
+          "paid": "eric.testnet"
+        },
+        {
+          "caseId": "t167-near_miss-other_contact-Daniel-210",
+          "missKind": "other_contact",
+          "audioText": "send nineteen near to erik dot testnet",
+          "expected": "send nineteen near to eric dot testnet",
+          "heard": "Send 19 near to eric.testnote.",
+          "audioRecipient": "erik.testnet",
+          "paid": "eric.testnet"
+        },
+        {
+          "caseId": "t177-near_miss-other_contact-Moira-160",
+          "missKind": "other_contact",
+          "audioText": "send nine near to liza dot testnet",
+          "expected": "send nine near to lisa dot testnet",
+          "heard": "Send 9 near to liza.testnet",
+          "audioRecipient": "liza.testnet",
+          "paid": "lisa.testnet"
+        },
+        {
+          "caseId": "t177-near_miss-other_contact-Moira-210",
+          "missKind": "other_contact",
+          "audioText": "send nine near to liza dot testnet",
+          "expected": "send nine near to lisa dot testnet",
+          "heard": "Send 9 near to Liza.testnet.",
+          "audioRecipient": "liza.testnet",
+          "paid": "lisa.testnet"
+        },
+        {
+          "caseId": "t180-near_miss-other_contact-Moira-160",
+          "missKind": "other_contact",
+          "audioText": "send three hundred near to eric dot testnet",
+          "expected": "send three hundred near to erik dot testnet",
+          "heard": "Send 300 nir to eric.testnet",
+          "audioRecipient": "eric.testnet",
+          "paid": "erik.testnet"
+        },
+        {
+          "caseId": "t180-near_miss-other_contact-Moira-210",
+          "missKind": "other_contact",
+          "audioText": "send three hundred near to eric dot testnet",
+          "expected": "send three hundred near to erik dot testnet",
+          "heard": "Send 300 near to eric.testnet.",
+          "audioRecipient": "eric.testnet",
+          "paid": "erik.testnet"
+        },
+        {
+          "caseId": "t183-near_miss-other_contact-Karen-160",
+          "missKind": "other_contact",
+          "audioText": "send eight thousand near to john dot testnet",
+          "expected": "send eight thousand near to jon dot testnet",
+          "heard": "Send 8000 near to john.testnet.",
+          "audioRecipient": "john.testnet",
+          "paid": "jon.testnet"
+        },
+        {
+          "caseId": "t183-near_miss-other_contact-Karen-210",
+          "missKind": "other_contact",
+          "audioText": "send eight thousand near to john dot testnet",
+          "expected": "send eight thousand near to jon dot testnet",
+          "heard": "Send 8000 near to john.testnet.",
+          "audioRecipient": "john.testnet",
+          "paid": "jon.testnet"
+        },
+        {
+          "caseId": "t185-near_miss-other_contact-Rishi-160",
+          "missKind": "other_contact",
+          "audioText": "send fourteen near to tim dot testnet",
+          "expected": "send fourteen near to tom dot testnet",
+          "heard": "Send 14 near to tim.testnet.",
+          "audioRecipient": "tim.testnet",
+          "paid": "tom.testnet"
+        },
+        {
+          "caseId": "t185-near_miss-other_contact-Rishi-210",
+          "missKind": "other_contact",
+          "audioText": "send fourteen near to tim dot testnet",
+          "expected": "send fourteen near to tom dot testnet",
+          "heard": "Send 14 near to tim.testnut.",
+          "audioRecipient": "tim.testnet",
+          "paid": "tom.testnet"
+        },
+        {
+          "caseId": "t190-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send three thousand three hundred thirty three near to lisa dot testnet",
+          "expected": "send three thousand three hundred thirty three near to liza dot testnet",
+          "heard": "Send 3333 near to lisa.testnet.",
+          "audioRecipient": "lisa.testnet",
+          "paid": "liza.testnet"
+        },
+        {
+          "caseId": "t190-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send three thousand three hundred thirty three near to lisa dot testnet",
+          "expected": "send three thousand three hundred thirty three near to liza dot testnet",
+          "heard": "Send 3,333 near to lisa.testnet.",
+          "audioRecipient": "lisa.testnet",
+          "paid": "liza.testnet"
+        },
+        {
+          "caseId": "t196-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send one hundred forty near to jon dot testnet",
+          "expected": "send one hundred forty near to john dot testnet",
+          "heard": "Send 140 near to john.testnet.",
+          "audioRecipient": "jon.testnet",
+          "paid": "john.testnet"
+        },
+        {
+          "caseId": "t196-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send one hundred forty near to jon dot testnet",
+          "expected": "send one hundred forty near to john dot testnet",
+          "heard": "Send 140 near to john.testnut.",
+          "audioRecipient": "jon.testnet",
+          "paid": "john.testnet"
+        },
+        {
+          "caseId": "t198-near_miss-other_contact-Moira-160",
+          "missKind": "other_contact",
+          "audioText": "send two hundred one thousand five hundred eighty seven point five near to tom dot testnet",
+          "expected": "send two hundred one thousand five hundred eighty seven point five near to tim dot testnet",
+          "heard": "Send 201,587.5 near to tom.testnet.",
+          "audioRecipient": "tom.testnet",
+          "paid": "tim.testnet"
+        }
+      ],
+      "pass": false
+    },
+    "ruleW": {
+      "correctAccepted": 1801,
+      "correctCases": 3000,
+      "correctPercent": 60.03,
+      "correctByRequestKind": {
+        "multisig": {
+          "accepted": 106,
+          "cases": 600,
+          "percent": 17.67
+        },
+        "transfer": {
+          "accepted": 1695,
+          "cases": 2400,
+          "percent": 70.62
+        }
+      },
+      "correctByVoice": {
+        "Daniel": {
+          "accepted": 298,
+          "cases": 500,
+          "percent": 59.6
+        },
+        "Karen": {
+          "accepted": 304,
+          "cases": 500,
+          "percent": 60.8
+        },
+        "Moira": {
+          "accepted": 326,
+          "cases": 500,
+          "percent": 65.2
+        },
+        "Rishi": {
+          "accepted": 260,
+          "cases": 500,
+          "percent": 52.0
+        },
+        "Samantha": {
+          "accepted": 308,
+          "cases": 500,
+          "percent": 61.6
+        },
+        "Tessa": {
+          "accepted": 305,
+          "cases": 500,
+          "percent": 61.0
+        }
+      },
+      "correctByRate": {
+        "160": {
+          "accepted": 920,
+          "cases": 1500,
+          "percent": 61.33
+        },
+        "210": {
+          "accepted": 881,
+          "cases": 1500,
+          "percent": 58.73
+        }
+      },
+      "nearMissCases": 3742,
+      "nearMissesAccepted": 0,
+      "homophoneOfTrueReceiver": 0,
+      "falseAccepts": 0,
+      "falseAcceptsByKind": {
+        "add_remove_swapped": {
+          "falseAccepts": 0,
+          "cases": 40
+        },
+        "added_clause": {
+          "falseAccepts": 0,
+          "cases": 500
+        },
+        "changed_verb": {
+          "falseAccepts": 0,
+          "cases": 500
+        },
+        "missing_amount": {
+          "falseAccepts": 0,
+          "cases": 420
+        },
+        "moved_decimal": {
+          "falseAccepts": 0,
+          "cases": 356
+        },
+        "negation": {
+          "falseAccepts": 0,
+          "cases": 500
+        },
+        "one_digit": {
+          "falseAccepts": 0,
+          "cases": 418
+        },
+        "other_contact": {
+          "falseAccepts": 0,
+          "cases": 420
+        },
+        "proposal_id": {
+          "falseAccepts": 0,
+          "cases": 100
+        },
+        "swapped_challenge": {
+          "falseAccepts": 0,
+          "cases": 100
+        },
+        "ten_times": {
+          "falseAccepts": 0,
+          "cases": 348
+        },
+        "threshold_changed": {
+          "falseAccepts": 0,
+          "cases": 20
+        },
+        "version_digit": {
+          "falseAccepts": 0,
+          "cases": 20
+        }
+      },
+      "falseAcceptCases": [],
+      "homophoneCases": [],
+      "pass": false
+    },
+    "ruleA": {
+      "correctAccepted": 1831,
+      "correctCases": 3000,
+      "correctPercent": 61.03,
+      "correctByRequestKind": {
+        "multisig": {
+          "accepted": 115,
+          "cases": 600,
+          "percent": 19.17
+        },
+        "transfer": {
+          "accepted": 1716,
+          "cases": 2400,
+          "percent": 71.5
+        }
+      },
+      "correctByVoice": {
+        "Daniel": {
+          "accepted": 126,
+          "cases": 500,
+          "percent": 25.2
+        },
+        "Karen": {
+          "accepted": 363,
+          "cases": 500,
+          "percent": 72.6
+        },
+        "Moira": {
+          "accepted": 384,
+          "cases": 500,
+          "percent": 76.8
+        },
+        "Rishi": {
+          "accepted": 237,
+          "cases": 500,
+          "percent": 47.4
+        },
+        "Samantha": {
+          "accepted": 358,
+          "cases": 500,
+          "percent": 71.6
+        },
+        "Tessa": {
+          "accepted": 363,
+          "cases": 500,
+          "percent": 72.6
+        }
+      },
+      "correctByRate": {
+        "160": {
+          "accepted": 976,
+          "cases": 1500,
+          "percent": 65.07
+        },
+        "210": {
+          "accepted": 855,
+          "cases": 1500,
+          "percent": 57.0
+        }
+      },
+      "nearMissCases": 3742,
+      "nearMissesAccepted": 10,
+      "homophoneOfTrueReceiver": 10,
+      "falseAccepts": 0,
+      "falseAcceptsByKind": {
+        "add_remove_swapped": {
+          "falseAccepts": 0,
+          "cases": 40
+        },
+        "added_clause": {
+          "falseAccepts": 0,
+          "cases": 500
+        },
+        "changed_verb": {
+          "falseAccepts": 0,
+          "cases": 500
+        },
+        "missing_amount": {
+          "falseAccepts": 0,
+          "cases": 420
+        },
+        "moved_decimal": {
+          "falseAccepts": 0,
+          "cases": 356
+        },
+        "negation": {
+          "falseAccepts": 0,
+          "cases": 500
+        },
+        "one_digit": {
+          "falseAccepts": 0,
+          "cases": 418
+        },
+        "other_contact": {
+          "falseAccepts": 0,
+          "cases": 420
+        },
+        "proposal_id": {
+          "falseAccepts": 0,
+          "cases": 100
+        },
+        "swapped_challenge": {
+          "falseAccepts": 0,
+          "cases": 100
+        },
+        "ten_times": {
+          "falseAccepts": 0,
+          "cases": 348
+        },
+        "threshold_changed": {
+          "falseAccepts": 0,
+          "cases": 20
+        },
+        "version_digit": {
+          "falseAccepts": 0,
+          "cases": 20
+        }
+      },
+      "falseAcceptCases": [],
+      "homophoneCases": [
+        {
+          "caseId": "t016-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send one thousand four hundred near to jon dot testnet",
+          "expected": "send one thousand four hundred near to john dot testnet",
+          "heard": "Send 1400 near to john.testnet.",
+          "audioRecipient": "jon.testnet",
+          "paid": "john.testnet"
+        },
+        {
+          "caseId": "t047-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send five hundred forty four thousand four hundred ninety one point zero six near to erik dot testnet",
+          "expected": "send five hundred forty four thousand four hundred ninety one point zero six near to eric dot testnet",
+          "heard": "Send 544,491.06 near to eric.testnet.",
+          "audioRecipient": "erik.testnet",
+          "paid": "eric.testnet"
+        },
+        {
+          "caseId": "t047-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send five hundred forty four thousand four hundred ninety one point zero six near to erik dot testnet",
+          "expected": "send five hundred forty four thousand four hundred ninety one point zero six near to eric dot testnet",
+          "heard": "Send 544,491.06 near to eric.testnet.",
+          "audioRecipient": "erik.testnet",
+          "paid": "eric.testnet"
+        },
+        {
+          "caseId": "t076-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send forty four thousand forty eight point one seven near to jon dot testnet",
+          "expected": "send forty four thousand forty eight point one seven near to john dot testnet",
+          "heard": "Send 44,048.17 near to john.testnet.",
+          "audioRecipient": "jon.testnet",
+          "paid": "john.testnet"
+        },
+        {
+          "caseId": "t076-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send forty four thousand forty eight point one seven near to jon dot testnet",
+          "expected": "send forty four thousand forty eight point one seven near to john dot testnet",
+          "heard": "Send 44,048.17 near to john.testnet.",
+          "audioRecipient": "jon.testnet",
+          "paid": "john.testnet"
+        },
+        {
+          "caseId": "t107-near_miss-other_contact-Moira-160",
+          "missKind": "other_contact",
+          "audioText": "send two hundred eleven thousand six hundred sixty two near to erik dot testnet",
+          "expected": "send two hundred eleven thousand six hundred sixty two near to eric dot testnet",
+          "heard": "Send 211,662 near to eric.testnet.",
+          "audioRecipient": "erik.testnet",
+          "paid": "eric.testnet"
+        },
+        {
+          "caseId": "t107-near_miss-other_contact-Moira-210",
+          "missKind": "other_contact",
+          "audioText": "send two hundred eleven thousand six hundred sixty two near to erik dot testnet",
+          "expected": "send two hundred eleven thousand six hundred sixty two near to eric dot testnet",
+          "heard": "Send 211,662 near to eric.testnet.",
+          "audioRecipient": "erik.testnet",
+          "paid": "eric.testnet"
+        },
+        {
+          "caseId": "t154-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send five thousand near to sara dot testnet",
+          "expected": "send five thousand near to sarah dot testnet",
+          "heard": "Send 5000 near to sarah.testnet.",
+          "audioRecipient": "sara.testnet",
+          "paid": "sarah.testnet"
+        },
+        {
+          "caseId": "t154-near_miss-other_contact-Samantha-210",
+          "missKind": "other_contact",
+          "audioText": "send five thousand near to sara dot testnet",
+          "expected": "send five thousand near to sarah dot testnet",
+          "heard": "Send 5,000 near to sarah.testnet.",
+          "audioRecipient": "sara.testnet",
+          "paid": "sarah.testnet"
+        },
+        {
+          "caseId": "t196-near_miss-other_contact-Samantha-160",
+          "missKind": "other_contact",
+          "audioText": "send one hundred forty near to jon dot testnet",
+          "expected": "send one hundred forty near to john dot testnet",
+          "heard": "Send 140 near to john.testnet.",
+          "audioRecipient": "jon.testnet",
+          "paid": "john.testnet"
+        }
+      ],
+      "pass": false
+    }
+  },
+  "ruleW2RefusedCorrectByStage": {
+    "words": 331,
+    "parse": 85,
+    "recipient_no_key_match": 53
+  },
+  "ruleW2TopRefusalReasons": [
+    {
+      "reason": "words differ: 'add' -> 'ad'",
+      "cases": 66,
+      "examples": [
+        "Approve Proposal 13 Ad Member Alice 2.Testnet Mirror Hammer",
+        "Approved Proposal 13 Ad Member Alice 2.Testnet Mirror Hammer."
+      ]
+    },
+    {
+      "reason": "words differ: 'testnet' -> 'testnut'",
+      "cases": 48,
+      "examples": [
+        "Approved proposal 1 send 8888 near to bob.testnut violin muffin.",
+        "Approved proposal 1 send 8888 near to bob.testnut violin muffin."
+      ]
+    },
+    {
+      "reason": "parse NotTransfer: 'near' -> 'nia'",
+      "cases": 26,
+      "examples": [
+        "Send 8888 NIA to eric.testnut.",
+        "Send 246,642 NIA to tom.testnet."
+      ]
+    },
+    {
+      "reason": "words differ: 'seven' -> 'hundred seventy'",
+      "cases": 24,
+      "examples": [
+        "Approve Proposal 100 Set Verifier Version 10374 Salmon Oyster.",
+        "Approved Proposal 100 Set Verifier Version 10374 Salmon Oyster."
+      ]
+    },
+    {
+      "reason": "words differ: 'five zero' -> 'fifty thousand'",
+      "cases": 24,
+      "examples": [
+        "Approved Proposal 550 Set Verifier Version 50239 Garden Needle",
+        "Approved Proposal 550 Set Verifier Version 50239 Garden Needle."
+      ]
+    },
+    {
+      "reason": "words differ: '' -> 'thousand'",
+      "cases": 24,
+      "examples": [
+        "Approved Proposal 741 Set Verifier Version 34696 Island Ladder",
+        "Approved Proposal 741 Set Verifier Version 34696 Island Ladder."
+      ]
+    },
+    {
+      "reason": "words differ: 'one zero' -> 'ten thousand'",
+      "cases": 12,
+      "examples": [
+        "Approve Proposal 100 Set Verifier Version 10374 Salmon Oyster.",
+        "Approved Proposal 100 Set Verifier Version 10374 Salmon Oyster."
+      ]
+    },
+    {
+      "reason": "words differ: 'send' -> 'cent'",
+      "cases": 12,
+      "examples": [
+        "Approved proposal 999 cent 246,642 near to alice.testnet rabbit planet.",
+        "Approve proposal 842 cent 1900 near to quinn.near puzzle violin."
+      ]
+    },
+    {
+      "reason": "words differ: 'three' -> 'hundred thirty'",
+      "cases": 12,
+      "examples": [
+        "Approved Proposal 550 Set Verifier Version 50239 Garden Needle",
+        "Approved Proposal 550 Set Verifier Version 50239 Garden Needle."
+      ]
+    },
+    {
+      "reason": "words differ: '' -> 'thirty nine thousand'",
+      "cases": 12,
+      "examples": [
+        "Approved Proposal 158 Set Verifier Version 39311 Falcon Needle",
+        "Approved Proposal 158 Set Verifier Version 39311 Falcon Needle."
+      ]
+    },
+    {
+      "reason": "words differ: 'six zero' -> 'sixty thousand'",
+      "cases": 12,
+      "examples": [
+        "Approve Proposal 632 Set Verifier Version 60374 Penguin Tomato",
+        "Approved Proposal 632 Set Verifier Version 60374 Penguin Tomato"
+      ]
+    },
+    {
+      "reason": "words differ: 'harbor' -> 'harbour'",
+      "cases": 12,
+      "examples": [
+        "Approved Proposal 326 AD Member Sarah.Testnet Harbour Garden",
+        "Approved Proposal 326 Ad Member Sarah.Testnet Harbour Garden"
+      ]
+    },
+    {
+      "reason": "words differ: 'nine' -> 'hundred ninety'",
+      "cases": 12,
+      "examples": [
+        "Approved Proposal 741 Set Verifier Version 34696 Island Ladder",
+        "Approved Proposal 741 Set Verifier Version 34696 Island Ladder."
+      ]
+    },
+    {
+      "reason": "words differ: 'three' -> 'thirty'",
+      "cases": 12,
+      "examples": [
+        "Approved Proposal 741 Set Verifier Version 34696 Island Ladder",
+        "Approved Proposal 741 Set Verifier Version 34696 Island Ladder."
+      ]
+    },
+    {
+      "reason": "words differ: 'seven' -> 'thousand'",
+      "cases": 12,
+      "examples": [
+        "Approved Proposal 363 Set Verifier Version 77347 Cotton Rabbit",
+        "Approved Proposal 363 Set Verifier Version 77347 Cotton Rabbit."
+      ]
+    },
+    {
+      "reason": "words differ: '' -> 'seventy'",
+      "cases": 12,
+      "examples": [
+        "Approved Proposal 363 Set Verifier Version 77347 Cotton Rabbit",
+        "Approved Proposal 363 Set Verifier Version 77347 Cotton Rabbit."
+      ]
+    },
+    {
+      "reason": "words differ: 'four' -> 'hundred forty'",
+      "cases": 12,
+      "examples": [
+        "Approved Proposal 363 Set Verifier Version 77347 Cotton Rabbit",
+        "Approved Proposal 363 Set Verifier Version 77347 Cotton Rabbit."
+      ]
+    },
+    {
+      "reason": "words differ: 'one one' -> 'hundred eleven'",
+      "cases": 12,
+      "examples": [
+        "Approved Proposal 762 Set Verifier Version 20711 Blanket Lizard",
+        "Approved Proposal 762 Set Verifier Version 20711 Blanket Lizard."
+      ]
+    },
+    {
+      "reason": "words differ: 'two zero' -> 'twenty thousand'",
+      "cases": 12,
+      "examples": [
+        "Approved Proposal 762 Set Verifier Version 20711 Blanket Lizard",
+        "Approved Proposal 762 Set Verifier Version 20711 Blanket Lizard."
+      ]
+    },
+    {
+      "reason": "words differ: 'erik' -> 'eric'",
+      "cases": 12,
+      "examples": [
+        "Approve Proposal 585 Remove Member Eric.Testnet Walnut Jacket",
+        "Approved Proposal 585 Remove Member Eric.Testnet Walnut Jacket"
+      ]
+    }
+  ],
+  "ruleW2AliasHits": {
+    "approved->approve": 734,
+    "nir->near": 237
+  }
+}

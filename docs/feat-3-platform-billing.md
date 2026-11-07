@@ -39,7 +39,8 @@ add these records. Applied migrations remain unchanged.
 
 ### Satyr Jev use (Plan 88)
 
-The owner accepted D12 and D13 of Satyr Plan 88 on 7 November 2026.
+The owner accepted D12 and D13 of Satyr Plan 88 on 7 November 2026. The owner
+approved the Jev price (D9) on 7 November 2026.
 
 - **Meter.** `satyr.jev_input_tokens` records the input-token total of one UTC hour
   for one Jev feature: `mail_classification`, `related_cases` or `screen_relevance`.
@@ -51,14 +52,24 @@ The owner accepted D12 and D13 of Satyr Plan 88 on 7 November 2026.
 - **Price.** `satyr-jev-input-tokens-v1` is a `block_measured` price: 84 minor per
   10,000,000 input tokens (USD 0.084 per million), after 23,809,523 included tokens
   (USD 1.00 of TypeSafe cost) in each UTC month. The month of a record is the month of
-  its `hourStart`. Its availability is `isolated_test_accounts`. A customer version
-  needs the owner's approval of Satyr's prices.
+  its `hourStart`. Its availability is `isolated_test_accounts`. There is no base fee.
+- **Customer price.** `satyr-jev-input-tokens-customer-v1` has the same terms, with
+  availability `customer_accounts`. Both versions are immutable.
+- **Version rule.** One rule picks the Jev price version for an account. An isolated
+  test account uses `satyr-jev-input-tokens-v1`. Every other account with an enabled
+  Satyr service uses `satyr-jev-input-tokens-customer-v1`. Any other account has no
+  Jev price. The rule (`SATYR_JEV_PRICE_VERSION_RULE_SQL` in `billing/pricing.ts`)
+  controls the price check, the usage record and the reservation:
+  - A record takes the version that the rule picks. A record that names a reservation
+    with another version fails with `event_conflict`.
+  - A reservation for the Jev meter must name the version that the rule picks for its
+    account. Any other version fails with `price_unavailable`.
 - **Rounding.** The month's charge is `ceil(max(0, tokens - included) × 84 / 10^7)`
   of the account's month total, in integers. Each record charges the rise of that
   charge, so the month's charges sum to one rounding of the month's total.
 - **Admission.** A record that raises the charge must name a reservation. Satyr
   reserves a bound (for example 5 cents) for one feature-hour, with the execution id
-  `satyrJevExecutionIdV1(feature, hourStart)` and this price version. The record
+  `satyrJevExecutionIdV1(feature, hourStart)` and the account's price version. The record
   settles that reservation, or releases it when the charge does not rise. This is the
   existing prepaid and postpaid admission. A record without a reservation that would
   raise the charge, or a rise above the reservation, fails with `insufficient_funds`
@@ -74,7 +85,8 @@ The owner accepted D12 and D13 of Satyr Plan 88 on 7 November 2026.
   larger limit stays with Platform support.
 
 Console migration `0020` and Wallet Console migration `0116` add the price kind, the
-`billing_jev_hours` table, and the meter in the usage and charge tables.
+`billing_jev_hours` table, and the meter in the usage and charge tables. Console
+migration `0021` and Wallet Console migration `0117` add the customer price version.
 
 ### Pricing decision
 

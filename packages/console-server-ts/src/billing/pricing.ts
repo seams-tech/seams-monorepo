@@ -50,12 +50,60 @@ export const SATYR_JEV_INPUT_TOKENS_PRICE_V1 = Object.freeze({
   availability: 'isolated_test_accounts',
 } as const satisfies PlatformPriceV1);
 
+/** Plan 88 D9, approved by the owner on 7 November 2026: the same terms for customer accounts. */
+export const SATYR_JEV_INPUT_TOKENS_CUSTOMER_PRICE_V1 = Object.freeze({
+  kind: 'block_measured',
+  meterId: 'satyr.jev_input_tokens',
+  version: 'satyr-jev-input-tokens-customer-v1',
+  currency: 'USD',
+  blockMinor: 84,
+  blockUnits: 10_000_000,
+  includedUnits: 23_809_523,
+  timeRule: 'hour_start_utc_month',
+  availability: 'customer_accounts',
+} as const satisfies PlatformPriceV1);
+
+export type SatyrJevInputTokensPrice =
+  | typeof SATYR_JEV_INPUT_TOKENS_PRICE_V1
+  | typeof SATYR_JEV_INPUT_TOKENS_CUSTOMER_PRICE_V1;
+
+function satyrJevInputTokensPrice(version: unknown): SatyrJevInputTokensPrice | null {
+  if (version === SATYR_JEV_INPUT_TOKENS_PRICE_V1.version) return SATYR_JEV_INPUT_TOKENS_PRICE_V1;
+  if (version === SATYR_JEV_INPUT_TOKENS_CUSTOMER_PRICE_V1.version)
+    return SATYR_JEV_INPUT_TOKENS_CUSTOMER_PRICE_V1;
+  return null;
+}
+
+/**
+ * The one rule for an account's Jev price version: an isolated test account uses the
+ * test version; every other account with an enabled Satyr service uses the customer
+ * version; any other account has none. It binds (namespace, org_id) twice.
+ */
+const SATYR_JEV_PRICE_VERSION_RULE_SQL = `(CASE
+    WHEN EXISTS (SELECT 1 FROM billing_isolated_test_accounts a WHERE a.namespace = ? AND a.org_id = ?)
+      THEN '${SATYR_JEV_INPUT_TOKENS_PRICE_V1.version}'
+    WHEN EXISTS (SELECT 1 FROM platform_service_instances i WHERE i.namespace = ? AND i.org_id = ?
+        AND i.service_id = 'satyr' AND i.phase = 'active' AND i.desired_state = 'enabled')
+      THEN '${SATYR_JEV_INPUT_TOKENS_CUSTOMER_PRICE_V1.version}'
+  END)`;
+
+/** The Jev price that the rule picks for an account, or null when it picks none. */
+export async function satyrJevInputTokensPriceFor(
+  database: D1DatabaseLike,
+  scope: PlatformScopeV1,
+): Promise<SatyrJevInputTokensPrice | null> {
+  const row = await queryD1One(database, `SELECT ${SATYR_JEV_PRICE_VERSION_RULE_SQL} AS version`, [
+    scope.namespace,
+    scope.organizationId,
+    scope.namespace,
+    scope.organizationId,
+  ]);
+  return satyrJevInputTokensPrice(row?.version);
+}
+
 /** The month's charge comes from the month's total, rounded up to whole cents once. */
 export function blockMeasuredMonthChargeMinor(
-  price: Pick<
-    typeof SATYR_JEV_INPUT_TOKENS_PRICE_V1,
-    'blockMinor' | 'blockUnits' | 'includedUnits'
-  >,
+  price: Pick<SatyrJevInputTokensPrice, 'blockMinor' | 'blockUnits' | 'includedUnits'>,
   monthUnits: number,
 ): number {
   const billable = BigInt(Math.max(0, monthUnits - price.includedUnits));
@@ -220,31 +268,37 @@ export function billingFundsMeterId(
   priceVersion: string,
 ): BillingFundsMeterId {
   if (serviceId === 'wallet') return 'wallet.execution';
-  return priceVersion === SATYR_JEV_INPUT_TOKENS_PRICE_V1.version
-    ? SATYR_JEV_INPUT_TOKENS_PRICE_V1.meterId
-    : SATYR_COMPLETED_TURN_TEST_PRICE_V1.meterId;
+  return satyrJevInputTokensPrice(priceVersion) === null
+    ? SATYR_COMPLETED_TURN_TEST_PRICE_V1.meterId
+    : 'satyr.jev_input_tokens';
 }
 
+/** A Jev version is available to an account only when the rule picks it for that account. */
 export const BILLING_EXECUTION_PRICE_ELIGIBILITY_SQL = `EXISTS (
   SELECT 1 FROM billing_price_definitions p WHERE p.meter_id = ? AND p.version = ? AND p.currency = 'USD'
     AND ((p.meter_id = 'wallet.execution' AND p.kind = 'quoted_execution' AND p.availability = 'customer_accounts')
-      OR (p.availability = 'isolated_test_accounts'
-        AND ((p.meter_id = 'satyr.completed_turn.test' AND p.version = 'satyr-completed-turn-test-v1'
-            AND p.kind = 'fixed_measured' AND p.unit_minor = 1 AND ? = 1)
-          OR (p.meter_id = 'satyr.jev_input_tokens' AND p.version = 'satyr-jev-input-tokens-v1'
-            AND p.kind = 'block_measured' AND ? >= 0))
-        AND EXISTS (SELECT 1 FROM billing_isolated_test_accounts a WHERE a.namespace = ? AND a.org_id = ?))))`;
+      OR (p.meter_id = 'satyr.completed_turn.test' AND p.version = 'satyr-completed-turn-test-v1'
+        AND p.availability = 'isolated_test_accounts' AND p.kind = 'fixed_measured' AND p.unit_minor = 1 AND ? = 1
+        AND EXISTS (SELECT 1 FROM billing_isolated_test_accounts a WHERE a.namespace = ? AND a.org_id = ?))
+      OR (p.meter_id = 'satyr.jev_input_tokens' AND p.kind = 'block_measured' AND ? >= 0
+        AND p.availability = CASE p.version WHEN '${SATYR_JEV_INPUT_TOKENS_PRICE_V1.version}' THEN 'isolated_test_accounts' ELSE 'customer_accounts' END
+        AND p.version = ${SATYR_JEV_PRICE_VERSION_RULE_SQL})))`;
 
 export function billingExecutionPriceEligibilityBindings(
   input: BillingExecutionPriceEligibilityInput,
-): readonly [string, string, number, number, string, string] {
+): readonly [string, string, number, string, string, number, string, string, string, string] {
+  const organizationId = input.scope.organizationId;
   return [
     input.meterId,
     input.priceVersion,
     input.amountMinor,
+    input.namespace,
+    organizationId,
     input.amountMinor,
     input.namespace,
-    input.scope.organizationId,
+    organizationId,
+    input.namespace,
+    organizationId,
   ];
 }
 

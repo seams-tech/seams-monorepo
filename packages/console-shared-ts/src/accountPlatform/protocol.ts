@@ -218,6 +218,19 @@ export type PlatformPriceV1 =
       readonly unitMinor?: never;
     }
   | {
+      /** The customer version: the same terms as satyr-jev-input-tokens-v1. */
+      readonly kind: 'block_measured';
+      readonly meterId: 'satyr.jev_input_tokens';
+      readonly version: 'satyr-jev-input-tokens-customer-v1';
+      readonly currency: 'USD';
+      readonly blockMinor: 84;
+      readonly blockUnits: 10_000_000;
+      readonly includedUnits: 23_809_523;
+      readonly timeRule: 'hour_start_utc_month';
+      readonly availability: 'customer_accounts';
+      readonly unitMinor?: never;
+    }
+  | {
       readonly kind: 'quoted_execution';
       readonly meterId: 'wallet.execution';
       readonly version: string;

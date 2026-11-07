@@ -52,6 +52,7 @@ const origin = 'https://satyr-jev.acceptance.invalid';
 const secret = 'isolated-satyr-jev-acceptance-session-secret';
 const satyr = { serviceId: 'satyr', deploymentId: 'jev-satyr' } as const;
 const jevPrice = 'satyr-jev-input-tokens-v1';
+const jevCustomerPrice = 'satyr-jev-input-tokens-customer-v1';
 const includedTokens = 23_809_523;
 const ownerUser = 'verified-jev-owner';
 
@@ -228,6 +229,7 @@ async function reserveHour(
   instanceId: string,
   feature: SatyrJevFeatureV1,
   hourStart: string,
+  priceVersion: string = jevPrice,
 ) {
   const executionId = satyrJevExecutionIdV1(feature, hourStart);
   return core.funds.reserve(
@@ -235,13 +237,25 @@ async function reserveHour(
     accepted(
       ReserveFundsRequestV1.parse({
         version: 1,
-        operationId: `reserve:${instanceId}:${executionId}`,
+        operationId: `reserve:${instanceId}:${executionId}:${priceVersion}`,
         instanceId,
         executionId,
         requestedMinor: 5,
-        priceVersion: jevPrice,
+        priceVersion,
       }),
     ),
+  );
+}
+
+/** The price version that each stored Jev record and its receipt name. */
+async function recordedVersions(database: D1DatabaseLike, namespace: string, orgId: string) {
+  return queryD1All(
+    database,
+    `SELECT e.event_id, e.price_version AS event_version, r.price_version AS receipt_version, r.outcome
+    FROM billing_usage_events e JOIN billing_usage_receipts r
+      USING (namespace, producer_service_id, producer_deployment_id, instance_id, event_id)
+    WHERE e.namespace = ? AND e.org_id = ? AND e.meter_id = 'satyr.jev_input_tokens' ORDER BY e.occurred_at_ms`,
+    [namespace, orgId],
   );
 }
 
@@ -439,27 +453,135 @@ test('Satyr Jev hours are priced once per UTC month above the free use', async (
       activeReservationCount: 0,
     });
 
-    // The price stays unavailable to a customer account outside isolated testing.
-    expect(
-      await core.billingUsage.record(
-        satyr,
-        jevHour({
-          instanceId: customerInstance,
-          eventId: 'customer-mail',
-          feature: 'mail_classification',
-          hourStart: '2026-10-01T00:00:00.000Z',
-          tokens: 1_000,
-          reservation: null,
-        }),
-      ),
-    ).toEqual({ kind: 'rejected', error: { code: 'price_unavailable' } });
-    expect(
+    // The isolated test account still uses the test version for every record.
+    const testVersions = await recordedVersions(database, namespace, testOrg);
+    expect(testVersions).toHaveLength(6);
+    for (const row of testVersions)
+      expect(row).toMatchObject({ event_version: jevPrice, receipt_version: jevPrice });
+
+    // A customer account uses the customer version, with the same terms.
+    await core.billing.grantManualSupportCredit(
+      { orgId: customerOrg, actorUserId: ownerUser },
+      {
+        amountMinor: 1000,
+        reasonCode: 'acceptance',
+        note: 'Customer Jev acceptance',
+        idempotencyKey: 'jev-customer-funds',
+      },
+    );
+    const customerFree = [];
+    for (const [eventId, feature, hourStart, tokens] of [
+      ['customer-mail', 'mail_classification', '2026-10-01T00:00:00.000Z', 20_000_000],
+      ['customer-cases', 'related_cases', '2026-10-01T01:00:00.000Z', 3_809_523],
+    ] as const)
+      customerFree.push(
+        await core.billingUsage.record(
+          satyr,
+          jevHour({
+            instanceId: customerInstance,
+            eventId,
+            feature,
+            hourStart,
+            tokens,
+            reservation: null,
+          }),
+        ),
+      );
+    for (const receipt of customerFree)
+      expect(receipt).toEqual({
+        kind: 'accepted',
+        value: { kind: 'recorded_without_charge', reason: 'nonbillable_outcome' },
+      });
+
+    // A customer account cannot hold funds at the test version.
+    const customerHour = {
+      feature: 'screen_relevance',
+      hourStart: '2026-10-01T02:00:00.000Z',
+    } as const;
+    const refusedTestHold = await reserveHour(
+      core,
+      satyr,
+      customerInstance,
+      customerHour.feature,
+      customerHour.hourStart,
+      jevPrice,
+    );
+    expect(refusedTestHold).toEqual({ kind: 'rejected', error: { code: 'price_unavailable' } });
+
+    // Above the free use, the customer record settles a customer-version hold at the rounded price.
+    const customerHold = accepted(
       await reserveHour(
         core,
         satyr,
         customerInstance,
-        'mail_classification',
-        '2026-10-01T00:00:00.000Z',
+        customerHour.feature,
+        customerHour.hourStart,
+        jevCustomerPrice,
+      ),
+    ).reservation;
+    expect(customerHold.priceVersion).toBe(jevCustomerPrice);
+    const customerPaidTokens = 500_001;
+    const customerPaid = accepted(
+      await core.billingUsage.record(
+        satyr,
+        jevHour({
+          instanceId: customerInstance,
+          eventId: 'customer-screen',
+          ...customerHour,
+          tokens: customerPaidTokens,
+          reservation: customerHold,
+        }),
+      ),
+    );
+    const customerMonthTokens = includedTokens + customerPaidTokens;
+    expect(expectedMonthMinor(customerMonthTokens)).toBe(5);
+    expect(customerPaid).toMatchObject({
+      kind: 'charged',
+      amountMinor: expectedMonthMinor(customerMonthTokens),
+    });
+    const customerCharges = await jevCharges(database, namespace, customerOrg);
+    expect(
+      customerCharges.map((charge) => [
+        charge.quantity,
+        charge.unit,
+        charge.priceVersion,
+        charge.amountMinor,
+      ]),
+    ).toEqual([[customerPaidTokens, 'input_token', jevCustomerPrice, 5]]);
+    const customerVersions = await recordedVersions(database, namespace, customerOrg);
+    expect(customerVersions).toEqual([
+      {
+        event_id: 'customer-mail',
+        event_version: jevCustomerPrice,
+        receipt_version: jevCustomerPrice,
+        outcome: 'nonbillable_outcome',
+      },
+      {
+        event_id: 'customer-cases',
+        event_version: jevCustomerPrice,
+        receipt_version: jevCustomerPrice,
+        outcome: 'nonbillable_outcome',
+      },
+      {
+        event_id: 'customer-screen',
+        event_version: jevCustomerPrice,
+        receipt_version: jevCustomerPrice,
+        outcome: 'charged',
+      },
+    ]);
+    expect(
+      await core.billing.getOverview({ orgId: customerOrg, actorUserId: ownerUser }),
+    ).toMatchObject({ creditBalanceMinor: 995, reservedMinor: 0, activeReservationCount: 0 });
+
+    // A test account cannot hold funds at the customer version.
+    expect(
+      await reserveHour(
+        core,
+        satyr,
+        instanceId,
+        'screen_relevance',
+        '2026-10-01T05:00:00.000Z',
+        jevCustomerPrice,
       ),
     ).toEqual({ kind: 'rejected', error: { code: 'price_unavailable' } });
 
@@ -469,6 +591,16 @@ test('Satyr Jev hours are priced once per UTC month above the free use', async (
       expectedMonthMinor: expectedMonthMinor(monthTokens),
       receipts,
       charges,
+      testVersions,
+      customer: {
+        monthTokens: customerMonthTokens,
+        expectedMonthMinor: expectedMonthMinor(customerMonthTokens),
+        free: customerFree,
+        refusedTestHold,
+        paid: customerPaid,
+        charges: customerCharges,
+        versions: customerVersions,
+      },
       hours: await queryD1All(
         database,
         'SELECT * FROM billing_jev_hours ORDER BY hour_start_ms',

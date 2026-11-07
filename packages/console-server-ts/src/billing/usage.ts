@@ -33,8 +33,9 @@ import {
   createWalletExecutionPriceVersionInsert,
   isRegisteredBillingPriceAvailable,
   SATYR_COMPLETED_TURN_TEST_PRICE_V1,
-  SATYR_JEV_INPUT_TOKENS_PRICE_V1,
+  satyrJevInputTokensPriceFor,
   TrustedWalletExecutionQuoteV1,
+  type SatyrJevInputTokensPrice,
   WALLET_MONTHLY_ACTIVE_RESOURCE_PRICE_V1,
 } from './pricing';
 import { ensureBillingUsageD1Schema } from './usageSchema';
@@ -466,18 +467,16 @@ export class D1BillingUsageService {
           outcome: meter.quantity === 0 ? 'released' : 'settled',
         });
       }
-      case 'satyr.jev_input_tokens':
+      case 'satyr.jev_input_tokens': {
         if (instance.serviceId !== 'satyr') return rejected('meter_unknown');
+        const price = await satyrJevInputTokensPriceFor(this.database, instance.scope);
+        if (!price) return rejected('price_unavailable');
         return this.jevHour(
-          {
-            authority,
-            event,
-            instance,
-            payloadDigest,
-            priceVersion: SATYR_JEV_INPUT_TOKENS_PRICE_V1.version,
-          },
+          { authority, event, instance, payloadDigest, priceVersion: price.version },
           meter,
+          price,
         );
+      }
       default:
         return assertNever(meter);
     }
@@ -490,8 +489,8 @@ export class D1BillingUsageService {
   private async jevHour(
     usage: AcceptedUsage,
     measure: SatyrJevInputTokensUsageV1,
+    price: SatyrJevInputTokensPrice,
   ): Promise<UsageRecordingResultV1> {
-    const price = SATYR_JEV_INPUT_TOKENS_PRICE_V1;
     if (
       !(await isRegisteredBillingPriceAvailable({
         database: this.database,
@@ -516,7 +515,7 @@ export class D1BillingUsageService {
     );
     if (stored) return rejected('event_conflict');
     for (let attempt = 0; attempt < 4; attempt += 1) {
-      const result = await this.jevHourAttempt(usage, measure, hour);
+      const result = await this.jevHourAttempt(usage, measure, price, hour);
       if (result !== 'concurrent_month_change') return result;
     }
     throw new Error('Jev usage lost four concurrent changes to its month');
@@ -525,6 +524,7 @@ export class D1BillingUsageService {
   private async jevHourAttempt(
     usage: AcceptedUsage,
     measure: SatyrJevInputTokensUsageV1,
+    price: SatyrJevInputTokensPrice,
     hour: {
       readonly feature: string;
       readonly hourStartMs: number;
@@ -532,7 +532,6 @@ export class D1BillingUsageService {
       readonly executionId: string;
     },
   ): Promise<UsageRecordingResultV1 | 'concurrent_month_change'> {
-    const price = SATYR_JEV_INPUT_TOKENS_PRICE_V1;
     const scope = usage.instance.scope;
     const month = await queryD1One(
       this.database,

@@ -709,6 +709,17 @@ cannot fetch the blob.
 | Verdict replay                                    | —                                                                                                                                                  | Each verdict names one request digest and one request id. The callback deletes the pending record.                                                                                         |
 | Prompt injection                                  | —                                                                                                                                                  | Applies only to the bets extension (Section 13).                                                                                                                                           |
 
+**NEAR AI for the word check** (user decision, 2026-11-07): the verifier
+sends the audio to Whisper large-v3 on NEAR AI Cloud and keeps ReDimNet for
+the speaker check. A transcription carries no signature today, so NEAR AI's
+gateway is a trusted party for the transcript, beside OutLayer. An attacker
+who controls that gateway can return the request text for any audio. The
+speaker check still holds, because it runs in the verifier. If NEAR AI is
+down or answers without text, the verifier refuses. If NEAR AI adds a
+`provider_tee` signature for transcriptions, the verifier must check it
+against a pinned, attested signing key, and NEAR AI then leaves the trust
+set.
+
 ### 8.3 Privacy
 
 - The public VoiceID guide says that audio and voiceprints stay in
@@ -878,7 +889,43 @@ work.
 Mainnet, tokens, swaps, function calls, anti-spoofing models, the bets
 extension and any production release.
 
-### 11.4 Work items
+### 11.4 Module structure: `@seams/speak-to-sign`
+
+Speak-to-Sign is an optional Wallet module, built like VoiceID
+(`packages/voiceid` in `seams-wallet`). An app or a Wallet host that does not
+enable it downloads none of its code, WASM or assets, and the Wallet bundle
+does not grow.
+
+| Part                                                  | Where                                                                                                                                        | Loaded when                                                                                                             |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Descriptor `speakToSign({ vault, network })`          | `@seams/speak-to-sign` main export. It imports only types from `@seams/wallet`.                                                              | At app start, a few hundred bytes. It loads no code.                                                                    |
+| Host plugin `/sdk/speak-to-sign/host.js`              | `@seams/speak-to-sign/hosting`. The bin `seams-speak-to-sign-host` composes it into the Wallet host directory, as `seams-voiceid-host` does. | Only when the owner starts a spoken payment. The Wallet loads it with a dynamic `import()` and checks `hostApiVersion`. |
+| `spoken-intent` WASM, HPKE WASM                       | Assets of the module, with pinned sizes and SHA-256 hashes.                                                                                  | With the host plugin.                                                                                                   |
+| Speech assets (VAD, ReDimNet, STT engine)             | Reused from `/sdk/voiceid/*`. The module does not copy them.                                                                                 | Through the VoiceID loader, which already caches them.                                                                  |
+| React parts (pay button, live text)                   | `@seams/speak-to-sign/react`                                                                                                                 | Only if the app imports them.                                                                                           |
+| Relay route and intent check                          | An optional route in `wallet-server`, off unless the server config names the vault and the relay.                                            | Server side only.                                                                                                       |
+| `voice-vault` contract, `seams-voice-verifier` worker | The hackathon repository. They are not npm code.                                                                                             | On chain and in OutLayer.                                                                                               |
+
+Rules:
+
+- **Wallet core** gets a second plugin kind beside `WalletAuthMethodPlugin`: a
+  transaction feature plugin, with its own host API version and a loader like
+  `loadVoiceIdHost` (`core/authMethods/hostRegistry.ts`). Speak-to-Sign is not
+  an authentication method: it does not unlock or open a session.
+- **Types**: `seams.speakToSign` exists in the app API types only when the
+  descriptor is configured, so an app cannot call it by mistake.
+- **VoiceID dependency** (decided 2026-11-07): `@seams/voiceid` is a peer dependency at the same
+  version. Speak-to-Sign needs a VoiceID enrollment on the device, and it uses
+  the VoiceID capture surface and assets.
+- **Proofs**: the module signs `voiceid_intent_statement_v1` (Section 7.1)
+  through a scoped core operation. It gets no signing contexts, session
+  stores or database schemas, the same boundary as VoiceID.
+- **Checks**: a bundle test shows that a Wallet built without the descriptor
+  has no Speak-to-Sign chunk, and that an app with the descriptor loads
+  nothing until a spoken payment starts. The VoiceID package has the same
+  kind of check.
+
+### 11.5 Work items
 
 The sizes are rough estimates.
 

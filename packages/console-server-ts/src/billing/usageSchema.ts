@@ -86,6 +86,9 @@ export const BILLING_USAGE_D1_SCHEMA_SQL = Object.freeze([
   `INSERT INTO billing_price_definitions (meter_id, version, kind, currency, unit_minor, time_rule, availability, block_units, included_units)
     VALUES ('satyr.jev_input_tokens', 'satyr-jev-input-tokens-v1', 'block_measured', 'USD', 84, 'hour_start_utc_month', 'isolated_test_accounts', 10000000, 23809523)
     ON CONFLICT(meter_id, version) DO NOTHING`,
+  `INSERT INTO billing_price_definitions (meter_id, version, kind, currency, unit_minor, time_rule, availability, block_units, included_units)
+    VALUES ('satyr.jev_input_tokens', 'satyr-jev-input-tokens-customer-v1', 'block_measured', 'USD', 84, 'hour_start_utc_month', 'customer_accounts', 10000000, 23809523)
+    ON CONFLICT(meter_id, version) DO NOTHING`,
   `CREATE TABLE IF NOT EXISTS billing_wallet_execution_quotes (
     namespace TEXT NOT NULL,
     instance_id TEXT NOT NULL,

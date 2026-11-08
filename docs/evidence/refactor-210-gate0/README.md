@@ -469,3 +469,59 @@ upgraded in place; its balance and nonce were kept.
 
 - `say` rounds rates: 140 equals 150 and 110 equals 120, so a retry needs a
   rate that gives a new clip.
+
+## Wallet live run (2026-11-08)
+
+The Wallet test `tests/e2e/intended-behaviours/speak-to-sign.live.contract.test.ts`
+(seams-wallet, `SEAMS_SPEAK_TO_SIGN_LIVE=1`) passed on testnet against a local
+stack: a new passkey Wallet created its vault, enrolled, paid by voice, and a
+wrong spoken amount was refused. Verifier version `1e79327b…31f0`, Phala
+speaker CVM `seams-speaker-v2` (started 19:14, stopped 19:29 JST).
+
+Cause of the earlier HTTP 500 "Stored V2 Wallet Session quota is no longer
+active" on `POST /speak-to-sign/v1/verify`:
+
+- Facts (local Gateway D1, earlier run and a new reproduction): one Wallet
+  Session per run, quota `exhausted`, 0 uses left; three
+  `near.sign_transaction` operations consumed it (`create_vault`,
+  `add_contact`, `authorize_enrollment`); no operation row for the verify
+  call. A registration session has 3 uses; the app's `signingSessionDefaults`
+  apply to unlock only.
+- The route read the session with a reader that throws on exhaustion. It needs
+  only the owner's identity: the transfer is signed later through the
+  Wallet's signing path, which stepped up when the quota was spent.
+- Eliminated: preflights or the verify call spending quota (no such rows); a
+  different session sent by the host plugin (only one session existed).
+
+Fix, seams-wallet `3ad271631`: the route reads
+`readWalletSessionExactOperationContextByCredential` (identity, no quota) and
+returns typed results: 401 `unauthorized`, 503 `session_unavailable`.
+
+A second fault then showed: testnet refused `transfer_with_verdict` with
+`NotEnoughBalance` (balance 0.0494 NEAR, cost 0.0509 NEAR for 50 Tgas
+prepaid). The test's owner got 0.2 NEAR and `create_vault` took 0.15. The run
+now funds 0.3 NEAR, and the test checks the free balance first (`f48a07ab8`).
+The transfer burnt 5.8 Tgas of the 50 Tgas it prepays.
+
+Transactions (owner `harbor-crane-yscanv.w3a-dev-1766307589.testnet`):
+
+| Step                       | Transaction                                                                                          |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `create_vault`             | [3Tk3jNLY…](https://testnet.nearblocks.io/txns/3Tk3jNLYAnfFv2QyvMqJfDkNhkJH5ejaGJMaGeRfPU3w)          |
+| `add_contact`              | [3qLf6xxA…](https://testnet.nearblocks.io/txns/3qLf6xxAurEsCn5QqXE4Cv2uAweAG6JhSEn2SveMKp4R)          |
+| `authorize_enrollment`     | [DzPZfJRm…](https://testnet.nearblocks.io/txns/DzPZfJRm1myWn6FaLA7vDHhhMsci3h2JSifp1X2RDgeQ)          |
+| Spoken payment, 0.01 NEAR  | [4jt6M3Uy…](https://testnet.nearblocks.io/txns/4jt6M3UytkUHYhVeVwsQ3ZAvyfbL3eR5NAFP2QUiERqH)          |
+| Relayer top-up, 2 NEAR     | [AV7mznDa…](https://testnet.nearblocks.io/txns/AV7mznDa2ikQFWSDiJm8bQzs2aij3yYqtT4Prcwtm3HA)          |
+
+| Stage (accepted payment)            | Time                                           |
+| ----------------------------------- | ---------------------------------------------- |
+| Enrollment (`enroll`, client wall)  | 4,023 ms                                       |
+| Speech                              | 4,016 ms                                       |
+| Verify, Wallet to route to OutLayer | 5,245 ms (route 5,226 ms; OutLayer 5,224 ms)   |
+| Verifier worker total               | 1,579 ms                                       |
+| Vault transaction                   | 4,093 ms                                       |
+| End of speech to receipt            | 9,343 ms                                       |
+
+The wrong-amount case (request 0.02 NEAR, the clip says 0.01) was refused with
+`words`; verify took 5,387 ms at the route. Nothing was sent. The whole test
+ran in 1.7 min.

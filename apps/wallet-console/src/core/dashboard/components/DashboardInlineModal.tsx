@@ -12,6 +12,44 @@ interface DashboardInlineModalProps {
   className?: string;
 }
 
+interface DashboardModalCloseButtonProps {
+  ariaLabel: string;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+export function DashboardModalCloseButton({
+  ariaLabel,
+  onClick,
+  disabled,
+}: DashboardModalCloseButtonProps): React.JSX.Element {
+  return (
+    <button
+      type="button"
+      className="dashboard-modal__close"
+      aria-label={ariaLabel}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M18 6 6 18" />
+        <path d="m6 6 12 12" />
+      </svg>
+    </button>
+  );
+}
+
 export function DashboardInlineModal({
   isOpen,
   ariaLabel,
@@ -22,6 +60,7 @@ export function DashboardInlineModal({
   className,
 }: DashboardInlineModalProps): React.JSX.Element | null {
   const modalRef = React.useRef<HTMLElement | null>(null);
+  const backdropClickArmedRef = React.useRef(false);
   const [portalHost, setPortalHost] = React.useState<HTMLElement | null>(null);
   const [scrollHost, setScrollHost] = React.useState<HTMLElement | null>(null);
 
@@ -39,6 +78,7 @@ export function DashboardInlineModal({
   }, []);
 
   React.useEffect(() => {
+    backdropClickArmedRef.current = false;
     if (!isOpen || typeof document === 'undefined') return;
     const host =
       scrollHost || (document.querySelector('.dashboard-main') as HTMLElement | null) || null;
@@ -99,7 +139,25 @@ export function DashboardInlineModal({
     .join(' ');
 
   return createPortal(
-    <div className={backdropClassName} role="presentation" onClick={onRequestClose}>
+    <div
+      className={backdropClassName}
+      role="presentation"
+      onMouseDownCapture={(event) => {
+        backdropClickArmedRef.current = event.button === 0 && event.target === event.currentTarget;
+      }}
+      onMouseUpCapture={(event) => {
+        if (event.button !== 0 || event.target !== event.currentTarget) {
+          backdropClickArmedRef.current = false;
+        }
+      }}
+      onClick={(event) => {
+        const shouldClose = backdropClickArmedRef.current && event.target === event.currentTarget;
+        backdropClickArmedRef.current = false;
+        if (shouldClose) {
+          onRequestClose();
+        }
+      }}
+    >
       <section
         ref={modalRef}
         className={modalClassName}

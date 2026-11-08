@@ -22,7 +22,10 @@ import {
   dashboardStatusLabel,
   dashboardStatusTone,
 } from '../../utils/statusTone';
-import { DashboardInlineModal } from '../../components/DashboardInlineModal';
+import {
+  DashboardInlineModal,
+  DashboardModalCloseButton,
+} from '../../components/DashboardInlineModal';
 import { DashboardPageActions } from '../../components/DashboardPageActions';
 import { useDashboardConsoleSession } from '../../consoleSession';
 import {
@@ -1096,7 +1099,14 @@ export function ApiKeyManagementPage({
         onRequestClose={onCloseCreateModal}
         className="dashboard-modal--wide"
       >
-        <h2>{t('apiKeysCreateCredential')}</h2>
+        <div className="dashboard-modal__header">
+          <h2>{t('apiKeysCreateCredential')}</h2>
+          <DashboardModalCloseButton
+            ariaLabel={t('webhooksClose')}
+            onClick={onCloseCreateModal}
+            disabled={creating}
+          />
+        </div>
 
         <CredentialScopeSummary
           environmentId={selectedEnvironmentId}
@@ -1232,7 +1242,14 @@ export function ApiKeyManagementPage({
       >
         {editingApiKey ? (
           <>
-            <h2>{t('apiKeysEditCredential')}</h2>
+            <div className="dashboard-modal__header">
+              <h2>{t('apiKeysEditCredential')}</h2>
+              <DashboardModalCloseButton
+                ariaLabel={t('webhooksClose')}
+                onClick={onCloseEditApiKey}
+                disabled={editingBusy}
+              />
+            </div>
             <p className="dashboard-pagination-note">
               <code>{editingApiKey.kind}</code> {editingApiKey.id}
             </p>
@@ -1355,7 +1372,14 @@ export function ApiKeyManagementPage({
       >
         {pendingAction ? (
           <>
-            <h2>{t('apiKeysConfirmTitle')}</h2>
+            <div className="dashboard-modal__header">
+              <h2>{t('apiKeysConfirmTitle')}</h2>
+              <DashboardModalCloseButton
+                ariaLabel={t('webhooksClose')}
+                onClick={onClosePendingAction}
+                disabled={busyApiKeyId === pendingAction.apiKey.id}
+              />
+            </div>
             <p className="dashboard-pagination-note">
               {pendingAction.type === 'rotate'
                 ? t('apiKeysConfirmRotate')

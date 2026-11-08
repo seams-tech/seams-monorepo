@@ -133,8 +133,12 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
       - name: Add wasm target
         run: rustup target add wasm32-unknown-unknown
+      # Bun comes from npm, not oven-sh/setup-bun: the GitHub release download
+      # of oven-sh/bun returned HTTP 504 on 2026-11-08.
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        run: |
+          npm install --global --no-fund --no-audit bun@1.4.4
+          bun --version
       - name: Build committed public Wallet docs
         run: |
           pnpm --dir .wallet-source install --frozen-lockfile

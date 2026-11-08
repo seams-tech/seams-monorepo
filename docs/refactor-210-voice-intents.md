@@ -919,7 +919,7 @@ record the evidence. Transaction links are in the
 | Part                    | State                                                                                                                                                                                                                                     |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `spoken-intent` crate   | In `seams-wallet/crates/spoken-intent`, with vectors, `normalize_punctuated` and two slot rules. It speaks eight digits of the verifier version.                                                                                          |
-| Verifier                | `seams-v1.testnet/voice-verifier`, version `1e79327b…31f0` (314 KB, no `tract`). Operations `enroll` and `verify`. `enroll` needs the owner's `authorize_enrollment`. Storage reads overlap the network calls.                            |
+| Verifier                | `seams-v1.testnet/voice-verifier`, version `b4d68fb6…fdd0` (314 KB, no `tract`; any owner account). Operations `enroll` and `verify`. `enroll` needs the owner's `authorize_enrollment`. Storage reads overlap the network calls.                            |
 | Phala speaker service   | ReDimNet in a dstack CVM. It signs each embedding with the pinned key `1f704027…35e3`. The quote passes DCAP against Intel PCS (`UpToDate`).                                                                                              |
 | Vault                   | `seams-wallet.testnet`: `transfer_with_verdict`, `authorize_enrollment`, contacts with a delay, limits, 10-minute withdrawal without voice. It pinned the verifier key `ed25519:E8E5…751U` at init.                                       |
 | Reference client        | `seams-voice-intents/demo/demo.py` (`enroll`, `pay`). It uses macOS `say` in place of a microphone.                                                                                                                                       |
@@ -1039,7 +1039,7 @@ run by then (Section 11.6, item 1), use its "Pay by voice" button in step 2.
 | Vault       | `seams-wallet.testnet`, verifier key `ed25519:E8E53ydtc9LRvVz9xBCRrSzyBa5nh1gK1ts53Aoo751U`                   |
 | Owner       | `w3a-dev-1766307589.testnet`                                                                                  |
 | Contact     | `seams-v1.testnet`, active                                                                                    |
-| Verifier    | `seams-v1.testnet/voice-verifier`, version `1e79327b0afa2a0f026aee519bd0d1801272e21cb21205d31788e4d1452231f0` |
+| Verifier    | `seams-v1.testnet/voice-verifier`, version `b4d68fb64f8be57382794bd9a8fce60f1655e869260b3fda88953dddf001fdd0` |
 | Speaker     | The Phala CVM runs. Its key is `1f704027…35e3`.                                                               |
 | Payment key | `OUTLAYER_PAYMENT_KEY` in the `seams-voice-intents` env file. Never show it on screen.                        |
 
@@ -1056,7 +1056,7 @@ The pay command:
 ```sh
 python3 demo/demo.py pay --env-file <env file> --key-file <owner key file> \
   --vault seams-wallet.testnet --owner w3a-dev-1766307589.testnet \
-  --version-key 1e79327b0afa2a0f026aee519bd0d1801272e21cb21205d31788e4d1452231f0 \
+  --version-key b4d68fb64f8be57382794bd9a8fce60f1655e869260b3fda88953dddf001fdd0 \
   --amount 0.1 --contact seams-v1.testnet --rate <new rate>
 ```
 

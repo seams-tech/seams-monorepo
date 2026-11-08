@@ -115,6 +115,55 @@ export async function readFreeBalance(rpcUrl: string, accountId: string): Promis
   throw new Error(`view_account failed: ${JSON.stringify(reply.error).slice(0, 200)}`);
 }
 
+/**
+ * The vault speaks the owner's account in every payment, so it refuses an
+ * implicit account (64 hex characters) and an `0x` account.
+ */
+export function isUnspeakableAccount(accountId: string): boolean {
+  return /^[0-9a-f]{64}$/.test(accountId) || /^0x[0-9a-f]{40}$/.test(accountId);
+}
+
+const PANIC_PREFIX = 'Smart contract panicked: ';
+
+/**
+ * The contract's own error text for a transaction that NEAR executed and that
+ * failed, such as "account is not speakable". Null while the outcome is not
+ * known or when the failure carries no text.
+ */
+export async function readTransactionFailure(
+  rpcUrl: string,
+  transactionHash: string,
+  senderAccountId: string,
+): Promise<string | null> {
+  const response = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'speak-to-pay',
+      method: 'tx',
+      params: {
+        tx_hash: transactionHash,
+        sender_account_id: senderAccountId,
+        wait_until: 'EXECUTED_OPTIMISTIC',
+      },
+    }),
+  });
+  if (!response.ok) return null;
+  const body: unknown = await response.json();
+  if (!isRecord(body) || !isRecord(body.result) || !isRecord(body.result.status)) return null;
+  const failure = body.result.status.Failure;
+  if (!isRecord(failure)) return null;
+  const actionError = failure.ActionError;
+  if (!isRecord(actionError) || !isRecord(actionError.kind)) return JSON.stringify(failure);
+  const functionCallError = actionError.kind.FunctionCallError;
+  if (isRecord(functionCallError) && typeof functionCallError.ExecutionError === 'string') {
+    const text = functionCallError.ExecutionError;
+    return text.startsWith(PANIC_PREFIX) ? text.slice(PANIC_PREFIX.length) : text;
+  }
+  return JSON.stringify(actionError.kind);
+}
+
 /** Yocto as NEAR with at most four decimals, rounded down. */
 export function formatNear(value: bigint): string {
   const sign = value < 0n ? '-' : '';

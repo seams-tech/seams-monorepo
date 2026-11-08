@@ -33,12 +33,29 @@ function readLane(config: FrontendConfig): Lane {
   return { kind: 'staging_testnet', deployment };
 }
 
+/* The vault speaks the owner's account in each payment, so a wallet created
+   here gets a named account from the relayer instead of an implicit one. */
+function speakToPayConfig(deployment: FrontendDeployment) {
+  const base = buildSeamsSdkConfig(deployment);
+  return {
+    ...base,
+    ...(base.registration
+      ? {
+          registration: {
+            ...base.registration,
+            nearAccountProvisioning: { kind: 'relayer_named_subaccount' as const },
+          },
+        }
+      : {}),
+  };
+}
+
 function SpeakToPayPage({ lane }: { lane: Lane }): React.JSX.Element {
   const config = React.useMemo(
     () =>
       lane.kind === 'staging_testnet'
         ? {
-            ...buildSeamsSdkConfig(lane.deployment),
+            ...speakToPayConfig(lane.deployment),
             appearance: { ...SITE_APPEARANCE, locale: 'en' as const },
             transactionFeatures: [speakToSign({ vault: VAULT, network: 'testnet' })],
           }

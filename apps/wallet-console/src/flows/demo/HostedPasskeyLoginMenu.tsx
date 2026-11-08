@@ -5,6 +5,7 @@ import {
   type HostedAuthMenuExternalAuthRequest,
   type HostedAuthMenuMode,
   type HostedAuthMenuOutcome,
+  type HostedAuthMenuRegistrationAccountInput,
 } from '@seams/wallet/react';
 import React from 'react';
 import { toast } from 'sonner';
@@ -21,6 +22,8 @@ import {
 
 type HostedPasskeyLoginMenuProps = {
   defaultModeWhenNoDetectedAccount?: HostedAuthMenuMode;
+  /** A sponsored named account shows the name input; the default is an implicit wallet. */
+  registrationAccountInput?: HostedAuthMenuRegistrationAccountInput;
 };
 
 const HOSTED_AUTH_MENU_ERROR_EVENT = 'seams:hosted-auth-menu-error';
@@ -332,11 +335,14 @@ export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
           {phase === 'preview' ? null : (
             <HostedSeamsAuthMenu
               initialMode={resolvedInitialMode}
-              registrationAccountInput="implicit_wallet"
+              registrationAccountInput={props.registrationAccountInput ?? 'implicit_wallet'}
               showRegistrationInput={false}
               copy={HOSTED_AUTH_MENU_COPY}
               externalAuthBroker={externalAuthBroker}
-              onOutcome={handleHostedAuthMenuOutcomeAndCancelGoogleRequest.bind(null, refreshSession)}
+              onOutcome={handleHostedAuthMenuOutcomeAndCancelGoogleRequest.bind(
+                null,
+                refreshSession,
+              )}
             />
           )}
         </div>

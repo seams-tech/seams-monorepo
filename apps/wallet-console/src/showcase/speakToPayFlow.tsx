@@ -21,9 +21,11 @@ import {
   VAULT,
   VAULT_TOP_UP_YOCTO,
   formatNear,
+  isUnspeakableAccount,
   parseSpokenAmount,
   readContacts,
   readFreeBalance,
+  readTransactionFailure,
   readVault,
   type VaultContact,
   type VaultView,
@@ -153,14 +155,47 @@ function Fact(props: { label: string; children: React.ReactNode }): React.JSX.El
   );
 }
 
-/** A NEAR transaction that the SDK sent can still fail inside the contract. */
-function contractFailure(result: ActionResult): string | null {
-  if (!result.success) return result.error;
-  const status: unknown = result.result?.status;
-  if (status && typeof status === 'object' && 'Failure' in status) {
-    return `The vault refused the call: ${JSON.stringify(status.Failure).slice(0, 300)}`;
+type VaultCallResult = Readonly<{ ok: boolean; message: string; hash: string }>;
+type VaultCallFailure = Extract<ActionResult, { success: false }>;
+
+function yoctoField(fields: Readonly<Record<string, string>>, name: string): bigint | null {
+  const value = fields[name];
+  return value && /^\d+$/.test(value) ? BigInt(value) : null;
+}
+
+/**
+ * The SDK's error text names only the failure class, such as "ActionError:
+ * FunctionCallError". NEAR's refusal before execution arrives as `rejection`;
+ * the contract's own text for an executed failure is read back by hash.
+ */
+async function vaultFailureMessage(owner: Owner, failure: VaultCallFailure): Promise<string> {
+  switch (failure.kind) {
+    case 'not_submitted':
+      return `${failure.error} Nothing was sent.`;
+    case 'submission_unknown':
+      return `${failure.error} The call may have been sent. Check your account on NearBlocks before you try again.`;
+    case 'unresolved': {
+      const rejection = failure.rejection;
+      if (rejection?.error === 'NotEnoughBalance') {
+        const balance = yoctoField(rejection.fields, 'balance');
+        const cost = yoctoField(rejection.fields, 'cost');
+        const amounts =
+          balance !== null && cost !== null
+            ? ` This call needs ${formatNear(cost)}, and the account has ${formatNear(balance)}.`
+            : '';
+        return `Your NEAR balance is too low, so NEAR refused the call before it ran.${amounts} Add testnet NEAR (step 4), then try again.`;
+      }
+      if (rejection) return failure.error;
+      const text = await readTransactionFailure(
+        owner.rpcUrl,
+        failure.transactionId,
+        owner.nearAccountId,
+      ).catch(() => null);
+      return text
+        ? `The vault refused: ${text}`
+        : `${failure.error} The outcome is not known yet. Check the transaction on NearBlocks.`;
+    }
   }
-  return null;
 }
 
 async function callVault(
@@ -168,7 +203,7 @@ async function callVault(
   method: string,
   args: Record<string, unknown>,
   depositYocto: string,
-): Promise<string> {
+): Promise<VaultCallResult> {
   const result = await owner.seams.near.signAndSendTransaction({
     walletSession: owner.walletId,
     nearAccount: owner.nearAccountId,
@@ -179,9 +214,13 @@ async function callVault(
       waitUntil: 'FINAL',
     },
   });
-  const failure = contractFailure(result);
-  if (failure) throw new Error(failure);
-  return result.transactionId ?? '';
+  if (result.success) return { ok: true, message: '', hash: result.transactionId };
+  return {
+    ok: false,
+    message: await vaultFailureMessage(owner, result),
+    // NEAR refused a transaction with a rejection before it ran, so it has no receipt.
+    hash: result.kind === 'unresolved' && !result.rejection ? result.transactionId : '',
+  };
 }
 
 function VoiceIdStep(props: {
@@ -262,14 +301,18 @@ function VaultStep(props: {
   owner: Owner;
   vault: Loaded<VaultState>;
   freeBalance: bigint | null;
+  blocked: boolean;
   onChanged: () => void;
 }): React.JSX.Element {
-  const { owner, vault, freeBalance, onChanged } = props;
+  const { owner, vault, freeBalance, blocked, onChanged } = props;
   const [contact, setContact] = React.useState(DEFAULT_CONTACT);
-  const [outcome, start] = useOutcome<Readonly<{ message: string; hash: string }>>();
+  const [outcome, start] = useOutcome<VaultCallResult>();
   const run = React.useCallback(
     async (message: string, method: string, args: Record<string, unknown>, deposit: string) => {
-      await start(async () => ({ message, hash: await callVault(owner, method, args, deposit) }));
+      await start(async () => {
+        const result = await callVault(owner, method, args, deposit);
+        return result.ok ? { ...result, message } : result;
+      });
       onChanged();
     },
     [onChanged, owner, start],
@@ -298,15 +341,17 @@ function VaultStep(props: {
   const status: StepStatus =
     outcome.kind === 'working'
       ? 'working'
-      : vault.kind === 'loading'
-        ? 'checking'
-        : vault.kind === 'failed'
-          ? 'failed'
-          : state?.vault && active.length > 0
-            ? 'done'
-            : 'todo';
+      : blocked
+        ? 'waiting'
+        : vault.kind === 'loading'
+          ? 'checking'
+          : vault.kind === 'failed' || (outcome.kind === 'result' && !outcome.value.ok)
+            ? 'failed'
+            : state?.vault && active.length > 0
+              ? 'done'
+              : 'todo';
   const tooPoorToCreate = freeBalance !== null && freeBalance < SETUP_NEED_YOCTO;
-  const busy = outcome.kind === 'working';
+  const busy = outcome.kind === 'working' || blocked;
 
   return (
     <StepCard index={2} title="Create your vault and add a contact" status={status}>
@@ -323,7 +368,7 @@ function VaultStep(props: {
           ) : null}
           <LoadingButton
             onClick={createVault}
-            loading={busy}
+            loading={outcome.kind === 'working'}
             loadingText="Waiting for the Wallet..."
             disabled={busy}
             style={{ width: '100%' }}
@@ -372,7 +417,7 @@ function VaultStep(props: {
           <div className="stp-actions">
             <LoadingButton
               onClick={addContact}
-              loading={busy}
+              loading={outcome.kind === 'working'}
               loadingText="Waiting for the Wallet..."
               disabled={busy || !contact.trim()}
             >
@@ -385,7 +430,7 @@ function VaultStep(props: {
         </>
       ) : null}
       {outcome.kind === 'result' ? (
-        <Notice tone="success">
+        <Notice tone={outcome.value.ok ? 'success' : 'error'}>
           {outcome.value.message}{' '}
           {outcome.value.hash ? <ReceiptLink hash={outcome.value.hash} /> : null}
         </Notice>
@@ -423,8 +468,12 @@ function EnrollmentResult({ result }: { result: SpeakToSignEnrollmentResult }): 
   }
 }
 
-function EnrollStep(props: { owner: Owner; ready: boolean }): React.JSX.Element {
-  const { owner, ready } = props;
+function EnrollStep(props: {
+  owner: Owner;
+  ready: boolean;
+  waitingNote: string;
+}): React.JSX.Element {
+  const { owner, ready, waitingNote } = props;
   const [outcome, start] = useOutcome<SpeakToSignEnrollmentResult>();
   const enroll = React.useCallback(async () => {
     await start(async () => {
@@ -459,7 +508,7 @@ function EnrollStep(props: { owner: Owner; ready: boolean }): React.JSX.Element 
         If you enrolled this wallet before, you can skip this step. A new enrollment replaces the
         template.
       </p>
-      {!ready ? <Notice tone="info">Turn on VoiceID and create your vault first.</Notice> : null}
+      {!ready ? <Notice tone="info">{waitingNote}</Notice> : null}
       <LoadingButton
         onClick={enroll}
         loading={outcome.kind === 'working'}
@@ -577,9 +626,10 @@ function PayStep(props: {
   owner: Owner;
   contacts: readonly VaultContact[];
   ready: boolean;
+  waitingNote: string;
   onPaid: () => void;
 }): React.JSX.Element {
-  const { owner, ready, onPaid } = props;
+  const { owner, ready, waitingNote, onPaid } = props;
   const active = props.contacts.filter((item) => item.active).map((item) => item.accountId);
   const [amountText, setAmountText] = React.useState('0.01');
   const [receiver, setReceiver] = React.useState('');
@@ -616,9 +666,7 @@ function PayStep(props: {
 
   return (
     <StepCard index={5} title="Speak to pay" status={status}>
-      {!ready ? (
-        <Notice tone="info">Turn on VoiceID and add an active contact to your vault first.</Notice>
-      ) : null}
+      {!ready ? <Notice tone="info">{waitingNote}</Notice> : null}
       <div className="stp-row">
         <label className="stp-field">
           <span>Amount in NEAR</span>
@@ -649,8 +697,8 @@ function PayStep(props: {
       {!amount.ok ? <p className="stp-field-error">{amount.message}</p> : null}
       <p>
         The VoiceID window shows the exact sentence, for example "Send 0.01 NEAR to
-        seams-v1.testnet." Click Record, then read it aloud. In the account name, say "dash" for
-        "-" and "dot" for ".".
+        seams-v1.testnet." Click Record, then read it aloud. In the account name, say "dash" for "-"
+        and "dot" for ".".
       </p>
       <LoadingButton
         onClick={pay}
@@ -664,6 +712,39 @@ function PayStep(props: {
       {outcome.kind === 'result' ? <TransferResult result={outcome.value} /> : null}
       {outcome.kind === 'failed' ? <Notice tone="error">{outcome.message}</Notice> : null}
     </StepCard>
+  );
+}
+
+const UNSPEAKABLE_WAITING = 'This wallet cannot use Speak-to-Sign. See the note above step 2.';
+
+/** The vault speaks the owner's account in each payment, so an implicit account cannot own one. */
+function UnspeakableAccountNote({ owner }: { owner: Owner }): React.JSX.Element {
+  const [outcome, start] = useOutcome<void>();
+  const lock = React.useCallback(async () => {
+    await start(() => owner.seams.auth.lock());
+  }, [owner, start]);
+  return (
+    <div className="stp-notice stp-blocker" data-tone="error" role="alert">
+      <p>
+        <strong>Speak-to-Sign needs a named NEAR account.</strong> The vault puts your account name
+        in each spoken payment, and you must be able to say it. This wallet has an implicit account,{' '}
+        <code>{owner.nearAccountId}</code>, which is 64 hex characters.
+      </p>
+      <p>
+        Create a new wallet on this page. Choose a name, and the wallet gets a named account such as{' '}
+        <code>alice.w3a-relayer.testnet</code>. Steps 2, 3 and 5 stay off for this wallet.
+      </p>
+      <LoadingButton
+        onClick={lock}
+        loading={outcome.kind === 'working'}
+        loadingText="Locking..."
+        variant="secondary"
+        style={{ width: '100%' }}
+      >
+        Lock this wallet and create a new one
+      </LoadingButton>
+      {outcome.kind === 'failed' ? <p>{outcome.message}</p> : null}
+    </div>
   );
 }
 
@@ -692,6 +773,7 @@ function OwnerSteps({ owner }: { owner: Owner }): React.JSX.Element {
     reloadBalance();
   }, [reloadBalance, reloadVault]);
 
+  const unspeakable = isUnspeakableAccount(nearAccountId);
   const voiceIdOn = availability.kind === 'ready' && availability.value.kind === 'enabled';
   const vaultState = vault.kind === 'ready' ? vault.value : null;
   const hasVault = Boolean(vaultState?.vault);
@@ -701,18 +783,31 @@ function OwnerSteps({ owner }: { owner: Owner }): React.JSX.Element {
   return (
     <>
       <VoiceIdStep owner={owner} availability={availability} onChanged={reloadAvailability} />
+      {unspeakable ? <UnspeakableAccountNote owner={owner} /> : null}
       <VaultStep
         owner={owner}
         vault={vault}
         freeBalance={balance.kind === 'ready' ? balance.value : null}
+        blocked={unspeakable}
         onChanged={reloadChain}
       />
-      <EnrollStep owner={owner} ready={voiceIdOn && hasVault} />
+      <EnrollStep
+        owner={owner}
+        ready={!unspeakable && voiceIdOn && hasVault}
+        waitingNote={
+          unspeakable ? UNSPEAKABLE_WAITING : 'Turn on VoiceID and create your vault first.'
+        }
+      />
       <BalanceStep owner={owner} balance={balance} hasVault={hasVault} onRefresh={reloadChain} />
       <PayStep
         owner={owner}
         contacts={contacts}
-        ready={voiceIdOn && hasVault && hasActiveContact}
+        ready={!unspeakable && voiceIdOn && hasVault && hasActiveContact}
+        waitingNote={
+          unspeakable
+            ? UNSPEAKABLE_WAITING
+            : 'Turn on VoiceID and add an active contact to your vault first.'
+        }
         onPaid={reloadChain}
       />
     </>
@@ -739,9 +834,16 @@ export function SpeakToPayFlow({ rpcUrl }: { rpcUrl: string }): React.JSX.Elemen
       <>
         <StepCard index={0} title="Sign in" status="todo">
           <p>Sign in to your Seams Wallet with your passkey. Then this page shows your setup.</p>
+          <p className="stp-hint">
+            New here? Choose Create a wallet and pick a name. Speak-to-Sign needs the named NEAR
+            account that the name gives you, such as alice.w3a-relayer.testnet.
+          </p>
         </StepCard>
         <div className="stp-signin-menu">
-          <HostedPasskeyLoginMenu defaultModeWhenNoDetectedAccount="login" />
+          <HostedPasskeyLoginMenu
+            defaultModeWhenNoDetectedAccount="login"
+            registrationAccountInput="sponsored_named_near_account"
+          />
         </div>
       </>
     );

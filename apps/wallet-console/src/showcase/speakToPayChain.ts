@@ -115,19 +115,11 @@ export async function readFreeBalance(rpcUrl: string, accountId: string): Promis
   throw new Error(`view_account failed: ${JSON.stringify(reply.error).slice(0, 200)}`);
 }
 
-/**
- * The vault speaks the owner's account in every payment, so it refuses an
- * implicit account (64 hex characters) and an `0x` account.
- */
-export function isUnspeakableAccount(accountId: string): boolean {
-  return /^[0-9a-f]{64}$/.test(accountId) || /^0x[0-9a-f]{40}$/.test(accountId);
-}
-
 const PANIC_PREFIX = 'Smart contract panicked: ';
 
 /**
  * The contract's own error text for a transaction that NEAR executed and that
- * failed, such as "account is not speakable". Null while the outcome is not
+ * failed, such as "receiver is not a contact". Null while the outcome is not
  * known or when the failure carries no text.
  */
 export async function readTransactionFailure(

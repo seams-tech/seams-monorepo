@@ -203,8 +203,10 @@ does not show that anybody heard a voice.
    `set-if-absent`, keeps the private key in storage, and returns the public
    key. The callback stores it. Clients read it with
    `get_verifier_audio_key()`.
-2. The owner calls `create_vault()` with a deposit. The vault records the
-   owner, an empty contact list and default limits.
+2. The owner calls `create_vault()` with a deposit. The owner can be any NEAR
+   account, including an implicit account, because the spoken text does not
+   say it. The vault records the owner, an empty contact list and default
+   limits.
 3. The owner calls `add_contact(account_id)`. The vault renders the spoken
    name with the shared `spoken-intent` crate. It refuses an account that is
    not speakable. It refuses a contact whose `phonetic_key` equals, or is one
@@ -470,15 +472,15 @@ in. Its proposed home is `seams-wallet/crates/spoken-intent` (open question 1).
 pub enum SpokenRequestV1 {
     VaultTransfer {
         network: Network,
-        vault: SpokenAccount,
-        owner: SpokenAccount,
+        vault: NearAccount,
+        owner: NearAccount,
         receiver: SpokenAccount,
         amount_yocto: u128,
         nonce: u64,
     },
     MultisigApproval {
         network: Network,
-        multisig: SpokenAccount,
+        multisig: NearAccount,
         proposal_id: u64,
         proposal: ProposalV1, // typed kinds only; no free FunctionCall
         challenge: [ChallengeWord; 2],
@@ -520,10 +522,13 @@ step is the inverse of the render step on the grammar:
   "one thousand two hundred fifty". After "point", each digit is one word.
   `normalize` maps "and" inside a number, "a hundred" and numerals in the
   speech-to-text output ("25") to the same tokens.
-- **Accounts**: named accounts with lowercase letters and digits. The
-  separators `.`, `-` and `_` become "dot", "dash" and "underscore". Each digit
-  is one word. Implicit 64-character hex accounts and `0x` accounts give
-  `Unsupported(AccountNotSpeakable)`.
+- **Accounts**: the text says only the receiver or the member, which must be
+  a named account with lowercase letters and digits. The separators `.`, `-`
+  and `_` become "dot", "dash" and "underscore". Each digit is one word. An
+  implicit 64-character hex receiver or a `0x` receiver gives
+  `Unsupported(AccountNotSpeakable)`. The vault, the owner and the multisig
+  are not said. Each is a `NearAccount`, which can be any NEAR account,
+  including an implicit one.
 - **Sound-alike accounts**: `phonetic_key` maps a spoken account to a reduced
   form. The contracts refuse a contact or member whose key equals, or is one
   edit from, another key.

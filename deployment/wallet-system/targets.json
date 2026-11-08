@@ -242,7 +242,14 @@
                 "rpcUrl": "https://rpc.testnet.fastnear.com",
                 "initialBalanceYocto": "10000000000000000000000"
               },
-              "googleOidcClientId": "971053349716-p52bppo1gmlei9i88naa8eta5f3ebu2l.apps.googleusercontent.com"
+              "googleOidcClientId": "971053349716-p52bppo1gmlei9i88naa8eta5f3ebu2l.apps.googleusercontent.com",
+              "speakToSignVerifier": {
+                "outlayerBaseUrl": "https://testnet-api.outlayer.ai",
+                "project": "seams-v1.testnet/voice-verifier",
+                "versionKey": "1e79327b0afa2a0f026aee519bd0d1801272e21cb21205d31788e4d1452231f0",
+                "secretsProfile": "main",
+                "secretsAccountId": "cyan-loong.testnet"
+              }
             }
           }
         }

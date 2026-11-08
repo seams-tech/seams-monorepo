@@ -4,6 +4,8 @@ const TENANT_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._:-]{0,126}[A-Za-z0-9])?$/;
 const X25519_PUBLIC_KEY_PATTERN = /^x25519:[0-9a-f]{64}$/;
 const ED25519_PUBLIC_KEY_PATTERN = /^ed25519:[1-9A-HJ-NP-Za-km-z]+$/;
 const UNSIGNED_INTEGER_PATTERN = /^(?:0|[1-9][0-9]*)$/;
+const OUTLAYER_PROJECT_PATTERN = /^[a-z0-9._-]+\/[A-Za-z0-9._-]+$/;
+const OUTLAYER_VERSION_KEY_PATTERN = /^[0-9a-f]{64}$/;
 
 export const GATEWAY_DEPLOYMENT_CONFIG_SCHEMA_VERSION = 6;
 export const DEFAULT_NEAR_INITIAL_BALANCE_YOCTO = '10000000000000000000000';
@@ -669,13 +671,45 @@ function parseSignerIdentity(value, expectedRole, expectedId, path) {
 
 function parseOptionalConfig(value) {
   const optional = requireObject(value, 'optional');
-  requireExactKeys(optional, ['nearRelayer', 'googleOidcClientId'], 'optional');
+  requireAllowedAndRequiredKeys(
+    optional,
+    ['nearRelayer', 'googleOidcClientId', 'speakToSignVerifier'],
+    ['nearRelayer', 'googleOidcClientId'],
+    'optional',
+  );
   return {
     nearRelayer: parseNearRelayer(optional.nearRelayer),
     googleOidcClientId: parseNullableString(
       optional.googleOidcClientId,
       'optional.googleOidcClientId',
     ),
+    speakToSignVerifier: parseSpeakToSignVerifier(optional.speakToSignVerifier),
+  };
+}
+
+/**
+ * The public settings of the OutLayer verifier behind `POST /speak-to-sign/v1/verify`. Its
+ * payment key is the secret SPEAK_TO_SIGN_OUTLAYER_PAYMENT_KEY; the route needs all six values.
+ */
+function parseSpeakToSignVerifier(value) {
+  if (value === undefined || value === null) return null;
+  const path = 'optional.speakToSignVerifier';
+  const verifier = requireObject(value, path);
+  requireExactKeys(
+    verifier,
+    ['outlayerBaseUrl', 'project', 'versionKey', 'secretsProfile', 'secretsAccountId'],
+    path,
+  );
+  return {
+    outlayerBaseUrl: requireHttpsUrl(verifier.outlayerBaseUrl, `${path}.outlayerBaseUrl`),
+    project: requirePattern(verifier.project, OUTLAYER_PROJECT_PATTERN, `${path}.project`),
+    versionKey: requirePattern(
+      verifier.versionKey,
+      OUTLAYER_VERSION_KEY_PATTERN,
+      `${path}.versionKey`,
+    ),
+    secretsProfile: requireString(verifier.secretsProfile, `${path}.secretsProfile`),
+    secretsAccountId: requireString(verifier.secretsAccountId, `${path}.secretsAccountId`),
   };
 }
 

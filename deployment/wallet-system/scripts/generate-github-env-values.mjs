@@ -1152,6 +1152,7 @@ function buildGatewayOptionalDeploymentConfig(input) {
         }
       : null,
     googleOidcClientId: googleOidcClientId || null,
+    speakToSignVerifier: checkedInOptional?.speakToSignVerifier ?? null,
   };
 }
 

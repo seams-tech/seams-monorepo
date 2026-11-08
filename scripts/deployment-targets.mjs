@@ -382,6 +382,12 @@ export function gatewaySecretNames(lane) {
     const capability = lane.capabilities[capabilityName];
     if (capability.enabled && capability.owner === 'gateway') names.push(...capability.secrets);
   }
+  if (
+    lane.provisioning.kind === 'provisioned' &&
+    lane.provisioning.gatewayDeploymentConfig.optional.speakToSignVerifier
+  ) {
+    names.push('SPEAK_TO_SIGN_OUTLAYER_PAYMENT_KEY');
+  }
   return unique(names, 'gateway secret requirements');
 }
 
@@ -735,6 +741,10 @@ function assertGatewayDeploymentConfigMatchesLane(lane) {
   }
   if (config.optional.googleOidcClientId !== lane.site.googleOidcClientId) {
     throw new Error('Gateway Google OIDC client does not match frontend site ' + lane.site.id);
+  }
+  // Speak-to-Sign is experimental and testnet-only; production lanes must not enable it.
+  if (config.optional.speakToSignVerifier && lane.id !== 'staging-testnet') {
+    throw new Error('Speak-to-Sign verifier is allowed only on staging-testnet, not ' + lane.id);
   }
   if (
     config.resources.workerName !== resources.gateway.workerName ||

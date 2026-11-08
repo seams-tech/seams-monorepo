@@ -556,7 +556,18 @@ function buildWorkerVars(
   }
   addNearRelayerVars(vars, deployment.optional.nearRelayer);
   addOptionalStringVar(vars, 'GOOGLE_OIDC_CLIENT_ID', deployment.optional.googleOidcClientId);
+  addSpeakToSignVerifierVars(vars, deployment.optional.speakToSignVerifier);
   return vars;
+}
+
+/** The secrets file adds SPEAK_TO_SIGN_OUTLAYER_PAYMENT_KEY for the same lanes. */
+function addSpeakToSignVerifierVars(vars, verifier) {
+  if (!verifier) return;
+  vars.SPEAK_TO_SIGN_OUTLAYER_BASE_URL = verifier.outlayerBaseUrl;
+  vars.SPEAK_TO_SIGN_OUTLAYER_PROJECT = verifier.project;
+  vars.SPEAK_TO_SIGN_OUTLAYER_VERSION_KEY = verifier.versionKey;
+  vars.SPEAK_TO_SIGN_OUTLAYER_SECRETS_PROFILE = verifier.secretsProfile;
+  vars.SPEAK_TO_SIGN_OUTLAYER_SECRETS_ACCOUNT_ID = verifier.secretsAccountId;
 }
 
 function buildOutlayerSponsoredExecutionPricingConfig(runtimeProfile) {

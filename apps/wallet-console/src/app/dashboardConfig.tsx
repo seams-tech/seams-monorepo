@@ -335,6 +335,7 @@ const operationsSecurityItems: ComposedSidebarItem[] = [
   gasSponsorshipItem,
   ...securityControlItems,
   auditLogsItem,
+  observabilityItem,
 ];
 
 const sidebarGroups: ComposedSidebarGroup[] = [
@@ -350,7 +351,6 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         component: WalletOpsCockpitPage,
         context: 'wallet',
       },
-      observabilityItem,
     ],
   },
   {

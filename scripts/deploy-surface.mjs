@@ -342,7 +342,7 @@ function buildFrontend(site, component, walletLanes) {
       },
     );
     copySdkAssets(output);
-    copyVoiceIdAssets(output);
+    copyHostPluginAssets(output, lane);
     fs.appendFileSync(path.join(output, '_headers'), '\n/*\n  X-Robots-Tag: noindex\n');
     assertFile(path.join(output, 'index.html'), 'Wallet settings entry');
     fs.writeFileSync(path.join(output, '_redirects'), '/wallet-settings /index.html 200\n');
@@ -456,15 +456,26 @@ function copySdkAssets(destination) {
   copyDirectory(walletService, path.join(destination, 'wallet-service'));
 }
 
-function copyVoiceIdAssets(destination) {
-  const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'seams-voiceid-host-'));
+// Only the staging testnet Gateway serves the Speak-to-Sign verifier, so only
+// its Wallet host serves the Speak-to-Sign host plugin. That composer adds VoiceID too.
+function hostPluginComposition(lane) {
+  return lane.id === 'staging-testnet'
+    ? { command: 'seams-speak-to-sign-host', directories: ['voiceid', 'speak-to-sign'] }
+    : { command: 'seams-voiceid-host', directories: ['voiceid'] };
+}
+
+function copyHostPluginAssets(destination, lane) {
+  const composition = hostPluginComposition(lane);
+  const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'seams-host-plugins-'));
   const composedAssets = path.join(temporaryDirectory, 'assets');
   try {
-    runCommand('pnpm', ['-C', WALLET_SITE_ROOT, 'exec', 'seams-voiceid-host', composedAssets]);
-    copyDirectory(
-      path.join(composedAssets, 'sdk', 'voiceid'),
-      path.join(destination, 'sdk', 'voiceid'),
-    );
+    runCommand('pnpm', ['-C', WALLET_SITE_ROOT, 'exec', composition.command, composedAssets]);
+    for (const directory of composition.directories) {
+      copyDirectory(
+        path.join(composedAssets, 'sdk', directory),
+        path.join(destination, 'sdk', directory),
+      );
+    }
     fs.copyFileSync(
       path.join(composedAssets, 'wallet-assets.manifest.json'),
       path.join(destination, 'wallet-assets.manifest.json'),

@@ -53,6 +53,9 @@ Those sections stay as the record of the first design.
 - **Measured** (testnet, [evidence](evidence/refactor-210-gate0/README.md)):
   end of speech to receipt 9.2 s; verification 5.7 s; vault transaction
   3.5 s. All six refusal cases held.
+- **Later.** This chain is the hackathon path. Section 14 plans a follow-up
+  phase: the chain becomes optional, and Seams provides a version that it
+  hosts fully on Cloudflare.
 
 ## 1. Result
 
@@ -1099,7 +1102,64 @@ multisig is not built.
   The Seams difference is the check of the user's own words against the final
   orders.
 
-## 14. Open questions for the user
+## 14. Follow-up phase: Seams-hosted Speak-to-Sign on Cloudflare
+
+Status: the owner decided this direction on 2026-11-08. It is a follow-up
+phase after the hackathon. Nothing is built.
+
+The hackathon chains OutLayer, NEAR AI Whisper, Phala/ReDimNet and Jev
+([Refactor 225](https://github.com/seams-tech/seams-wallet/blob/main/docs/refactor-225-jev-policy-engine.md)).
+That chain stays for the hackathon. Later, the chain becomes optional, and
+Seams provides a version that it hosts fully on Cloudflare.
+
+### 14.1 Components
+
+| Step                      | Hackathon chain                                   | Seams-hosted version (to be measured)                                        |
+| ------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Call path                 | Seams route → OutLayer HTTPS API (payment key)    | The Seams route `/speak-to-sign/v1/verify` runs the verifier itself          |
+| Speaker check             | ReDimNet in a Phala dstack CVM                    | ReDimNet on Cloudflare: Workers AI custom model, a Container, or Worker WASM |
+| Transcript                | Whisper large-v3 on NEAR AI                       | Whisper on Workers AI (earlier numbers: branch `archive/voiceid-stt-bench`)  |
+| Words against transaction | `spoken-intent`                                   | `spoken-intent` (same crate, WASM build)                                     |
+| Policy                    | Jev on NEAR AI, called from the OutLayer verifier | Jev called from the Seams route                                              |
+| Template and used audio   | OutLayer storage                                  | Seams storage (D1 or a Durable Object)                                       |
+| Verdict signing key       | OutLayer project-bound key                        | A Seams-held key in a Cloudflare secret                                      |
+
+### 14.2 What stays the same
+
+- The Wallet module `@seams/speak-to-sign` and its public API.
+- The verdict format and the vault method `transfer_with_verdict`.
+- The `spoken-intent` crate and the refusal cases.
+- The verifier is a configuration choice per lane, for example
+  `SPEAK_TO_SIGN_VERIFIER = outlayer | seams`.
+
+### 14.3 Why
+
+- **Latency.** The OutLayer dispatch (about 2.2 s fixed) and the Phala hop
+  go away. The target is a verify step of 3–4 s (Section 11.5).
+- **Cost.** No Phala CVM (about $84 per month) and no OutLayer fee for each
+  run. Cloudflare charges for each use.
+- **Fewer trusted parties.** NEAR AI, Phala and the OutLayer project owner
+  leave the trust set. Seams and Cloudflare stay.
+
+### 14.4 What changes in trust
+
+- The Seams-hosted verifier runs no attested TEE code. Seams can sign any
+  verdict with its key. Today the OutLayer project owner has the same power
+  (Section 0), but the TEE run of pinned code is a public claim that the
+  Seams version cannot make.
+- The vault pins one verifier key at init (Question 5). Each vault must
+  choose the OutLayer key or the Seams key. Question 17 asks whether a vault
+  can accept either key, or must require both.
+
+### 14.5 Gates before the build
+
+1. Whisper on Workers AI on the STT-1 transaction grammar: at least the
+   accuracy of NEAR AI Whisper large-v3, and 0 false accepts.
+2. ReDimNet on Cloudflare: the same embeddings as the Phala build (cosine
+   agreement on the Gate 0 set), and its latency.
+3. The whole verify step: p95 at or below 4 s on staging.
+
+## 15. Open questions for the user
 
 Status on 2026-11-07. Each question is decided, measured or open.
 
@@ -1121,3 +1181,4 @@ Status on 2026-11-07. Each question is decided, measured or open.
 | 14  | Spoken verifier version | Decided  | The crate speaks eight digits. Members still check the full hash against the published release.                                                                            |
 | 15  | What the 10 s counts    | Open     | Measured: 8.7 s from the end of speech; about 13 s with the speech. Does the rule start at the end of speech?                                                              |
 | 16  | Phala key pinning       | Open     | dstack derives the key per app, not per compose hash. The Phala app owner can change the code and keep the key. An on-chain KMS with a compose-hash allowlist closes this. |
+| 17  | Verifier key choice     | Open     | Section 14: a vault pins one verifier key. Can a vault accept the OutLayer key or the Seams key, or must it require both?                                                  |

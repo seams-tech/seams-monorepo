@@ -1,6 +1,6 @@
 import React from 'react';
 import { t } from '@core/i18n';
-import { CircleCheck, ShieldCheck } from 'lucide-react';
+import { CircleCheck, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { decodeTenantDeploymentPublicProjectionV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import { useDashboardConsoleSession } from '@core/dashboard/consoleSession';
 import { DashboardPageActions } from '@core/dashboard/components/DashboardPageActions';
@@ -128,23 +128,40 @@ function LiveWalletAccessControl(props: {
   const [state, setState] = React.useState<LiveAccessState>({ kind: 'idle' });
   return (
     <section className="tenant-deployment-section" aria-labelledby="live-wallet-access-title">
-      <h2 id="live-wallet-access-title">{t('walletDeployLiveTitle')}</h2>
-      <p>{t('walletDeployLiveDescription')}</p>
-      <button
-        type="button"
-        className="dashboard-pagination-button"
-        disabled={state.kind === 'pending'}
-        onClick={refreshLiveWalletAccess.bind(
-          null,
-          props.organizationId,
-          props.projectId,
-          setState,
-        )}
-      >
-        {state.kind === 'pending' ? t('walletDeployLiveRefreshing') : t('walletDeployLiveRefresh')}
-      </button>
-      {state.kind === 'ready' ? <p role="status">{t('walletDeployLiveEnabled')}</p> : null}
-      {state.kind === 'error' ? <p role="alert">{state.message}</p> : null}
+      <div className="tenant-deployment-action-row">
+        <div className="tenant-deployment-section-copy">
+          <h2 id="live-wallet-access-title">{t('walletDeployLiveTitle')}</h2>
+          <p>{t('walletDeployLiveDescription')}</p>
+        </div>
+        <button
+          type="button"
+          className="dashboard-pagination-button dashboard-pagination-button--secondary"
+          disabled={state.kind === 'pending'}
+          onClick={refreshLiveWalletAccess.bind(
+            null,
+            props.organizationId,
+            props.projectId,
+            setState,
+          )}
+        >
+          {state.kind === 'pending'
+            ? t('walletDeployLiveRefreshing')
+            : t('walletDeployLiveRefresh')}
+        </button>
+      </div>
+      {state.kind === 'ready' ? (
+        <p
+          className="dashboard-form-alert dashboard-form-alert--notice tenant-deployment-feedback"
+          role="status"
+        >
+          {t('walletDeployLiveEnabled')}
+        </p>
+      ) : null}
+      {state.kind === 'error' ? (
+        <p className="dashboard-form-alert tenant-deployment-feedback" role="alert">
+          {state.message}
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -256,34 +273,63 @@ function DeploymentStatusNotice({
 }): React.JSX.Element | null {
   switch (status.kind) {
     case 'loading':
-      return <p role="status">{t('walletDeployLoadingEvidence')}</p>;
+      return (
+        <p className="tenant-deployment-state-note" role="status">
+          {t('walletDeployLoadingEvidence')}
+        </p>
+      );
     case 'error':
-      return <p role="alert">{status.message}</p>;
+      return (
+        <p className="dashboard-form-alert" role="alert">
+          {status.message}
+        </p>
+      );
     case 'unavailable':
       return (
         <section
           className="tenant-deployment-section"
           aria-label={t('walletDeployUnavailableTitle')}
         >
-          <h2>{t('walletDeployUnavailableTitle')}</h2>
-          <p>{t('walletDeployUnavailableGateway')}</p>
-          <p>
-            {t('walletDeploySelectedEnvironment')} <code>{status.environmentId}</code>
-          </p>
-          <p>{t('walletDeployUnavailableAsk')}</p>
+          <div className="tenant-deployment-section-heading">
+            <span className="tenant-deployment-section-icon tenant-deployment-section-icon--warning">
+              <TriangleAlert size={18} aria-hidden="true" />
+            </span>
+            <div className="tenant-deployment-section-copy">
+              <h2>{t('walletDeployUnavailableTitle')}</h2>
+              <p>{t('walletDeployUnavailableGateway')}</p>
+            </div>
+          </div>
+          <dl className="tenant-deployment-status-grid tenant-deployment-status-grid--single">
+            <StatusValue
+              label={t('walletDeploySelectedEnvironment')}
+              value={status.environmentId}
+            />
+          </dl>
+          <p className="tenant-deployment-section-footnote">{t('walletDeployUnavailableAsk')}</p>
         </section>
       );
     case 'environment_mismatch':
       return (
         <section className="tenant-deployment-section" aria-label={t('walletDeployMismatchTitle')}>
-          <h2>{t('walletDeployMismatchTitle')}</h2>
-          <p>{t('walletDeployMismatchBody')}</p>
-          <p>
-            {t('walletDeploySelectedEnvironment')} <code>{status.environmentId}</code>
-          </p>
-          <p>
-            {t('walletDeployActiveEnvironment')} <code>{status.activeEnvironmentId}</code>
-          </p>
+          <div className="tenant-deployment-section-heading">
+            <span className="tenant-deployment-section-icon tenant-deployment-section-icon--warning">
+              <TriangleAlert size={18} aria-hidden="true" />
+            </span>
+            <div className="tenant-deployment-section-copy">
+              <h2>{t('walletDeployMismatchTitle')}</h2>
+              <p>{t('walletDeployMismatchBody')}</p>
+            </div>
+          </div>
+          <dl className="tenant-deployment-status-grid">
+            <StatusValue
+              label={t('walletDeploySelectedEnvironment')}
+              value={status.environmentId}
+            />
+            <StatusValue
+              label={t('walletDeployActiveEnvironment')}
+              value={status.activeEnvironmentId}
+            />
+          </dl>
         </section>
       );
     case 'ready':
@@ -331,25 +377,22 @@ export function TenantDeploymentPage(): React.JSX.Element {
 
   if (!session.claims || !isOwner) {
     return (
-      <section className="dashboard-page tenant-deployment-page">
-        <h1>{t('walletDeployTitle')}</h1>
-        <p role="alert">{t('walletDeployOwnersOnly')}</p>
+      <section className="dashboard-view tenant-deployment-page">
+        <p className="dashboard-form-alert" role="alert">
+          {t('walletDeployOwnersOnly')}
+        </p>
       </section>
     );
   }
 
   return (
-    <section className="dashboard-page tenant-deployment-page">
-      <header className="tenant-deployment-header">
-        <p className="tenant-deployment-eyebrow">{t('walletDeployOwnerView')}</p>
-        <h1>{t('walletDeployTitle')}</h1>
-        <p>
-          {t('walletDeployReadOnly', {
-            project: selectedContextDisplay.project,
-            environment: selectedContextDisplay.environment,
-          })}
-        </p>
-      </header>
+    <section className="dashboard-view tenant-deployment-page">
+      <p className="tenant-deployment-lead">
+        {t('walletDeployReadOnly', {
+          project: selectedContextDisplay.project,
+          environment: selectedContextDisplay.environment,
+        })}
+      </p>
 
       <DashboardPageActions>
         <button
@@ -380,10 +423,10 @@ export function TenantDeploymentPage(): React.JSX.Element {
           </div>
           <section className="tenant-deployment-section" aria-labelledby="binding-status-title">
             <div className="tenant-deployment-section-heading">
-              <span>
+              <span className="tenant-deployment-section-icon">
                 <ShieldCheck size={18} aria-hidden="true" />
               </span>
-              <div>
+              <div className="tenant-deployment-section-copy">
                 <h2 id="binding-status-title">{t('walletDeployBindingTitle')}</h2>
                 <p>{t('walletDeployBindingDescription')}</p>
               </div>

@@ -176,7 +176,7 @@ export const walletProductMessages = {
     en: 'The gateway cannot serve a verified deployment.',
     ja: 'ゲートウェイは検証済みのデプロイを提供できません。',
   },
-  walletDeploySelectedEnvironment: { en: 'Selected environment:', ja: '選択中の環境:' },
+  walletDeploySelectedEnvironment: { en: 'Selected environment', ja: '選択中の環境' },
   walletDeployUnavailableAsk: {
     en: 'Ask an operator to check activation, deployment data, and gateway configuration.',
     ja: '運用担当者に、有効化、デプロイデータ、ゲートウェイ設定の確認を依頼してください。',
@@ -189,13 +189,11 @@ export const walletProductMessages = {
     en: 'This gateway serves a different environment. Ask an operator to check the deployment assignment.',
     ja: 'このゲートウェイは別の環境を提供しています。運用担当者にデプロイの割り当ての確認を依頼してください。',
   },
-  walletDeployActiveEnvironment: { en: 'Active environment:', ja: 'アクティブな環境:' },
-  walletDeployTitle: { en: 'Deployment status', ja: 'デプロイ状況' },
+  walletDeployActiveEnvironment: { en: 'Active environment', ja: 'アクティブな環境' },
   walletDeployOwnersOnly: {
     en: 'Only organization owners can view deployment status and audit evidence.',
     ja: 'デプロイ状況と監査の証跡を表示できるのは、組織のオーナーのみです。',
   },
-  walletDeployOwnerView: { en: 'Owner view', ja: 'オーナー向け表示' },
   walletDeployReadOnly: {
     en: 'Read-only evidence for {project} · {environment}. Cutovers run from the protected repository workflow.',
     ja: '{project} · {environment} の読み取り専用の証跡です。切り替えは、保護されたリポジトリのワークフローから実行されます。',

@@ -1,124 +1,184 @@
 .tenant-deployment-page {
-  max-width: 980px;
+  max-width: 960px;
+  gap: 20px;
 }
 
-.tenant-deployment-header {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 28px;
+.tenant-deployment-lead {
+  margin: -12px 0 4px;
+  color: var(--dashboard-ink-soft);
+  font-size: var(--dashboard-text-supporting);
+  line-height: 1.5;
 }
 
-.tenant-deployment-header h1,
-.tenant-deployment-header p {
+.tenant-deployment-state-note {
   margin: 0;
-}
-
-.tenant-deployment-header > p:last-child,
-.tenant-deployment-section-heading p {
-  color: var(--dashboard-text-muted);
-}
-
-.tenant-deployment-eyebrow {
-  color: var(--dashboard-text-muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  padding: 20px 24px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius-2xl);
+  background: var(--dashboard-surface);
+  color: var(--dashboard-ink-soft);
+  font-size: var(--dashboard-text-supporting);
 }
 
 .tenant-deployment-summary {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 22px;
-  padding: 18px;
+  padding: 18px 22px;
   border: 1px solid var(--dashboard-border);
-  border-radius: 16px;
+  border-radius: var(--dashboard-radius-2xl);
+  background: var(--dashboard-surface);
 }
 
 .tenant-deployment-summary-icon {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
+  flex: none;
   place-items: center;
-  border-radius: 12px;
-  color: var(--dashboard-success-text);
-  background: var(--dashboard-success-surface);
+  border-radius: var(--dashboard-radius-lg);
+  color: var(--dashboard-success);
+  background: var(--dashboard-success-soft);
 }
 
 .tenant-deployment-summary div {
   display: grid;
-  gap: 4px;
+  gap: 3px;
+  min-width: 0;
+}
+
+.tenant-deployment-summary strong {
+  color: var(--dashboard-ink);
+  font-size: var(--dashboard-text-compact);
+  font-weight: 500;
 }
 
 .tenant-deployment-summary span:last-child {
-  color: var(--dashboard-text-muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--dashboard-ink-soft);
+  font-family: var(--console-font-mono);
+  font-size: var(--dashboard-text-caption);
   overflow-wrap: anywhere;
 }
 
 .tenant-deployment-section {
-  padding: 28px;
+  display: grid;
+  gap: 20px;
+  padding: 24px;
   border: 1px solid var(--dashboard-border);
-  border-radius: 18px;
+  border-radius: var(--dashboard-radius-2xl);
+  background: var(--dashboard-surface);
+}
+
+.tenant-deployment-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .tenant-deployment-section-heading {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  margin-bottom: 24px;
 }
 
-.tenant-deployment-section-heading > span {
+.tenant-deployment-section-icon {
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   flex: none;
   place-items: center;
-  border-radius: 10px;
-  color: var(--dashboard-text-strong);
-  background: var(--dashboard-surface-muted);
+  border: 1px solid var(--dashboard-line);
+  border-radius: var(--dashboard-radius-lg);
+  color: var(--dashboard-ink);
+  background: var(--dashboard-surface-soft);
 }
 
-.tenant-deployment-section-heading h2,
-.tenant-deployment-section-heading p {
+.tenant-deployment-section-icon--warning {
+  border-color: transparent;
+  color: var(--dashboard-warning);
+  background: var(--dashboard-warning-soft);
+}
+
+.tenant-deployment-section-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 280px;
+}
+
+.tenant-deployment-section-copy h2,
+.tenant-deployment-section-copy p {
   margin: 0;
 }
 
-.tenant-deployment-section-heading p {
-  margin-top: 5px;
+.tenant-deployment-section-copy h2 {
+  color: var(--dashboard-ink);
+  font-size: var(--dashboard-text-body);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+}
+
+.tenant-deployment-section-copy p {
+  color: var(--dashboard-ink-soft);
+  font-size: var(--dashboard-text-supporting);
+  line-height: 1.5;
+}
+
+.tenant-deployment-feedback {
+  margin: 0;
 }
 
 .tenant-deployment-status-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
   margin: 0;
 }
 
+.tenant-deployment-status-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .tenant-deployment-status-value {
+  display: grid;
+  gap: 6px;
   min-width: 0;
-  padding: 16px;
-  border-radius: 12px;
-  background: var(--dashboard-surface-muted);
+  padding: 14px 16px;
+  border: 1px solid var(--dashboard-alpha-100);
+  border-radius: var(--dashboard-radius-xl);
+  background: var(--dashboard-surface-soft);
 }
 
 .tenant-deployment-status-value dt {
-  margin-bottom: 7px;
-  color: var(--dashboard-text-muted);
-  font-size: 0.8rem;
-  font-weight: 650;
+  margin: 0;
+  color: var(--dashboard-ink-soft);
+  font-size: var(--dashboard-text-caption);
+  font-weight: 500;
+  line-height: 1.3;
 }
 
 .tenant-deployment-status-value dd {
   margin: 0;
+  color: var(--dashboard-ink);
+  font-family: var(--console-font-mono);
+  font-size: var(--dashboard-text-supporting);
+  line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.tenant-deployment-section-footnote {
+  margin: 0;
+  color: var(--dashboard-ink-soft);
+  font-size: var(--dashboard-text-caption);
+  line-height: 1.5;
 }
 
 @media (max-width: 720px) {
   .tenant-deployment-section {
-    padding: 20px;
+    padding: 18px;
   }
 
   .tenant-deployment-status-grid {

@@ -1524,7 +1524,13 @@ function buildProjectPolicy(configuration) {
     org_id: configuration.orgId,
     project_id: configuration.projectId,
     environment: runtimePolicyEnvironment(configuration),
-    allowed_work_kinds: ['registration_prepare', 'key_export', 'recovery', 'server_share_refresh'],
+    allowed_work_kinds: [
+      'registration_prepare',
+      'key_export',
+      'recovery',
+      'reissue',
+      'server_share_refresh',
+    ],
     allow_normal_signing: true,
     rejected_retry_after_ms: 1000,
   };

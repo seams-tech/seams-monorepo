@@ -122,6 +122,7 @@ import { handleRouterAbEd25519YaoRegistrationRequestScopedCloudflareV1 } from '@
 import { handleRouterAbEd25519YaoRecoveryRequestScopedCloudflareV1 } from '@seams/wallet-server/cloud-host';
 import type { WarmBootstrapLinkedEd25519AuthorityReaderV1 } from '@seams/wallet-server/cloud-host';
 import { handleRouterAbEd25519YaoExportRequestScopedCloudflareV1 } from '@seams/wallet-server/cloud-host';
+import { handleRouterAbEd25519YaoReissueRequestV1 } from '@seams/wallet-server/cloud-host';
 import { RouterAbEd25519YaoRecoveryWalletSessionAuthorizationAdapter } from '@seams/wallet-server/cloud-host';
 import { RouterAbEd25519YaoExportOwnerProofAuthorizationAdapter } from '@seams/wallet-server/cloud-host';
 import {
@@ -133,6 +134,8 @@ import {
   ROUTER_AB_ED25519_YAO_RECOVERY_STATUS_PATH_V1,
   ROUTER_AB_ED25519_YAO_REGISTRATION_ADMISSION_PATH_V1,
   ROUTER_AB_ED25519_YAO_REGISTRATION_EXECUTE_PATH_V1,
+  ROUTER_AB_ED25519_YAO_REISSUE_ADMISSION_PATH_V1,
+  ROUTER_AB_ED25519_YAO_REISSUE_EXECUTE_PATH_V1,
   ROUTER_AB_ED25519_YAO_WARM_RECOVERY_BOOTSTRAP_PATH_V1,
 } from '@seams/wallet-server/cloud-host';
 import { ROUTER_AB_TRACE_ID_HEADER_V1 } from '@seams/wallet-server/cloud-host';
@@ -1564,6 +1567,14 @@ async function createLocalRouterApiHandler(
               ),
               localEstablishedHomeAdmission(env, orgId),
             ),
+            reissueServices: {
+              admitEstablishedHome: localEstablishedHomeAdmission(env, orgId),
+              authorizationSessions: routerApiService.authorizationSessions,
+              resolveEd25519MaterialActivation:
+                routerApiService.walletRegistration.resolveEd25519MaterialActivation.bind(
+                  routerApiService.walletRegistration,
+                ),
+            },
           },
         }
       : ed25519YaoComposition;
@@ -1653,6 +1664,13 @@ async function handleLocalYaoRequestScoped(
         backend: dependencies.backend,
         authorization: dependencies.exportAuthorization,
         capabilities: dependencies.capabilities,
+      });
+    case ROUTER_AB_ED25519_YAO_REISSUE_ADMISSION_PATH_V1:
+    case ROUTER_AB_ED25519_YAO_REISSUE_EXECUTE_PATH_V1:
+      return await handleRouterAbEd25519YaoReissueRequestV1({
+        request,
+        backend: dependencies.backend,
+        services: dependencies.reissueServices,
       });
     default:
       return null;
@@ -1920,6 +1938,7 @@ async function resolveLocalTenantRoot(
         materialActivation: input.admissionRequest.active_material_activation,
       });
     case 'export':
+    case 'reissue':
       return await context.resolveActiveTenantRoot({
         walletId: input.admissionRequest.application_binding.wallet_id,
         materialActivation: input.admissionRequest.scope.material_activation,
@@ -2090,6 +2109,9 @@ type LocalEd25519YaoRequestScopedBaseDependencies = {
 
 type LocalEd25519YaoRequestScopedDependencies = LocalEd25519YaoRequestScopedBaseDependencies & {
   readonly exportAuthorization: RouterAbEd25519YaoExportOwnerProofAuthorizationAdapter;
+  readonly reissueServices: Parameters<
+    typeof handleRouterAbEd25519YaoReissueRequestV1
+  >[0]['services'];
 };
 
 async function createLocalEd25519YaoProductComposition(

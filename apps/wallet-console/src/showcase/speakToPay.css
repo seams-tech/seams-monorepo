@@ -203,25 +203,6 @@ body {
   min-width: 0;
 }
 
-.stp-contacts {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.stp-contacts li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--site-space-2);
-  padding: 8px 12px;
-  border-radius: 12px;
-  background: var(--site-surface);
-  overflow-wrap: anywhere;
-}
-
 .stp-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);

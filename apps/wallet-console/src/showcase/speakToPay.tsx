@@ -17,7 +17,6 @@ import {
   type FrontendDeployment,
 } from '@/config';
 import { SITE_APPEARANCE, SITE_THEME_TOKEN_OVERRIDES } from '@/context/siteThemeOverrides';
-import { VAULT } from './speakToPayChain';
 import { SpeakToPayFlow } from './speakToPayFlow';
 
 type Lane =
@@ -40,7 +39,7 @@ function SpeakToPayPage({ lane }: { lane: Lane }): React.JSX.Element {
         ? {
             ...buildSeamsSdkConfig(lane.deployment),
             appearance: { ...SITE_APPEARANCE, locale: 'en' as const },
-            transactionFeatures: [speakToSign({ vault: VAULT, network: 'testnet' })],
+            transactionFeatures: [speakToSign({ network: 'testnet' })],
           }
         : null,
     [lane],
@@ -52,8 +51,9 @@ function SpeakToPayPage({ lane }: { lane: Lane }): React.JSX.Element {
           <p className="stp-eyebrow">NEAR testnet only</p>
           <h1>Speak to pay</h1>
           <p>
-            Pay any named NEAR account with your voice. A vault contract pays only after an
-            attested verifier checks your voice and your words. Do not use real funds.
+            Pay any named NEAR account with your voice. An attested verifier checks your voice and
+            your words, and your Wallet then pays from your own account with no confirm. Do not
+            use real funds.
           </p>
         </header>
         {lane.kind === 'staging_testnet' && config ? (

@@ -11,7 +11,7 @@ const TRANSFER_REFUSALS: Record<TransferRefusal, string> = {
   words: 'The words did not match the sentence.',
   audio_reused: 'The verifier already saw this audio.',
   audio_invalid: 'The verifier could not read the audio.',
-  template_missing: 'The verifier has no voice template for you. Do step 3 first.',
+  template_missing: 'The verifier has no voice template for you. Do step 2 first.',
   unsupported: 'The verifier does not support this request.',
   speaker_unavailable: 'The speaker check did not answer.',
   storage: 'The verifier storage failed.',
@@ -20,8 +20,8 @@ const TRANSFER_REFUSALS: Record<TransferRefusal, string> = {
   receiver_not_speakable:
     'The receiver must be a named NEAR account that you can say, not an implicit (64-hex) account.',
   receiver_missing: 'The receiver account does not exist on NEAR testnet.',
-  verdict_mismatch: 'The signed verdict did not match this payment.',
-  vault_rejected: 'The vault refused the transaction.',
+  verdict_mismatch: 'The signed verdict did not match this payment, or it expired.',
+  transaction_failed: 'NEAR ran the transfer, and it failed.',
 };
 
 const ENROLLMENT_REFUSALS: Record<EnrollmentRefusal, string> = {
@@ -33,19 +33,16 @@ const ENROLLMENT_REFUSALS: Record<EnrollmentRefusal, string> = {
   speaker_unavailable: 'The speaker check did not answer.',
   storage: 'The verifier storage failed.',
   template_exists: 'Another enrollment changed your template at the same time.',
-  not_authorized: 'The vault holds no live authorization for these recordings.',
-  authorization_unavailable: 'The verifier could not read the vault authorization.',
-  vault_rejected: 'The vault refused authorize_enrollment.',
+  not_authorized: 'A full-access key of your account did not sign this enrollment.',
+  authorization_unavailable: 'The verifier could not read your account key on NEAR.',
 };
 
 const UNAVAILABLE: Record<Unavailable, string> = {
   flow_not_available: 'This Wallet cannot start the flow.',
   voiceid_unavailable: 'VoiceID is not on for this wallet. Do step 1 first.',
-  vault_missing: 'You have no vault yet. Do step 2 first.',
-  verifier_unavailable: 'The vault or the Seams verify route did not answer.',
-  not_submitted: 'The Wallet did not send the vault transaction. Nothing was paid.',
-  submission_unknown:
-    'The vault transaction may have been sent. Check NearBlocks before you pay again.',
+  verifier_unavailable: 'The Seams verify route did not answer.',
+  not_submitted: 'The Wallet did not send the transaction. Nothing was paid.',
+  submission_unknown: 'The transaction may have been sent. Check NearBlocks before you pay again.',
 };
 
 export function transferRefusalText(reason: TransferRefusal): string {
@@ -63,8 +60,7 @@ export function unavailableText(reason: Unavailable): string {
 export const STAGE_LABELS: ReadonlyArray<readonly [keyof Sent['times'], string]> = [
   ['speechMs', 'Speech'],
   ['verifyMs', 'Verify'],
-  ['checkMs', 'Local check'],
-  ['transactionMs', 'Transaction'],
+  ['transactionMs', 'Check, sign and send'],
   ['endOfSpeechToReceiptMs', 'End of speech to receipt'],
 ];
 

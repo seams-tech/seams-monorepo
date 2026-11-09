@@ -246,7 +246,7 @@
               "speakToSignVerifier": {
                 "outlayerBaseUrl": "https://testnet-api.outlayer.ai",
                 "project": "seams-v1.testnet/voice-verifier",
-                "versionKey": "b4d68fb64f8be57382794bd9a8fce60f1655e869260b3fda88953dddf001fdd0",
+                "versionKey": "09f4ce1be348cc874ded71687c9de96b05fbfb452f94bc801c6752b4e39ea294",
                 "secretsProfile": "main",
                 "secretsAccountId": "cyan-loong.testnet"
               }

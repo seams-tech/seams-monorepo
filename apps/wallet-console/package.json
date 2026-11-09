@@ -22,9 +22,9 @@
     "@seams-internal/grain-field": "workspace:*",
     "@seams-internal/site-navbar": "workspace:*",
     "@seams-internal/wallet-console-shared": "workspace:*",
-    "@seams/wallet": "0.57.0",
-    "@seams/voiceid": "0.57.0",
-    "@seams/speak-to-sign": "0.57.0",
+    "@seams/wallet": "0.58.0",
+    "@seams/voiceid": "0.58.0",
+    "@seams/speak-to-sign": "0.58.0",
     "@radix-ui/react-select": "2.2.6",
     "@tanstack/react-query": "5.87.1",
     "borsh": "2.0.0",
@@ -36,7 +36,7 @@
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "sonner": "1.7.4",
-    "@seams/wallet-server": "0.57.0"
+    "@seams/wallet-server": "0.58.0"
   },
   "devDependencies": {
     "@types/node": "22.18.1",

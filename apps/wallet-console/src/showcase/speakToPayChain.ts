@@ -1,33 +1,16 @@
 /* NEAR testnet reads and amounts for the Speak to pay page. The page reads the
-   vault and the owner's balance straight from NEAR RPC; only owner calls go
-   through the Wallet. */
+   owner's balance straight from NEAR RPC. Spoken payments go from the owner's
+   own account through the Wallet. */
 
-export const VAULT = 'seams-wallet.testnet';
 export const DEFAULT_RECEIVER = 'seams-v1.testnet';
-export const CALL_GAS = '30000000000000';
-/** The vault keeps 0.1 NEAR of this for storage; the rest is the payable balance. */
-export const CREATE_VAULT_DEPOSIT_YOCTO = '150000000000000000000000';
-export const VAULT_TOP_UP_YOCTO = '100000000000000000000000';
 export const RECEIPT_BASE_URL = 'https://testnet.nearblocks.io/txns/';
 export const FAUCET_URL = 'https://docs.near.org/getting-started/faucet';
 
 const YOCTO_PER_NEAR = 10n ** 24n;
 const STORAGE_YOCTO_PER_BYTE = 10n ** 19n;
-/** create_vault takes 0.15 NEAR, and each 30 Tgas call prepays about 0.03 NEAR. */
-export const SETUP_NEED_YOCTO = 300_000_000_000_000_000_000_000n;
-/** transfer_with_verdict prepays 50 Tgas: about 0.051 NEAR, refunded in part. */
-export const PAYMENT_PREPAID_YOCTO = 51_000_000_000_000_000_000_000n;
+/** A 0.01 NEAR spoken payment and the gas of one transfer (under 0.0001 NEAR), with a margin. */
+export const PAYMENT_NEED_YOCTO = 20_000_000_000_000_000_000_000n;
 const MAX_SPOKEN_HUNDREDTHS = 100_000_000n;
-
-export type VaultView = Readonly<{
-  balanceYocto: bigint;
-  perTransferYocto: bigint;
-  dailyYocto: bigint;
-  spentTodayYocto: bigint;
-  nextNonce: string;
-}>;
-
-export type VaultContact = Readonly<{ accountId: string; active: boolean }>;
 
 export type SpokenAmount =
   | Readonly<{ ok: true; amount: string }>
@@ -58,47 +41,6 @@ async function rpcQuery(rpcUrl: string, params: Record<string, unknown>): Promis
   return body;
 }
 
-async function viewFunction(rpcUrl: string, method: string, ownerId: string): Promise<unknown> {
-  const reply = await rpcQuery(rpcUrl, {
-    request_type: 'call_function',
-    finality: 'final',
-    account_id: VAULT,
-    method_name: method,
-    args_base64: btoa(JSON.stringify({ owner_id: ownerId })),
-  });
-  const result = reply.result;
-  if (!isRecord(result) || !Array.isArray(result.result)) {
-    throw new Error(`${method} failed: ${JSON.stringify(reply.error ?? result).slice(0, 200)}`);
-  }
-  const bytes = Uint8Array.from(result.result as number[]);
-  return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
-}
-
-/** The owner's vault, or null when the owner has none yet. */
-export async function readVault(rpcUrl: string, ownerId: string): Promise<VaultView | null> {
-  const vault = await viewFunction(rpcUrl, 'get_vault', ownerId);
-  if (vault === null) return null;
-  if (!isRecord(vault) || !isRecord(vault.limits)) throw new Error('get_vault returned no vault.');
-  return {
-    balanceYocto: yocto(vault.balance),
-    perTransferYocto: yocto(vault.limits.per_transfer),
-    dailyYocto: yocto(vault.limits.daily),
-    spentTodayYocto: yocto(vault.spent_today),
-    nextNonce: String(vault.next_nonce),
-  };
-}
-
-export async function readContacts(rpcUrl: string, ownerId: string): Promise<VaultContact[]> {
-  const contacts = await viewFunction(rpcUrl, 'get_contacts', ownerId);
-  if (!Array.isArray(contacts)) throw new Error('get_contacts returned no list.');
-  return contacts.map((contact: unknown) => {
-    if (!isRecord(contact) || typeof contact.account_id !== 'string') {
-      throw new Error('get_contacts returned a contact without an account.');
-    }
-    return { accountId: contact.account_id, active: contact.active === true };
-  });
-}
-
 /** The balance the account can spend (its amount less its storage stake), or null if it does not exist. */
 export async function readFreeBalance(rpcUrl: string, accountId: string): Promise<bigint | null> {
   const reply = await rpcQuery(rpcUrl, {
@@ -113,47 +55,6 @@ export async function readFreeBalance(rpcUrl: string, accountId: string): Promis
   }
   if (JSON.stringify(reply.error ?? '').includes('UNKNOWN_ACCOUNT')) return null;
   throw new Error(`view_account failed: ${JSON.stringify(reply.error).slice(0, 200)}`);
-}
-
-const PANIC_PREFIX = 'Smart contract panicked: ';
-
-/**
- * The contract's own error text for a transaction that NEAR executed and that
- * failed, such as "amount is above the transfer limit". Null while the outcome is not
- * known or when the failure carries no text.
- */
-export async function readTransactionFailure(
-  rpcUrl: string,
-  transactionHash: string,
-  senderAccountId: string,
-): Promise<string | null> {
-  const response = await fetch(rpcUrl, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 'speak-to-pay',
-      method: 'tx',
-      params: {
-        tx_hash: transactionHash,
-        sender_account_id: senderAccountId,
-        wait_until: 'EXECUTED_OPTIMISTIC',
-      },
-    }),
-  });
-  if (!response.ok) return null;
-  const body: unknown = await response.json();
-  if (!isRecord(body) || !isRecord(body.result) || !isRecord(body.result.status)) return null;
-  const failure = body.result.status.Failure;
-  if (!isRecord(failure)) return null;
-  const actionError = failure.ActionError;
-  if (!isRecord(actionError) || !isRecord(actionError.kind)) return JSON.stringify(failure);
-  const functionCallError = actionError.kind.FunctionCallError;
-  if (isRecord(functionCallError) && typeof functionCallError.ExecutionError === 'string') {
-    const text = functionCallError.ExecutionError;
-    return text.startsWith(PANIC_PREFIX) ? text.slice(PANIC_PREFIX.length) : text;
-  }
-  return JSON.stringify(actionError.kind);
 }
 
 /** Yocto as NEAR with at most four decimals, rounded down. */

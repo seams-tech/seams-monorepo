@@ -236,6 +236,7 @@ function buildBasePlan(options, repository, values) {
   const plan = {
     release: options.release,
     identityId: options.identityId,
+    environmentPrefix: options.environmentPrefix,
     lane: options.lane,
     site: options.site,
     component: options.component,

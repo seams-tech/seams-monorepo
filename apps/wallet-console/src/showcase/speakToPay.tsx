@@ -52,8 +52,8 @@ function SpeakToPayPage({ lane }: { lane: Lane }): React.JSX.Element {
           <p className="stp-eyebrow">NEAR testnet only</p>
           <h1>Speak to pay</h1>
           <p>
-            Pay a saved contact with your voice. A vault contract pays only after an attested
-            verifier checks your voice and your words. Do not use real funds.
+            Pay any named NEAR account with your voice. A vault contract pays only after an
+            attested verifier checks your voice and your words. Do not use real funds.
           </p>
         </header>
         {lane.kind === 'staging_testnet' && config ? (

@@ -17,7 +17,9 @@ const TRANSFER_REFUSALS: Record<TransferRefusal, string> = {
   storage: 'The verifier storage failed.',
   transcriber_unavailable: 'The transcription service did not answer.',
   amount_not_speakable: 'The amount must be whole hundredths of NEAR, from 0.01 to 1,000,000.',
-  receiver_not_contact: 'The receiver is not an active contact of your vault.',
+  receiver_not_speakable:
+    'The receiver must be a named NEAR account that you can say, not an implicit (64-hex) account.',
+  receiver_missing: 'The receiver account does not exist on NEAR testnet.',
   verdict_mismatch: 'The signed verdict did not match this payment.',
   vault_rejected: 'The vault refused the transaction.',
 };

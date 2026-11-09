@@ -157,8 +157,9 @@ does not show that anybody heard a voice.
 
 ### 4.1 Scope
 
-- In scope: native NEAR transfers from a vault to a saved contact, one pending
-  request for each owner, testnet.
+- In scope: native NEAR transfers from a vault to any named account that the
+  text can say (it need not be a contact), one pending request for each
+  owner, testnet.
 - Out of scope: fungible tokens, swaps, function calls, other chains, mainnet.
 
 ### 4.2 Components
@@ -220,9 +221,10 @@ does not show that anybody heard a voice.
 5. In the MVP the vault refuses a second enrollment. To start again, the owner
    withdraws and makes a new vault.
 
-The vault keeps one recipient list. It never adds a recipient automatically.
-An earlier recipient can receive a voice transfer only after the owner adds it
-as a contact.
+Contacts are optional (changed on 2026-11-09). A voice transfer can go to any
+named account that the text can say. The verifier checks the words against the
+saved contacts, so a contact helps it refuse a sound-alike name. The vault
+never adds a contact automatically.
 
 The verifier namespace is the calling contract, so the HTTPS API cannot reach
 the templates. Every `enroll` and `verify` run must come from the vault.
@@ -262,19 +264,20 @@ sequenceDiagram
    Wallet aligns the CTC output with the suggested sentence and highlights the
    words.
 3. The Wallet runs VAD, the speaker check and speech-to-text. `spoken-intent`
-   parses the transcript into an intent. The recipient must be an active vault
-   contact, read through RPC.
+   parses the transcript into an intent. The recipient must be a named account
+   that the text can say and that exists on the network, read through RPC.
 4. The Wallet builds a `request_transfer` call with `receiver_id`,
    `amount_yocto`, `nonce` and `audio { url, digest }`. The confirm modal shows
    the transaction and the heard words.
-5. Dispatch: auto-dispatch (active contact, amount below the auto limit, 3 s
+5. Dispatch: auto-dispatch (amount below the auto limit, 3 s
    countdown), "continue" or a click. The Wallet encrypts and uploads the audio
    during the countdown.
 6. The device key signs `voiceid_intent_statement_v1` (Section 7.1). The Seams
    server renders the text from the transaction arguments, compares it with the
    heard text in the statement, and co-signs.
 7. The vault checks the transaction. The caller must be the owner. The receiver
-   must be an active contact. The amount must be within the transfer limit and
+   must be a named account that the text can say, and not the owner or the
+   vault. The amount must be within the transfer limit and
    the daily limit. The nonce must be new, and no other request may be pending.
    The vault reserves the amount, stores `PendingTransfer` and computes
    `request_digest`.
@@ -740,9 +743,9 @@ cannot fetch the blob.
 | Attacker                                          | Plain Speak-to-Sign                                                                                                                                | Vault or multisig with the verifier                                                                                                                                                        |
 | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Malicious app that embeds the Wallet              | It can suggest any sentence. The Wallet renders text from the transaction, so the app cannot change the amount or recipient after the user speaks. | Same                                                                                                                                                                                       |
-| Control of `walletOrigin` code                    | It can sign any operation in the session.                                                                                                          | It must also produce the owner's voice saying the exact text. The recipient must be an active contact, and limits apply.                                                                   |
+| Control of `walletOrigin` code                    | It can sign any operation in the session.                                                                                                          | It must also produce the owner's voice saying the exact text. Limits apply.                                                                                                                |
 | Control of `walletOrigin` with stored owner audio | Same as above                                                                                                                                      | It can replay an earlier utterance for the same amount and contact. The used-digest check stops only identical bytes. The daily limit and the fresh-word option (Section 4.7) reduce this. |
-| Voice clone made from collected audio             | —                                                                                                                                                  | ReDimNet probably accepts a good clone. The MVP has no anti-spoofing model. Contacts and limits bound the loss.                                                                            |
+| Voice clone made from collected audio             | —                                                                                                                                                  | ReDimNet probably accepts a good clone. The MVP has no anti-spoofing model. Any named account can receive, so only the limits bound the loss.                                              |
 | Seams operator or server                          | With `walletOrigin`: everything in a session                                                                                                       | It can refuse service. It reads ciphertext only.                                                                                                                                           |
 | Blob relay                                        | —                                                                                                                                                  | It can refuse service. Changed bytes fail the digest check.                                                                                                                                |
 | NEAR RPC node that lies to the Wallet             | —                                                                                                                                                  | A wrong display gives a word mismatch, and the contract refuses.                                                                                                                           |
@@ -1074,7 +1077,7 @@ python3 demo/demo.py pay --env-file <env file> --key-file <owner key file> \
 4. **2:00** Wrong words, as a tampered Wallet would cause: request 0.1, and
    `--say "Send 0.5 NEAR to seams dash v1 dot testnet."` Result: `words`.
    Nothing is sent.
-5. **2:30** Not a contact: `--say "Send 0.1 NEAR to alice dot testnet."`
+5. **2:30** Another receiver: `--say "Send 0.1 NEAR to alice dot testnet."`
    Result: `words`.
 6. **2:50** Another voice: `--voice Daniel`. Result: `speaker`.
 7. **3:10** Replay: run step 2 again with the same rate. The audio is the same.

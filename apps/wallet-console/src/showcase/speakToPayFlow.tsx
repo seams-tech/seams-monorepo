@@ -14,7 +14,7 @@ import { useDemoWalletSessionLifecycle } from '@/flows/demo/hooks/useDemoWalletS
 import {
   CALL_GAS,
   CREATE_VAULT_DEPOSIT_YOCTO,
-  DEFAULT_CONTACT,
+  DEFAULT_RECEIVER,
   FAUCET_URL,
   PAYMENT_PREPAID_YOCTO,
   RECEIPT_BASE_URL,
@@ -176,7 +176,7 @@ function lowBalanceMessage(rejection: NearTransactionRejection | undefined): str
 
 /**
  * A reverted call carries NEAR's reason, such as "The contract refused the
- * call: Smart contract panicked: receiver is not a contact". NEAR's refusal
+ * call: Smart contract panicked: amount is above the transfer limit". NEAR's refusal
  * before execution arrives as `rejection`. For an unresolved call, the
  * contract's own text is read back by hash.
  */
@@ -310,7 +310,7 @@ function VaultStep(props: {
   onChanged: () => void;
 }): React.JSX.Element {
   const { owner, vault, freeBalance, onChanged } = props;
-  const [contact, setContact] = React.useState(DEFAULT_CONTACT);
+  const [contact, setContact] = React.useState(DEFAULT_RECEIVER);
   const [outcome, start] = useOutcome<VaultCallResult>();
   const run = React.useCallback(
     async (message: string, method: string, args: Record<string, unknown>, deposit: string) => {
@@ -342,7 +342,6 @@ function VaultStep(props: {
   );
 
   const state = vault.kind === 'ready' ? vault.value : null;
-  const active = state?.contacts.filter((item) => item.active) ?? [];
   const status: StepStatus =
     outcome.kind === 'working'
       ? 'working'
@@ -350,14 +349,14 @@ function VaultStep(props: {
         ? 'checking'
         : vault.kind === 'failed' || (outcome.kind === 'result' && !outcome.value.ok)
           ? 'failed'
-          : state?.vault && active.length > 0
+          : state?.vault
             ? 'done'
             : 'todo';
   const tooPoorToCreate = freeBalance !== null && freeBalance < SETUP_NEED_YOCTO;
   const busy = outcome.kind === 'working';
 
   return (
-    <StepCard index={2} title="Create your vault and add a contact" status={status}>
+    <StepCard index={2} title="Create your vault" status={status}>
       {vault.kind === 'failed' ? <Notice tone="error">{vault.message}</Notice> : null}
       {state && !state.vault ? (
         <>
@@ -391,7 +390,11 @@ function VaultStep(props: {
           <p className="stp-hint">
             Each payment takes its amount and a small storage fee from the vault balance.
           </p>
-          <h3 className="stp-subhead">Contacts</h3>
+          <h3 className="stp-subhead">Contacts (optional)</h3>
+          <p className="stp-hint">
+            A spoken payment can go to any named NEAR account. The verifier also checks your words
+            against your contacts, so a saved contact helps it refuse a name that sounds alike.
+          </p>
           {state.contacts.length ? (
             <ul className="stp-contacts">
               {state.contacts.map((item) => (
@@ -404,7 +407,7 @@ function VaultStep(props: {
               ))}
             </ul>
           ) : (
-            <p>You have no contacts yet. A spoken payment can pay only an active contact.</p>
+            <p>You have no contacts.</p>
           )}
           <label className="stp-field">
             <span>Contact account</span>
@@ -628,10 +631,9 @@ function PayStep(props: {
   onPaid: () => void;
 }): React.JSX.Element {
   const { owner, ready, onPaid } = props;
-  const active = props.contacts.filter((item) => item.active).map((item) => item.accountId);
   const [amountText, setAmountText] = React.useState('0.01');
-  const [receiver, setReceiver] = React.useState('');
-  const chosen = active.includes(receiver) ? receiver : (active[0] ?? '');
+  const [receiver, setReceiver] = React.useState(DEFAULT_RECEIVER);
+  const chosen = receiver.trim();
   const amount = parseSpokenAmount(amountText);
   const [outcome, start] = useOutcome<SpeakToSignTransferResult>();
   const pay = React.useCallback(async () => {
@@ -664,9 +666,7 @@ function PayStep(props: {
 
   return (
     <StepCard index={5} title="Speak to pay" status={status}>
-      {!ready ? (
-        <Notice tone="info">Turn on VoiceID and add an active contact to your vault first.</Notice>
-      ) : null}
+      {!ready ? <Notice tone="info">Turn on VoiceID and create your vault first.</Notice> : null}
       <div className="stp-row">
         <label className="stp-field">
           <span>Amount in NEAR</span>
@@ -680,25 +680,27 @@ function PayStep(props: {
         </label>
         <label className="stp-field">
           <span>Pay to</span>
-          <select
-            value={chosen}
+          <input
+            type="text"
+            value={receiver}
             onChange={(event) => setReceiver(event.target.value)}
-            disabled={!active.length}
-          >
-            {active.length ? null : <option value="">No active contact</option>}
-            {active.map((accountId) => (
-              <option key={accountId} value={accountId}>
-                {accountId}
-              </option>
+            list="stp-contact-list"
+            spellCheck={false}
+            autoCapitalize="off"
+            autoComplete="off"
+          />
+          <datalist id="stp-contact-list">
+            {props.contacts.map((item) => (
+              <option key={item.accountId} value={item.accountId} />
             ))}
-          </select>
+          </datalist>
         </label>
       </div>
       {!amount.ok ? <p className="stp-field-error">{amount.message}</p> : null}
       <p>
-        The VoiceID window shows the exact sentence, for example "Send 0.01 NEAR to
-        seams-v1.testnet." Click Record, then read it aloud. In the account name, say "dash" for "-"
-        and "dot" for ".".
+        Pay to any named NEAR account; it need not be a contact. The VoiceID window shows the exact
+        sentence, for example "Send 0.01 NEAR to seams-v1.testnet." Click Record, then read it
+        aloud. In the account name, say "dash" for "-" and "dot" for ".".
       </p>
       <LoadingButton
         onClick={pay}
@@ -744,7 +746,6 @@ function OwnerSteps({ owner }: { owner: Owner }): React.JSX.Element {
   const vaultState = vault.kind === 'ready' ? vault.value : null;
   const hasVault = Boolean(vaultState?.vault);
   const contacts = vaultState?.contacts ?? [];
-  const hasActiveContact = contacts.some((item) => item.active);
 
   return (
     <>
@@ -760,7 +761,7 @@ function OwnerSteps({ owner }: { owner: Owner }): React.JSX.Element {
       <PayStep
         owner={owner}
         contacts={contacts}
-        ready={voiceIdOn && hasVault && hasActiveContact}
+        ready={voiceIdOn && hasVault}
         onPaid={reloadChain}
       />
     </>

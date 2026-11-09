@@ -3,7 +3,7 @@
    through the Wallet. */
 
 export const VAULT = 'seams-wallet.testnet';
-export const DEFAULT_CONTACT = 'seams-v1.testnet';
+export const DEFAULT_RECEIVER = 'seams-v1.testnet';
 export const CALL_GAS = '30000000000000';
 /** The vault keeps 0.1 NEAR of this for storage; the rest is the payable balance. */
 export const CREATE_VAULT_DEPOSIT_YOCTO = '150000000000000000000000';
@@ -119,7 +119,7 @@ const PANIC_PREFIX = 'Smart contract panicked: ';
 
 /**
  * The contract's own error text for a transaction that NEAR executed and that
- * failed, such as "receiver is not a contact". Null while the outcome is not
+ * failed, such as "amount is above the transfer limit". Null while the outcome is not
  * known or when the failure carries no text.
  */
 export async function readTransactionFailure(

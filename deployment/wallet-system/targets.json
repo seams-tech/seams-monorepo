@@ -490,7 +490,7 @@
             },
             "optional": {
               "nearRelayer": {
-                "accountId": "w3a-relayer.testnet",
+                "accountId": "seams-relayer.testnet",
                 "publicKey": null,
                 "rpcUrl": "https://rpc.testnet.fastnear.com",
                 "initialBalanceYocto": "10000000000000000000000"

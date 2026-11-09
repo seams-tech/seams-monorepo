@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@seams/wallet':
-        specifier: 0.56.2
-        version: 0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
+        specifier: 0.57.0
+        version: 0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
       '@seams/wallet-server':
-        specifier: 0.56.2
-        version: 0.56.2
+        specifier: 0.57.0
+        version: 0.57.0
     devDependencies:
       '@eslint/js':
         specifier: 9.39.2
@@ -79,11 +79,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/wallet-console-shared-ts
       '@seams/voiceid':
-        specifier: 0.56.2
-        version: 0.56.2(@seams/wallet@0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: 0.57.0
+        version: 0.57.0(@seams/wallet@0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@seams/wallet':
-        specifier: 0.56.2
-        version: 0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
+        specifier: 0.57.0
+        version: 0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
       '@tanstack/react-query':
         specifier: 5.87.1
         version: 5.87.1(react@19.1.1)
@@ -155,17 +155,17 @@ importers:
         specifier: workspace:*
         version: link:../../packages/wallet-console-shared-ts
       '@seams/speak-to-sign':
-        specifier: 0.56.2
-        version: 0.56.2(@seams/voiceid@0.56.2(@seams/wallet@0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@seams/wallet@0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react@19.1.1)
+        specifier: 0.57.0
+        version: 0.57.0(@seams/voiceid@0.57.0(@seams/wallet@0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@seams/wallet@0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react@19.1.1)
       '@seams/voiceid':
-        specifier: 0.56.2
-        version: 0.56.2(@seams/wallet@0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: 0.57.0
+        version: 0.57.0(@seams/wallet@0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@seams/wallet':
-        specifier: 0.56.2
-        version: 0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
+        specifier: 0.57.0
+        version: 0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
       '@seams/wallet-server':
-        specifier: 0.56.2
-        version: 0.56.2
+        specifier: 0.57.0
+        version: 0.57.0
       '@tanstack/react-query':
         specifier: 5.87.1
         version: 5.87.1(react@19.1.1)
@@ -277,8 +277,8 @@ importers:
         specifier: workspace:*
         version: link:../wallet-console-shared-ts
       '@seams/wallet-server':
-        specifier: 0.56.2
-        version: 0.56.2
+        specifier: 0.57.0
+        version: 0.57.0
       bs58:
         specifier: 6.0.0
         version: 6.0.0
@@ -296,8 +296,8 @@ importers:
   packages/wallet-console-shared-ts:
     dependencies:
       '@seams/wallet-server':
-        specifier: 0.56.2
-        version: 0.56.2
+        specifier: 0.57.0
+        version: 0.57.0
 
   tests:
     devDependencies:
@@ -326,11 +326,11 @@ importers:
         specifier: workspace:*
         version: link:../packages/wallet-console-shared-ts
       '@seams/wallet':
-        specifier: 0.56.2
-        version: 0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
+        specifier: 0.57.0
+        version: 0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
       '@seams/wallet-server':
-        specifier: 0.56.2
-        version: 0.56.2
+        specifier: 0.57.0
+        version: 0.57.0
       '@simplewebauthn/server':
         specifier: 13.2.2
         version: 13.2.2
@@ -350,8 +350,8 @@ importers:
   tests/intended-app:
     dependencies:
       '@seams/wallet':
-        specifier: 0.56.2
-        version: 0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
+        specifier: 0.57.0
+        version: 0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
       react:
         specifier: 19.1.1
         version: 19.1.1
@@ -1395,22 +1395,22 @@ packages:
   '@scure/bip39@1.6.0':
     resolution: {integrity: sha512-+lF0BbLiJNwVlev4eKelw1WWLaiKXw7sSl8T6FvBlWkdX+94aGJ4o8XjUdlyhTCjd8c+B3KT3JfS8P0bLRNU6A==}
 
-  '@seams/speak-to-sign@0.56.2':
-    resolution: {integrity: sha512-SCHj53oiJXMDMbJI01IVvzfgsrDSNMd1VlY8O8zBiGeY1k+QdP0FHGj9xO7hKP7SGUSvsvleUKhaJ4biA0fdFA==}
+  '@seams/speak-to-sign@0.57.0':
+    resolution: {integrity: sha512-/Io509jipcIIXpeGs8+7YAwbsUPKJJAHuSb9CRITmHzxkm/Dg/7zB0/LcxLIgu7Y82qkPX0h/KqkBfDd6lohig==}
     hasBin: true
     peerDependencies:
-      '@seams/voiceid': 0.56.2
-      '@seams/wallet': 0.56.2
+      '@seams/voiceid': 0.57.0
+      '@seams/wallet': 0.57.0
       react: '>=19.0.0'
     peerDependenciesMeta:
       react:
         optional: true
 
-  '@seams/voiceid@0.56.2':
-    resolution: {integrity: sha512-OnymwR4gE3UxDSkRdzCfFJ/GVUKIb82pIlZOuBISnXp4wGzrtX7DVAcZMmoyaFlyblM54fC64DoNq9X+kG4j1w==}
+  '@seams/voiceid@0.57.0':
+    resolution: {integrity: sha512-DfeTFel2z1wBROZ/qir9KFvmNOJ/6D4jRMbPBBJ2LNvkzKjo/T3JZtkbk0lGs3PhZvvsM+kBcG8YklQZKip1qg==}
     hasBin: true
     peerDependencies:
-      '@seams/wallet': 0.56.2
+      '@seams/wallet': 0.57.0
       react: '>=19.0.0'
       react-dom: '>=19.0.0'
     peerDependenciesMeta:
@@ -1419,12 +1419,12 @@ packages:
       react-dom:
         optional: true
 
-  '@seams/wallet-server@0.56.2':
-    resolution: {integrity: sha512-vu4Xkm7MmjrG9rk4pzGo6fZDVmpVahauLpDsYiNXYHy59kA3wQhvIu+XC3QwJYEpaVdnNDdwgy09i6Rk83uClQ==}
+  '@seams/wallet-server@0.57.0':
+    resolution: {integrity: sha512-oOyVQkurbOVxTYMlJELXD9CWO1AJjlsXuTzadEkZmrMcj/zJ7NtA7v8bb56lZe1G9r+wcj9iW1+346eCHsZUhg==}
     hasBin: true
 
-  '@seams/wallet@0.56.2':
-    resolution: {integrity: sha512-Yf4HSxEj8UJ6S/12vioSkBgetqwp4yX1KvKS2FEcD4PS4wYPHq7hNdYJeDcEa1taFY14tXA+ZT5n/7VHW4Kn6g==}
+  '@seams/wallet@0.57.0':
+    resolution: {integrity: sha512-fY+TkVWIFTqBNE0ncQkMW7qfl0Wh6imaumf2IonMzis45xtsaJvyU5BK4lvf2CSdM5CeEFxgxzst+aOH04SHrA==}
     peerDependencies:
       jsqr: 1.4.0
       qrcode: 1.5.4
@@ -3494,16 +3494,16 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 
-  '@seams/speak-to-sign@0.56.2(@seams/voiceid@0.56.2(@seams/wallet@0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@seams/wallet@0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react@19.1.1)':
+  '@seams/speak-to-sign@0.57.0(@seams/voiceid@0.57.0(@seams/wallet@0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@seams/wallet@0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react@19.1.1)':
     dependencies:
-      '@seams/voiceid': 0.56.2(@seams/wallet@0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@seams/wallet': 0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
+      '@seams/voiceid': 0.57.0(@seams/wallet@0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@seams/wallet': 0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
     optionalDependencies:
       react: 19.1.1
 
-  '@seams/voiceid@0.56.2(@seams/wallet@0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@seams/voiceid@0.57.0(@seams/wallet@0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
-      '@seams/wallet': 0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
+      '@seams/wallet': 0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
       onnxruntime-web: 1.30.0
       preact: 10.29.8
       voice-glow: 0.2.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -3513,12 +3513,12 @@ snapshots:
     transitivePeerDependencies:
       - preact-render-to-string
 
-  '@seams/wallet-server@0.56.2':
+  '@seams/wallet-server@0.57.0':
     dependencies:
       '@simplewebauthn/server': 13.2.2
       bs58: 6.0.0
 
-  '@seams/wallet@0.56.2(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)':
+  '@seams/wallet@0.57.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)':
     dependencies:
       '@levischuck/tiny-cbor': 0.2.11
       '@near-js/types': 2.4.0

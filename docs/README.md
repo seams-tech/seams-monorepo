@@ -49,9 +49,11 @@ of Platform and Wallet entry points and the reasons for that design.
 
 ## Concept plans
 
-- [Refactor 210 — voice intents](refactor-210-voice-intents.md): the
-  Speak-to-Sign vault and the spoken multisig with OutLayer and yield/resume.
-  Plan only; testnet.
+- [Refactor 210 — voice intents](refactor-210-voice-intents.md): Speak-to-Sign
+  and the spoken multisig with OutLayer. Speak-to-Sign runs on testnet: a TEE
+  verifier signs a verdict, and the Wallet pays from the owner's own account
+  after it checks the verdict. The shared vault design is retired (2026-11-09).
+  The spoken multisig is a plan only.
 
 ## Historical feature records
 

@@ -3,9 +3,19 @@
 Status: plan only, written 2026-11-06. It changes no production code. All work
 runs on NEAR testnet.
 
+**Update 2026-11-09: the shared vault design is retired.** The Wallet now pays
+from the owner's own account after Wallet core checks the verifier's verdict.
+There is no vault contract (`seams-wallet.testnet` is no longer used), no
+`transfer_with_verdict`, no contacts with a delay and no on-chain limits.
+Section 0 says what runs now. `seams-wallet/docs/refactor-227-speak-to-sign-without-passkey.md`
+owns that design. Sections 1 to 9 describe the vault and the
+yield/resume design. They stay as the record of the first design, with the
+measured results. Where they differ from Section 0, Section 0 is right.
+
 This plan covers two VoiceID concepts for the NEAR team:
 
-1. **Speak-to-Sign vault**: the main concept.
+1. **Speak-to-Sign vault** (retired on 2026-11-09; now Speak-to-Sign from the
+   owner's account): the main concept.
 2. **Spoken multisig**: a follow-up.
 
 VoiceID source lives in `seams-wallet`. This plan builds on
@@ -18,28 +28,60 @@ These concepts check the voice for each transfer. For this hackathon, the
 user set aside the 2026-11-04 decision (a VoiceID unlock opens a session with
 no voice check for each transaction). That decision still applies to releases.
 
-## 0. Current design (2026-11-07)
+## 0. Current design (2026-11-09)
 
-Gate 0 and the 10 s latency rule changed the design. This section replaces
-the on-chain flow in Sections 1, 3, 4.5–4.6 and 7.2–7.4 where they differ.
+Gate 0 and the 10 s latency rule changed the design on 2026-11-07. On
+2026-11-09 option G replaced the vault. This section replaces the on-chain
+flow in Sections 1, 3, 4 (the vault), 4.5–4.6 and 7.2–7.4 where they differ.
 Those sections stay as the record of the first design.
 
-- **Path.** The Wallet calls the verifier through OutLayer's HTTPS API
+- **Path.** The Wallet calls the verifier through the Seams verify route
+  (`POST /speak-to-sign/v1/verify`), which calls OutLayer's HTTPS API
   (`POST /call/seams-v1.testnet/voice-verifier`, payment key, `version_key`,
   `secrets_ref`). The audio travels inside the request. There is no
   `request_execution`, no yield and no blob relay. The on-chain path took
   25–35 s (Section 11.5).
-- **Verifier.** A 302 KB OutLayer worker without `tract`. It calls the Phala
-  speaker service (ReDimNet in a dstack CVM, signed embeddings, pinned key)
-  and NEAR AI Whisper large-v3 at the same time. It compares the embedding
-  with the template in OutLayer storage (cutoff 0.45), checks the words with
-  `spoken_intent::normalize_punctuated` against `render` of the request, and
-  marks the audio digest used. It returns a verdict signed with a
-  project-bound signing key.
-- **Vault.** One transaction, `transfer_with_verdict`. The vault rebuilds the
-  request digest from its state and the arguments, checks the signature
-  against the verifier key that it pinned at init, the nonce, the contact,
-  the limits and audio reuse, and pays.
+- **Verifier.** An OutLayer worker without `tract`, 335 KB in version 0.3.1. It calls the
+  Phala speaker service (ReDimNet in a dstack CVM, signed embeddings, pinned
+  key) and NEAR AI Whisper large-v3 at the same time. It compares the
+  embedding with the template in OutLayer storage (cutoff 0.45), checks the
+  words with `spoken_intent::normalize_punctuated` against `render` of the
+  request, runs a policy step, and marks the audio digest used. The operations
+  are `enroll` and `verify`.
+- **Verdict v2.** The verdict is signed with the project-bound ed25519 key
+  `ed25519:E8E53ydtc9LRvVz9xBCRrSzyBa5nh1gK1ts53Aoo751U`. It has 13 fields,
+  `outcome` `accept`, `step_up` or `refuse`, and `expires_at_ms` (the worker
+  clock plus 120 s). The Wallet pins the key in its code, one key for each
+  network.
+- **The Wallet signs (option G).** Wallet core checks the verdict: the pinned
+  key, the signature, the request and spoken-text digests, the digest of a clip
+  that core recorded in this flow, and the expiry. On `accept`, the Wallet
+  builds the transaction from the request and signs it from the owner's own
+  account through the Wallet Session. There is no confirm and no passkey. The
+  owner pays the gas, and core signs once for each verdict. On `step_up`, core
+  asks for a fresh approval with the session's own method. A cold session needs
+  an unlock first.
+- **Step-up.** The policy step can only tighten a decision. One stub rule
+  stands in for the policy engine of Refactor 225: a payment above 10 NEAR
+  needs a passkey.
+- **Enrollment.** The owner signs one NEP-413 message with a full-access key
+  of the owner account. The verifier checks the signature and reads the key
+  over NEAR RPC. The template key is `template:v3:<owner>`.
+- **No vault.** There is no vault contract, no deposit, no contact list with a
+  delay and no on-chain limit. The `contacts` input is optional and only helps
+  the confusion set. A transfer can go to any named account.
+- **What changed in trust.** The checks that the vault made on chain (the
+  signature, the nonce, the contact, the limits and audio reuse) moved. Wallet
+  core checks the signature, the digests and the expiry. The verifier marks
+  each recording used. Core signs once for each verdict. A check of the verdict
+  by the Seams co-signer and voice limits for each wallet are planned and not
+  built (Refactor 227, Step 1b). The user accepted a trusted, off-chain design
+  on 2026-11-09.
+- **Versions.** Version 0.3.1 of the verifier runs on OutLayer testnet (version
+  key `5b6fad5df11440847e13508f57736da8de371526824cf12178dfc20be2c9c1d1`).
+  Version 0.4.0 adds spoken community notes and note ratings. It is on OutLayer
+  as version `8a0b7ba0dff61a4b45e5d1d164c011525e11fe9f4fd02a4e22368882447329ef`
+  and is not active.
 - **What OutLayer still adds.** The TEE run of pinned code, its storage of
   the template and used audio, its signing key, and the secret for NEAR AI.
   This meets the hackathon rule. Yield/resume is no longer used; the spoken
@@ -49,13 +91,35 @@ Those sections stay as the record of the first design.
   the speaker embedding, and the project owner, who can deploy a version
   that signs with the project-bound key. The Phala app owner can also change
   the speaker service code without changing its pinned key, because dstack
-  derives the key per app, not per compose hash.
+  derives the key per app, not per compose hash. The NEAR RPC node is also
+  trusted for the access-key view at enrollment.
 - **Measured** (testnet, [evidence](evidence/refactor-210-gate0/README.md)):
   end of speech to receipt 9.2 s; verification 5.7 s; vault transaction
-  3.5 s. All six refusal cases held.
+  3.5 s. All six refusal cases held. These runs used the vault, which is
+  retired (Section 0.1). One live Wallet run of option G (2026-11-09, 1 run)
+  took 9.2 s from the end of speech to the receipt.
 - **Later.** This chain is the hackathon path. Section 14 plans a follow-up
   phase: the chain becomes optional, and Seams provides a version that it
   hosts fully on Cloudflare.
+
+### 0.1 The vault design of 2026-11-07 (retired)
+
+Until 2026-11-09 the design had a shared vault contract. The bullets below
+record it. Do not build on it.
+
+- **Vault.** One transaction, `transfer_with_verdict`. The vault rebuilt the
+  request digest from its state and the arguments, checked the signature
+  against the verifier key that it pinned at init, the nonce, the contact,
+  the limits and audio reuse, and paid. The testnet vault was
+  `seams-wallet.testnet`. It also had `authorize_enrollment`, contacts with a
+  delay, limits and a 10-minute withdrawal without voice.
+- **Verifier of that time.** Version `b4d68fb6…fdd0`. Verdict v2 replaced its
+  verdict format. Its `enroll` needed the owner's `authorize_enrollment` call
+  on the vault, and its template key held the vault name.
+- **What is left.** The deployed contract keeps its withdrawal methods, so a
+  testnet owner can still withdraw. The source is only in the git history of
+  `seams-voice-intents` (removed in commit `3dab63d`). The measured results of
+  the vault path stay in Sections 11.1 and 11.5.
 
 ## 1. Result
 
@@ -154,6 +218,9 @@ does not show that anybody heard a voice.
   goes through an HTTPS blob relay that sees only ciphertext.
 
 ## 4. Concept 1: Speak-to-Sign vault
+
+Retired on 2026-11-09. This section is the record of the vault design. Section
+0 says what runs now.
 
 ### 4.1 Scope
 
@@ -913,39 +980,60 @@ work.
 
 The MVP follows the HTTPS design of Section 0. It runs on testnet only.
 
-### 11.1 Done (2026-11-07)
+The vault was part of the MVP until 2026-11-09. Section 11.1 and Section 11.5
+record the vault build and its measured results. Section 11.1a says what runs
+now.
+
+### 11.1 Done (2026-11-07, vault build)
 
 The monorepo commits `cc8acf90` (first run) and `ac793488` (second run)
 record the evidence. Transaction links are in the
 [evidence](evidence/refactor-210-gate0/README.md#end-to-end-demo-on-testnet-2026-11-07).
+The table is the state of 2026-11-07.
 
-| Part                    | State                                                                                                                                                                                                                                     |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `spoken-intent` crate   | In `seams-wallet/crates/spoken-intent`, with vectors, `normalize_punctuated` and two slot rules. It speaks eight digits of the verifier version.                                                                                          |
-| Verifier                | `seams-v1.testnet/voice-verifier`, version `b4d68fb6…fdd0` (314 KB, no `tract`; any owner account). Operations `enroll` and `verify`. `enroll` needs the owner's `authorize_enrollment`. Storage reads overlap the network calls.                            |
-| Phala speaker service   | ReDimNet in a dstack CVM. It signs each embedding with the pinned key `1f704027…35e3`. The quote passes DCAP against Intel PCS (`UpToDate`).                                                                                              |
-| Vault                   | `seams-wallet.testnet`: `transfer_with_verdict`, `authorize_enrollment`, contacts with a delay, limits, 10-minute withdrawal without voice. It pinned the verifier key `ed25519:E8E5…751U` at init.                                       |
-| Reference client        | `seams-voice-intents/demo/demo.py` (`enroll`, `pay`). It uses macOS `say` in place of a microphone.                                                                                                                                       |
-| First payment           | 0.1 NEAR, tx `EDWp8R5e…`. End of speech to receipt 9.2 s. Six refusal cases held: `speaker`, `audio_reused`, three `words` cases, and a replayed verdict.                                                                                 |
-| Second payment          | Enrollment tx `GvQiiEg8…`, then 0.1 NEAR, tx `4RMXYX1X…`. End of speech to vault accepted 8.7 s; to settled about 9.2 s.                                                                                                                  |
-| Wallet module           | `@seams/speak-to-sign` in the `seams-wallet` worktree `.worktrees/speak-to-sign`: descriptor, host plugin, four scoped core operations and the route `POST /speak-to-sign/v1/verify`. Not in a release. No Wallet run is in the evidence. |
-| Gate STT-1 with Whisper | Measured, fails: 88.4% of correct readings (pass needs 95%), 94.6% of transfers, 0 of 3,742 false accepts.                                                                                                                                |
+| Part                    | State                                                                                                                                                                                                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `spoken-intent` crate   | In `seams-wallet/crates/spoken-intent`, with vectors, `normalize_punctuated` and two slot rules. It speaks eight digits of the verifier version.                                                                                                                               |
+| Verifier                | `seams-v1.testnet/voice-verifier`, version `b4d68fb6…fdd0` (314 KB, no `tract`; any owner account). Operations `enroll` and `verify`. `enroll` needs the owner's `authorize_enrollment`. Storage reads overlap the network calls. Replaced by 0.3.0 and 0.3.1 (Section 11.1a). |
+| Phala speaker service   | ReDimNet in a dstack CVM. It signs each embedding with the pinned key `1f704027…35e3`. The quote passes DCAP against Intel PCS (`UpToDate`).                                                                                                                                   |
+| Vault (retired)         | `seams-wallet.testnet`: `transfer_with_verdict`, `authorize_enrollment`, contacts with a delay, limits, 10-minute withdrawal without voice. It pinned the verifier key `ed25519:E8E5…751U` at init. The Wallet now pins the same key.                                          |
+| Reference client        | `seams-voice-intents/demo/demo.py` (`enroll`, `pay`). It used macOS `say` in place of a microphone. Removed in `3dab63d`.                                                                                                                                                      |
+| First payment (vault)   | 0.1 NEAR, tx `EDWp8R5e…`. End of speech to receipt 9.2 s. Six refusal cases held: `speaker`, `audio_reused`, three `words` cases, and a replayed verdict.                                                                                                                      |
+| Second payment (vault)  | Enrollment tx `GvQiiEg8…`, then 0.1 NEAR, tx `4RMXYX1X…`. End of speech to vault accepted 8.7 s; to settled about 9.2 s.                                                                                                                                                       |
+| Wallet module           | `@seams/speak-to-sign` in the `seams-wallet` worktree `.worktrees/speak-to-sign`: descriptor, host plugin, four scoped core operations and the route `POST /speak-to-sign/v1/verify`. Not in a release. No Wallet run is in the evidence.                                      |
+| Gate STT-1 with Whisper | Measured, fails: 88.4% of correct readings (pass needs 95%), 94.6% of transfers, 0 of 3,742 false accepts.                                                                                                                                                                     |
+
+### 11.1a What runs now (2026-11-09)
+
+| Part                    | State                                                                                                                                                                                                                                           |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spoken-intent` crate   | `AccountTransfer` (Borsh tag 2) replaces `VaultTransfer`. `CommunityNote` and `NoteRating` are new request kinds. The word check forgives words that hold no value (Wallet commit `976167297`).                                                 |
+| Verifier                | `seams-v1.testnet/voice-verifier` 0.3.1 runs (version key `5b6fad5d…c9c1d1`). 0.4.0 (`8a0b7ba0…2329ef`) is added and not active. Verdict v2, the policy step with the stub rule (above 10 NEAR), NEP-413 enrollment, `template:v3:<owner>`.     |
+| Vault                   | None. The deployed `seams-wallet.testnet` keeps its withdrawal methods only.                                                                                                                                                                    |
+| Wallet and SDK          | Wallet core checks the verdict and pays from the owner's account (Wallet commit `50502e1c2`). The descriptor is `speakToSign({ network })`.                                                                                                     |
+| Live run                | Testnet, 2026-11-09 (Wallet commit `02c2dd904`): enrollment with one NEP-413 confirm; 0.01 NEAR by voice with no confirm, 9.2 s from the end of speech to the receipt (1 run); a wrong spoken amount refused; 11 NEAR brought the confirm back. |
+| Gate STT-1 with Whisper | With the forgiving rules: 98.0% of transfers, 91.1% of all correct readings (pass needs 95%), 0 of 3,742 false accepts. It still fails, because of the multisig approvals.                                                                      |
 
 ### 11.2 Not done
 
 - A spoken payment through the Wallet module with a real microphone on
-  testnet, and its latency.
-- A p95 of the whole flow. Each stage has 20 runs. The whole flow has two.
-- A pass of Gate STT-1.
-- A demo app page.
+  testnet, and its latency. One live run of option G took 9.2 s from the end
+  of speech to the receipt (Section 11.1a). No record says that it used a
+  microphone.
+- A p95 of the whole flow. Each stage has 20 runs. The whole flow has fewer
+  than 10 (Refactor 227, Step 1, asks for 10).
+- A pass of Gate STT-1 (91.1% with the forgiving rules; pass needs 95%).
+- A demo app page for the Wallet path with the signed-in owner. A staging page
+  and the Spoken Notes demo exist; no record here measures them.
 - Consent text for audio egress (question 2).
 - Stretch: the spoken multisig (Section 5), fresh words above the auto limit
   (Section 4.7), Gate STT-2 with people.
 
 ### 11.3 Out of scope
 
-Mainnet, tokens, swaps, function calls, anti-spoofing models, the bets
-extension and any production release. The on-chain path (`request_execution`,
+Mainnet, tokens, swaps, free function calls (Refactor 227 adds a closed list
+of typed calls), anti-spoofing models, the bets extension and any production
+release. The on-chain path (`request_execution`,
 yield/resume, the HPKE blob relay) is replaced by the HTTPS design. Section 5
 would need it again.
 
@@ -956,15 +1044,15 @@ Speak-to-Sign is an optional Wallet module, built like VoiceID
 enable it downloads none of its code, WASM or assets, and the Wallet bundle
 does not grow.
 
-| Part                                         | Where                                                                                                                                        | Loaded when                                                                                                             |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Descriptor `speakToSign({ vault, network })` | `@seams/speak-to-sign` main export. It imports only types from `@seams/wallet`.                                                              | At app start, a few hundred bytes. It loads no code.                                                                    |
-| Host plugin `/sdk/speak-to-sign/host.js`     | `@seams/speak-to-sign/hosting`. The bin `seams-speak-to-sign-host` composes it into the Wallet host directory, as `seams-voiceid-host` does. | Only when the owner starts a spoken payment. The Wallet loads it with a dynamic `import()` and checks `hostApiVersion`. |
-| Transfer rules (`host/intent.ts`)            | Part of the host plugin: a TypeScript port of the `spoken-intent` vault rules, checked against the crate's vectors. No HPKE.                 | With the host plugin.                                                                                                   |
-| Clip capture                                 | The VoiceID host plugin's `recordPhrase`. The module bundles no VoiceID code.                                                                | Through the VoiceID loader, which already caches its assets.                                                            |
-| React parts (pay button, live text)          | `@seams/speak-to-sign/react`                                                                                                                 | Only if the app imports them.                                                                                           |
-| Verify route `POST /speak-to-sign/v1/verify` | `wallet-server`. Off unless all six `SPEAK_TO_SIGN_OUTLAYER_*` variables are set.                                                            | Server side only.                                                                                                       |
-| `voice-vault` contract, verifier worker      | The local repository `seams-voice-intents`. They are not npm code.                                                                           | On chain and in OutLayer.                                                                                               |
+| Part                                                    | Where                                                                                                                                                                                                                                                     | Loaded when                                                                                                             |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Descriptor `speakToSign({ network })`                   | `@seams/speak-to-sign` main export. It imports only types from `@seams/wallet`.                                                                                                                                                                           | At app start, a few hundred bytes. It loads no code.                                                                    |
+| Host plugin `/sdk/speak-to-sign/host.js`                | `@seams/speak-to-sign/hosting`. The bin `seams-speak-to-sign-host` composes it into the Wallet host directory, as `seams-voiceid-host` does.                                                                                                              | Only when the owner starts a spoken payment. The Wallet loads it with a dynamic `import()` and checks `hostApiVersion`. |
+| Transfer rules (`spokenTransfer.ts`)                    | A TypeScript port of the `spoken-intent` rules, checked against the crate's vectors. Since 2026-11-09 it lives in Wallet core (`core/transactionFeatures`), because core checks the verdict. Before, it was `host/intent.ts` in the host plugin. No HPKE. | With Wallet core.                                                                                                       |
+| Clip capture                                            | The VoiceID host plugin's `recordPhrase`. The module bundles no VoiceID code.                                                                                                                                                                             | Through the VoiceID loader, which already caches its assets.                                                            |
+| React parts (pay button, live text)                     | `@seams/speak-to-sign/react`                                                                                                                                                                                                                              | Only if the app imports them.                                                                                           |
+| Verify route `POST /speak-to-sign/v1/verify`            | `wallet-server`. Off unless all six `SPEAK_TO_SIGN_OUTLAYER_*` variables are set.                                                                                                                                                                         | Server side only.                                                                                                       |
+| Verifier worker (the `voice-vault` contract is deleted) | The local repository `seams-voice-intents`. The worker is not npm code.                                                                                                                                                                                   | In OutLayer.                                                                                                            |
 
 Rules:
 
@@ -977,10 +1065,12 @@ Rules:
 - **VoiceID dependency** (decided 2026-11-07): `@seams/voiceid` is a peer dependency at the same
   version. Speak-to-Sign needs a VoiceID enrollment on the device, and it uses
   the VoiceID capture surface and assets.
-- **Proofs**: the module signs nothing itself. It gets four scoped core
-  operations: `captureClip`, `viewVault`, `verify` and `submitTransfer`. It
-  gets no signing contexts, session stores or database schemas, the same
-  boundary as VoiceID. The device intent statement of Section 7.1 is not
+- **Proofs**: the module signs nothing itself. Wallet core checks the verdict
+  and signs. The module gets scoped core operations: `openPrompt`,
+  `receiverExists`, `verify`, `payWithVerdict`, `signNoteWithVerdict` and
+  `authorizeEnrollment` (before 2026-11-09: `captureClip`, `viewVault`,
+  `verify` and `submitTransfer`). It gets no signing contexts, session stores
+  or database schemas, the same boundary as VoiceID. The device intent statement of Section 7.1 is not
   built (question 13).
 - **Checks**: a bundle test shows that a Wallet built without the descriptor
   has no Speak-to-Sign chunk, and that an app with the descriptor loads
@@ -1003,20 +1093,25 @@ The only path that might meet the rule is the HTTPS API with a signed verdict
 measured. Build nothing further until a latency test of that path shows a
 p95 of at most 10 s for the whole flow.
 
-**Result (2026-11-07).** The HTTPS path was built and measured:
+**Result (2026-11-07).** The HTTPS path was built and measured with the vault
+(retired on 2026-11-09). The vault rows stay as the measured history:
 
-| Measure                                 | Value              | Runs |
-| --------------------------------------- | ------------------ | ---: |
-| Verify over HTTPS, with Phala, p95      | 5.2 s              |   20 |
-| Plain transfer to executed receipt, p95 | 2.1 s              |   20 |
-| Vault transaction to vault accepted     | 3.4 s              |    1 |
-| End of speech to vault accepted         | 8.7 s (second run) |    1 |
-| End of speech to receipt                | 9.2 s (first run)  |    1 |
-| Speech in those runs                    | 3.8 s and 4.1 s    |    2 |
+| Measure                                       | Value              | Runs |
+| --------------------------------------------- | ------------------ | ---: |
+| Verify over HTTPS, with Phala, p95            | 5.2 s              |   20 |
+| Plain transfer to executed receipt, p95       | 2.1 s              |   20 |
+| Vault transaction to vault accepted (retired) | 3.4 s              |    1 |
+| End of speech to vault accepted (retired)     | 8.7 s (second run) |    1 |
+| End of speech to receipt                      | 9.2 s (first run)  |    1 |
+| Speech in those runs                          | 3.8 s and 4.1 s    |    2 |
 
 From the end of speech, the flow fits in 10 s with about 1 s of margin.
 With the speech included, it takes about 13 s. Question 15 asks which one
 the rule counts.
+
+Option G has no vault transaction. One live Wallet run on 2026-11-09 took
+9.2 s from the end of speech to the receipt (1 run). Refactor 227 asks for 10
+runs.
 
 ### 11.6 Remaining work
 
@@ -1024,12 +1119,17 @@ the rule counts.
 | --- | ------------------------------------------------------- | -------------------------------- |
 | 1   | Wallet run with a microphone on testnet, with its times | `seams-wallet`                   |
 | 2   | 20 runs of the whole flow for a p95                     | `seams-voice-intents`            |
-| 3   | Demo app page                                           | `seams-voice-intents`            |
+| 3   | Demo app page (no vault)                                | `seams-voice-intents`            |
 | 4   | Gate STT-1: more correct readings accepted (95% needed) | `seams-wallet` (`spoken-intent`) |
 | 5   | Consent text for audio egress                           | `seams-wallet`                   |
 | 6   | Spoken multisig (stretch)                               | `seams-voice-intents`            |
+| 7   | Refactor 227 Steps 1b, 2 and 3                          | `seams-wallet`                   |
 
 ## 12. Demo script (about 5 minutes)
+
+Retired on 2026-11-09. This script drives the vault with `demo.py`, and both
+are deleted (`3dab63d`). It stays as the record of the demo of 2026-11-07. A
+new script needs the Wallet path of Section 0.
 
 This script uses the HTTPS design (Section 0) and the reference client
 `seams-voice-intents/demo/demo.py`. If the Wallet module has passed a testnet
@@ -1135,7 +1235,7 @@ Seams provides a version that it hosts fully on Cloudflare.
 ### 14.2 What stays the same
 
 - The Wallet module `@seams/speak-to-sign` and its public API.
-- The verdict format and the vault method `transfer_with_verdict`.
+- The verdict format (v2) and the check of the verdict in Wallet core.
 - The `spoken-intent` crate and the refusal cases.
 - The verifier is a configuration choice per lane, for example
   `SPEAK_TO_SIGN_VERIFIER = outlayer | seams`.
@@ -1155,9 +1255,9 @@ Seams provides a version that it hosts fully on Cloudflare.
   verdict with its key. Today the OutLayer project owner has the same power
   (Section 0), but the TEE run of pinned code is a public claim that the
   Seams version cannot make.
-- The vault pins one verifier key at init (Question 5). Each vault must
-  choose the OutLayer key or the Seams key. Question 17 asks whether a vault
-  can accept either key, or must require both.
+- The Wallet pins one verifier key for each network (Question 5). A
+  Seams-hosted verifier needs its own key in the Wallet. Question 17 asks
+  whether the Wallet can accept either key, or must require both.
 
 ### 14.5 Gates before the build
 
@@ -1169,24 +1269,24 @@ Seams provides a version that it hosts fully on Cloudflare.
 
 ## 15. Open questions for the user
 
-Status on 2026-11-07. Each question is decided, measured or open.
+Status on 2026-11-07, with the vault answers updated on 2026-11-09. Each question is decided, measured, retired or open.
 
-| #   | Question                | Status   | Answer or state                                                                                                                                                            |
-| --- | ----------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Code location           | Decided  | Verifier, vault and demo in `seams-voice-intents`; `spoken-intent` in `seams-wallet/crates/`. The user creates the GitHub remote.                                          |
-| 2   | Audio egress            | Open     | The audio now goes to OutLayer, Phala and NEAR AI. No consent text exists yet.                                                                                             |
-| 3   | Templates               | Open     | The build keeps the template only in OutLayer storage, so it works on any device. The user has not confirmed that cross-device use.                                        |
-| 4   | Freshness               | Open     | No fresh words at any amount. A used recording is refused (`audio_reused`, measured).                                                                                      |
-| 5   | Verifier upgrades       | Open     | The vault pins the verifier key at init and cannot change it. The OutLayer project owner can deploy a version that signs with the same project-bound key.                  |
-| 6   | Speech model            | Measured | Whisper large-v3 on NEAR AI (decided). No signature on transcripts. STT-1 with the crate slot rules: 88.4% of correct readings, 0 false accepts; the gate needs 95%.       |
-| 7   | Multisig target         | Open     | The multisig is not built.                                                                                                                                                 |
-| 8   | Vault escape            | Open     | The testnet vault uses 10 minutes (`WITHDRAWAL_DELAY_NS`). No value is chosen beyond the demo.                                                                             |
-| 9   | Payment                 | Decided  | By the HTTPS design: the Seams server's payment key pays each OutLayer run. The owner pays only gas.                                                                       |
-| 10  | Releases                | Decided  | Voice checks for each transfer stay in the hackathon. The 2026-11-04 decision still applies to releases.                                                                   |
-| 11  | Fallback                | Decided  | The user chose the signed-verdict HTTPS path on 2026-11-07. The project owner is in the trust set (Section 0).                                                             |
-| 12  | Demo text               | Open     | The testnet verdict carries `heard` today. No approval is recorded.                                                                                                        |
-| 13  | Device binding          | Open     | Not built. The module signs no device intent statement.                                                                                                                    |
-| 14  | Spoken verifier version | Decided  | The crate speaks eight digits. Members still check the full hash against the published release.                                                                            |
-| 15  | What the 10 s counts    | Open     | Measured: 8.7 s from the end of speech; about 13 s with the speech. Does the rule start at the end of speech?                                                              |
-| 16  | Phala key pinning       | Open     | dstack derives the key per app, not per compose hash. The Phala app owner can change the code and keep the key. An on-chain KMS with a compose-hash allowlist closes this. |
-| 17  | Verifier key choice     | Open     | Section 14: a vault pins one verifier key. Can a vault accept the OutLayer key or the Seams key, or must it require both?                                                  |
+| #   | Question                | Status   | Answer or state                                                                                                                                                                  |
+| --- | ----------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Code location           | Decided  | Verifier and demo in `seams-voice-intents` (the vault is deleted); `spoken-intent` in `seams-wallet/crates/`. The user creates the GitHub remote.                                |
+| 2   | Audio egress            | Open     | The audio now goes to OutLayer, Phala and NEAR AI. No consent text exists yet.                                                                                                   |
+| 3   | Templates               | Open     | The build keeps the template only in OutLayer storage, so it works on any device. The user has not confirmed that cross-device use.                                              |
+| 4   | Freshness               | Open     | No fresh words at any amount. A used recording is refused (`audio_reused`, measured).                                                                                            |
+| 5   | Verifier upgrades       | Open     | The Wallet pins the verifier key in its code and cannot change it without a release. The OutLayer project owner can deploy a version that signs with the same project-bound key. |
+| 6   | Speech model            | Measured | Whisper large-v3 on NEAR AI (decided). No signature on transcripts. STT-1 with the crate slot rules: 88.4% of correct readings, 0 false accepts; the gate needs 95%.             |
+| 7   | Multisig target         | Open     | The multisig is not built.                                                                                                                                                       |
+| 8   | Vault escape            | Retired  | No vault since 2026-11-09, so no withdrawal delay. The deployed testnet vault used 10 minutes (`WITHDRAWAL_DELAY_NS`).                                                           |
+| 9   | Payment                 | Decided  | By the HTTPS design: the Seams server's payment key pays each OutLayer run. The owner pays only gas.                                                                             |
+| 10  | Releases                | Decided  | Voice checks for each transfer stay in the hackathon. The 2026-11-04 decision still applies to releases.                                                                         |
+| 11  | Fallback                | Decided  | The user chose the signed-verdict HTTPS path on 2026-11-07. The project owner is in the trust set (Section 0).                                                                   |
+| 12  | Demo text               | Open     | The testnet verdict carries `heard` today. No approval is recorded.                                                                                                              |
+| 13  | Device binding          | Open     | Not built. The module signs no device intent statement.                                                                                                                          |
+| 14  | Spoken verifier version | Decided  | The crate speaks eight digits. Members still check the full hash against the published release.                                                                                  |
+| 15  | What the 10 s counts    | Open     | Measured: 8.7 s from the end of speech; about 13 s with the speech. Does the rule start at the end of speech?                                                                    |
+| 16  | Phala key pinning       | Open     | dstack derives the key per app, not per compose hash. The Phala app owner can change the code and keep the key. An on-chain KMS with a compose-hash allowlist closes this.       |
+| 17  | Verifier key choice     | Open     | Section 14: the Wallet pins one verifier key for each network. Can the Wallet accept the OutLayer key or the Seams key, or must it require both?                                 |

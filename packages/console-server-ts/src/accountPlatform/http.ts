@@ -18,6 +18,7 @@ import {
   createConsoleProviderIdentity,
   type ConsoleProviderIdentity,
 } from '../boundary/providerIdentity';
+import { normalizeLogger, type Logger, type NormalizedLogger } from '../boundary/logger';
 import { billingCanonicalDigest } from '../billing/pricing';
 import type { D1BillingUsageService } from '../billing/usage';
 import { fundsChargeId } from '../billingPrepaidReservations/d1';
@@ -40,6 +41,8 @@ export interface AccountPlatformServiceIngressOptions {
   readonly billingUsage: D1BillingUsageService;
   readonly googleIdentityFetch?: typeof fetch;
   readonly now?: () => Date;
+  /** The host decides where logs go. Without a logger, the ingress logs nothing. */
+  readonly logger?: Logger | null;
 }
 
 export type AccountPlatformServiceIngressHandler = (request: Request) => Promise<Response | null>;
@@ -54,6 +57,20 @@ function response(body: unknown, status = 200): Response {
 
 function rejected(code: string, status: number): Response {
   return response({ kind: 'rejected', error: { code } }, status);
+}
+
+const loggedMessageLimit = 300;
+
+/** One log line for an unexpected failure. It names the error and the route, never the request. */
+function logUnavailable(logger: NormalizedLogger, route: string, error: unknown): void {
+  const errorClass = error instanceof Error ? error.constructor.name || error.name : typeof error;
+  const message = error instanceof Error ? error.message : String(error);
+  logger.error('[console][account-platform] request failed', {
+    event: 'account_platform.request_failed',
+    route,
+    errorClass,
+    message: message.slice(0, loggedMessageLimit),
+  });
 }
 
 function unavailable(): Response {
@@ -202,10 +219,12 @@ function badBody<E>(parsed: { readonly kind: 'rejected'; readonly error: E }): R
 
 class AccountPlatformServiceIngress {
   private readonly clock: () => Date;
+  private readonly logger: NormalizedLogger;
   private readonly providers = new Map<string, ConsoleProviderIdentity>();
 
   constructor(private readonly options: AccountPlatformServiceIngressOptions) {
     this.clock = options.now ?? now;
+    this.logger = normalizeLogger(options.logger);
   }
 
   private provider(clientId: string): ConsoleProviderIdentity {
@@ -280,6 +299,7 @@ class AccountPlatformServiceIngress {
             return rejected('operation_conflict', 409);
         }
       }
+      logUnavailable(this.logger, pathname, error);
       return unavailable();
     }
   }

@@ -8,6 +8,7 @@ import type { D1AccountServiceAccess } from './serviceAccess';
 import type { D1AccountMembershipFacade } from './membershipFacade';
 import type { ConsoleBillingPrepaidReservationService } from '../billingPrepaidReservations/service';
 import type { D1BillingUsageService } from '../billing/usage';
+import type { Logger } from '../boundary/logger';
 
 export interface AccountServiceIngressEnvironment {
   readonly SATYR_DEPLOYMENT_ID?: string;
@@ -23,6 +24,7 @@ interface AccountServiceIngressServices {
   readonly serviceMemberships: D1AccountMembershipFacade;
   readonly funds: ConsoleBillingPrepaidReservationService;
   readonly billingUsage: D1BillingUsageService;
+  readonly logger?: Logger | null;
 }
 
 function publicAssertionJwk(input: string): JsonWebKey {
@@ -45,6 +47,7 @@ export async function createAccountPlatformServiceIngressFromEnvironment(
     memberships: services.serviceMemberships,
     funds: services.funds,
     billingUsage: services.billingUsage,
+    logger: services.logger,
   });
 }
 

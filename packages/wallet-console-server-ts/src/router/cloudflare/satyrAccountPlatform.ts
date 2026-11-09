@@ -79,7 +79,13 @@ export class SatyrAccountPlatform extends WorkerEntrypoint<SatyrAccountPlatformE
         this.ctx.waitUntil.bind(this.ctx),
       ).fetch(request);
     }
-    const ingress = await createAccountPlatformServiceIngressFromEnvironment(this.env, services);
+    const ingress = await createAccountPlatformServiceIngressFromEnvironment(this.env, {
+      serviceAccess: services.serviceAccess,
+      serviceMemberships: services.serviceMemberships,
+      funds: services.funds,
+      billingUsage: services.billingUsage,
+      logger: console,
+    });
     if (!ingress)
       return Response.json(
         { kind: 'rejected', error: { code: 'authority_unavailable', retryable: true } },

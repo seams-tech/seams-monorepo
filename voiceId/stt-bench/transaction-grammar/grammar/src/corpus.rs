@@ -7,8 +7,8 @@ use std::num::NonZeroU8;
 
 use serde_json::{json, Value};
 use spoken_intent::{
-    confusion_set, phonetic_key, render, ChallengeWord, NearAmount, Network, ProposalV1,
-    SpokenAccount, SpokenRequestV1, CHALLENGE_WORDS, RENDERER_VERSION,
+    confusion_set, phonetic_key, render, ChallengeWord, NearAccount, NearAmount, Network,
+    ProposalV1, SpokenAccount, SpokenRequestV1, CHALLENGE_WORDS, RENDERER_VERSION,
 };
 
 /// The 60 contacts: confusable pairs, digits, dashes and underscores.
@@ -56,6 +56,11 @@ impl Rng {
 
 fn text(tokens: &[spoken_intent::SpokenToken]) -> String {
     tokens.iter().map(|t| t.as_str()).collect::<Vec<_>>().join(" ")
+}
+
+/// The owner is not spoken, so any account works.
+fn owner_account() -> NearAccount {
+    NearAccount::new("owner.testnet").expect("valid account")
 }
 
 fn account(id: &str) -> SpokenAccount {
@@ -184,13 +189,11 @@ fn without_amount(words: &[String], send_index: usize) -> Vec<String> {
 }
 
 fn added_clause(words: &[String], other: &SpokenAccount) -> Vec<String> {
-    let clause = render(&SpokenRequestV1::VaultTransfer {
+    let clause = render(&SpokenRequestV1::AccountTransfer {
         network: Network::Testnet,
-        vault: account("vault.testnet"),
-        owner: account("owner.testnet"),
+        owner: owner_account(),
         receiver: other.clone(),
         amount: amount(10_000),
-        nonce: 0,
     });
     let mut out = words.to_vec();
     out.push("and".into());
@@ -239,34 +242,32 @@ fn one_digit_change(h: u64, rng: &mut Rng) -> Option<u64> {
 pub fn build(seed: u64) -> Value {
     let mut rng = Rng::new(seed);
     let contacts: Vec<SpokenAccount> = ACCOUNTS.iter().map(|a| account(a)).collect();
-    let vault = account("vault.testnet");
-    let owner = account("owner.testnet");
+    let owner = owner_account();
     let amounts = sample_amounts(&mut rng);
     let mut requests: Vec<Value> = Vec::new();
 
-    let vault_transfer = |receiver: &SpokenAccount, h: u64, nonce: u64| SpokenRequestV1::VaultTransfer {
+    let account_transfer = |receiver: &SpokenAccount, h: u64| SpokenRequestV1::AccountTransfer {
         network: Network::Testnet,
-        vault: vault.clone(),
         owner: owner.clone(),
         receiver: receiver.clone(),
         amount: amount(h),
-        nonce,
     };
 
     for (index, &h) in amounts.iter().enumerate() {
         let receiver = &contacts[(index * 37 + 11) % contacts.len()];
-        let nonce = rng.below(1_000_000);
-        let request = vault_transfer(receiver, h, nonce);
+        // The vault transfer drew a nonce here. The draw stays, so the corpus stays the same.
+        let _ = rng.below(1_000_000);
+        let request = account_transfer(receiver, h);
         let words = tokens_of(&request);
         let mut misses: Vec<(String, Vec<String>)> = Vec::new();
         if let Some(changed) = one_digit_change(h, &mut rng) {
-            misses.push(("one_digit".into(), tokens_of(&vault_transfer(receiver, changed, nonce))));
+            misses.push(("one_digit".into(), tokens_of(&account_transfer(receiver, changed))));
         }
         for (kind, value) in amount_misses(h) {
-            misses.push((kind.into(), tokens_of(&vault_transfer(receiver, value, nonce))));
+            misses.push((kind.into(), tokens_of(&account_transfer(receiver, value))));
         }
         let other = closest_contact(receiver, &contacts);
-        misses.push(("other_contact".into(), tokens_of(&vault_transfer(&other, h, nonce))));
+        misses.push(("other_contact".into(), tokens_of(&account_transfer(&other, h))));
         let mut verb = words.clone();
         verb[0] = "lend".into();
         misses.push(("changed_verb".into(), verb));
@@ -290,7 +291,7 @@ pub fn build(seed: u64) -> Value {
         }));
     }
 
-    let multisig = account("treasury.testnet");
+    let multisig = NearAccount::new("treasury.testnet").expect("valid account");
     let fixed_ids = [1u64, 13, 30, 42, 100, 999, 17, 70, 115, 550];
     for index in 0..MULTISIG_REQUESTS {
         let proposal_id = fixed_ids.get(index).copied().unwrap_or_else(|| 1 + rng.below(999));

@@ -26,8 +26,8 @@ use std::io::{BufRead, BufWriter, Write};
 use anyhow::{Context, Result};
 use serde_json::{json, Value};
 use spoken_intent::{
-    normalize, normalize_punctuated, parse_transfer, phonetic_key, render, NearAmount, Network,
-    ParseResult, PunctuatedRefusal, SpokenAccount, SpokenRequestV1,
+    normalize, normalize_punctuated, parse_transfer, phonetic_key, render, NearAccount, NearAmount,
+    Network, ParseResult, PunctuatedRefusal, SpokenAccount, SpokenRequestV1,
 };
 
 fn join(words: &[&str]) -> String {
@@ -140,13 +140,11 @@ fn rule_w(
     let final_tokens = normalize(&final_words.join(" ")).expect("normalized words stay normalizable");
     match parse_transfer(&final_tokens, accounts) {
         ParseResult::Transfer(p) => {
-            let rendered = render(&SpokenRequestV1::VaultTransfer {
+            let rendered = render(&SpokenRequestV1::AccountTransfer {
                 network: Network::Testnet,
-                vault: SpokenAccount::new("vault.testnet").unwrap(),
-                owner: SpokenAccount::new("owner.testnet").unwrap(),
+                owner: NearAccount::new("owner.testnet").unwrap(),
                 receiver: p.receiver.clone(),
                 amount: NearAmount::from_hundredths(p.amount.hundredths()).unwrap(),
-                nonce: 0,
             })
             .spoken_text;
             let accepted = rendered == expected;
@@ -387,13 +385,11 @@ fn rule_w2(heard: &str, expected: &str, is_transfer: bool, vault: &[&Contact]) -
     let final_tokens = normalize(&final_words.join(" ")).expect("normalized words stay normalizable");
     match parse_transfer(&final_tokens, &accounts) {
         ParseResult::Transfer(p) => {
-            let rendered = render(&SpokenRequestV1::VaultTransfer {
+            let rendered = render(&SpokenRequestV1::AccountTransfer {
                 network: Network::Testnet,
-                vault: SpokenAccount::new("vault.testnet").unwrap(),
-                owner: SpokenAccount::new("owner.testnet").unwrap(),
+                owner: NearAccount::new("owner.testnet").unwrap(),
                 receiver: p.receiver.clone(),
                 amount: NearAmount::from_hundredths(p.amount.hundredths()).unwrap(),
-                nonce: 0,
             })
             .spoken_text;
             let accepted = rendered == expected;
@@ -572,13 +568,11 @@ fn rule_crate(heard: &str, expected: &str, is_transfer: bool, vault: &[SpokenAcc
     }
     match parse_transfer(&tokens, vault) {
         ParseResult::Transfer(p) => {
-            let rendered = render(&SpokenRequestV1::VaultTransfer {
+            let rendered = render(&SpokenRequestV1::AccountTransfer {
                 network: Network::Testnet,
-                vault: SpokenAccount::new("vault.testnet").unwrap(),
-                owner: SpokenAccount::new("owner.testnet").unwrap(),
+                owner: NearAccount::new("owner.testnet").unwrap(),
                 receiver: p.receiver.clone(),
                 amount: p.amount,
-                nonce: 0,
             })
             .spoken_text;
             let accepted = rendered == expected;

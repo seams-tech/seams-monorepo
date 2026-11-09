@@ -2,6 +2,7 @@ import React from 'react';
 import {
   functionCall,
   type ActionResult,
+  type NearTransactionRejection,
   type SpeakToSignEnrollmentResult,
   type SpeakToSignTransferResult,
 } from '@seams/wallet';
@@ -162,29 +163,35 @@ function yoctoField(fields: Readonly<Record<string, string>>, name: string): big
   return value && /^\d+$/.test(value) ? BigInt(value) : null;
 }
 
+function lowBalanceMessage(rejection: NearTransactionRejection | undefined): string | null {
+  if (rejection?.error !== 'NotEnoughBalance') return null;
+  const balance = yoctoField(rejection.fields, 'balance');
+  const cost = yoctoField(rejection.fields, 'cost');
+  const amounts =
+    balance !== null && cost !== null
+      ? ` This call needs ${formatNear(cost)}, and the account has ${formatNear(balance)}.`
+      : '';
+  return `Your NEAR balance is too low, so NEAR refused the call before it ran.${amounts} Add testnet NEAR (step 4), then try again.`;
+}
+
 /**
- * The SDK's error text names only the failure class, such as "ActionError:
- * FunctionCallError". NEAR's refusal before execution arrives as `rejection`;
- * the contract's own text for an executed failure is read back by hash.
+ * A reverted call carries NEAR's reason, such as "The contract refused the
+ * call: Smart contract panicked: receiver is not a contact". NEAR's refusal
+ * before execution arrives as `rejection`. For an unresolved call, the
+ * contract's own text is read back by hash.
  */
 async function vaultFailureMessage(owner: Owner, failure: VaultCallFailure): Promise<string> {
   switch (failure.kind) {
     case 'not_submitted':
-      return `${failure.error} Nothing was sent.`;
+      return lowBalanceMessage(failure.rejection) ?? `${failure.error} Nothing was sent.`;
+    case 'reverted':
+      return failure.error;
     case 'submission_unknown':
       return `${failure.error} The call may have been sent. Check your account on NearBlocks before you try again.`;
     case 'unresolved': {
-      const rejection = failure.rejection;
-      if (rejection?.error === 'NotEnoughBalance') {
-        const balance = yoctoField(rejection.fields, 'balance');
-        const cost = yoctoField(rejection.fields, 'cost');
-        const amounts =
-          balance !== null && cost !== null
-            ? ` This call needs ${formatNear(cost)}, and the account has ${formatNear(balance)}.`
-            : '';
-        return `Your NEAR balance is too low, so NEAR refused the call before it ran.${amounts} Add testnet NEAR (step 4), then try again.`;
-      }
-      if (rejection) return failure.error;
+      const lowBalance = lowBalanceMessage(failure.rejection);
+      if (lowBalance) return lowBalance;
+      if (failure.rejection) return failure.error;
       const text = await readTransactionFailure(
         owner.rpcUrl,
         failure.transactionId,

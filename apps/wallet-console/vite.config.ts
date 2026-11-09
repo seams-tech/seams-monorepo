@@ -281,10 +281,6 @@ export default defineConfig(() => {
           showcaseInterlock: `${appRoot}showcase/motion/interlock/index.html`,
           showcaseSelfHostable: `${appRoot}showcase/motion/self-hostable/index.html`,
           showcaseDelegation: `${appRoot}showcase/motion/delegation/index.html`,
-          // Speak-to-Sign runs only on the staging testnet lane; production builds omit the page.
-          ...(process.env.VITE_SITE_ID === 'production'
-            ? {}
-            : { showcaseSpeakToPay: `${appRoot}showcase/speak-to-pay/index.html` }),
         },
       },
     },

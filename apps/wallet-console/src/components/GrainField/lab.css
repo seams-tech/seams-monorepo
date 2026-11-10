@@ -114,3 +114,30 @@ body {
     Menlo,
     monospace;
 }
+
+/* The picker on a hero panel: the field fills the panel, the picker sits at
+   its top right like a navbar control. */
+.lab__picker {
+  position: relative;
+  /* above the field cards that follow, so the open menu is not under them */
+  z-index: 1;
+  isolation: isolate;
+  min-height: 240px;
+  margin-bottom: 48px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  color: #ffffff;
+}
+
+.lab__picker-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lab__picker-text {
+  margin: 120px 0 0;
+  max-width: 36ch;
+  font-size: 18px;
+}

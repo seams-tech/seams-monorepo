@@ -4,15 +4,17 @@ import {
   DEFAULT_GRAIN_STYLE,
   GRAIN_FIELD_NAMES,
   GrainField,
+  GrainFieldPicker,
   setGrainStyle,
   type GeneratedField,
+  type GrainFieldName,
   type GrainStyle,
 } from '@seams-internal/grain-field';
 import './lab.css';
 
 /* Dev-only page (/gradients/ on the dev server, not in the build): every
-   named field, plus a generator for custom GrainField props. Copy a style into
-   DEFAULT_GRAIN_STYLE in renderer.ts. */
+   named field, the field picker on a hero panel, and a generator for custom
+   GrainField props. Copy a style into DEFAULT_GRAIN_STYLE in renderer.ts. */
 
 const STYLE_SLIDERS: readonly { key: keyof GrainStyle; max: number; step: number }[] = [
   { key: 'distortion', max: 1, step: 0.01 },
@@ -32,6 +34,7 @@ function GradientLab(): React.JSX.Element {
   const [angle, setAngle] = React.useState(120);
   const [seed, setSeed] = React.useState(7);
   const [style, setStyle] = React.useState(DEFAULT_GRAIN_STYLE);
+  const [picked, setPicked] = React.useState<GrainFieldName>('apricot-beam');
   React.useEffect(() => setGrainStyle(style), [style]);
   const field: GeneratedField = {
     accents: twoAccents ? [first, second] : [first],
@@ -122,6 +125,22 @@ function GradientLab(): React.JSX.Element {
           ))}
           <code>{JSON.stringify(style)}</code>
         </div>
+      </section>
+
+      <section className="lab__picker">
+        <GrainField field={picked} pace={0.5} />
+        <div className="lab__picker-bar">
+          <strong>GrainFieldPicker</strong>
+          <GrainFieldPicker
+            value={picked}
+            onChange={setPicked}
+            label="Hero gradient"
+            tags={{ 'teal-peach-wisp': 'Seams home' }}
+          />
+        </div>
+        <p className="lab__picker-text">
+          Open the picker and use the arrow keys: the panel shows each field in turn.
+        </p>
       </section>
 
       <section className="lab__fields">

@@ -1,0 +1,166 @@
+/* GrainFieldPicker: a round glass button with a picture of the field, and a
+   menu of dark glass under it, at its right edge. Keyboard focus shows as
+   darker glass, with no ring. */
+.grain-picker {
+  position: relative;
+  flex: none;
+}
+
+.grain-picker__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: rgba(10, 10, 10, 0.26);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.grain-picker__button:focus,
+.grain-picker__button:focus-visible {
+  outline: none;
+}
+
+.grain-picker__button:focus-visible,
+.grain-picker[data-open] .grain-picker__button {
+  background: rgba(10, 10, 10, 0.48);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .grain-picker__button:hover {
+    background: rgba(10, 10, 10, 0.42);
+  }
+}
+
+.grain-picker__swatch {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background-position: center;
+  background-size: cover;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+  transition: transform 150ms ease;
+}
+
+.grain-picker[data-open] .grain-picker__swatch {
+  transform: scale(1.12);
+}
+
+.grain-picker__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: 252px;
+  max-width: calc(100vw - 24px);
+  padding: 6px;
+  border-radius: 16px;
+  background: rgba(22, 24, 28, 0.78);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 24px 48px -16px rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  text-align: left;
+  transform-origin: 100% 0;
+  animation: grain-picker-in 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes grain-picker-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+}
+
+.grain-picker__head {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.grain-picker__list {
+  position: relative;
+  max-height: min(66vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.grain-picker__list:focus,
+.grain-picker__list:focus-visible {
+  outline: none;
+}
+
+.grain-picker__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px 0 7px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.grain-picker__option--active {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.grain-picker__option[aria-selected='true'] {
+  font-weight: 600;
+}
+
+.grain-picker__thumb {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background-position: center;
+  background-size: cover;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.grain-picker__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.grain-picker__tag {
+  flex: none;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.grain-picker__check {
+  flex: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grain-picker__menu {
+    animation: none;
+  }
+  .grain-picker__swatch {
+    transition: none;
+  }
+}

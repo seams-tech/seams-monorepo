@@ -155,8 +155,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/wallet-console-shared-ts
       '@seams/speak-to-sign':
-        specifier: 0.65.0
-        version: 0.65.0(@seams/voiceid@0.66.0(@seams/wallet@0.66.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@seams/wallet@0.66.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))
+        specifier: 0.66.0
+        version: 0.66.0(@seams/voiceid@0.66.0(@seams/wallet@0.66.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@seams/wallet@0.66.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))
       '@seams/voiceid':
         specifier: 0.66.0
         version: 0.66.0(@seams/wallet@0.66.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -1395,13 +1395,13 @@ packages:
   '@scure/bip39@1.6.0':
     resolution: {integrity: sha512-+lF0BbLiJNwVlev4eKelw1WWLaiKXw7sSl8T6FvBlWkdX+94aGJ4o8XjUdlyhTCjd8c+B3KT3JfS8P0bLRNU6A==}
 
-  '@seams/speak-to-sign@0.65.0':
-    resolution: {integrity: sha512-mHqrP0W5cbLJm0Qz/g/9GpIMxnX4gAbbAKnlHgjwI4DTEOmwPH40m6MS7aqYj8vENfXAbHaBMdJ6iyVYgmqaUg==}
+  '@seams/speak-to-sign@0.66.0':
+    resolution: {integrity: sha512-nwcdhl+gUWQWS4eF1Tn1mzah6FPJ/bx1ICCRLkZNgFJ3yPG3LAmNOtbdfxR6oYUDf1MGiMm3zgBnGPkq2vhOuw==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
-      '@seams/voiceid': 0.65.0
-      '@seams/wallet': 0.65.0
+      '@seams/voiceid': 0.66.0
+      '@seams/wallet': 0.66.0
 
   '@seams/voiceid@0.66.0':
     resolution: {integrity: sha512-z0spiWpAYXbPRnufR8S39wJgn2vGSebzCl5g06z71N9LB2CSUER9rDPnOZ5DuoX+AAtnHVmIwFvSZf3B/pQFVQ==}
@@ -3491,7 +3491,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 
-  '@seams/speak-to-sign@0.65.0(@seams/voiceid@0.66.0(@seams/wallet@0.66.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@seams/wallet@0.66.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))':
+  '@seams/speak-to-sign@0.66.0(@seams/voiceid@0.66.0(@seams/wallet@0.66.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@seams/wallet@0.66.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))':
     dependencies:
       '@seams/voiceid': 0.66.0(@seams/wallet@0.66.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@seams/wallet': 0.66.0(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)

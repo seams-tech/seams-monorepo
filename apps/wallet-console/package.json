@@ -24,7 +24,7 @@
     "@seams-internal/wallet-console-shared": "workspace:*",
     "@seams/wallet": "0.66.0",
     "@seams/voiceid": "0.66.0",
-    "@seams/speak-to-sign": "0.65.0",
+    "@seams/speak-to-sign": "0.66.0",
     "@radix-ui/react-select": "2.2.6",
     "@tanstack/react-query": "5.87.1",
     "borsh": "2.0.0",

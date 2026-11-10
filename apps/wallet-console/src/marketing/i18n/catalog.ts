@@ -73,16 +73,16 @@ export const catalog = {
     ja: 'パスキー対応の組み込みウォレットSDK | Seams',
   },
   pageDescription: {
-    en: 'Embed passkey wallets with the Seams SDK. Add authentication, device linking, recovery, and transaction signing. Explore pricing and integration guides.',
-    ja: 'パスキーで開く、ノンカストディアルの組み込みウォレット。認証、署名、復元をひとつのSDKで。',
+    en: 'Embedded wallets with biometric sign-in and no lock-in. Users open the wallet with a face, a fingerprint, or a voice. Open source, with key export.',
+    ja: '生体認証で開く、ロックインのない組み込みウォレット。顔、指紋、声でサインイン。オープンソースで、鍵のエクスポートにも対応。',
   },
   heroTitle: {
-    en: 'Embedded wallets without the lock-in.',
-    ja: 'ロックインのない組み込みウォレット。',
+    en: 'Embedded wallets.\nBiometric sign-in.\nNo lock-in.',
+    ja: '組み込みウォレット。\n生体認証でサインイン。\nロックインなし。',
   },
   heroDescription: {
-    en: 'Add passkey wallets to your app, with device linking, recovery, and transaction signing. Use managed hosting or discuss an assisted deployment.',
-    ja: 'アプリにパスキーウォレットを組み込み、デバイスのリンク、復元、トランザクション署名に対応。マネージド環境を利用するか、導入支援付きの環境構築をご相談ください。',
+    en: 'Add a wallet to your app that users open with a face, a fingerprint, or a voice. There is no seed phrase to lose. The code is open source, and users can export their keys at any time.',
+    ja: '顔、指紋、声で開くウォレットをアプリに組み込めます。失くす心配のあるシードフレーズはありません。コードはオープンソースで、ユーザーはいつでも鍵をエクスポートできます。',
   },
   startFree: { en: 'Start free', ja: '無料で始める' },
   startBuilding: { en: 'Start building', ja: '開発を始める' },

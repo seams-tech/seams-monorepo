@@ -1797,6 +1797,8 @@ body:has(.h2-page) {
   font-size: clamp(29px, 2.7vw, 38px);
   font-weight: 400;
   line-height: 1.1;
+  /* the title is three short sentences, one to a line */
+  white-space: pre-line;
 }
 
 .h2-hero__sub {

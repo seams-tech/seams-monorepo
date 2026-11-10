@@ -13,7 +13,9 @@ const bone: React.CSSProperties = {
 
 export function DemoTxCardSkeleton(): React.JSX.Element {
   return (
-    <div aria-hidden style={{ display: 'grid', gap: 12, padding: '8px 0' }}>
+    /* same inset as .demo-page-header and the chain section, so the bones sit
+       where the loaded content does instead of on the card edge */
+    <div aria-hidden style={{ display: 'grid', gap: 12, padding: '1.5rem 1rem 1rem' }}>
       <div style={{ ...bone, height: 34, width: '38%' }} />
       <div style={{ ...bone, height: 20, width: '72%' }} />
       <div style={{ ...bone, height: 44, borderRadius: 22 }} />

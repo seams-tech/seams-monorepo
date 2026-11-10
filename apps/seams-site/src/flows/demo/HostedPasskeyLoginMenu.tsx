@@ -273,10 +273,6 @@ export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
           initialMode={resolvedInitialMode}
           registrationAccountInput="implicit_wallet"
           showRegistrationInput={false}
-          copy={{
-            login: { subtitle: 'Continue with a passkey or Google' },
-            register: { subtitle: 'Continue with a passkey or Google' },
-          }}
           externalAuthBroker={externalAuthBroker}
           onOutcome={handleHostedAuthMenuOutcomeAndCancelGoogleRequest.bind(null, refreshSession)}
         />

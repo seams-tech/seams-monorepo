@@ -59,15 +59,25 @@ test.describe('Console operating paths', () => {
     await page.getByRole('button', { name: 'Create credential', exact: true }).click();
     const createDialog = page.getByRole('dialog', { name: 'Create credential modal' });
     await expect(createDialog).toBeVisible();
+    await createDialog.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(createDialog).toBeHidden();
+    await page.getByRole('button', { name: 'Create credential', exact: true }).click();
+    await expect(createDialog).toBeVisible();
     const dialogCredentialScope = createDialog.getByRole('region', { name: 'Credential scope' });
     await expect(dialogCredentialScope).toContainText('Creating for');
     await expect(dialogCredentialScope).toContainText(tenant.projectName);
     await expect(dialogCredentialScope).toContainText('Development');
     await expect(dialogCredentialScope).toContainText('Testnet');
     await createDialog.getByRole('button', { name: /Browser publishable_key/ }).click();
-    await expect(createDialog.getByLabel('Allowed origins URI 1')).toHaveValue(
-      new URL(page.url()).origin,
-    );
+    const firstOriginInput = createDialog.getByLabel('Allowed origins URI 1');
+    await expect(firstOriginInput).toHaveValue(new URL(page.url()).origin);
+    const inputBox = await firstOriginInput.boundingBox();
+    expect(inputBox).not.toBeNull();
+    await page.mouse.move(inputBox!.x + inputBox!.width / 2, inputBox!.y + inputBox!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(8, 8, { steps: 5 });
+    await page.mouse.up();
+    await expect(createDialog).toBeVisible();
     await expect(createDialog.getByLabel('Allowed origins URI 2')).toHaveCount(0);
     await createDialog.getByLabel('Name').fill(`${tenant.projectName} browser key`);
     await createDialog.getByRole('button', { name: 'Create publishable_key', exact: true }).click();

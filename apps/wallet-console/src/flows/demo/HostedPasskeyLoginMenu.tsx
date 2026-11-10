@@ -240,11 +240,6 @@ function startOpening(phase: DemoMenuPhase): DemoMenuPhase {
   return phase === 'preview' ? 'opening' : phase;
 }
 
-const HOSTED_AUTH_MENU_COPY = {
-  login: { subtitle: 'Continue with a passkey or Google' },
-  register: { subtitle: 'Continue with a passkey or Google' },
-} as const;
-
 export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
   const authMenuContainerRef = React.useRef<HTMLDivElement>(null);
   // A landing visitor sees a preview until they use the demo; only then does the
@@ -324,7 +319,6 @@ export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
           {phase === 'live' ? null : (
             <AuthMenuPreview
               initialMode={resolvedInitialMode}
-              copy={HOSTED_AUTH_MENU_COPY}
               usable={phase === 'preview'}
               onUse={startDemo}
             />
@@ -334,9 +328,11 @@ export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
               initialMode={resolvedInitialMode}
               registrationAccountInput="implicit_wallet"
               showRegistrationInput={false}
-              copy={HOSTED_AUTH_MENU_COPY}
               externalAuthBroker={externalAuthBroker}
-              onOutcome={handleHostedAuthMenuOutcomeAndCancelGoogleRequest.bind(null, refreshSession)}
+              onOutcome={handleHostedAuthMenuOutcomeAndCancelGoogleRequest.bind(
+                null,
+                refreshSession,
+              )}
             />
           )}
         </div>

@@ -138,6 +138,7 @@ function WalletDemoContent({
                 currentPage={demoPage}
                 onCurrentPageChange={setDemoPage}
                 defaultModeWhenNoDetectedAccount={authDefaultModeWhenNoDetectedAccount}
+                settingsPresentation="drawer"
               />
             </React.Suspense>
           </div>

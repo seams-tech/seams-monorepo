@@ -2,12 +2,14 @@ import React from 'react';
 import { toast } from 'sonner';
 import {
   useSeams,
+  TouchIcon,
   KeyExportEventPhase,
   LinkDeviceEventPhase,
   type KeyExportFlowEvent,
   type LinkDeviceFlowEvent,
 } from '@seams/wallet/react';
 import { AccountMenuButton } from '@seams/wallet/react/profile';
+import { t } from '@/marketing/i18n/browser';
 import { useProfileMenuControl } from '@/context/ProfileMenuControl';
 import {
   dismissDemoEmailOtpToast,
@@ -66,14 +68,20 @@ export function handleKeyExportEvent(event: KeyExportFlowEvent): void {
   }
 }
 
+/* How the wallet settings open: the SDK's dropdown, which morphs out of its
+   own button, or the SDK's drawer, which this page opens from its own button. */
+export type SettingsPresentation = 'dropdown' | 'drawer';
+
 export interface SeamsProfileSettingsButtonProps {
   className?: string;
   style?: React.CSSProperties;
+  presentation?: SettingsPresentation;
 }
 
 export const SeamsProfileSettingsButton: React.FC<SeamsProfileSettingsButtonProps> = ({
   className,
   style,
+  presentation = 'dropdown',
 }) => {
   const { loginState } = useSeams();
   const [isMobile, setIsMobile] = React.useState<boolean>(false);
@@ -140,7 +148,23 @@ export const SeamsProfileSettingsButton: React.FC<SeamsProfileSettingsButtonProp
   } else {
     return (
       <div className="seams-profile-button-container" style={style}>
+        {presentation === 'drawer' ? (
+          <button
+            type="button"
+            className="demo-settings-trigger"
+            aria-label={isMobile ? t('settings') : undefined}
+            aria-haspopup="dialog"
+            aria-expanded={isMenuOpen}
+            onClick={() => setMenuOpen(true)}
+          >
+            <span className="demo-settings-trigger__avatar" aria-hidden>
+              <TouchIcon width={21} height={21} strokeWidth={1.4} />
+            </span>
+            {isMobile ? null : <span>{t('settings')}</span>}
+          </button>
+        ) : null}
         <AccountMenuButton
+          presentation={presentation}
           nearAccountId={loginState.nearAccountId}
           nearExplorerBaseUrl="https://testnet.nearblocks.io"
           onExportKeyError={(error: Error) => {

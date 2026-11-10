@@ -48,7 +48,7 @@ function main() {
       ? buildConsoleConfig(
           deployment,
           lane.console,
-          lane.kind === 'customer' ? lane.applicationOrigin : lane.site.walletSiteOrigin,
+          lane.site.walletSiteOrigin,
           lane.walletOrigin,
           lane.gatewayOrigin,
           lane.emailOtpDelivery,
@@ -197,7 +197,9 @@ function buildConsoleConfig(
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
     SEAMS_WALLET_SERVICE_DEPLOYMENT_ID: consoleTarget.walletServiceDeploymentId,
-    SEAMS_TENANT_BROWSER_CREDENTIAL_JSON: browserCredentialConfiguration(deployment.lane),
+    SEAMS_TENANT_BROWSER_CREDENTIAL_JSON: JSON.stringify({
+      kind: 'create_managed_publishable_key',
+    }),
     TENANT_DEPLOYMENT_SURFACES_JSON: JSON.stringify({
       applicationOrigin: walletSiteOrigin,
       hostedWalletOrigin: walletOrigin,
@@ -288,18 +290,6 @@ function buildConsoleConfig(
     },
     vars,
   };
-}
-
-function browserCredentialConfiguration(laneId) {
-  const lane = readBackendLane(laneId);
-  if (lane.kind === 'platform') {
-    return JSON.stringify({ kind: 'create_managed_publishable_key' });
-  }
-  const publishableKey = String(process.env.SEAMS_TENANT_BOOTSTRAP_PUBLISHABLE_KEY || '').trim();
-  if (!/^pk_dev_[A-Za-z0-9_-]+$/u.test(publishableKey)) {
-    throw new Error('GetSignal requires its verified Development publishable key');
-  }
-  return JSON.stringify({ kind: 'adopt_publishable_key', publishableKey });
 }
 
 function buildConsoleRoutes(consoleOrigin, walletSiteOrigin, frontendOrigins) {
@@ -566,7 +556,18 @@ function buildWorkerVars(
   }
   addNearRelayerVars(vars, deployment.optional.nearRelayer);
   addOptionalStringVar(vars, 'GOOGLE_OIDC_CLIENT_ID', deployment.optional.googleOidcClientId);
+  addSpeakToSignVerifierVars(vars, deployment.optional.speakToSignVerifier);
   return vars;
+}
+
+/** The secrets file adds SPEAK_TO_SIGN_OUTLAYER_PAYMENT_KEY for the same lanes. */
+function addSpeakToSignVerifierVars(vars, verifier) {
+  if (!verifier) return;
+  vars.SPEAK_TO_SIGN_OUTLAYER_BASE_URL = verifier.outlayerBaseUrl;
+  vars.SPEAK_TO_SIGN_OUTLAYER_PROJECT = verifier.project;
+  vars.SPEAK_TO_SIGN_OUTLAYER_VERSION_KEY = verifier.versionKey;
+  vars.SPEAK_TO_SIGN_OUTLAYER_SECRETS_PROFILE = verifier.secretsProfile;
+  vars.SPEAK_TO_SIGN_OUTLAYER_SECRETS_ACCOUNT_ID = verifier.secretsAccountId;
 }
 
 function buildOutlayerSponsoredExecutionPricingConfig(runtimeProfile) {

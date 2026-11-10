@@ -10,9 +10,8 @@ An unavailable mainnet lane displays an error; it never opens the testnet wallet
 frontend build copies `/wallet-service/index.html` unchanged. The application
 supplies its relayer URL through SDK configuration.
 The build composes the optional `@seams/voiceid` host assets into the Wallet host.
-GetSignal embeds `https://sign.seams.sh` and
-retains its own project environment and gateway. Its application does not deploy
-a wallet host. The settings app connects
+Customer applications embed the shared wallet origin of their network and deploy
+no wallet host of their own. The settings app connects
 to the same-origin wallet service.
 
 Build and deploy through the existing frontend workflow with `surface: wallet-host`

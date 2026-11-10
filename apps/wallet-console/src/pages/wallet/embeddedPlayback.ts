@@ -204,7 +204,25 @@ function clickWithoutFocus(target: PlaybackTarget): void {
   else target.click();
 }
 
+function revealTarget(button: PlaybackTarget): void {
+  const document = button.ownerDocument;
+  const scroller = document.scrollingElement;
+  const viewHeight = document.documentElement.clientHeight;
+  if (!scroller || scroller.scrollHeight <= viewHeight) return;
+  const rect = button.getBoundingClientRect();
+  const margin = 72;
+  if (rect.top < margin) {
+    scroller.scrollTo({ top: scroller.scrollTop + rect.top - margin, behavior: 'smooth' });
+  } else if (rect.bottom > viewHeight - margin) {
+    scroller.scrollTo({
+      top: scroller.scrollTop + rect.bottom - (viewHeight - margin),
+      behavior: 'smooth',
+    });
+  }
+}
+
 function createCursorVisit(button: PlaybackTarget): CursorVisit {
+  revealTarget(button);
   const cursor = button.ownerDocument.createElement('span');
   cursor.setAttribute('aria-hidden', 'true');
   cursor.dataset.playbackCursor = '';

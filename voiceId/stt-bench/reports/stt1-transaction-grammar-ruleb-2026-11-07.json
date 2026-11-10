@@ -1,0 +1,1732 @@
+{
+ "gate": "STT-1",
+ "run": "Rule B with the extended confusion_set",
+ "date": "2026-11-07",
+ "acceptGate": 0.95,
+ "audioAndCases": "reused from the first run (stt1-transaction-grammar-2026-11-07), not regenerated",
+ "confusionSetChange": {
+  "verbs": [
+   "send",
+   "approve",
+   "reject",
+   "add",
+   "remove",
+   "set"
+  ],
+  "negations": [
+   "do not",
+   "dont",
+   "never",
+   "not (before the verb)",
+   "not (after the verb)"
+  ],
+  "verbPositions": "first word; for an approval also the first word of the proposal",
+  "droppedClauses": [
+   "amount",
+   "amount and near",
+   "receiver (to ...)",
+   "verb",
+   "proposal and id",
+   "proposal",
+   "one or both challenge words"
+  ],
+  "addedClauses": "and + the transfer or proposal again, for the request and each field change with the same id",
+  "amounts": "added x100 and /100 (if exact) to the existing x10, /10 and one-digit changes",
+  "contacts": "every other saved contact (unchanged)"
+ },
+ "corpusCheck": {
+  "identicalExceptConfusionSet": true,
+  "nearMissesByteIdentical": true,
+  "correctReadingsByteIdentical": true,
+  "oldConfusionTexts": 23958,
+  "newConfusionTexts": 52150,
+  "oldSetIsSubsetOfNew": true,
+  "coveredByKind": {
+   "add_remove_swapped": {
+    "covered": 20,
+    "coveredBefore": 20,
+    "n": 20
+   },
+   "added_clause": {
+    "covered": 0,
+    "coveredBefore": 0,
+    "n": 250
+   },
+   "changed_verb": {
+    "covered": 0,
+    "coveredBefore": 0,
+    "n": 250
+   },
+   "missing_amount": {
+    "covered": 210,
+    "coveredBefore": 0,
+    "n": 210
+   },
+   "moved_decimal": {
+    "covered": 178,
+    "coveredBefore": 129,
+    "n": 178
+   },
+   "negation": {
+    "covered": 250,
+    "coveredBefore": 0,
+    "n": 250
+   },
+   "one_digit": {
+    "covered": 209,
+    "coveredBefore": 209,
+    "n": 209
+   },
+   "other_contact": {
+    "covered": 210,
+    "coveredBefore": 210,
+    "n": 210
+   },
+   "proposal_id": {
+    "covered": 50,
+    "coveredBefore": 50,
+    "n": 50
+   },
+   "swapped_challenge": {
+    "covered": 50,
+    "coveredBefore": 50,
+    "n": 50
+   },
+   "ten_times": {
+    "covered": 174,
+    "coveredBefore": 174,
+    "n": 174
+   },
+   "threshold_changed": {
+    "covered": 8,
+    "coveredBefore": 8,
+    "n": 10
+   },
+   "version_digit": {
+    "covered": 0,
+    "coveredBefore": 0,
+    "n": 10
+   }
+  }
+ },
+ "stt1": {
+  "aurora": {
+   "ruleA": false,
+   "ruleB": false
+  },
+  "citrinet": {
+   "ruleA": false,
+   "ruleB": false
+  }
+ },
+ "byKind": {
+  "aurora": {
+   "add_remove_swapped": {
+    "n": 40,
+    "coveredByConstruction": {
+     "covered": 20,
+     "coveredBefore": 20,
+     "n": 20
+    },
+    "calibrationMaxScore": -22.02898848002505,
+    "testAccepted": 0,
+    "testN": 20,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "added_clause": {
+    "n": 500,
+    "coveredByConstruction": {
+     "covered": 0,
+     "coveredBefore": 0,
+     "n": 250
+    },
+    "calibrationMaxScore": null,
+    "testAccepted": 0,
+    "testN": 250,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "changed_verb": {
+    "n": 500,
+    "coveredByConstruction": {
+     "covered": 0,
+     "coveredBefore": 0,
+     "n": 250
+    },
+    "calibrationMaxScore": 14.819389331549104,
+    "testAccepted": 0,
+    "testN": 250,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 92
+   },
+   "missing_amount": {
+    "n": 420,
+    "coveredByConstruction": {
+     "covered": 210,
+     "coveredBefore": 0,
+     "n": 210
+    },
+    "calibrationMaxScore": -30.510569707462444,
+    "testAccepted": 0,
+    "testN": 210,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "moved_decimal": {
+    "n": 356,
+    "coveredByConstruction": {
+     "covered": 178,
+     "coveredBefore": 129,
+     "n": 178
+    },
+    "calibrationMaxScore": -3.9394179205208246,
+    "testAccepted": 0,
+    "testN": 180,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "negation": {
+    "n": 500,
+    "coveredByConstruction": {
+     "covered": 250,
+     "coveredBefore": 0,
+     "n": 250
+    },
+    "calibrationMaxScore": -11.914412319691756,
+    "testAccepted": 0,
+    "testN": 250,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "one_digit": {
+    "n": 418,
+    "coveredByConstruction": {
+     "covered": 209,
+     "coveredBefore": 209,
+     "n": 209
+    },
+    "calibrationMaxScore": 1.8946812775859598,
+    "testAccepted": 0,
+    "testN": 210,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 2
+   },
+   "other_contact": {
+    "n": 420,
+    "coveredByConstruction": {
+     "covered": 210,
+     "coveredBefore": 210,
+     "n": 210
+    },
+    "calibrationMaxScore": 10.172706758306575,
+    "testAccepted": 0,
+    "testN": 210,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 23
+   },
+   "proposal_id": {
+    "n": 100,
+    "coveredByConstruction": {
+     "covered": 50,
+     "coveredBefore": 50,
+     "n": 50
+    },
+    "calibrationMaxScore": -9.709880431502114,
+    "testAccepted": 0,
+    "testN": 50,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "swapped_challenge": {
+    "n": 100,
+    "coveredByConstruction": {
+     "covered": 50,
+     "coveredBefore": 50,
+     "n": 50
+    },
+    "calibrationMaxScore": -32.08065424191264,
+    "testAccepted": 0,
+    "testN": 50,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "ten_times": {
+    "n": 348,
+    "coveredByConstruction": {
+     "covered": 174,
+     "coveredBefore": 174,
+     "n": 174
+    },
+    "calibrationMaxScore": -1.901679495031928,
+    "testAccepted": 0,
+    "testN": 168,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "threshold_changed": {
+    "n": 20,
+    "coveredByConstruction": {
+     "covered": 8,
+     "coveredBefore": 8,
+     "n": 10
+    },
+    "calibrationMaxScore": -10.681856207626296,
+    "testAccepted": 0,
+    "testN": 10,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "version_digit": {
+    "n": 20,
+    "coveredByConstruction": {
+     "covered": 0,
+     "coveredBefore": 0,
+     "n": 10
+    },
+    "calibrationMaxScore": -36.05617286889054,
+    "testAccepted": 0,
+    "testN": 10,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   }
+  },
+  "citrinet": {
+   "add_remove_swapped": {
+    "n": 40,
+    "coveredByConstruction": {
+     "covered": 20,
+     "coveredBefore": 20,
+     "n": 20
+    },
+    "calibrationMaxScore": -35.53677641541301,
+    "testAccepted": 0,
+    "testN": 20,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "added_clause": {
+    "n": 500,
+    "coveredByConstruction": {
+     "covered": 0,
+     "coveredBefore": 0,
+     "n": 250
+    },
+    "calibrationMaxScore": -8.84918057200619,
+    "testAccepted": 0,
+    "testN": 250,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "changed_verb": {
+    "n": 500,
+    "coveredByConstruction": {
+     "covered": 0,
+     "coveredBefore": 0,
+     "n": 250
+    },
+    "calibrationMaxScore": 8.970508513461986,
+    "testAccepted": 0,
+    "testN": 250,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 229
+   },
+   "missing_amount": {
+    "n": 420,
+    "coveredByConstruction": {
+     "covered": 210,
+     "coveredBefore": 0,
+     "n": 210
+    },
+    "calibrationMaxScore": -70.4150101346385,
+    "testAccepted": 0,
+    "testN": 210,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "moved_decimal": {
+    "n": 356,
+    "coveredByConstruction": {
+     "covered": 178,
+     "coveredBefore": 129,
+     "n": 178
+    },
+    "calibrationMaxScore": 0.23000920982775597,
+    "testAccepted": 0,
+    "testN": 180,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 1
+   },
+   "negation": {
+    "n": 500,
+    "coveredByConstruction": {
+     "covered": 250,
+     "coveredBefore": 0,
+     "n": 250
+    },
+    "calibrationMaxScore": -12.280619164287174,
+    "testAccepted": 0,
+    "testN": 250,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "one_digit": {
+    "n": 418,
+    "coveredByConstruction": {
+     "covered": 209,
+     "coveredBefore": 209,
+     "n": 209
+    },
+    "calibrationMaxScore": -2.8324338164628244,
+    "testAccepted": 0,
+    "testN": 210,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "other_contact": {
+    "n": 420,
+    "coveredByConstruction": {
+     "covered": 210,
+     "coveredBefore": 210,
+     "n": 210
+    },
+    "calibrationMaxScore": 7.4559104657443385,
+    "testAccepted": 0,
+    "testN": 210,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 16
+   },
+   "proposal_id": {
+    "n": 100,
+    "coveredByConstruction": {
+     "covered": 50,
+     "coveredBefore": 50,
+     "n": 50
+    },
+    "calibrationMaxScore": -3.977536779791393,
+    "testAccepted": 0,
+    "testN": 50,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "swapped_challenge": {
+    "n": 100,
+    "coveredByConstruction": {
+     "covered": 50,
+     "coveredBefore": 50,
+     "n": 50
+    },
+    "calibrationMaxScore": -38.55521179632413,
+    "testAccepted": 0,
+    "testN": 50,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "ten_times": {
+    "n": 348,
+    "coveredByConstruction": {
+     "covered": 174,
+     "coveredBefore": 174,
+     "n": 174
+    },
+    "calibrationMaxScore": -19.99985393690244,
+    "testAccepted": 0,
+    "testN": 168,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   },
+   "threshold_changed": {
+    "n": 20,
+    "coveredByConstruction": {
+     "covered": 8,
+     "coveredBefore": 8,
+     "n": 10
+    },
+    "calibrationMaxScore": 5.7995153102450985,
+    "testAccepted": 0,
+    "testN": 10,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 1
+   },
+   "version_digit": {
+    "n": 20,
+    "coveredByConstruction": {
+     "covered": 0,
+     "coveredBefore": 0,
+     "n": 10
+    },
+    "calibrationMaxScore": -24.471650169382997,
+    "testAccepted": 0,
+    "testN": 10,
+    "allAccepted": 0,
+    "acceptedAtMarginZero": 0
+   }
+  }
+ },
+ "summary": {
+  "aurora": {
+   "margin": 14.819390331549103,
+   "testCorrectAccepted": 4,
+   "testCorrectN": 1500,
+   "allCorrectAccepted": 13,
+   "allNearMissAccepted": 0,
+   "nearMissN": 3742,
+   "heldOutKinds": [
+    "added_clause",
+    "changed_verb",
+    "threshold_changed",
+    "version_digit"
+   ],
+   "coveredOnlyMargin": 10.172707758306574,
+   "coveredOnlyMarginTestCorrect": 48,
+   "coveredOnlyMarginHeldOutNearMissAccepted": 3,
+   "atMarginZero": {
+    "correct": 1630,
+    "nearMiss": 117
+   },
+   "testCorrectScoreQuantiles": {
+    "p05": -10.34931571917798,
+    "p25": -0.9389342346719047,
+    "p50": 4.110845620677349,
+    "p75": 6.95589144550776,
+    "p95": 9.696366503634138
+   },
+   "testCorrectWithinOneWord": 1112,
+   "correctLosingToCompetitorByClass": {
+    "field_change": 755,
+    "dropped_clause": 222,
+    "changed_verb": 32
+   }
+  },
+  "citrinet": {
+   "margin": 8.970509513461986,
+   "testCorrectAccepted": 31,
+   "testCorrectN": 1500,
+   "allCorrectAccepted": 71,
+   "allNearMissAccepted": 0,
+   "nearMissN": 3742,
+   "heldOutKinds": [
+    "added_clause",
+    "changed_verb",
+    "threshold_changed",
+    "version_digit"
+   ],
+   "coveredOnlyMargin": 7.455911465744339,
+   "coveredOnlyMarginTestCorrect": 225,
+   "coveredOnlyMarginHeldOutNearMissAccepted": 37,
+   "atMarginZero": {
+    "correct": 1559,
+    "nearMiss": 247
+   },
+   "testCorrectScoreQuantiles": {
+    "p05": -42.24572281345729,
+    "p25": -0.6808088804645109,
+    "p50": 5.118813954061558,
+    "p75": 7.2701220992359765,
+    "p95": 8.7054470641244
+   },
+   "testCorrectWithinOneWord": 1055,
+   "correctLosingToCompetitorByClass": {
+    "field_change": 879,
+    "dropped_clause": 160,
+    "changed_verb": 148
+   }
+  }
+ },
+ "models": {
+  "aurora": {
+   "ruleA": {
+    "correct": {
+     "accepted": 5,
+     "n": 3000,
+     "rate": 0.0016666666666666668
+    },
+    "correctByVoice": {
+     "Daniel": {
+      "accepted": 1,
+      "n": 500,
+      "rate": 0.002
+     },
+     "Karen": {
+      "accepted": 1,
+      "n": 500,
+      "rate": 0.002
+     },
+     "Moira": {
+      "accepted": 1,
+      "n": 500,
+      "rate": 0.002
+     },
+     "Rishi": {
+      "accepted": 0,
+      "n": 500,
+      "rate": 0.0
+     },
+     "Samantha": {
+      "accepted": 1,
+      "n": 500,
+      "rate": 0.002
+     },
+     "Tessa": {
+      "accepted": 1,
+      "n": 500,
+      "rate": 0.002
+     }
+    },
+    "correctByRate": {
+     "160": {
+      "accepted": 5,
+      "n": 1500,
+      "rate": 0.0033333333333333335
+     },
+     "210": {
+      "accepted": 0,
+      "n": 1500,
+      "rate": 0.0
+     }
+    },
+    "correctByField": {
+     "ms_add_member": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_remove_member": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_set_threshold": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_set_verifier_version": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_transfer": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "transfer/one_decimal/dash": {
+      "accepted": 0,
+      "n": 84,
+      "rate": 0.0
+     },
+     "transfer/one_decimal/digit": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/one_decimal/letters": {
+      "accepted": 3,
+      "n": 348,
+      "rate": 0.008620689655172414
+     },
+     "transfer/one_decimal/underscore": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/dash": {
+      "accepted": 0,
+      "n": 84,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/digit": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/letters": {
+      "accepted": 0,
+      "n": 672,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/underscore": {
+      "accepted": 0,
+      "n": 72,
+      "rate": 0.0
+     },
+     "transfer/whole_1000_plus/dash": {
+      "accepted": 0,
+      "n": 72,
+      "rate": 0.0
+     },
+     "transfer/whole_1000_plus/digit": {
+      "accepted": 0,
+      "n": 36,
+      "rate": 0.0
+     },
+     "transfer/whole_1000_plus/letters": {
+      "accepted": 2,
+      "n": 420,
+      "rate": 0.004761904761904762
+     },
+     "transfer/whole_1000_plus/underscore": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/whole_below_1000/dash": {
+      "accepted": 0,
+      "n": 60,
+      "rate": 0.0
+     },
+     "transfer/whole_below_1000/letters": {
+      "accepted": 0,
+      "n": 408,
+      "rate": 0.0
+     },
+     "transfer/whole_below_1000/underscore": {
+      "accepted": 0,
+      "n": 48,
+      "rate": 0.0
+     }
+    },
+    "nearMiss": {
+     "accepted": 0,
+     "n": 3742,
+     "upper95": 0.0008002494513799085,
+     "examples": []
+    },
+    "nearMissByKind": {
+     "add_remove_swapped": 0,
+     "added_clause": 0,
+     "changed_verb": 0,
+     "missing_amount": 0,
+     "moved_decimal": 0,
+     "negation": 0,
+     "one_digit": 0,
+     "other_contact": 0,
+     "proposal_id": 0,
+     "swapped_challenge": 0,
+     "ten_times": 0,
+     "threshold_changed": 0,
+     "version_digit": 0
+    },
+    "transferRefusals": {
+     "NotTransfer": 2211,
+     "Amount": 75,
+     "UnknownRecipient": 109
+    },
+    "failureExamples": [
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "sin d eight thousandight hundred eighty e aightgent to wear it dottistent",
+      "voice": "Karen"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "sendight thousand aight hundred eighty eight near to mary dot teset",
+      "voice": "Samantha"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "sair j thousand eight hundred eighty eight near two eric dot testinut",
+      "voice": "Moira"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "seenty thousand hundred eighty igniitarydtestmot",
+      "voice": "Daniel"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "send e eight thousand eight hundred eighty eight near to erit dot testnut",
+      "voice": "Samantha"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "send eight thousand eight hundred eighty eight near to ericd testinate",
+      "voice": "Daniel"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "send eight thousand eight hundred eighty eight near tw eicotestnut",
+      "voice": "Moira"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "sein eight thousand eight hundred eighty eight nut aerri dot testnot",
+      "voice": "Karen"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "seent eight thousand eight hundred eighty eightvenia to e it dot disnate",
+      "voice": "Rishi"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "sein eight thousand eight hundred eighty eveniot to ey dctsnent",
+      "voice": "Tessa"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "cnd eight thousand eight hundred eighty eighty at tw eric dot destnate",
+      "voice": "Rishi"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "sin eight thousand eight hundred eighty eight near to eric doctestnat",
+      "voice": "Tessa"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "sint one hundred forourty three thousand one hundred twenty threeen thewell of a doticnat",
+      "voice": "Karen"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "sent one hundred forty three thousand one hundred twenty tree yar tow oiver dotesmet",
+      "voice": "Samantha"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "sent one hundred forty free thousand one hundred twenty three yar tweleever dotestnut",
+      "voice": "Moira"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "sent one hundred forty three thousand one hundred twenty three yar two oliver dot tesnot",
+      "voice": "Samantha"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "send one hundred forty three thousand one hundred twenty creen nea to over doctistmate",
+      "voice": "Rishi"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "sent one hundred forty three thousand one hundred twenty t three at all of a doesmat",
+      "voice": "Daniel"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "send one hundred forty three thousand one hundred twenty three neight oiver doot tespalt",
+      "voice": "Daniel"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "sein one hundred forty three thousand one hundred twenty three yar ot of a dcticement",
+      "voice": "Tessa"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "sent one hundred forty three thousand one hundred twenty three to olive a dotestnat",
+      "voice": "Karen"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "send one hundred forty three thousand one hundred twenty three yar to oiver doct testinates",
+      "voice": "Moira"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "send one hundred forty three thousand one hundred twenty threee y or two oiver dork destnate",
+      "voice": "Rishi"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "send one hundred forty three thousand one hundred twenty three year to oliver doot testnut",
+      "voice": "Tessa"
+     },
+     {
+      "expected": "send ninety six near to tina dot testnet",
+      "transcript": "sent ninety six near t teena dot tesnut",
+      "voice": "Samantha"
+     }
+    ]
+   },
+   "ruleB": {
+    "margin": 14.819390331549103,
+    "calibrationNearMisses": 1874,
+    "testCorrect": {
+     "accepted": 4,
+     "n": 1500,
+     "rate": 0.0026666666666666666
+    },
+    "testNearMiss": {
+     "accepted": 0,
+     "n": 1868,
+     "upper95": 0.001602425809771879,
+     "examples": []
+    },
+    "allCorrect": {
+     "accepted": 13,
+     "n": 3000,
+     "rate": 0.004333333333333333
+    },
+    "allNearMiss": {
+     "accepted": 0,
+     "n": 3742,
+     "upper95": 0.0008002494513799085,
+     "examples": []
+    },
+    "allNearMissByKind": {
+     "add_remove_swapped": 0,
+     "added_clause": 0,
+     "changed_verb": 0,
+     "missing_amount": 0,
+     "moved_decimal": 0,
+     "negation": 0,
+     "one_digit": 0,
+     "other_contact": 0,
+     "proposal_id": 0,
+     "swapped_challenge": 0,
+     "ten_times": 0,
+     "threshold_changed": 0,
+     "version_digit": 0
+    },
+    "correctByField": {
+     "ms_add_member": {
+      "accepted": 1,
+      "n": 120,
+      "rate": 0.008333333333333333
+     },
+     "ms_remove_member": {
+      "accepted": 12,
+      "n": 120,
+      "rate": 0.1
+     },
+     "ms_set_threshold": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_set_verifier_version": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_transfer": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "transfer/one_decimal/dash": {
+      "accepted": 0,
+      "n": 84,
+      "rate": 0.0
+     },
+     "transfer/one_decimal/digit": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/one_decimal/letters": {
+      "accepted": 0,
+      "n": 348,
+      "rate": 0.0
+     },
+     "transfer/one_decimal/underscore": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/dash": {
+      "accepted": 0,
+      "n": 84,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/digit": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/letters": {
+      "accepted": 0,
+      "n": 672,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/underscore": {
+      "accepted": 0,
+      "n": 72,
+      "rate": 0.0
+     },
+     "transfer/whole_1000_plus/dash": {
+      "accepted": 0,
+      "n": 72,
+      "rate": 0.0
+     },
+     "transfer/whole_1000_plus/digit": {
+      "accepted": 0,
+      "n": 36,
+      "rate": 0.0
+     },
+     "transfer/whole_1000_plus/letters": {
+      "accepted": 0,
+      "n": 420,
+      "rate": 0.0
+     },
+     "transfer/whole_1000_plus/underscore": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/whole_below_1000/dash": {
+      "accepted": 0,
+      "n": 60,
+      "rate": 0.0
+     },
+     "transfer/whole_below_1000/letters": {
+      "accepted": 0,
+      "n": 408,
+      "rate": 0.0
+     },
+     "transfer/whole_below_1000/underscore": {
+      "accepted": 0,
+      "n": 48,
+      "rate": 0.0
+     }
+    },
+    "atMarginZero": {
+     "correct": {
+      "accepted": 1630,
+      "n": 3000,
+      "rate": 0.5433333333333333
+     },
+     "nearMiss": {
+      "accepted": 117,
+      "n": 3742,
+      "upper95": 0.03636072770525632,
+      "examples": [
+       {
+        "text": "send eight thousand eight hundred eighty eight near to eric dot testnet",
+        "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+        "transcript": "sair j thousand eight hundred eighty eight near two eric dot testinut"
+       },
+       {
+        "text": "lend one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+        "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+        "transcript": "leined one hundred forty three thousand one hundred twenty three year to o ofver doctistement"
+       },
+       {
+        "text": "lend one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+        "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+        "transcript": "lenged one hundred forty three thousand one hundred twenty three yar to oliver doark testnot"
+       },
+       {
+        "text": "lend one thousand three hundred near to payrolls dot testnet",
+        "expected": "send one thousand three hundred near to payrolls dot testnet",
+        "transcript": "lined one thousand three hundred near to parl's dct testnat"
+       },
+       {
+        "text": "send seven thousand four hundred twelve point two nine near to hannah dot testnet",
+        "expected": "send seven thousand four hundred twelve point two nine near to anna dot testnet",
+        "transcript": "cent seven thousand four hundred twelve point tw nine near to han a dot tesnut"
+       },
+       {
+        "text": "lend one hundred sixty six near to peter dot testnet",
+        "expected": "send one hundred sixty six near to peter dot testnet",
+        "transcript": "lnd one hundred sixty six near to pet or dot testinut"
+       },
+       {
+        "text": "lend one thousand nine hundred near to bob dash one dot testnet",
+        "expected": "send one thousand nine hundred near to bob dash one dot testnet",
+        "transcript": "lined one thousand nine hundred yar t bob dash one dcticemot"
+       },
+       {
+        "text": "lend one thousand nine hundred near to bob dash one dot testnet",
+        "expected": "send one thousand nine hundred near to bob dash one dot testnet",
+        "transcript": "b linged one thousand nine hundred near to above dash one doct testnat"
+       },
+       {
+        "text": "send one thousand four hundred near to jon dot testnet",
+        "expected": "send one thousand four hundred near to john dot testnet",
+        "transcript": "sent one thousand four hundred near to joan dat teset"
+       },
+       {
+        "text": "send one thousand four hundred near to jon dot testnet",
+        "expected": "send one thousand four hundred near to john dot testnet",
+        "transcript": "send one thousand four hundred near to john dot testnot"
+       }
+      ]
+     }
+    }
+   },
+   "diagnostics": {
+    "transferAmountWordsHeard": {
+     "accepted": 1113,
+     "n": 2400,
+     "rate": 0.46375
+    },
+    "transferAmountWordsHeardByCategory": {
+     "one_decimal": {
+      "accepted": 187,
+      "n": 480,
+      "rate": 0.38958333333333334
+     },
+     "two_decimals": {
+      "accepted": 230,
+      "n": 852,
+      "rate": 0.2699530516431925
+     },
+     "whole_1000_plus": {
+      "accepted": 377,
+      "n": 552,
+      "rate": 0.6829710144927537
+     },
+     "whole_below_1000": {
+      "accepted": 319,
+      "n": 516,
+      "rate": 0.6182170542635659
+     }
+    },
+    "wordRecall": {
+     "send": {
+      "accepted": 392,
+      "n": 2520,
+      "rate": 0.15555555555555556
+     },
+     "near": {
+      "accepted": 1592,
+      "n": 2568,
+      "rate": 0.6199376947040498
+     },
+     "to": {
+      "accepted": 1618,
+      "n": 2640,
+      "rate": 0.6128787878787879
+     },
+     "dot": {
+      "accepted": 611,
+      "n": 2760,
+      "rate": 0.2213768115942029
+     },
+     "testnet": {
+      "accepted": 10,
+      "n": 2316,
+      "rate": 0.004317789291882556
+     },
+     "point": {
+      "accepted": 836,
+      "n": 1392,
+      "rate": 0.6005747126436781
+     },
+     "approve": {
+      "accepted": 0,
+      "n": 600,
+      "rate": 0.0
+     },
+     "proposal": {
+      "accepted": 279,
+      "n": 600,
+      "rate": 0.465
+     }
+    },
+    "withinOneWord": {
+     "accepted": 2234,
+     "n": 3000,
+     "rate": 0.7446666666666667
+    }
+   },
+   "meanInferMs": 7.2103443504894775,
+   "meanSeconds": 4.4401142094334025,
+   "stt1": {
+    "ruleA": false,
+    "ruleB": false
+   }
+  },
+  "citrinet": {
+   "ruleA": {
+    "correct": {
+     "accepted": 14,
+     "n": 3000,
+     "rate": 0.004666666666666667
+    },
+    "correctByVoice": {
+     "Daniel": {
+      "accepted": 1,
+      "n": 500,
+      "rate": 0.002
+     },
+     "Karen": {
+      "accepted": 8,
+      "n": 500,
+      "rate": 0.016
+     },
+     "Moira": {
+      "accepted": 3,
+      "n": 500,
+      "rate": 0.006
+     },
+     "Rishi": {
+      "accepted": 1,
+      "n": 500,
+      "rate": 0.002
+     },
+     "Samantha": {
+      "accepted": 1,
+      "n": 500,
+      "rate": 0.002
+     },
+     "Tessa": {
+      "accepted": 0,
+      "n": 500,
+      "rate": 0.0
+     }
+    },
+    "correctByRate": {
+     "160": {
+      "accepted": 14,
+      "n": 1500,
+      "rate": 0.009333333333333334
+     },
+     "210": {
+      "accepted": 0,
+      "n": 1500,
+      "rate": 0.0
+     }
+    },
+    "correctByField": {
+     "ms_add_member": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_remove_member": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_set_threshold": {
+      "accepted": 9,
+      "n": 120,
+      "rate": 0.075
+     },
+     "ms_set_verifier_version": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_transfer": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "transfer/one_decimal/dash": {
+      "accepted": 1,
+      "n": 84,
+      "rate": 0.011904761904761904
+     },
+     "transfer/one_decimal/digit": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/one_decimal/letters": {
+      "accepted": 2,
+      "n": 348,
+      "rate": 0.005747126436781609
+     },
+     "transfer/one_decimal/underscore": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/dash": {
+      "accepted": 0,
+      "n": 84,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/digit": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/letters": {
+      "accepted": 0,
+      "n": 672,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/underscore": {
+      "accepted": 0,
+      "n": 72,
+      "rate": 0.0
+     },
+     "transfer/whole_1000_plus/dash": {
+      "accepted": 0,
+      "n": 72,
+      "rate": 0.0
+     },
+     "transfer/whole_1000_plus/digit": {
+      "accepted": 0,
+      "n": 36,
+      "rate": 0.0
+     },
+     "transfer/whole_1000_plus/letters": {
+      "accepted": 0,
+      "n": 420,
+      "rate": 0.0
+     },
+     "transfer/whole_1000_plus/underscore": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/whole_below_1000/dash": {
+      "accepted": 0,
+      "n": 60,
+      "rate": 0.0
+     },
+     "transfer/whole_below_1000/letters": {
+      "accepted": 2,
+      "n": 408,
+      "rate": 0.004901960784313725
+     },
+     "transfer/whole_below_1000/underscore": {
+      "accepted": 0,
+      "n": 48,
+      "rate": 0.0
+     }
+    },
+    "nearMiss": {
+     "accepted": 0,
+     "n": 3742,
+     "upper95": 0.0008002494513799085,
+     "examples": []
+    },
+    "nearMissByKind": {
+     "add_remove_swapped": 0,
+     "added_clause": 0,
+     "changed_verb": 0,
+     "missing_amount": 0,
+     "moved_decimal": 0,
+     "negation": 0,
+     "one_digit": 0,
+     "other_contact": 0,
+     "proposal_id": 0,
+     "swapped_challenge": 0,
+     "ten_times": 0,
+     "threshold_changed": 0,
+     "version_digit": 0
+    },
+    "transferRefusals": {
+     "NotTransfer": 1540,
+     "UnknownRecipient": 730,
+     "Amount": 125
+    },
+    "failureExamples": [
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "senty thousand hundred eight eight nery dokeestiminutt",
+      "voice": "Daniel"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "seven eh'eight hundred eight eight near two eriigo testament",
+      "voice": "Moira"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "sentay thousand a hundred aight a ne yarery dotestznet",
+      "voice": "Karen"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "send eight thousand eight hundred eighty eight near to eicg doot testnt",
+      "voice": "Samantha"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "sent eight thousand eight hundred eighty eight neeto earg doghtiseinut",
+      "voice": "Rishi"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "seventy thousand hundred aight eight near to earit da tchesamen",
+      "voice": "Samantha"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "send eight thousand eight hundred eight a net to heric dodtestnete",
+      "voice": "Karen"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "sing eight thousand eight hundred eighty eight neet to ericg docistiment",
+      "voice": "Tessa"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "send eight thousand eight hundred eighty eight meetalic dodtest note",
+      "voice": "Daniel"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "cent eight thousand eight hundred eighty eight near two eric dotestinet",
+      "voice": "Moira"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "send eight thousand eight hundred eighty eight near to eric doarc testament",
+      "voice": "Tessa"
+     },
+     {
+      "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+      "transcript": "send eight thousand eight hundred eighty eight nara two eriicdorttestnut",
+      "voice": "Rishi"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "seven one hundred forty thre thous one hundred twenty three ne doal of dochestmet",
+      "voice": "Karen"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "sent one hundred forty three thousand one hundred twenty feree near to oliver dotstesteminnt",
+      "voice": "Moira"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "send one hundred forty three thousand one hundred twenty three near oliver dod testplrt",
+      "voice": "Daniel"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "sent one hundred forty three thousand one hundred tnty feree near to oliver chchestasmut",
+      "voice": "Samantha"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "sendt one hundred forty three thousand one hundred twenty three near to oliver do testnet",
+      "voice": "Samantha"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "send one hundred forty three thousand one hundred twty threen net to olive doctch smnet",
+      "voice": "Rishi"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "sent one hundred forty three thousand one hundred twenty three near to olive docicimet",
+      "voice": "Tessa"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "send one hundred forty three thousand one hundred twenty three nit oiver dochasmentate",
+      "voice": "Daniel"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "send one hundred forty three thousand one hundred twenty three ne to oliver dodtestinet",
+      "voice": "Karen"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "sendt one hundred forty three thousand one hundred twenty three near to oliver do testinet",
+      "voice": "Moira"
+     },
+     {
+      "expected": "send ninety six near to tina dot testnet",
+      "transcript": "sen ninety six near to teena dog testament",
+      "voice": "Samantha"
+     },
+     {
+      "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+      "transcript": "send one hundred forty three thousand one hundred twenty three near two oliver doarkchestnut",
+      "voice": "Rishi"
+     },
+     {
+      "expected": "send ninety six near to tina dot testnet",
+      "transcript": "sent ninety six near t to china dog testlate",
+      "voice": "Daniel"
+     }
+    ]
+   },
+   "ruleB": {
+    "margin": 8.970509513461986,
+    "calibrationNearMisses": 1874,
+    "testCorrect": {
+     "accepted": 31,
+     "n": 1500,
+     "rate": 0.020666666666666667
+    },
+    "testNearMiss": {
+     "accepted": 0,
+     "n": 1868,
+     "upper95": 0.001602425809771879,
+     "examples": []
+    },
+    "allCorrect": {
+     "accepted": 71,
+     "n": 3000,
+     "rate": 0.023666666666666666
+    },
+    "allNearMiss": {
+     "accepted": 0,
+     "n": 3742,
+     "upper95": 0.0008002494513799085,
+     "examples": []
+    },
+    "allNearMissByKind": {
+     "add_remove_swapped": 0,
+     "added_clause": 0,
+     "changed_verb": 0,
+     "missing_amount": 0,
+     "moved_decimal": 0,
+     "negation": 0,
+     "one_digit": 0,
+     "other_contact": 0,
+     "proposal_id": 0,
+     "swapped_challenge": 0,
+     "ten_times": 0,
+     "threshold_changed": 0,
+     "version_digit": 0
+    },
+    "correctByField": {
+     "ms_add_member": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_remove_member": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_set_threshold": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_set_verifier_version": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "ms_transfer": {
+      "accepted": 0,
+      "n": 120,
+      "rate": 0.0
+     },
+     "transfer/one_decimal/dash": {
+      "accepted": 13,
+      "n": 84,
+      "rate": 0.15476190476190477
+     },
+     "transfer/one_decimal/digit": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/one_decimal/letters": {
+      "accepted": 3,
+      "n": 348,
+      "rate": 0.008620689655172414
+     },
+     "transfer/one_decimal/underscore": {
+      "accepted": 1,
+      "n": 24,
+      "rate": 0.041666666666666664
+     },
+     "transfer/two_decimals/dash": {
+      "accepted": 1,
+      "n": 84,
+      "rate": 0.011904761904761904
+     },
+     "transfer/two_decimals/digit": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/two_decimals/letters": {
+      "accepted": 10,
+      "n": 672,
+      "rate": 0.01488095238095238
+     },
+     "transfer/two_decimals/underscore": {
+      "accepted": 0,
+      "n": 72,
+      "rate": 0.0
+     },
+     "transfer/whole_1000_plus/dash": {
+      "accepted": 6,
+      "n": 72,
+      "rate": 0.08333333333333333
+     },
+     "transfer/whole_1000_plus/digit": {
+      "accepted": 4,
+      "n": 36,
+      "rate": 0.1111111111111111
+     },
+     "transfer/whole_1000_plus/letters": {
+      "accepted": 18,
+      "n": 420,
+      "rate": 0.04285714285714286
+     },
+     "transfer/whole_1000_plus/underscore": {
+      "accepted": 0,
+      "n": 24,
+      "rate": 0.0
+     },
+     "transfer/whole_below_1000/dash": {
+      "accepted": 3,
+      "n": 60,
+      "rate": 0.05
+     },
+     "transfer/whole_below_1000/letters": {
+      "accepted": 8,
+      "n": 408,
+      "rate": 0.0196078431372549
+     },
+     "transfer/whole_below_1000/underscore": {
+      "accepted": 4,
+      "n": 48,
+      "rate": 0.08333333333333333
+     }
+    },
+    "atMarginZero": {
+     "correct": {
+      "accepted": 1559,
+      "n": 3000,
+      "rate": 0.5196666666666667
+     },
+     "nearMiss": {
+      "accepted": 247,
+      "n": 3742,
+      "upper95": 0.07307265651109038,
+      "examples": [
+       {
+        "text": "lend eight thousand eight hundred eighty eight near to erik dot testnet",
+        "expected": "send eight thousand eight hundred eighty eight near to erik dot testnet",
+        "transcript": "lend eight thousand eight hundred eighty eight ne a two eick dot testinut"
+       },
+       {
+        "text": "lend one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+        "expected": "send one hundred forty three thousand one hundred twenty three near to oliver dot testnet",
+        "transcript": "lend one hundred forty three thousand one hundred twenty three near to oliver doar testament"
+       },
+       {
+        "text": "lend ninety six near to tina dot testnet",
+        "expected": "send ninety six near to tina dot testnet",
+        "transcript": "lendd ninety six mere tina dog testnote"
+       },
+       {
+        "text": "lend two hundred forty six thousand six hundred forty two near to tom dot testnet",
+        "expected": "send two hundred forty six thousand six hundred forty two near to tom dot testnet",
+        "transcript": "lent two hundred forty six thousand six hundred forty two near to tom dot testnet"
+       },
+       {
+        "text": "lend three thousand eight hundred eight point four five near to uma dot testnet",
+        "expected": "send three thousand eight hundred eight point four five near to uma dot testnet",
+        "transcript": "lend three thousand eight hundred eight point four five near to whoma dot testin it"
+       },
+       {
+        "text": "lend one thousand three hundred near to payrolls dot testnet",
+        "expected": "send one thousand three hundred near to payrolls dot testnet",
+        "transcript": "lenge one thousand three hundred near two per roll's dock testament"
+       },
+       {
+        "text": "lend one thousand three hundred near to payrolls dot testnet",
+        "expected": "send one thousand three hundred near to payrolls dot testnet",
+        "transcript": "linked one thousand three hundred nite per rolls docistasmate"
+       },
+       {
+        "text": "lend nine thousand fifty seven near to grace dot near",
+        "expected": "send nine thousand fifty seven near to grace dot near",
+        "transcript": "lend nine thousand fifty seven near to grace dognea"
+       },
+       {
+        "text": "lend eight point eight eight near to liza dot testnet",
+        "expected": "send eight point eight eight near to liza dot testnet",
+        "transcript": "lend egg point eight eight neear to liza dog testinet"
+       },
+       {
+        "text": "lend zero point five five near to maya dot near",
+        "expected": "send zero point five five near to maya dot near",
+        "transcript": "len zero point five five near two mile donea"
+       }
+      ]
+     }
+    }
+   },
+   "diagnostics": {
+    "transferAmountWordsHeard": {
+     "accepted": 1403,
+     "n": 2400,
+     "rate": 0.5845833333333333
+    },
+    "transferAmountWordsHeardByCategory": {
+     "one_decimal": {
+      "accepted": 272,
+      "n": 480,
+      "rate": 0.5666666666666667
+     },
+     "two_decimals": {
+      "accepted": 382,
+      "n": 852,
+      "rate": 0.44835680751173707
+     },
+     "whole_1000_plus": {
+      "accepted": 392,
+      "n": 552,
+      "rate": 0.7101449275362319
+     },
+     "whole_below_1000": {
+      "accepted": 357,
+      "n": 516,
+      "rate": 0.6918604651162791
+     }
+    },
+    "wordRecall": {
+     "send": {
+      "accepted": 1302,
+      "n": 2520,
+      "rate": 0.5166666666666667
+     },
+     "near": {
+      "accepted": 1887,
+      "n": 2568,
+      "rate": 0.7348130841121495
+     },
+     "to": {
+      "accepted": 1926,
+      "n": 2640,
+      "rate": 0.7295454545454545
+     },
+     "dot": {
+      "accepted": 100,
+      "n": 2760,
+      "rate": 0.036231884057971016
+     },
+     "testnet": {
+      "accepted": 67,
+      "n": 2316,
+      "rate": 0.028929188255613126
+     },
+     "point": {
+      "accepted": 1029,
+      "n": 1392,
+      "rate": 0.7392241379310345
+     },
+     "approve": {
+      "accepted": 93,
+      "n": 600,
+      "rate": 0.155
+     },
+     "proposal": {
+      "accepted": 509,
+      "n": 600,
+      "rate": 0.8483333333333334
+     }
+    },
+    "withinOneWord": {
+     "accepted": 2158,
+     "n": 3000,
+     "rate": 0.7193333333333334
+    }
+   },
+   "meanInferMs": 21.264257431919383,
+   "meanSeconds": 4.4401142094334025,
+   "stt1": {
+    "ruleA": false,
+    "ruleB": false
+   }
+  }
+ }
+}

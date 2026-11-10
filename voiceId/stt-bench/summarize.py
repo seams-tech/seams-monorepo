@@ -52,7 +52,12 @@ def main() -> None:
                     continue
                 row = [run]
                 for band in BANDS:
-                    stats = results[(run, set_name, band)][policy]
+                    # Runs over some conditions only have no result for the other bands.
+                    band_result = results.get((run, set_name, band))
+                    if band_result is None:
+                        row.append("–")
+                        continue
+                    stats = band_result[policy]
                     row.append(f"{percent(stats['trueAccept']['rate'])} / {percent(stats['nearMissAccept']['rate'])}")
                 overall = results[(run, set_name, "all")][policy]
                 row += [percent(overall[f"nearMissAccept.{kind}"]["rate"])

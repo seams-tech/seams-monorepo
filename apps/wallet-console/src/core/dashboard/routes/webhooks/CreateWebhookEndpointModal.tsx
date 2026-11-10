@@ -4,7 +4,10 @@ import type {
   ConsoleWebhookEventCategory,
   WebhookEventCategoryOption,
 } from './webhookEventCatalog';
-import { DashboardInlineModal } from '../../components/DashboardInlineModal';
+import {
+  DashboardInlineModal,
+  DashboardModalCloseButton,
+} from '../../components/DashboardInlineModal';
 
 const CREATE_WEBHOOK_TITLE_ID = 'dashboard-create-webhook-title';
 const CREATE_WEBHOOK_EVENTS_LABEL_ID = 'dashboard-create-webhook-events';
@@ -75,29 +78,11 @@ function CreateWebhookEndpointForm(
     <>
       <div className="dashboard-modal__header">
         <h2 id={CREATE_WEBHOOK_TITLE_ID}>{t('webhooksAddEndpoint')}</h2>
-        <button
-          type="button"
-          className="dashboard-modal__close"
-          aria-label={t('webhooksClose')}
+        <DashboardModalCloseButton
+          ariaLabel={t('webhooksClose')}
           onClick={onRequestClose}
           disabled={submitting}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d="M18 6 6 18" />
-            <path d="m6 6 12 12" />
-          </svg>
-        </button>
+        />
       </div>
 
       <form

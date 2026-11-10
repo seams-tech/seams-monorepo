@@ -274,6 +274,7 @@ export const catalog = {
   themeCarbon: { en: 'Carbon', ja: 'カーボン' },
   themePastel: { en: 'Pastel', ja: 'パステル' },
   themePastelDark: { en: 'Pastel Dark', ja: 'パステルダーク' },
+  settings: { en: 'Settings', ja: '設定' },
   demoScreens: { en: 'Demo screens', ja: 'デモ画面' },
   previousDemo: { en: 'Previous demo screen', ja: '前のデモ画面' },
   nextDemo: { en: 'Next demo screen', ja: '次のデモ画面' },

@@ -1,5 +1,5 @@
 import { buildHostedAuthMenuOpenRequest, hostedAuthMenuSessionIdFromBoundary } from '@seams/wallet';
-import type { HostedAuthMenuCopyInput, HostedAuthMenuMode } from '@seams/wallet/react';
+import type { HostedAuthMenuMode } from '@seams/wallet/react';
 import React from 'react';
 import '@wallet-ui/sdk/wallet-ui.css';
 import {
@@ -12,7 +12,6 @@ import { SITE_APPEARANCE } from '@/context/siteThemeOverrides';
 
 type AuthMenuPreviewProps = {
   readonly initialMode: HostedAuthMenuMode;
-  readonly copy: HostedAuthMenuCopyInput;
   /** False while the hosted menu opens over it: the preview is then only a picture. */
   readonly usable: boolean;
   /** Called on the first use of the preview; the caller then mounts the hosted menu. */
@@ -32,13 +31,12 @@ function previewSessionId() {
  * It carries no wallet logic, so the landing page loads no wallet runtime, crypto
  * worker or Google script until a visitor uses the demo.
  */
-function previewViewModel(initialMode: HostedAuthMenuMode, copy: HostedAuthMenuCopyInput) {
+function previewViewModel(initialMode: HostedAuthMenuMode) {
   const request = buildHostedAuthMenuOpenRequest({
     authMenuSessionId: previewSessionId(),
     initialMode,
     registrationAccountInput: 'implicit_wallet',
     showRegistrationInput: false,
-    copy,
     enabledExternalProviders: ['google'],
   });
   const modeCopy = request.copy[initialMode];
@@ -71,7 +69,6 @@ function previewViewModel(initialMode: HostedAuthMenuMode, copy: HostedAuthMenuC
 function mountPreview(
   parentRef: React.RefObject<HTMLDivElement | null>,
   initialMode: HostedAuthMenuMode,
-  copy: HostedAuthMenuCopyInput,
   onUse: () => void,
 ): () => void {
   const parent = parentRef.current;
@@ -81,7 +78,7 @@ function mountPreview(
   parent.inert = true;
   const handle: AuthMenuSurfaceHandle = mountAuthMenuSurface({
     parent,
-    viewModel: previewViewModel(initialMode, copy),
+    viewModel: previewViewModel(initialMode),
     onIntent: onUse,
   });
   parent.inert = false;
@@ -95,11 +92,11 @@ function syncPreviewInert(parentRef: React.RefObject<HTMLDivElement | null>, usa
   if (parentRef.current) parentRef.current.inert = !usable;
 }
 
-export function AuthMenuPreview({ initialMode, copy, usable, onUse }: AuthMenuPreviewProps) {
+export function AuthMenuPreview({ initialMode, usable, onUse }: AuthMenuPreviewProps) {
   const parentRef = React.useRef<HTMLDivElement>(null);
-  // The copy is a literal of the caller; the preview mounts once per mode.
+  // The preview mounts once per mode.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  React.useEffect(mountPreview.bind(null, parentRef, initialMode, copy, onUse), [initialMode]);
+  React.useEffect(mountPreview.bind(null, parentRef, initialMode, onUse), [initialMode]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(syncPreviewInert.bind(null, parentRef, usable), [usable]);
   return (

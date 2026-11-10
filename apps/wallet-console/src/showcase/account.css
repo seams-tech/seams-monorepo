@@ -1,3 +1,13 @@
+.showcase-stage {
+  padding-block: 56px;
+}
+
+@media (max-width: 600px) {
+  .showcase-stage {
+    padding-top: 84px;
+  }
+}
+
 .account-showcase {
   font-family: 'Hanken Grotesk', sans-serif;
   box-shadow: none;

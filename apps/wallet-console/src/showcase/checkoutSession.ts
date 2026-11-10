@@ -121,6 +121,7 @@ export class CheckoutSession {
         geometry: this.toastGeometry(),
         focusTrap: false,
         identity: this.identity,
+        anchoredLayer: null,
       });
       return;
     }
@@ -142,6 +143,7 @@ export class CheckoutSession {
       geometry,
       focusTrap: true,
       identity: this.identity,
+      anchoredLayer: null,
     });
   };
 

@@ -235,7 +235,7 @@
 }
 
 .showcase-preview__embed[data-preview='profile'] {
-  height: 800px;
+  height: 640px;
 }
 
 /* Cast the shadow outside each iframe so its edges cannot clip the card's lift. */

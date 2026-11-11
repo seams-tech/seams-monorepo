@@ -240,7 +240,6 @@ export default defineConfig(() => {
   // surfaces, which the package does not export.
   const packageRequire = createRequire(import.meta.url);
   const walletUi = `${dirname(packageRequire.resolve('@seams/wallet/package.json'))}/dist/esm`;
-  const voiceIdUi = `${dirname(packageRequire.resolve('@seams/voiceid/package.json'))}/dist/esm`;
   return {
     base,
     plugins: [react(), walletLanguagePages, voiceGlowOnPreact],
@@ -260,7 +259,6 @@ export default defineConfig(() => {
         '@wallet-product': `${appSrc}/products/wallet`,
         '@app': `${appSrc}/app`,
         '@wallet-ui': walletUi,
-        '@voiceid-ui': voiceIdUi,
       },
     },
     build: {

@@ -13,7 +13,7 @@ import type {
   TransactionReceiptView,
 } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-receipt';
 import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/display';
-import { VoicePrompt } from '@voiceid-ui/capture/prompt';
+import { VoicePrompt } from '@seams/voice-capture/card';
 import { showcaseAppearance, showcasePreset } from './showcaseTheme';
 import { schedulePlayback } from './playbackClock';
 import { playReceiptLifecycle } from './receiptLifecycle';

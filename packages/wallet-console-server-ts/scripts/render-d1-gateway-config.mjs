@@ -571,6 +571,9 @@ function addSpeakToSignVerifierVars(vars, verifier) {
   vars.SPEAK_TO_SIGN_OUTLAYER_VERSION_KEY = verifier.versionKey;
   vars.SPEAK_TO_SIGN_OUTLAYER_SECRETS_PROFILE = verifier.secretsProfile;
   vars.SPEAK_TO_SIGN_OUTLAYER_SECRETS_ACCOUNT_ID = verifier.secretsAccountId;
+  if (verifier.veniceVersionKey) {
+    vars.SPEAK_TO_SIGN_OUTLAYER_VENICE_VERSION_KEY = verifier.veniceVersionKey;
+  }
 }
 
 function buildOutlayerSponsoredExecutionPricingConfig(runtimeProfile) {

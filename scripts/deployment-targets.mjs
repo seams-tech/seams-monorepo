@@ -386,7 +386,9 @@ export function gatewaySecretNames(lane) {
     lane.provisioning.kind === 'provisioned' &&
     lane.provisioning.gatewayDeploymentConfig.optional.speakToSignVerifier
   ) {
-    names.push('SPEAK_TO_SIGN_OUTLAYER_PAYMENT_KEY');
+    // The verify route pays OutLayer with the payment key; the summary route of a note asks
+    // NEAR AI with its own key (Wallet 0.69.0).
+    names.push('SPEAK_TO_SIGN_OUTLAYER_PAYMENT_KEY', 'SPEAK_TO_SIGN_NEAR_AI_API_KEY');
   }
   return unique(names, 'gateway secret requirements');
 }

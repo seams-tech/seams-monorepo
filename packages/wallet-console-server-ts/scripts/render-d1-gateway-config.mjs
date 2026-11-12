@@ -560,7 +560,10 @@ function buildWorkerVars(
   return vars;
 }
 
-/** The secrets file adds SPEAK_TO_SIGN_OUTLAYER_PAYMENT_KEY for the same lanes. */
+/**
+ * The secrets file adds SPEAK_TO_SIGN_OUTLAYER_PAYMENT_KEY and SPEAK_TO_SIGN_NEAR_AI_API_KEY (the
+ * summary route of a note) for the same lanes.
+ */
 function addSpeakToSignVerifierVars(vars, verifier) {
   if (!verifier) return;
   vars.SPEAK_TO_SIGN_OUTLAYER_BASE_URL = verifier.outlayerBaseUrl;

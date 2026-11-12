@@ -271,6 +271,7 @@ test('required secrets are derived from enabled capabilities', async () => {
     'ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK',
     'SIGNING_SESSION_SEAL_ROOT_SECRET_B64U',
     'SPEAK_TO_SIGN_OUTLAYER_PAYMENT_KEY',
+    'SPEAK_TO_SIGN_NEAR_AI_API_KEY',
   ]);
   expect(module.componentSecretNames(staging, 'console')).toContain(
     'CONSOLE_EMAIL_INVITATION_SECRET_KEY_B64U',

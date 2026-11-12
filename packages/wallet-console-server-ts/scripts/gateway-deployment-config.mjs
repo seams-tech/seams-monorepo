@@ -690,17 +690,28 @@ function parseOptionalConfig(value) {
 /**
  * The public settings of the OutLayer verifier behind `POST /speak-to-sign/v1/verify`. Its
  * payment key is the secret SPEAK_TO_SIGN_OUTLAYER_PAYMENT_KEY; the route needs all six values.
+ * `veniceVersionKey` is optional: the WASM hash of the verifier's `venice` build, which the route
+ * calls only while NEAR AI Whisper is down (@seams/wallet-server 0.70.0 and later).
  */
 function parseSpeakToSignVerifier(value) {
   if (value === undefined || value === null) return null;
   const path = 'optional.speakToSignVerifier';
   const verifier = requireObject(value, path);
-  requireExactKeys(
-    verifier,
-    ['outlayerBaseUrl', 'project', 'versionKey', 'secretsProfile', 'secretsAccountId'],
-    path,
-  );
+  const required = ['outlayerBaseUrl', 'project', 'versionKey', 'secretsProfile', 'secretsAccountId'];
+  requireAllowedAndRequiredKeys(verifier, [...required, 'veniceVersionKey'], required, path);
+  const veniceVersionKey =
+    verifier.veniceVersionKey === undefined
+      ? null
+      : requirePattern(
+          verifier.veniceVersionKey,
+          OUTLAYER_VERSION_KEY_PATTERN,
+          `${path}.veniceVersionKey`,
+        );
+  if (veniceVersionKey !== null && veniceVersionKey === verifier.versionKey) {
+    throw new Error(`${path}.veniceVersionKey must be another WASM hash than versionKey`);
+  }
   return {
+    veniceVersionKey,
     outlayerBaseUrl: requireHttpsUrl(verifier.outlayerBaseUrl, `${path}.outlayerBaseUrl`),
     project: requirePattern(verifier.project, OUTLAYER_PROJECT_PATTERN, `${path}.project`),
     versionKey: requirePattern(

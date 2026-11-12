@@ -342,7 +342,7 @@ function buildFrontend(site, component, walletLanes) {
       },
     );
     copySdkAssets(output);
-    copyHostPluginAssets(output, lane);
+    copyHostPluginAssets(output);
     fs.appendFileSync(path.join(output, '_headers'), '\n/*\n  X-Robots-Tag: noindex\n');
     assertFile(path.join(output, 'index.html'), 'Wallet settings entry');
     fs.writeFileSync(path.join(output, '_redirects'), '/wallet-settings /index.html 200\n');
@@ -456,16 +456,12 @@ function copySdkAssets(destination) {
   copyDirectory(walletService, path.join(destination, 'wallet-service'));
 }
 
-// Only the staging testnet Gateway serves the Speak-to-Sign verifier, so only
-// its Wallet host serves the Speak-to-Sign host plugin. That composer adds VoiceID too.
-function hostPluginComposition(lane) {
-  return lane.id === 'staging-testnet'
-    ? { command: 'seams-speak-to-sign-host', directories: ['voiceid', 'speak-to-sign'] }
-    : { command: 'seams-voiceid-host', directories: ['voiceid'] };
-}
+// Every Wallet host serves the VoiceID host plugin. Speak-to-Sign has no host plugin since
+// Wallet 0.68.0: its flow is a chunk of the Wallet SDK, which copySdkAssets copies.
+const HOST_PLUGIN_COMPOSITION = { command: 'seams-voiceid-host', directories: ['voiceid'] };
 
-function copyHostPluginAssets(destination, lane) {
-  const composition = hostPluginComposition(lane);
+function copyHostPluginAssets(destination) {
+  const composition = HOST_PLUGIN_COMPOSITION;
   const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'seams-host-plugins-'));
   const composedAssets = path.join(temporaryDirectory, 'assets');
   try {

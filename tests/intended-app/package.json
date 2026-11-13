@@ -7,7 +7,7 @@
     "type-check": "tsrs --noEmit"
   },
   "dependencies": {
-    "@seams/wallet": "0.70.1",
+    "@seams/wallet": "0.70.2",
     "react": "19.1.1",
     "react-dom": "19.1.1"
   },

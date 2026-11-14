@@ -691,7 +691,7 @@ function parseOptionalConfig(value) {
  * The public settings of the OutLayer verifier behind `POST /speak-to-sign/v1/verify`. Its
  * payment key is the secret SPEAK_TO_SIGN_OUTLAYER_PAYMENT_KEY; the route needs all six values.
  * `veniceVersionKey` is optional: the WASM hash of the verifier's `venice` build, which the route
- * calls only while NEAR AI Whisper is down (@seams/wallet-server 0.70.0 and later).
+ * calls only while NEAR AI Whisper is down (@seams/wallet-server 0.71.0 and later).
  */
 function parseSpeakToSignVerifier(value) {
   if (value === undefined || value === null) return null;
